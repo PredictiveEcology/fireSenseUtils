@@ -96,17 +96,20 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  echo = TRUE,
+  eval = FALSE ## TODO: temporary until I can rework this vignette to actually run
 )
 
 library(reproducible)
-Require(c("magrittr", "dplyr", "PtProcess", "raster", "rgeos", "sp", "SpaDES", "spatstat"))
+Require(c("magrittr", "dplyr", "PtProcess", "quickPlot",
+          "raster", "rgeos", "sp", "SpaDES", "spatstat"))
 
 options(reproducible.useCache = FALSE) # Turn off caching
 
 setPaths(
   modulePath = normalizePath("../NWT/modules"),
-  outputPath = file.path("../NWT/outputs")
+  outputPath = normalizePath("../NWT/outputs")
 )
 
 normalizeRaster <- function(x) {
@@ -741,7 +744,7 @@ sim <- simInitAndSpades(
 
 burnMap <- sim$burnMap
 
-Plot(burnMap) # loader quickPLot?
+Plot(burnMap)
 ```
 
 Note that all the steps above could be done in one simulation / SpaDES call()
