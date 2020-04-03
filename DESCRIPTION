@@ -43,6 +43,7 @@ Suggests:
     spatstat,
     testthat
 Remotes:
+    PredictiveEcology/LandR@ecoregion,
     PredictiveEcology/reproducible@development
 VignetteBuilder:
     knitr,
