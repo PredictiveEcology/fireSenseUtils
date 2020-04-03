@@ -68,10 +68,10 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
         function(ind, date) data.table(ind = ind, date = date))
   )
   results <- purrr::pmap(
-    list(annDTx1000 = annualDTx1000[24],
-         yr = years[24],
-         annualFires = historicalFires[24],
-         annualFireBufferedDT = fireBufferedListDT[24]),
+    list(annDTx1000 = annualDTx1000,
+         yr = years,
+         annualFires = historicalFires,
+         annualFireBufferedDT = fireBufferedListDT),
     par = par, parsModel = parsModel,
     #pixelIndices = pixelIndices,
     verbose = verbose,
