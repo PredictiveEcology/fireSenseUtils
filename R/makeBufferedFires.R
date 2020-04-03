@@ -102,8 +102,6 @@ simplifyFireBuffered <- function(fireBuffered) {
   lapply(fireBuffered, function(r) {
     ras <- raster(r)
     nonNA <- which(!is.na(r[]))
-    ras[r[] == 1] <- 0L
-    ras[r[] == 0] <- 1L
     data.table(buffer = ras[][nonNA], pixelID = nonNA)
   })
 }

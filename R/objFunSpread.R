@@ -140,7 +140,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
         #      so probabilities can be calculated
         out[, prob := pmin(out$N/Nreps + 0.001, 0.99)]
         # 3 -- convert buffer (which has 1 in buffer) to burned = 1 - buffer
-        out[, burned := 1 - buffer]
+        out[, burned := buffer]
         # 4 -- Set initial pixels to burned = 2 -- is a work around for cases where "initial pixels" are not actually burned in
         #   the polygon database
         out[, burnedClass := burned]
