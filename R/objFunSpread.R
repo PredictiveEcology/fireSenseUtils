@@ -125,9 +125,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
           returnIndices = TRUE,
           allowOverlap = TRUE,
           quick = TRUE)
-        browser(expr = yr == 2014)
         fireSizes <- tabulate(spreadState[["id"]]) # Here tabulate() is equivalent to table() but faster
-        if (length(fireSizes) == 0) browser()
+        # if (length(fireSizes) == 0) browser()
         burnedProb <- spreadState[, .N, by = "indices"]
         setnames(burnedProb, "indices", "pixelID")
         setDT(annualFireBufferedDT)
@@ -186,7 +185,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
 
       list(fireSizes = fireSizes, SNLL = SNLL)
     })
-  browser()
   results <- purrr::transpose(results)
   historicalFiresTr <- purrr::transpose(historicalFires)
 
