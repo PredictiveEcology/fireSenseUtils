@@ -31,7 +31,8 @@ makeBufferedFires <- function(fireLocationsPolys,
   # upperTolerance: higher tolerance for buffer to be different from fire points (i.e. 1.2, 20% higher)
 
   fun <- ifelse(useParallel, future.apply::future_lapply, lapply)
-  historicalFire <- lapply(X = names(fireLocationsPolys), FUN = function(yr){ # Potentially invert future with inner lapply
+  historicalFire <- do.call(what = fun, args = list(X = names(fireLocationsPolys), 
+                                                    FUN = function(yr){
     # Projection is not the same, so I need to convert the polygon
     fireLocationsPoly <- reproducible::projectInputs(
       x = fireLocationsPolys[[yr]],
@@ -42,7 +43,7 @@ makeBufferedFires <- function(fireLocationsPolys,
     names(firePolyRas) <- yr
     # Do the calculation for each fire
     fireIDS <- unique(firePolyRas[!is.na(firePolyRas)])
-    allFires <- suppressWarnings(do.call(what = fun, args = list(X = fireIDS, FUN = function(fireID){
+    allFires <- lapply(X = fireIDS, FUN = function(fireID){
       valsFireRas  <- which(firePolyRas[] == fireID)
       adj <- adjacent(firePolyRas,
                       valsFireRas,
@@ -54,8 +55,8 @@ makeBufferedFires <- function(fireLocationsPolys,
       while (eval(parse(text = stateToCheck))) {
       adj <- adjacent(firePolyRas, adj, directions = 8, pairs = FALSE)
       rasBuffer <- raster(firePolyRas)
-      rasBuffer[adj] <- 0
-      rasBuffer[valsFireRas] <- 1
+      suppressWarnings(rasBuffer[adj] <- 0)
+      suppressWarnings(rasBuffer[valsFireRas] <- 1)
       tb <- data.table(table(rasBuffer[]))
       perc <- round((tb[1, N] / tb[2, N]) * 100, 0)
       direcion <- ifelse(perc > 100, "larger", "smaller")
@@ -89,7 +90,7 @@ makeBufferedFires <- function(fireLocationsPolys,
       }
       attr(rasBuffer, "buffer") <- adj
       return(rasBuffer)
-  })))
+  })
     # Convert to data table to speed up putting the rasters back together
     adjAll <- unlist(lapply(allFires, attr, which = "buffer"))
     allFires <- lapply(allFires, function(ras){
@@ -101,20 +102,20 @@ makeBufferedFires <- function(fireLocationsPolys,
     stkDT[, fires := rowSums(.SD, na.rm = TRUE)]
     rasBuffer <- setValues(raster(firePolyRas), stkDT$fires)
     # Put NA's back
-    rasBuffer[rasBuffer > 1] <- 1 # Just making sure all fires are 1 (the same pixel might have burned                                     more then one time)
+    suppressWarnings(rasBuffer[rasBuffer > 1] <- 1) #TODO Just making sure all fires are 1 (the same pixel might have burned                                     more then one time). This whould have already happened so here it could be a test 
     fires  <- which(rasBuffer[] == 1)
-    rasBuffer[] <- NA
-    rasBuffer[adjAll] <- 0 # Buffer
-    rasBuffer[fires] <- 1 # Fires
+    suppressWarnings(rasBuffer[] <- NA)
+    suppressWarnings(rasBuffer[adjAll] <- 0) # Buffer
+    suppressWarnings(rasBuffer[fires] <- 1) # Fires
     return(rasBuffer)
-  })
-  message(crayon::green(paste0("Finished fires in year ", yr)))
+  }))
+  message(crayon::green(paste0("Finished fire buffering")))
   print(Sys.time() - t1)
   names(historicalFire) <- names(fireLocationsPolys)
-  return(historicalFire)
   if (verbose) {
     print(Sys.time() - t1)
   }
+  return(historicalFire)
 }
 
 #' Simplify buffered fires
