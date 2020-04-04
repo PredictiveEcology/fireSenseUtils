@@ -106,7 +106,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
       #set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
       #actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
       medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
-      if (medSP <= 0.257 & medSP >= 0.16) {
+      if (medSP <= 0.25 & medSP >= 0.16) {
         if (verbose) {
           print(paste0(Sys.getpid(), "-- year: ",yr, ", spreadProb raster: median in buffered pixels = ",
                        round(medSP, 3)))
