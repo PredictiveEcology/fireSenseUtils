@@ -19,9 +19,10 @@ utils::globalVariables(c("N"))
 #' @importFrom raster adjacent crs raster
 #' @importFrom reproducible projectInputs
 #' @importFrom sf st_as_sf
-makeBufferedFires <- function(fireLocationsPolys, rasterToMatch,
-                              lowerTolerance = 0.8,
-                              upperTolerance = 1.2,
+makeBufferedFires <- function(fireLocationsPolys, 
+                              rasterToMatch,
+                              lowerTolerance = 3.8,
+                              upperTolerance = 4.2,
                               verbose = getOption("verbose", TRUE),
                               useParallel = FALSE) {
   t1 <- Sys.time()
@@ -30,24 +31,27 @@ makeBufferedFires <- function(fireLocationsPolys, rasterToMatch,
   # upperTolerance: higher tolerance for buffer to be different from fire points (i.e. 1.2, 20% higher)
 
   fun <- ifelse(useParallel, future.apply::future_lapply, lapply)
-  historicalFire <- do.call(what = fun, args = list(X = names(fireLocationsPolys), FUN = function(yr) {
+  historicalFire <- lapply(X = names(fireLocationsPolys), FUN = function(yr){ # Potentially invert future with inner lapply
     # Projection is not the same, so I need to convert the polygon
     fireLocationsPoly <- reproducible::projectInputs(
       x = fireLocationsPolys[[yr]],
       targetCRS = crs(rasterToMatch)
     )
     sf_fPY <- sf::st_as_sf(fireLocationsPoly)
-    if (isTRUE(verbose)) message("MakeBufferedFires")
-    firePolyRas <- fasterize::fasterize(sf = sf_fPY, raster = raster(rasterToMatch), field = NULL)
+    firePolyRas <- fasterize::fasterize(sf = sf_fPY, raster = raster(rasterToMatch), field = "NFIREID")
     names(firePolyRas) <- yr
-    valsFireRas <- which(firePolyRas[] == 1)
-    adj <- adjacent(firePolyRas, valsFireRas, directions = 8, pairs = FALSE)
-    tb <- data.table(V1 = c(0, 1), N = c(1, 2))
-    stateToCheck <- paste0(
-      "isFALSE(isTRUE(tb[1, N] < tb[2, N]*upperTolerance) & ",
-      "isTRUE(tb[1, N] > tb[2, N]*lowerTolerance))"
-    )
-    while (eval(parse(text = stateToCheck))) {
+    # Do the calculation for each fire
+    fireIDS <- unique(firePolyRas[!is.na(firePolyRas)])
+    allFires <- suppressWarnings(do.call(what = fun, args = list(X = fireIDS, FUN = function(fireID){
+      valsFireRas  <- which(firePolyRas[] == fireID)
+      adj <- adjacent(firePolyRas,
+                      valsFireRas,
+                      directions = 8,
+                      pairs = FALSE)
+      tb <- data.table(V1 = c(0, 1), N = c(1, 2))
+      stateToCheck <- paste0("isFALSE(isTRUE(tb[1, N] < tb[2, N]*upperTolerance) & ",
+                             "isTRUE(tb[1, N] > tb[2, N]*lowerTolerance))")
+      while (eval(parse(text = stateToCheck))) {
       adj <- adjacent(firePolyRas, adj, directions = 8, pairs = FALSE)
       rasBuffer <- raster(firePolyRas)
       rasBuffer[adj] <- 0
@@ -79,8 +83,33 @@ makeBufferedFires <- function(fireLocationsPolys, rasterToMatch,
       }
       if (tb[1, N] > tb[2, N] * upperTolerance) break
     }
+      if (is.null(rasBuffer)){
+        print("NULL raster? Debug")
+        browser()
+      }
+      attr(rasBuffer, "buffer") <- adj
+      return(rasBuffer)
+  })))
+    # Convert to data table to speed up putting the rasters back together
+    adjAll <- unlist(lapply(allFires, attr, which = "buffer"))
+    allFires <- lapply(allFires, function(ras){
+      attr(ras, "buffer") <- NULL
+      return(ras)
+    })
+    stk <- stack(allFires)
+    stkDT <- as.data.table(stk[])
+    stkDT[, fires := rowSums(.SD, na.rm = TRUE)]
+    rasBuffer <- setValues(raster(firePolyRas), stkDT$fires)
+    # Put NA's back
+    rasBuffer[rasBuffer > 1] <- 1 # Just making sure all fires are 1 (the same pixel might have burned                                     more then one time)
+    fires  <- which(rasBuffer[] == 1)
+    rasBuffer[] <- NA
+    rasBuffer[adjAll] <- 0 # Buffer
+    rasBuffer[fires] <- 1 # Fires
     return(rasBuffer)
-  }))
+  })
+  message(crayon::green(paste0("Finished fires in year ", yr)))
+  print(Sys.time() - t1)
   names(historicalFire) <- names(fireLocationsPolys)
   return(historicalFire)
   if (verbose) {
