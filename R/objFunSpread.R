@@ -32,7 +32,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
                     formula, #loci, sizes,
                     historicalFires,
                     fireBufferedListDT,
-                    wADtest = 1,
+                    covMinMax = NULL,
                     #bufferedRealHistoricalFiresList,
                     verbose = TRUE){ #fireSense_SpreadFitRaster
   # Optimization's objective function
@@ -78,9 +78,10 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
     nonAnnualDTx1000 = nonAnnualDTx1000,
     indexNonAnnual = indexNonAnnual,
     colsToUse = colsToUse,
+    covMinMax = covMinMax,
     .f = function(yr, annDTx1000, par, parsModel,
                   annualFires, nonAnnualDTx1000, annualFireBufferedDT, #pixelIndices,
-                  indexNonAnnual, colsToUse,
+                  indexNonAnnual, colsToUse, covMinMax,
                   verbose = TRUE) {
       # needed because data.table objects were recovered from disk
 
