@@ -113,7 +113,11 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
                        round(medSP, 3)))
         }
         cells[as.integer(shortAnnDTx1000$pixelID)] <- shortAnnDTx1000$spreadProb
-        maxSizes <- rep(annualFires$size, times = Nreps) * 2
+        maxSizes <- rep(annualFires$size, times = Nreps)
+        
+        # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
+        maxSizes <- maxSizes * (1.1+pmax(0,5-log10(maxSizes))) 
+        
         lociAll <- rep(annualFires$cells, times = Nreps)
         # spreadState <- rbindlist(Map(loci = lociAll, ms = maxSizes, function(loci, ms)
         #   spread(r,
