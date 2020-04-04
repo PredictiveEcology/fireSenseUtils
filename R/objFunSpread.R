@@ -89,6 +89,13 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
       #setDT(nonAnnDTx1000)
       setDT(annDTx1000)
       shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
+      # browser(expr = yr == 1991)
+      if (!is.null(covMinMax)) {
+        for (cn in colnames(covMinMax)) {
+          set(shortAnnDTx1000, NULL, cn, 
+              rescaleKnown(shortAnnDTx1000[[cn]], 0, 1000, covMinMax[[cn]][1], covMinMax[[cn]][2]))
+        }
+      }
       mat <- as.matrix(shortAnnDTx1000[, ..colsToUse])/1000
       # matrix multiplication
       covPars <- tail(x = par, n = parsModel)
@@ -195,4 +202,10 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
   # gc()
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
+}
+
+rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
+  a1 <- x - minOrig # brings min to zero
+  a2 <- a1 * maxNew/max(a1)
+  a2
 }
