@@ -114,12 +114,12 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
                        round(medSP, 3)))
         }
         cells[as.integer(shortAnnDTx1000$pixelID)] <- shortAnnDTx1000$spreadProb
-        maxSizes <- rep(annualFires$size, times = Nreps)
+        #maxSizes <- rep(annualFires$size, times = Nreps)
         
         # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
-        maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes))) 
+        #maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes))) 
         
-        lociAll <- rep(annualFires$cells, times = Nreps)
+        #lociAll <- annualFires$cells
         # spreadState <- rbindlist(Map(loci = lociAll, ms = maxSizes, function(loci, ms)
         #   spread(r,
         #           start = loci,
@@ -131,15 +131,26 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
         #           maxSize = ms,
         #           skipChecks = TRUE)),
         #   idcol = "rep")
-        spreadState <- SpaDES.tools::spread(
-          landscape = r,
-          maxSize = maxSizes,
-          loci = rep(annualFires$cells, times = Nreps),
-          spreadProb = cells,
-          returnIndices = TRUE,
-          allowOverlap = TRUE,
-          quick = TRUE)
-        fireSizes <- tabulate(spreadState[["id"]]) # Here tabulate() is equivalent to table() but faster
+        # spreadState <- SpaDES.tools::spread(
+        #   landscape = r,
+        #   maxSize = maxSizes,
+        #   loci = rep(annualFires$cells, times = Nreps),
+        #   spreadProb = cells,
+        #   returnIndices = TRUE,
+        #   allowOverlap = TRUE,
+        #   quick = TRUE)
+        spreadState <- lapply(seq_len(Nreps), function(i) {
+            SpaDES.tools::spread(
+              landscape = r,
+              maxSize = annualFires$size,
+              loci = annualFires$cells,
+              spreadProb = cells,
+              returnIndices = TRUE,
+              allowOverlap = FALSE,
+              quick = TRUE)
+          })
+        spreadState <- rbindlist(spreadState, idcol = "rep")
+        fireSizes <- round(tabulate(spreadState1[["id"]])/Nreps,0) # Here tabulate() is equivalent to table() but faster
         # if (length(fireSizes) == 0) browser()
         burnedProb <- spreadState[, .N, by = "indices"]
         setnames(burnedProb, "indices", "pixelID")
