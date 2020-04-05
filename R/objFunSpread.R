@@ -139,18 +139,26 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
         #   returnIndices = TRUE,
         #   allowOverlap = TRUE,
         #   quick = TRUE)
+        maxSizes <- annualFires$size
+        loci <- annualFires$cells
+        dups <- duplicated(annualFires$cells)
+        if (any(dups)) {
+          maxSizes <- maxSizes[!dups]
+          loci <- annualFires$cells[!dups]
+        }
+        
         spreadState <- lapply(seq_len(Nreps), function(i) {
             SpaDES.tools::spread(
               landscape = r,
-              maxSize = annualFires$size,
-              loci = annualFires$cells,
+              maxSize = maxSizes,
+              loci = loci,
               spreadProb = cells,
               returnIndices = TRUE,
               allowOverlap = FALSE,
               quick = TRUE)
           })
         spreadState <- rbindlist(spreadState, idcol = "rep")
-        fireSizes <- round(tabulate(spreadState1[["id"]])/Nreps,0) # Here tabulate() is equivalent to table() but faster
+        fireSizes <- round(tabulate(spreadState[["id"]])/Nreps,0) # Here tabulate() is equivalent to table() but faster
         # if (length(fireSizes) == 0) browser()
         burnedProb <- spreadState[, .N, by = "indices"]
         setnames(burnedProb, "indices", "pixelID")
