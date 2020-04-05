@@ -89,8 +89,10 @@ references:
   ISSN: '1180-4009'
 vignette: >
   %\VignetteIndexEntry{fireSense tutorial}
-  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include = FALSE}
@@ -102,60 +104,57 @@ knitr::opts_chunk$set(
 )
 
 library(reproducible)
-Require(c("magrittr", "dplyr", "PtProcess", "quickPlot",
+Require(c("magrittr", "dplyr", "pemisc", "PtProcess", "quickPlot",
           "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
 
 options(reproducible.useCache = FALSE) # Turn off caching
 
-setPaths(
-  modulePath = normalizePath("../NWT/modules"),
-  outputPath = normalizePath("../NWT/outputs")
-)
+#setPaths(
+#  modulePath = normalizePath("../NWT/modules"), ## TODO: fix paths
+#  outputPath = normalizePath("../NWT/outputs")
+#)
 
-normalizeRaster <- function(x) {
+normalizeRaster <- function(x) { ## TODO: use pemisc version
   # Normalize raster values
   (x - minValue(x)) / (maxValue(x) - minValue(x))
 }
 ```
 
-## fireSense
+# Introduction
 
-What's fireSense?
-fireSense is a spatially explicit landscape fire model, that is, it simulates the fire disturbance in the landscape.
-fireSense is implemented as a group of `SpaDES` modules.
-A main asset of fireSense is that it can be parameterized directly from data using systematic methods while incorporating sensitivity to different environmental drivers.
+`fireSense` is a spatially explicit landscape fire model, that is, it simulates the fire disturbance in the landscape.
+`fireSense` is implemented as a group of `SpaDES` modules.
+A main asset of `fireSense` is that it can be parameterized directly from data using systematic methods while incorporating sensitivity to different environmental drivers.
 
-To better represent how environmental drivers control fire, fireSense breaks down the fire process into three stages: ignition, escape, and spread.
+To better represent how environmental drivers control fire, `fireSense` breaks down the fire process into three stages: ignition, escape, and spread.
 Sensitivity to environmental drivers can be introduced at each of these stages and these factors need not necessarily be identical for all stages.
 This way each module can be adapted to your own problem and used to answer your own questions.
 
-In order to facilitate the parameterization of fireSense from data using systematic methods we have created SpaDES modules dedicated to these tasks:
+In order to facilitate the parameterization of `fireSense` from data using systematic methods we have created SpaDES modules dedicated to these tasks:
 
-- fireSense_IgnitionFit
-- fireSense_EscapeFit
-- fireSense_SpreadFit
+- `fireSense_IgnitionFit`
+- `fireSense_EscapeFit`
+- `fireSense_SpreadFit`
 
-These follow the way fireSense breaks down the fire process and are named accordingly. For example, fireSense_IgnitionFit implements methods to fit the statistical model of fire ignitions.
-The fireSense_IgnitionFit module implements methods described in Marchal et al. [-@Marchal2017], fireSense_EscapeFit and fireSense_SpreadFit implement methods described in Marchal et al. [-@Marchal2019].
+These follow the way `fireSense` breaks down the fire process and are named accordingly. For example, `fireSense_IgnitionFit` implements methods to fit the statistical model of fire ignitions.
+The `fireSense_IgnitionFit` module implements methods described in Marchal et al. [-@Marchal2017], `fireSense_EscapeFit` and `fireSense_SpreadFit` implement methods described in Marchal et al. [-@Marchal2019].
 Each of these modules is associated with an additional module to facilitate the production of predictive maps (rasters) or data sets (data.frames).
-To continue with the example of fire ignitions, the module fireSense_Ignition*Predict* is associated with the fireSense_Ignition*Fit* module.
-One possible use of the fireSense_Ignition*Predict* module would be to generate rasters describing in a spatially explicit way the predicted ignition rates.
+To continue with the example of fire ignitions, the module `fireSense_IgnitionPredict` is associated with the `fireSense_IgnitionFit` module.
+One possible use of the `fireSense_IgnitionPredict` module would be to generate rasters describing in a spatially explicit way the predicted ignition rates.
 
-In addition of these modules, we implemented the fireSense_SizeFit module to fit statistical model of the fire size distribution using the tapered Pareto distribution [@Schoenberg2003].
-The use of fireSense_SizeFit is not a requirement because these outputs are not required by fireSense.
-Although the use of fireSense_SizeFit is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the fireSense_SpreadFit module later.
-Later in this tutorial we will show how the outputs of the fireSense_SizeFit module can be used as inputs of the fireSense_SpreadFit module.
+In addition of these modules, we implemented the `fireSense_SizeFit` module to fit statistical model of the fire size distribution using the tapered Pareto distribution [@Schoenberg2003].
+The use of `fireSense_SizeFit` is not a requirement because these outputs are not required by `fireSense`.
+Although the use of `fireSense_SizeFit` is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the . module later.
+Later in this tutorial we will show how the outputs of the `fireSense_SizeFit` module can be used as inputs of the `fireSense_SpreadFit` module.
 
 Alternatively, the parameter of the tapered Pareto distribution can be used as inputs of the spread model assuming these capture the effect of environmental drivers of fire sizes.
 
-# We start by fitting the spread model using the fireSense_SpreadFit module. In
-# order to fit this model we need data about the shape of the fire size
-# distribution. We can predict it using the fireSense_SizePredict module and fit
-# the model to our study region using the fireSense_SizeFit module.
+We start by fitting the spread model using the `fireSense_SpreadFit` module.
+In order to fit this model we need data about the shape of the fire size distribution.
+We can predict it using the `fireSense_SizePredict` module and fit the model to our study region using the `fireSense_SizeFit` module.
 
-This tutorial is intended to provide examples to run all fireSense modules without the need to download actual data.
+This tutorial is intended to provide examples to run all `fireSense` modules without the need to download actual data.
 Depending on the fact that some of them have dependencies.
-
 
 ```{r create_data, message=FALSE}
 # Create a raster template describing the study area
@@ -370,7 +369,7 @@ fireSense_EscapeFitted <- sim$fireSense_EscapeFitted # Extract the fitted model 
 
 The purpose of this step is to derive variable fire spread probabilities at the cell level, both spatially and temporally, which are sensitive to environmental drivers that control fire size.
 
-### Fit the statistical model of the fire size distribution
+## Fit the statistical model of the fire size distribution
 
 Although the use of fireSense_SizeFit is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the fireSense_SpreadFit module later.
 Here, we use the fireSense_SizeFit module to model the relation between fire sizes and flammability conditions as represented by the drought index and the type of fuels.
@@ -475,7 +474,7 @@ sim <- simInitAndSpades(
 
 ### Use predicted parameters of the tapered Pareto as inputs to the statistical model of the spread probabilities
 
-Here, we use the fireSense_SpreadFit module to convert them into spatially variable spread probabilities. 
+Here, we use the `fireSense_SpreadFit` module to convert them into spatially variable spread probabilities. 
 
 ```{r fit_spread_model, message=FALSE}
 modules <- list("fireSense_SpreadFit")
@@ -752,3 +751,7 @@ Note that all the steps above could be done in one simulation / SpaDES call()
 # Additional resources
 
 Read modules metadata, all module parameters are documented in Rmd files.
+
+# References
+
+<!-- automatically generated -->
