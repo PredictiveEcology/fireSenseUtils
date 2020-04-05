@@ -107,6 +107,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
       #set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
       #actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
       medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
+      # browser(expr = yr == 2014)
       if (medSP <= maxFireSpread & medSP >= 0.16) {
         if (verbose) {
           print(paste0(Sys.getpid(), "-- year: ",yr, ", spreadProb raster: median in buffered pixels = ",
@@ -116,7 +117,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
         maxSizes <- rep(annualFires$size, times = Nreps)
         
         # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
-        maxSizes <- maxSizes * 1.1#(1.1+pmax(0,5-log10(maxSizes))) 
+        maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes))) 
         
         lociAll <- rep(annualFires$cells, times = Nreps)
         # spreadState <- rbindlist(Map(loci = lociAll, ms = maxSizes, function(loci, ms)
