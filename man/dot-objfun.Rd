@@ -13,9 +13,9 @@
   formula,
   historicalFires,
   fireBufferedListDT,
-  wADtest = 1,
-  verbose = TRUE,
-  maxFireSpread = 0.255
+  covMinMax = NULL,
+  maxFireSpread = 0.25,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -35,11 +35,11 @@
 
 \item{fireBufferedListDT}{DESCRIPTION NEEDED}
 
-\item{wADtest}{DESCRIPTION NEEDED}
-
-\item{verbose}{DESCRIPTION NEEDED}
+\item{covMinMax}{DESCRIPTION NEEDED}
 
 \item{maxFireSpread}{DESCRIPTION NEEDED}
+
+\item{verbose}{DESCRIPTION NEEDED}
 }
 \value{
 DESCRIPTION NEEDED

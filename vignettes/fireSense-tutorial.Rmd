@@ -103,7 +103,7 @@ knitr::opts_chunk$set(
 
 library(reproducible)
 Require(c("magrittr", "dplyr", "PtProcess", "quickPlot",
-          "raster", "rgeos", "sp", "SpaDES", "spatstat"))
+          "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
 
 options(reproducible.useCache = FALSE) # Turn off caching
 
