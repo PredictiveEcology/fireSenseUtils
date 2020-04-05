@@ -116,7 +116,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
         maxSizes <- rep(annualFires$size, times = Nreps)
         
         # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
-        maxSizes <- maxSizes * (1.1+pmax(0,5-log10(maxSizes))) 
+        maxSizes <- maxSizes * 1.1#(1.1+pmax(0,5-log10(maxSizes))) 
         
         lociAll <- rep(annualFires$cells, times = Nreps)
         # spreadState <- rbindlist(Map(loci = lociAll, ms = maxSizes, function(loci, ms)
