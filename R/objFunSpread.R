@@ -140,7 +140,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
         #   returnIndices = TRUE,
         #   allowOverlap = TRUE,
         #   quick = TRUE)
-        maxSizes <- annualFires$size
+        maxSizes <- annualFires$size * 2
         loci <- annualFires$cells
         dups <- duplicated(annualFires$cells)
         if (any(dups)) {
