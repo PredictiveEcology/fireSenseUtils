@@ -29,11 +29,14 @@ makeBufferedFires <- function(fireLocationsPolys,
   # fireLocationsPolys: list of each year of SpatialPolygonsDataFrame with fire polygons
   # lowerTolerance: lower tolerance for buffer to be different from fire points (i.e. 0.8, 20% lower)
   # upperTolerance: higher tolerance for buffer to be different from fire points (i.e. 1.2, 20% higher)
-
+  data.table::setDTthreads(1)
+  
   fun <- ifelse(useParallel, future.apply::future_lapply, lapply)
   historicalFire <- do.call(what = fun, args = list(X = names(fireLocationsPolys),
                                                     FUN = function(yr){
     # Projection is not the same, so I need to convert the polygon
+                                                      
+    data.table::setDTthreads(1)
     fireLocationsPoly <- reproducible::projectInputs(
       x = fireLocationsPolys[[yr]],
       targetCRS = crs(rasterToMatch)
