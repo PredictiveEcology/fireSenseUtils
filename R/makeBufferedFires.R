@@ -1,4 +1,4 @@
-utils::globalVariables(c("N"))
+utils::globalVariables(c(".SD", "N"))
 
 #' Create buffers around fires
 #'
@@ -16,10 +16,10 @@ utils::globalVariables(c("N"))
 #' @importFrom data.table data.table
 #' @importFrom fasterize fasterize
 #' @importFrom future.apply future_lapply
-#' @importFrom raster adjacent crs raster
+#' @importFrom raster adjacent crs raster setValues stack
 #' @importFrom reproducible projectInputs
 #' @importFrom sf st_as_sf
-makeBufferedFires <- function(fireLocationsPolys, 
+makeBufferedFires <- function(fireLocationsPolys,
                               rasterToMatch,
                               lowerTolerance = 3.8,
                               upperTolerance = 4.2,
@@ -31,7 +31,7 @@ makeBufferedFires <- function(fireLocationsPolys,
   # upperTolerance: higher tolerance for buffer to be different from fire points (i.e. 1.2, 20% higher)
 
   fun <- ifelse(useParallel, future.apply::future_lapply, lapply)
-  historicalFire <- do.call(what = fun, args = list(X = names(fireLocationsPolys), 
+  historicalFire <- do.call(what = fun, args = list(X = names(fireLocationsPolys),
                                                     FUN = function(yr){
     # Projection is not the same, so I need to convert the polygon
     fireLocationsPoly <- reproducible::projectInputs(
@@ -102,7 +102,7 @@ makeBufferedFires <- function(fireLocationsPolys,
     stkDT[, fires := rowSums(.SD, na.rm = TRUE)]
     rasBuffer <- setValues(raster(firePolyRas), stkDT$fires)
     # Put NA's back
-    suppressWarnings(rasBuffer[rasBuffer > 1] <- 1) #TODO Just making sure all fires are 1 (the same pixel might have burned                                     more then one time). This whould have already happened so here it could be a test 
+    suppressWarnings(rasBuffer[rasBuffer > 1] <- 1) #TODO Just making sure all fires are 1 (the same pixel might have burned                                     more then one time). This whould have already happened so here it could be a test
     fires  <- which(rasBuffer[] == 1)
     suppressWarnings(rasBuffer[] <- NA)
     suppressWarnings(rasBuffer[adjAll] <- 0) # Buffer

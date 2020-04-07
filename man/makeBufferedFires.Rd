@@ -7,8 +7,8 @@
 makeBufferedFires(
   fireLocationsPolys,
   rasterToMatch,
-  lowerTolerance = 0.8,
-  upperTolerance = 1.2,
+  lowerTolerance = 3.8,
+  upperTolerance = 4.2,
   verbose = getOption("verbose", TRUE),
   useParallel = FALSE
 )

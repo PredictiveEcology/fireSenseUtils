@@ -1,4 +1,5 @@
-utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadProb"))
+utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass", "N",
+                         "pixelID", "prob", "spreadProb"))
 
 #' Objective function for \code{fireSense_spreadFit} module
 #'
@@ -10,9 +11,9 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
 #' @param formula DESCRIPTION NEEDED
 #' @param historicalFires DESCRIPTION NEEDED
 #' @param fireBufferedListDT DESCRIPTION NEEDED
-#' @param wADtest DESCRIPTION NEEDED
-#' @param verbose DESCRIPTION NEEDED
+#' @param covMinMax DESCRIPTION NEEDED
 #' @param maxFireSpread DESCRIPTION NEEDED
+#' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
 #'
@@ -93,7 +94,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
       # browser(expr = yr == 1991)
       if (!is.null(covMinMax)) {
         for (cn in colnames(covMinMax)) {
-          set(shortAnnDTx1000, NULL, cn, 
+          set(shortAnnDTx1000, NULL, cn,
               rescaleKnown(shortAnnDTx1000[[cn]], 0, 1000, covMinMax[[cn]][1], covMinMax[[cn]][2]))
         }
       }
@@ -115,10 +116,10 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
         }
         cells[as.integer(shortAnnDTx1000$pixelID)] <- shortAnnDTx1000$spreadProb
         #maxSizes <- rep(annualFires$size, times = Nreps)
-        
+
         # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
-        #maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes))) 
-        
+        #maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
+
         #lociAll <- annualFires$cells
         # spreadState <- rbindlist(Map(loci = lociAll, ms = maxSizes, function(loci, ms)
         #   spread(r,
@@ -146,7 +147,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
           maxSizes <- maxSizes[!dups]
           loci <- annualFires$cells[!dups]
         }
-        
+
         spreadState <- lapply(seq_len(Nreps), function(i) {
             SpaDES.tools::spread(
               landscape = r,
