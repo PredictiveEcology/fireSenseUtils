@@ -222,8 +222,11 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "N", "pixelID", "spreadP
   historicalFiresTr <- purrr::transpose(historicalFires)
 
   adTest <- try(ad.test(unlist(results$fireSizes), unlist(historicalFiresTr$size))[["ad"]][1L, 1L])
-  SNLLTest <- sum(unlist(results$SNLL))
-  objFunRes <- adTest + SNLLTest/2e4 # wADtest is the weight for the AD test
+  rescalor <- 6e4
+  SNLLTest <- sum(unlist(results$SNLL)) / rescalor
+  print(paste0("        adTest: ", round(adTest,1), 
+                            "  -- SNLL/",rescalor,": ",round(SNLLTest,1)))
+  objFunRes <- adTest + SNLLTest # wADtest is the weight for the AD test
   # gc()
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
