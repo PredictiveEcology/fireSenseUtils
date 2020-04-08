@@ -207,27 +207,27 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
           Plot(predLiklihood, cols = "RdYlGn", new = TRUE, legendRange = range(round(predLiklihood[], 0), na.rm = TRUE))
         }
         # Add a very small number so that no pixel has exactly zero probability -- creating Inf
-        SNLL <- -sum(dbinom(prob = out$prob,
-                            size = 1,
-                            x = out$burned,
-                            log = TRUE
-        ), na.rm = TRUE) # Sum of the negative log likelihood
+        # SNLL <- -sum(dbinom(prob = out$prob,
+        #                     size = 1,
+        #                     x = out$burned,
+        #                     log = TRUE
+        # ), na.rm = TRUE) # Sum of the negative log likelihood
       } else {
-        SNLL <- 1e7
+        #SNLL <- 1e7
         fireSizes <- sample(1:3, 1)
       }
 
-      list(fireSizes = fireSizes, SNLL = SNLL)
+      list(fireSizes = fireSizes)#, SNLL = SNLL)
     })
   results <- purrr::transpose(results)
   historicalFiresTr <- purrr::transpose(historicalFires)
 
   adTest <- try(ad.test(unlist(results$fireSizes), unlist(historicalFiresTr$size))[["ad"]][1L, 1L])
-  rescalor <- 6e4
-  SNLLTest <- sum(unlist(results$SNLL)) / rescalor
-  print(paste0("        adTest: ", round(adTest,1), 
-                            "  -- SNLL/",rescalor,": ",round(SNLLTest,1)))
-  objFunRes <- adTest + SNLLTest # wADtest is the weight for the AD test
+  #rescalor <- 6e4
+  #SNLLTest <- sum(unlist(results$SNLL)) / rescalor
+  print(paste0("        adTest: ", round(adTest,1)))#, 
+  #                          "  -- SNLL/",rescalor,": ",round(SNLLTest,1)))
+  objFunRes <- adTest #+ SNLLTest 
   # gc()
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
