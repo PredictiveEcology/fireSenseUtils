@@ -3,14 +3,14 @@ Type: Package
 Title: Utilites for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-Version: 0.0.0.9002
+Version: 0.0.0.9003
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
     role = c("aut")),
     person("Eliot J B", "McIntire", email = "eliot.mcintire@canada.ca",
-    role = c("aut"), comment=c(ORCID = "0000-0002-6914-8316")),
+    role = c("aut", "cre"), comment=c(ORCID = "0000-0002-6914-8316")),
     person("Alex M", "Chubaty", email = "alex.chubaty@gmail.com",
-    role = c("aut", "cre"), comment = c(ORCID = "0000-0001-7146-8135"))
+    role = c("aut"), comment = c(ORCID = "0000-0001-7146-8135"))
     )
 Depends:
     R (>= 3.6)
