@@ -4,7 +4,7 @@
 \alias{getFirePolygons}
 \title{Download and prepare fire data from National Fire Database}
 \usage{
-getFirePolygons(years, studyArea, pathInputs, version = NULL)
+getFirePolygons(years, studyArea, pathInputs, minFireSize = 1, version = NULL)
 }
 \arguments{
 \item{years}{DESCRIPTION NEEDED}
@@ -12,6 +12,8 @@ getFirePolygons(years, studyArea, pathInputs, version = NULL)
 \item{studyArea}{DESCRIPTION NEEDED}
 
 \item{pathInputs}{DESCRIPTION NEEDED}
+
+\item{minFireSize}{The size in hectares below which all fires will be removed}
 
 \item{version}{DESCRIPTION NEEDED}
 }
