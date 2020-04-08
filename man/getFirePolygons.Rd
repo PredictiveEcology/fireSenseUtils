@@ -4,7 +4,14 @@
 \alias{getFirePolygons}
 \title{Download and prepare fire data from National Fire Database}
 \usage{
-getFirePolygons(years, studyArea, pathInputs, minFireSize = 1, version = NULL)
+getFirePolygons(
+  years,
+  studyArea,
+  pathInputs,
+  minFireSize = 2,
+  fireSizeColName = "POLY_HA",
+  version = NULL
+)
 }
 \arguments{
 \item{years}{DESCRIPTION NEEDED}
