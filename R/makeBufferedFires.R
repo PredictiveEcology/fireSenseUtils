@@ -32,7 +32,7 @@ makeBufferedFires <- function(fireLocationsPolys,
   # upperTolerance: higher tolerance for buffer to be different from fire points (i.e. 1.2, 20% higher)
   data.table::setDTthreads(1)
   if (!quickPlot::isRstudioServer() && isTRUE(useParallel) && is(plan(), "sequential"))
-    future:::plan(multiprocess(workers = min(detectCores(), length(fireLocationPolys))))
+    future:::plan(multiprocess(workers = min(detectCores(), length(fireLocationsPolys))))
 
 
   fun <- ifelse(useParallel, future.apply::future_lapply, lapply)
