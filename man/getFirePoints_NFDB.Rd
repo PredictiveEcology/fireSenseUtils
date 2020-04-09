@@ -12,7 +12,6 @@ getFirePoints_NFDB(
   redownloadIn = 1,
   years = 1991:2017,
   fireSizeColName = "SIZE_HA",
-  minFireSize = 2,
   NFDB_pointPath
 )
 }
@@ -23,7 +22,7 @@ getFirePoints_NFDB(
 
 \item{rasterToMatch}{Passed to \code{prepInputs}}
 
-\item{redownloadIn}{Numeric Time in YEARS that we tolerate the data to be "old" i.e. 
+\item{redownloadIn}{Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 0.5 would mean "redownload data older than 6 months"}
 
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}

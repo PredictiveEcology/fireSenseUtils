@@ -15,6 +15,8 @@
   fireBufferedListDT,
   covMinMax = NULL,
   maxFireSpread = 0.25,
+  minFireSize = 2,
+  tests = "mad",
   verbose = TRUE
 )
 }
@@ -38,6 +40,8 @@
 \item{covMinMax}{DESCRIPTION NEEDED}
 
 \item{maxFireSpread}{DESCRIPTION NEEDED}
+
+\item{tests}{One or more of "mad", "adTest", or "SNLL" as a character vector. Default is "mad"}
 
 \item{verbose}{DESCRIPTION NEEDED}
 }
