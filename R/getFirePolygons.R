@@ -4,14 +4,13 @@
 #' @param studyArea DESCRIPTION NEEDED
 #' @param pathInputs DESCRIPTION NEEDED
 #' @param version DESCRIPTION NEEDED
-#' @param minFireSize The size in hectares below which all fires will be removed
 #'
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
 #' @importFrom reproducible prepInputs
-getFirePolygons <- function(years, studyArea, pathInputs, minFireSize = 2, 
-                            fireSizeColName = "POLY_HA", version = NULL) {
+getFirePolygons <- function(years, studyArea, pathInputs,
+                            version = NULL) {
   if (is.null(version)) {
     version <- c(20191129, 20190919)
   }
@@ -51,7 +50,7 @@ getFirePolygons <- function(years, studyArea, pathInputs, minFireSize = 2,
         return(polyYear)
       }
     )
-    out[out[[fireSizeColName]] >= minFireSize,]
+    out
   })
   names(firePolygonsList) <- paste0("Year", years)
   return(firePolygonsList)
