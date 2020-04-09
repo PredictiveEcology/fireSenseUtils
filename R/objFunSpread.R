@@ -13,6 +13,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 #' @param fireBufferedListDT DESCRIPTION NEEDED
 #' @param covMinMax DESCRIPTION NEEDED
 #' @param maxFireSpread DESCRIPTION NEEDED
+#' @param tests One or more of "mad", "adTest", or "SNLL" as a character vector. Default is "mad"
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
@@ -35,11 +36,16 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                     fireBufferedListDT,
                     covMinMax = NULL,
                     maxFireSpread = 0.25, # 0.257 makes gigantic fires
+                    minFireSize = 2,
+                    tests = "mad",
                     #bufferedRealHistoricalFiresList,
                     verbose = TRUE){ #fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
   data.table::setDTthreads(1)
+  doMADTest <- grepl("mad", tolower(tests))
+  doSNLLTest <- grepl("snll", tolower(tests))
+  doADTest <- grepl("adtest", tolower(tests))
   if (missing(landscape))
     landscape <- get("landscape", envir = .GlobalEnv)
   if (missing(annualDTx1000))
@@ -69,10 +75,16 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
     Map(ind = seq_along(nonAnnualDTx1000), date = yearSplit,
         function(ind, date) data.table(ind = ind, date = date))
   )
+  historicalFiresAboveMin <- lapply(historicalFires, function(x) {
+    x <- x[x$size >= minFireSize,]
+    x <- x[!duplicated(x$cells),]
+    x
+    }
+  )
   results <- purrr::pmap(
     list(annDTx1000 = annualDTx1000,
          yr = years,
-         annualFires = historicalFires,
+         annualFires = historicalFiresAboveMin,
          annualFireBufferedDT = fireBufferedListDT),
     par = par, parsModel = parsModel,
     #pixelIndices = pixelIndices,
@@ -120,27 +132,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
         # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
         #maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
 
-        #lociAll <- annualFires$cells
-        # spreadState <- rbindlist(Map(loci = lociAll, ms = maxSizes, function(loci, ms)
-        #   spread(r,
-        #           start = loci,
-        #           spreadProb = cells,
-        #           directions = 8,
-        #           # returnIndices = 2,
-        #           asRaster = FALSE,
-        #
-        #           maxSize = ms,
-        #           skipChecks = TRUE)),
-        #   idcol = "rep")
-        # spreadState <- SpaDES.tools::spread(
-        #   landscape = r,
-        #   maxSize = maxSizes,
-        #   loci = rep(annualFires$cells, times = Nreps),
-        #   spreadProb = cells,
-        #   returnIndices = TRUE,
-        #   allowOverlap = TRUE,
-        #   quick = TRUE)
-        maxSizes <- annualFires$size * 2
+        maxSizes <- round(pmax(5e2, pmax(2, 14 - log(annualFires$size)) * annualFires$size), 0)
+        #maxSizes <- annualFires$size * 2
         loci <- annualFires$cells
         dups <- duplicated(annualFires$cells)
         if (any(dups)) {
@@ -220,14 +213,35 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       list(fireSizes = fireSizes)#, SNLL = SNLL)
     })
   results <- purrr::transpose(results)
-  historicalFiresTr <- purrr::transpose(historicalFires)
 
-  adTest <- try(ad.test(unlist(results$fireSizes), unlist(historicalFiresTr$size))[["ad"]][1L, 1L])
-  #rescalor <- 6e4
-  #SNLLTest <- sum(unlist(results$SNLL)) / rescalor
-  print(paste0("        adTest: ", round(adTest,1)))#, 
-  #                          "  -- SNLL/",rescalor,": ",round(SNLLTest,1)))
-  objFunRes <- adTest #+ SNLLTest 
+  mess <- character()
+  objFunRes <- 0
+  if (isTRUE(doMADTest)) {
+    a <- purrr::map2(historicalFiresAboveMin, results$fireSizes, function(x, y) {
+      data.table(x, simFireSize = y)
+    })
+
+    a <- rbindlist(a)
+    a[, dev := abs(size - simFireSize)]
+    mad <- round(mean(a$dev), 1)
+    objFunRes <- objFunRes + mad #+ SNLLTest
+    mess <- paste(" mad:", mad, "; ")
+  }
+  if (isTRUE(doADTest)) {
+    historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
+    simulatedFires <- unlist(results$fireSizes)
+    adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
+    objFunRes <- objFunRes + adTest #+ SNLLTest
+    mess <- paste(mess, " adTest:", adTest, "; ")
+  }
+  if (isTRUE(doSNLLTest)) {
+    rescalor <- 6e4
+    SNLLTest <- sum(unlist(results$SNLL)) / rescalor
+    mess <- paste(mess, " SNLLTest:", SNLLTest, "; ")
+    objFunRes <- objFunRes + SNLLTest #+ SNLLTest
+
+  }
+  print(paste0("  ", Sys.getpid(), mess))
   # gc()
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
