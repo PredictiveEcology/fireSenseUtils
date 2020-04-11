@@ -132,9 +132,12 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
         # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
         #maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
 
-        maxSizes <- round(pmax(5e2, pmax(2, 14 - log(annualFires$size)) * annualFires$size), 0)
+        maxSizes <- multiplier(annualFires$size)
         #maxSizes <- annualFires$size * 2
         loci <- annualFires$cells
+        if (any(cells[loci] == 0)) {
+          cells[loci] <- 1
+        }
         dups <- duplicated(annualFires$cells)
         if (any(dups)) {
           maxSizes <- maxSizes[!dups]
@@ -182,7 +185,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
           # ex <- new("Extent", xmin = -1098283.46889952, xmax = -1037633.32535885,
           #            ymin = 7969991.96172249, ymax = 8030642.10526316)
           predictedFireProb <- crop(r, ex)
-          clearPlot();Plot(r1)
+          # clearPlot();Plot(r1)
           actualFire <- raster(r)
           actualFire[out$pixelID] <- out$burnedClass
           actualFire[]
@@ -193,10 +196,13 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                                        x = out$burned,
                                        log = TRUE
           )
+          spreadProbMap <- raster(r)
+          spreadProbMap[out$pixelID] <- cells[out$pixelID]
+          spreadProbMap <- crop(spreadProbMap, ex)
           predLiklihood <- raster(r)
           predLiklihood[out$pixelID] <- predictedLiklihood
           predLiklihood <- crop(predLiklihood, ex)
-          clearPlot(); Plot(actualFire, predictedFireProb, predLiklihood)
+          clearPlot(); Plot(actualFire, predictedFireProb, predLiklihood, spreadProbMap)
           Plot(predLiklihood, cols = "RdYlGn", new = TRUE, legendRange = range(round(predLiklihood[], 0), na.rm = TRUE))
         }
         # Add a very small number so that no pixel has exactly zero probability -- creating Inf

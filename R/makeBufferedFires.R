@@ -1,147 +1,127 @@
-utils::globalVariables(c(".SD", "N"))
-
-#' Create buffers around fires
+#' Create buffers around polygons based on area target for buffer
 #'
-#' @param fireLocationsPolys DESCRIPTION NEEDED
-#' @param rasterToMatch DESCRIPTION NEEDED
-#' @param lowerTolerance DESCRIPTION NEEDED
-#' @param upperTolerance DESCRIPTION NEEDED
-#' @param verbose DESCRIPTION NEEDED
-#' @param useParallel DESCRIPTION NEEDED
-#'
-#' @return DESCRIPTION NEEDED
-#'
+#' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
+#'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
 #' @export
-#' @importFrom crayon green red yellow
 #' @importFrom data.table data.table
 #' @importFrom fasterize fasterize
-#' @importFrom SpaDES.tools adj
-#' @importFrom future.apply future_lapply
-#' @importFrom raster crs raster setValues stack
-#' @importFrom reproducible projectInputs
-#' @importFrom sf st_as_sf
-makeBufferedFires <- function(fireLocationsPolys,
-                              rasterToMatch,
-                              lowerTolerance = 3.8,
-                              upperTolerance = 4.2,
-                              verbose = getOption("verbose", TRUE),
-                              useParallel = FALSE) {
-  t1 <- Sys.time()
-  # fireLocationsPolys: list of each year of SpatialPolygonsDataFrame with fire polygons
-  # lowerTolerance: lower tolerance for buffer to be different from fire points (i.e. 0.8, 20% lower)
-  # upperTolerance: higher tolerance for buffer to be different from fire points (i.e. 1.2, 20% higher)
-  data.table::setDTthreads(1)
-  if (!quickPlot::isRstudioServer() && isTRUE(useParallel) && is(plan(), "sequential"))
-    future:::plan(multiprocess(workers = min(detectCores(), length(fireLocationsPolys))))
-
-
-  fun <- ifelse(useParallel, future.apply::future_lapply, lapply)
-  historicalFire <- do.call(what = fun, args = list(
-    X = names(fireLocationsPolys),
-    FUN = function(yr){
-      # Projection is not the same, so I need to convert the polygon
-
-      data.table::setDTthreads(1)
-      fireLocationsPoly <- reproducible::projectInputs(
-        x = fireLocationsPolys[[yr]],
-        targetCRS = crs(rasterToMatch)
-      )
-      sf_fPY <- sf::st_as_sf(fireLocationsPoly)
-      firePolyRas <- fasterize::fasterize(sf = sf_fPY, raster = raster(rasterToMatch), field = "NFIREID")
-      names(firePolyRas) <- yr
-      # Do the calculation for each fire
-      fireIDS <- unique(firePolyRas[!is.na(firePolyRas)])
-      allFires <- lapply(X = fireIDS, FUN = function(fireID){
-        valsFireRas  <- which(firePolyRas[] == fireID)
-        adj <- SpaDES.tools::adj(firePolyRas,
-                                 valsFireRas,
-                                 directions = 8,
-                                 pairs = FALSE, match.adjacent = TRUE, cutoff.for.data.table = Inf)
-        tb <- data.table(V1 = c(0, 1), N = c(1, 2))
-        stateToCheck <- paste0("isFALSE(isTRUE(tb[1, N] < tb[2, N]*upperTolerance) & ",
-                               "isTRUE(tb[1, N] > tb[2, N]*lowerTolerance))")
-        while (eval(parse(text = stateToCheck))) {
-          adj <- SpaDES.tools::adj(firePolyRas, adj, directions = 8, pairs = FALSE, match.adjacent = TRUE, cutoff.for.data.table = Inf)
-          rasBuffer <- raster(firePolyRas)
-          suppressWarnings(rasBuffer[adj] <- 0)
-          suppressWarnings(rasBuffer[valsFireRas] <- 1)
-          tb <- data.table(table(rasBuffer[]))
-          perc <- round((tb[1, N] / tb[2, N]) * 100, 0)
-          direcion <- ifelse(perc > 100, "larger", "smaller")
-          perc <- ifelse(direcion == "larger", perc - 100, 100 - perc)
-          if (verbose) {
-            if (all(direcion == "larger", perc / 100 > upperTolerance - 1)) {
-              message(crayon::red(paste0(
-                "Buffered area is ", perc, "% ", direcion, " than fires.",
-                " Outside of bounds, returning for ", yr
-              )))
-            } else {
-              if (eval(parse(text = stateToCheck))) {
-                message(crayon::yellow(paste0(
-                  "Buffered area is ", perc, "% ", direcion, " than fires.",
-                  " Trying again for ", yr
-                )))
-              } else {
-                message(crayon::green(paste0(
-                  "Buffered area is ", perc,
-                  "% ", direcion, " than fires. Within bounds for ",
-                  yr
-                )))
-              }
-            }
-          }
-          if (tb[1, N] > tb[2, N] * upperTolerance) break
-        }
-        if (is.null(rasBuffer)){
-          print("NULL raster? Debug")
-          browser()
-        }
-        attr(rasBuffer, "buffer") <- adj
-        return(rasBuffer)
-      })
-      # Convert to data table to speed up putting the rasters back together
-      adjAll <- unlist(lapply(allFires, attr, which = "buffer"))
-      allFires <- lapply(allFires, function(ras){
-        attr(ras, "buffer") <- NULL
-        return(ras)
-      })
-      stk <- stack(allFires)
-      stkDT <- as.data.table(stk[])
-      stkDT[, fires := rowSums(.SD, na.rm = TRUE)]
-      rasBuffer <- setValues(raster(firePolyRas), stkDT$fires)
-      # Put NA's back
-      suppressWarnings(rasBuffer[rasBuffer > 1] <- 1) #TODO Just making sure all fires are 1 (the same pixel might have burned                                     more then one time). This whould have already happened so here it could be a test
-      fires  <- which(rasBuffer[] == 1)
-      suppressWarnings(rasBuffer[] <- NA)
-      suppressWarnings(rasBuffer[adjAll] <- 0) # Buffer
-      suppressWarnings(rasBuffer[fires] <- 1) # Fires
-      return(rasBuffer)
-    }))
-  message(crayon::green(paste0("Finished fire buffering")))
-  print(Sys.time() - t1)
-  names(historicalFire) <- names(fireLocationsPolys)
-  if (verbose) {
-    print(Sys.time() - t1)
-  }
-  return(historicalFire)
+#' @importFrom purrr map2
+#' @importFrom sf st_as_sf st_crs st_transform
+#' @param poly SpatialPolygons or a list of SpatialPolygons, containing polygons to buffer
+#' @param rasterToMatch A RasterLayer with res, origin, extent, crs of desired outputted
+#'   pixelID values
+#' @param areaMultiplier Either a scalar that will buffer areaMultiplier * fireSize or
+#'   a function of fireSize. Default is 1. See \code{\link{multiplier}} for an example.
+#' @param polyName Optional character string of the polygon layer name (not the individual polygons
+#'   on a SpatialPolygons object)
+#' @param field Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
+#'   then each polygon will have its buffer calculated independently for each unique value
+#'   in \code{field}
+#' @param ... passed to \code{fasterize::fasterize}
+#' @export
+#' @rdname bufferToArea
+#' @return
+#' A data.table (or list of data.tables if \code{poly} was a list) with 2 columns
+#' \code{buffer} and \code{pixelID}. \code{buffer} is either \code{1} (the
+#' original polygon) or \code{0} (in the buffer)
+bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
+                         verb = FALSE, polyName = NULL, field = NULL,
+                         ...) {
+  UseMethod("bufferToArea")
 }
 
-#' Simplify buffered fires
-#'
-#' DESCRIPTION NEEDED
-#'
-#' @param fireBuffered DESCRIPTION NEEDED
-#'
-#' @return DESCRIPTION NEEDED
-#'
 #' @export
-#' @importFrom data.table data.table
-simplifyFireBuffered <- function(fireBuffered) {
-  lapply(fireBuffered, function(r) {
-    ras <- raster(r)
-    nonNA <- which(!is.na(r[]))
-    ras[r[] == 0] <- 0L
-    ras[r[] == 1] <- 1L
-    data.table(buffer = ras[][nonNA], pixelID = nonNA)
-  })
+#' @rdname bufferToArea
+bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
+                              verb = FALSE, polyName = NULL, field = NULL, ...) {
+  if (is.null(polyName)) polyName <- names(poly)
+  out <-  purrr::pmap(
+    .l = list(poly = poly, polyName = polyName),
+    rasterToMatch = rasterToMatch, verb = verb,
+    areaMultiplier = areaMultiplier, field = field, ...,
+    .f = bufferToArea)
+  out
+}
+
+#' @export
+#' @rdname bufferToArea
+bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
+                                         verb = FALSE, polyName = NULL, field = NULL,
+                                         ...) {
+  if (is.null(polyName)) polyName <- "Layer 1"
+  if  (as.integer(verb) >= 1) print(paste("Buffering polygons on",polyName))
+  r <- fasterize::fasterize(
+    sf::st_transform(sf::st_as_sf(poly), sf::st_crs(rasterToMatch)),
+    raster = rasterToMatch, field = field, ...)
+
+  loci <- which(!is.na(r[]))
+  ids <- r[loci]
+  initialDf <- data.table(loci, ids, id = seq(ids))
+  am <- if (is(areaMultiplier, "function")) {
+    areaMultiplier
+  } else {
+    function(x) areaMultiplier
+  }
+  fireSize <- initialDf[, list(actualSize = .N,
+                               # simSize = .N,# needed for numIters
+                               goalSize = areaMultiplier(.N)), by = "ids"]
+
+  out <- list()
+  simSizes <- initialDf[, list(simSize = .N), by = "ids"]
+  simSizes <- fireSize[simSizes, on = "ids"]
+
+  # if (!is.null(allowCells)) {
+  #   spreadProb <- rep(NA, ncell(r))
+  #   spreadProb[allowCells] <- 1
+  # } else {
+     spreadProb <- 1
+  # }
+  while(length(loci) > 0) {
+    df <- data.table(loci, ids, id = seq(ids))
+    r1 <- spread(r, loci = loci, iterations = 1,
+                 spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE)
+    df <- df[r1, on = "id"]
+    simSizes <- df[, list(simSize = .N), by = "ids"]
+    simSizes <- fireSize[simSizes, on = "ids"]
+    bigger <- simSizes$simSize > simSizes$goalSize
+
+    if (any(bigger)) {
+      idsBigger <- simSizes$ids[bigger]
+      names(idsBigger) <- idsBigger
+      out1 <- lapply(idsBigger, function(idBig) {
+        browser(expr = idBig == "423" || idBig == 423)
+        wh <- which(df$ids %in% idBig)
+        if (as.integer(verb) >= 2) print(paste("  Fire id:,",idBig, "finished. Num pixels in buffer:",
+                                               simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
+                                               ", in fire:", simSizes[ids == idBig]$actualSize))
+        lastIters <- !df[wh]$active
+        needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
+        dt <- rbindlist(list(df[wh][lastIters],
+                             df[wh][sample(which(df[wh]$active), needMore)]))
+        dtOut <- dt[, list(buffer = 0, pixelID = indices, ids)]
+        #browser(expr = exists("jj"))
+        #rm(jj, envir = .GlobalEnv)
+
+        dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1]
+        dtOut
+      })
+      out <- append(out, out1)
+    }
+    if (any(!bigger)) {
+      if (!all(!bigger)) {
+        simSizes <- simSizes[simSize <= goalSize]
+        df <- df[df$ids %in% simSizes$ids]
+      }
+      loci <- df$indices
+      ids <- df$ids
+    } else {
+      loci <- integer()
+    }
+  }
+  rbindlist(out)
+}
+
+#' @export
+multiplier <- function(size) {
+  round(pmax(5e2, pmax(2, 14 - log(size)) * size), 0)
 }
