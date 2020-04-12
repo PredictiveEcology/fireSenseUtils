@@ -84,10 +84,10 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
     }
   )
   results <- purrr::pmap(
-    list(annDTx1000 = annualDTx1000[24],
-         yr = years[24],
-         annualFires = historicalFiresAboveMin[24],
-         annualFireBufferedDT = fireBufferedListDT[24]),
+    list(annDTx1000 = annualDTx1000,
+         yr = years,
+         annualFires = historicalFiresAboveMin,
+         annualFireBufferedDT = fireBufferedListDT),
     par = par, parsModel = parsModel,
     #pixelIndices = pixelIndices,
     verbose = verbose,
@@ -251,7 +251,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
     a <- rbindlist(a)
     a[, dev := abs(size - simFireSize)]
     mad <- round(mean(a$dev), 1)
-    if (mad < 900) browser()
     objFunRes <- objFunRes + mad #+ SNLLTest
     mess <- paste(" mad:", mad, "; ")
   }
