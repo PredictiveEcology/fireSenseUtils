@@ -70,7 +70,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   years <- as.character(names(annualDTx1000))
   names(years) <- years
   cells <- integer(ncells)
-  Nreps <- 10
+  # Nreps <- 10
   yearSplit <- strsplit(names(nonAnnualDTx1000), "_")
   names(yearSplit) <- as.character(seq_along(nonAnnualDTx1000))
   indexNonAnnual <- rbindlist(
