@@ -13,6 +13,7 @@ bufferToArea(
   verb = FALSE,
   polyName = NULL,
   field = NULL,
+  minSize = 500,
   ...
 )
 
@@ -23,6 +24,7 @@ bufferToArea(
   verb = FALSE,
   polyName = NULL,
   field = NULL,
+  minSize = 500,
   ...
 )
 
@@ -33,6 +35,7 @@ bufferToArea(
   verb = FALSE,
   polyName = NULL,
   field = NULL,
+  minSize = 500,
   ...
 )
 }
@@ -54,6 +57,9 @@ on a SpatialPolygons object)}
 \item{field}{Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
 then each polygon will have its buffer calculated independently for each unique value
 in \code{field}}
+
+\item{minSize}{The absolute minimum size of the buffer & nonbuffer together. This will
+be imposed after \code{areaMultiplier}}
 
 \item{...}{passed to \code{fasterize::fasterize}}
 }

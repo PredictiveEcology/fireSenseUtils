@@ -12,6 +12,8 @@
 #'   pixelID values
 #' @param areaMultiplier Either a scalar that will buffer areaMultiplier * fireSize or
 #'   a function of fireSize. Default is 1. See \code{\link{multiplier}} for an example.
+#' @param minSize The absolute minimum size of the buffer & nonbuffer together. This will
+#'   be imposed after \code{areaMultiplier}
 #' @param polyName Optional character string of the polygon layer name (not the individual polygons
 #'   on a SpatialPolygons object)
 #' @param field Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
@@ -26,6 +28,7 @@
 #' original polygon) or \code{0} (in the buffer)
 bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
                          verb = FALSE, polyName = NULL, field = NULL,
+                         minSize = 500,
                          ...) {
   UseMethod("bufferToArea")
 }
@@ -33,12 +36,13 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 #' @export
 #' @rdname bufferToArea
 bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
-                              verb = FALSE, polyName = NULL, field = NULL, ...) {
+                              verb = FALSE, polyName = NULL, field = NULL,
+                              minSize = 500, ...) {
   if (is.null(polyName)) polyName <- names(poly)
   out <-  purrr::pmap(
     .l = list(poly = poly, polyName = polyName),
     rasterToMatch = rasterToMatch, verb = verb,
-    areaMultiplier = areaMultiplier, field = field, ...,
+    areaMultiplier = areaMultiplier, field = field, minSize = minSize, ...,
     .f = bufferToArea)
   out
 }
@@ -47,7 +51,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
 #' @rdname bufferToArea
 bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
                                          verb = FALSE, polyName = NULL, field = NULL,
-                                         ...) {
+                                         minSize = 500, ...) {
   if (is.null(polyName)) polyName <- "Layer 1"
   if  (as.integer(verb) >= 1) print(paste("Buffering polygons on",polyName))
   r <- fasterize::fasterize(
@@ -64,7 +68,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   }
   fireSize <- initialDf[, list(actualSize = .N,
                                # simSize = .N,# needed for numIters
-                               goalSize = areaMultiplier(.N)), by = "ids"]
+                               goalSize = pmax(minSize, areaMultiplier(.N))), by = "ids"]
 
   out <- list()
   simSizes <- initialDf[, list(simSize = .N), by = "ids"]
@@ -74,7 +78,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   #   spreadProb <- rep(NA, ncell(r))
   #   spreadProb[allowCells] <- 1
   # } else {
-     spreadProb <- 1
+  spreadProb <- 1
   # }
   while(length(loci) > 0) {
     df <- data.table(loci, ids, id = seq(ids))
@@ -122,6 +126,6 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 }
 
 #' @export
-multiplier <- function(size) {
-  round(pmax(5e2, pmax(2, 14 - log(size)) * size), 0)
+multiplier <- function(size, minSize) {
+  round(pmax(2, 14 - log(size)) * size, 0)
 }
