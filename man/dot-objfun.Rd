@@ -14,7 +14,7 @@
   historicalFires,
   fireBufferedListDT,
   covMinMax = NULL,
-  maxFireSpread = 0.25,
+  maxFireSpread = 0.28,
   minFireSize = 2,
   tests = "mad",
   Nreps = 10,

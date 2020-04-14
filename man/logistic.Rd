@@ -3,11 +3,14 @@
 \name{logistic4p}
 \alias{logistic4p}
 \alias{logistic5p}
+\alias{logistic3p}
 \title{Four- and five-parameter logistic functions}
 \usage{
 logistic4p(x, par)
 
 logistic5p(x, par)
+
+logistic3p(x, par, par1 = 0.1)
 }
 \arguments{
 \item{x}{DESCRIPTION NEEDED}
