@@ -147,91 +147,93 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
         }
 
         spreadState <- lapply(seq_len(Nreps), function(i) {
-            SpaDES.tools::spread(
-              landscape = r,
-              maxSize = maxSizes,
-              loci = loci,
-              spreadProb = cells,
-              returnIndices = TRUE,
-              allowOverlap = FALSE,
-              quick = TRUE)
-          })
+          SpaDES.tools::spread(
+            landscape = r,
+            maxSize = maxSizes,
+            loci = loci,
+            spreadProb = cells,
+            returnIndices = TRUE,
+            allowOverlap = FALSE,
+            quick = TRUE)
+        })
         spreadState <- rbindlist(spreadState, idcol = "rep")
         fireSizes <- round(tabulate(spreadState[["id"]])/Nreps,0) # Here tabulate() is equivalent to table() but faster
-        # if (length(fireSizes) == 0) browser()
-        burnedProb <- spreadState[, .N, by = "indices"]
-        setnames(burnedProb, "indices", "pixelID")
-        setDT(annualFireBufferedDT)
-        out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
+        if (isTRUE(doSNLLTest)) {
+          # if (length(fireSizes) == 0) browser()
+          burnedProb <- spreadState[, .N, by = "indices"]
+          setnames(burnedProb, "indices", "pixelID")
+          setDT(annualFireBufferedDT)
+          out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
 
-        # fix the out
-        # 1 -- set pixels that had not simulated fires to N = 0
-        out[is.na(N), N := 0]
-        # 2 -- rescale probability surface between 0.001 and 0.99
-        #      so probabilities can be calculated
-        out[, prob := pmin(out$N/Nreps + 0.001, 0.99)]
-        # 3 -- convert buffer (which has 1 in buffer) to burned = 1 - buffer
-        out[, burned := buffer]
-        # 4 -- Set initial pixels to burned = 2 -- is a work around for cases where "initial pixels" are not actually burned in
-        #   the polygon database
-        out[, burnedClass := burned]
-        out[pixelID %in% annualFires$cells, burnedClass := 2]
+          # fix the out
+          # 1 -- set pixels that had not simulated fires to N = 0
+          out[is.na(N), N := 0]
+          # 2 -- rescale probability surface between 0.001 and 0.99
+          #      so probabilities can be calculated
+          out[, prob := pmin(out$N/Nreps + 0.001, 0.99)]
+          # 3 -- convert buffer (which has 1 in buffer) to burned = 1 - buffer
+          out[, burned := buffer]
+          # 4 -- Set initial pixels to burned = 2 -- is a work around for cases where "initial pixels" are not actually burned in
+          #   the polygon database
+          out[, burnedClass := burned]
+          out[pixelID %in% annualFires$cells, burnedClass := 2]
 
-        if (FALSE) { # THIS IS PLOTTING STUFF
-          r <- raster(landscape)
-          r[out$pixelID] <- out$prob
-          clearPlot();Plot(r)
-          ex <- new("Extent", xmin = -1130927.72835113, xmax = -1029209.34163701,
-                    ymin = 8098144.00948992, ymax = 8224186.35824437)
-          exOther <- new("Extent", xmin = -1295020.59748428, xmax = -1180126.3836478,
-                    ymin = 8093087.29559748, ymax = 8233774.08805031)
-          exVSmall <- new("Extent", xmin = -1090977.9019513, xmax = -1070305.44912111,
-              ymin = 8150890.10159652, ymax = 8173152.74310595)
-          bigFire <- raster(r)
-          biggest <- tail(sort(table(out$ids)),1)
-          bigFire[out$pixelID] <- out$ids
-          bigFire[bigFire != as.numeric(names(biggest))] <- NA
-          bf <- trim(bigFire)
-          ex <- extent(bf)
-          ex <- exVSmall
-          # ex <- clickExtent()
-          # ex <- new("Extent", xmin = -1098283.46889952, xmax = -1037633.32535885,
-          #            ymin = 7969991.96172249, ymax = 8030642.10526316)
-          predictedFireProb <- crop(r, ex)
-          clearPlot();Plot(r)
-          actualFire <- raster(r)
-          actualFire[out$pixelID] <- out$burnedClass
-          actualFire <- crop(actualFire, ex)
-          levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
-          predictedLiklihood <- dbinom(prob = out$prob,
-                                       size = 1,
-                                       x = out$burned,
-                                       log = TRUE
-          )
-          spreadProbMap <- raster(r)
-          spreadProbMap[out$pixelID] <- cells[out$pixelID]
-          spreadProbMap <- crop(spreadProbMap, ex)
-          spreadProbMap[spreadProbMap >= par[2]] <- par[2]
-          spreadProbMap[spreadProbMap <= par[1]] <- 0.23#par[1]
-          predLiklihood <- raster(r)
-          predLiklihood[out$pixelID] <- predictedLiklihood
-          predLiklihood <- crop(predLiklihood, ex)
-          spIgnits <- SpatialPoints(coords = xyFromCell(r, loci))
-          spIgnits <- buffer(spIgnits, width = 100)
-          spIgnits <- crop(spIgnits, ex)
-          clearPlot(); Plot(actualFire, predictedFireProb, predLiklihood, spreadProbMap)
-          Plot(spIgnits, addTo = "spreadProbMap", gp = gpar(fill = rep("black", 10)))
-          Plot(spIgnits, addTo = "actualFire", gp = gpar(fill = rep("black", 10)))
-          Plot(spIgnits, addTo = "predictedFireProb", gp = gpar(fill = rep("black", 10)))
-          Plot(predLiklihood, cols = "RdYlGn", new = TRUE, legendRange = range(round(predLiklihood[], 0), na.rm = TRUE))
+          if (FALSE) { # THIS IS PLOTTING STUFF
+            r <- raster(landscape)
+            r[out$pixelID] <- out$prob
+            clearPlot();Plot(r)
+            ex <- new("Extent", xmin = -1130927.72835113, xmax = -1029209.34163701,
+                      ymin = 8098144.00948992, ymax = 8224186.35824437)
+            exOther <- new("Extent", xmin = -1295020.59748428, xmax = -1180126.3836478,
+                           ymin = 8093087.29559748, ymax = 8233774.08805031)
+            exVSmall <- new("Extent", xmin = -1090977.9019513, xmax = -1070305.44912111,
+                            ymin = 8150890.10159652, ymax = 8173152.74310595)
+            bigFire <- raster(r)
+            biggest <- tail(sort(table(out$ids)),1)
+            bigFire[out$pixelID] <- out$ids
+            bigFire[bigFire != as.numeric(names(biggest))] <- NA
+            bf <- trim(bigFire)
+            ex <- extent(bf)
+            ex <- exVSmall
+            # ex <- clickExtent()
+            # ex <- new("Extent", xmin = -1098283.46889952, xmax = -1037633.32535885,
+            #            ymin = 7969991.96172249, ymax = 8030642.10526316)
+            predictedFireProb <- crop(r, ex)
+            clearPlot();Plot(r)
+            actualFire <- raster(r)
+            actualFire[out$pixelID] <- out$burnedClass
+            actualFire <- crop(actualFire, ex)
+            levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
+            predictedLiklihood <- dbinom(prob = out$prob,
+                                         size = 1,
+                                         x = out$burned,
+                                         log = TRUE
+            )
+            spreadProbMap <- raster(r)
+            spreadProbMap[out$pixelID] <- cells[out$pixelID]
+            spreadProbMap <- crop(spreadProbMap, ex)
+            spreadProbMap[spreadProbMap >= par[2]] <- par[2]
+            spreadProbMap[spreadProbMap <= par[1]] <- 0.23#par[1]
+            predLiklihood <- raster(r)
+            predLiklihood[out$pixelID] <- predictedLiklihood
+            predLiklihood <- crop(predLiklihood, ex)
+            spIgnits <- SpatialPoints(coords = xyFromCell(r, loci))
+            spIgnits <- buffer(spIgnits, width = 100)
+            spIgnits <- crop(spIgnits, ex)
+            clearPlot(); Plot(actualFire, predictedFireProb, predLiklihood, spreadProbMap)
+            Plot(spIgnits, addTo = "spreadProbMap", gp = gpar(fill = rep("black", 10)))
+            Plot(spIgnits, addTo = "actualFire", gp = gpar(fill = rep("black", 10)))
+            Plot(spIgnits, addTo = "predictedFireProb", gp = gpar(fill = rep("black", 10)))
+            Plot(predLiklihood, cols = "RdYlGn", new = TRUE, legendRange = range(round(predLiklihood[], 0), na.rm = TRUE))
 
+          }
+          # Add a very small number so that no pixel has exactly zero probability -- creating Inf
+          # SNLL <- -sum(dbinom(prob = out$prob,
+          #                     size = 1,
+          #                     x = out$burned,
+          #                     log = TRUE
+          # ), na.rm = TRUE) # Sum of the negative log likelihood
         }
-        # Add a very small number so that no pixel has exactly zero probability -- creating Inf
-        # SNLL <- -sum(dbinom(prob = out$prob,
-        #                     size = 1,
-        #                     x = out$burned,
-        #                     log = TRUE
-        # ), na.rm = TRUE) # Sum of the negative log likelihood
       } else {
         #SNLL <- 1e7
         fireSizes <- sample(1:3, 1)
