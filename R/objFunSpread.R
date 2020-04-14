@@ -36,7 +36,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                     historicalFires,
                     fireBufferedListDT,
                     covMinMax = NULL,
-                    maxFireSpread = 0.25, # 0.257 makes gigantic fires
+                    maxFireSpread = 0.28, # 0.257 makes gigantic fires
                     minFireSize = 2,
                     tests = "mad",
                     Nreps = 10,
@@ -83,6 +83,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
     x
     }
   )
+  lowerSpreadProb <- 0.13
+
   results <- purrr::pmap(
     list(annDTx1000 = annualDTx1000,
          yr = years,
@@ -115,15 +117,19 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       mat <- as.matrix(shortAnnDTx1000[, ..colsToUse])/1000
       # matrix multiplication
       covPars <- tail(x = par, n = parsModel)
-      logisticPars <- par[1:4]
-      set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
+      logisticPars <- head(x = par, n = length(par) - parsModel)
+      if (length(logisticPars) == 4) {
+        set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
+      } else if (length(logisticPars) == 3) {
+        set(shortAnnDTx1000, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
+      }
       # logistic multiplication
       # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
       #set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
       #actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
       medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
       # browser(expr = yr == 2014)
-      if (medSP <= maxFireSpread & medSP >= 0.16) {
+      if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
         if (verbose) {
           print(paste0(Sys.getpid(), "-- year: ",yr, ", spreadProb raster: median in buffered pixels = ",
                        round(medSP, 3)))
