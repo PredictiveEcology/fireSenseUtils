@@ -91,7 +91,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   lrgSmallFireYears <- list(large = names(largest),
                             small = smallest)
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
-  lens <- list() # will hold the number of fires associated
   for (ii in 1:2) {
     yrs <- lrgSmallFireYears[[ii]]
     results <- purrr::pmap(
