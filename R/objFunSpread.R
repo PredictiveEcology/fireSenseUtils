@@ -90,7 +90,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   smallest <- setdiff(names(fireSizesByYear), names(largest))
   lrgSmallFireYears <- list(large = names(largest),
                             small = smallest)
-  objFunResList <- list()
+  objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
+  lens <- list() # will hold the number of fires associated
   for (ii in 1:2) {
     yrs <- lrgSmallFireYears[[ii]]
     results <- purrr::pmap(
@@ -269,6 +270,11 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       mad <- round(mean(a$dev), 1)
       objFunRes <- objFunRes + mad #+ SNLLTest
       mess <- paste(" mad:", mad, "; ")
+      objFunResList[ii] <- list(list(objFunRes = objFunRes, nFires = NROW(a)))
+      if (objFunRes > 2700) {
+        break
+      }
+
     }
     if (isTRUE(doADTest)) {
       historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
@@ -284,14 +290,14 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       objFunRes <- objFunRes + SNLLTest #+ SNLLTest
 
     }
-    objFunResList[ii] <- objFunRes
-    if (objFunRes > 3000) {
-      break
-    }
+
   }
-  objFunRes <- do.call(sum, objFunResList)
+  bb <- purrr::transpose(objFunResList)
+  bb <- purrr::map(bb, unlist)
+  totalNFires <- sum(bb$nFires)
+  objFunRes <- do.call(sum, purrr::map2(bb$objFunRes, bb$nFires,
+                                        function(.x, .y) .x * .y))/totalNFires
   print(paste0("  ", Sys.getpid(), mess))
-  # gc()
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
 }
