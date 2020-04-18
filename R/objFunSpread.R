@@ -26,6 +26,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 #' @importFrom raster ncell
 #' @importFrom SpaDES.tools spread
 #' @importFrom stats dbinom median terms
+#' @importFrom EnvStats demp
 #' @importFrom utils tail
 .objfun <- function(par,
                     landscape,
@@ -346,7 +347,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       objFunResList[ii] <- list(list(objFunRes = objFunRes))#, nFires = NROW(a)))
       print(paste0("  ", Sys.getpid(), mess))
       if (SNLL_FSTest > 1100 && ii == 1) {
-        SNLL_FSTest <- 1e5
+        objFunResList[[ii]]$objFunRes <- 1e5
         break
       }
 
