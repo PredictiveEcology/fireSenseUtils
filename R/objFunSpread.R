@@ -345,7 +345,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       objFunRes <- SNLL_FSTest #+ SNLL_FSTest
       objFunResList[ii] <- list(list(objFunRes = objFunRes))#, nFires = NROW(a)))
       print(paste0("  ", Sys.getpid(), mess))
-      if (SNLL_FSTest > 1100) {
+      if (SNLL_FSTest > 1100 && ii == 1) {
+        SNLL_FSTest <- 1e5
         break
       }
 
@@ -359,15 +360,17 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
     }
 
   } # run through 2nd batch of smaller fires
+
   bb <- purrr::transpose(objFunResList)
   bb <- purrr::map(bb, unlist)
 
-  if (isTRUE(doMADTest)) {
+  if (isTRUE(doMADTest) && !isTRUE(doSNLL_FSTest)) {
     totalNFires <- sum(bb$nFires)
     objFunRes <- do.call(sum, purrr::map2(bb$objFunRes, bb$nFires,
                                           function(.x, .y) .x * .y))/totalNFires
-  } else {
-    objFunRes <- unlist(bb$objFunRes)
+  }
+  if (isTRUE(doSNLL_FSTest)) {
+    objFunRes <- sum(unlist(bb$objFunRes))
   }
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
