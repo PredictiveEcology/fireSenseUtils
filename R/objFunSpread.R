@@ -13,7 +13,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 #' @param fireBufferedListDT DESCRIPTION NEEDED
 #' @param covMinMax DESCRIPTION NEEDED
 #' @param maxFireSpread DESCRIPTION NEEDED
-#' @param tests One or more of "mad", "adTest", or "SNLL" as a character vector. Default is "mad"
+#' @param tests One or more of "mad", "adTest", "SNLL", or "SNLL_FS" as a character vector. Default is "mad"
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #' @param verbose DESCRIPTION NEEDED
 #'
@@ -40,14 +40,16 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                     minFireSize = 2,
                     tests = "mad",
                     Nreps = 10,
+                    plot.it = FALSE,
                     #bufferedRealHistoricalFiresList,
                     verbose = TRUE){ #fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
   data.table::setDTthreads(1)
-  doMADTest <- grepl("mad", tolower(tests))
-  doSNLLTest <- grepl("snll", tolower(tests))
-  doADTest <- grepl("adtest", tolower(tests))
+  doMADTest <- any(grepl("mad", tolower(tests)))
+  doSNLLTest <- any(grepl("snll$", tolower(tests)))
+  doSNLL_FSTest <- any(grepl("snll_fs", tolower(tests)))
+  doADTest <- any(grepl("adtest", tolower(tests)))
   if (missing(landscape))
     landscape <- get("landscape", envir = .GlobalEnv)
   if (missing(annualDTx1000))
@@ -156,8 +158,10 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
           }
           dups <- duplicated(annualFires$cells)
           if (any(dups)) {
+            annualFires <- annualFires[which(!dups),]#
             maxSizes <- maxSizes[!dups]
             loci <- annualFires$cells[!dups]
+
           }
 
           spreadState <- lapply(seq_len(Nreps), function(i) {
@@ -171,7 +175,44 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
               quick = TRUE)
           })
           spreadState <- rbindlist(spreadState, idcol = "rep")
-          fireSizes <- round(tabulate(spreadState[["id"]])/Nreps,0) # Here tabulate() is equivalent to table() but faster
+          ret <- list()
+          if (isTRUE(doSNLL_FSTest)) {
+            emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
+            emp <- emp[annualFires, on = c("initialLocus" = "cells")]
+            if (plot.it) {
+              maxX <- log(max(emp$N))
+              png(paste0("FireHistsYr",yr,".png"), width = 1200, height = 1400,
+                  units = "px")
+              par(mfrow = c(7,7), omi = c(0.5, 0, 0, 0),
+                  mai = c(0.2,0.3,0.4,0.1));
+              emp <- setorderv(emp, c("size"), order = -1L)
+              emp[id < 50, {
+                dat <- round(log(N))
+                h <- hist(dat, breaks = 30,
+                     main = paste(as.character(.BY)),
+                     # main = "",
+                axes = FALSE, xlim = c(0, maxX))
+                seqq <- seq(0, ceiling(maxX), by = 1)
+                axis(1, at = seqq, labels = round(exp(seqq),0))
+                abline(v = log(size[1]), col = "red")
+              }, by = "initialLocus"]
+              mtext(outer = TRUE,
+                    paste("Fire year:",yr,"; Simulated fire sizes (# pixels); Actual Fire (red); Sorted by actual fire size"),
+                    line = 2, side = 1)
+              dev.off()
+
+            }
+            emp <- emp[, list(lik = EnvStats::demp(x = size[1], obs = N)), by = "initialLocus"]
+            minLik <- min(emp$lik[emp$lik > 0])
+            set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
+            SNLL_FS <- -sum(emp$lik)
+            ret <- append(ret, list(SNLL_FS = SNLL_FS))
+          }
+
+          if (isTRUE(doMADTest)) {
+            fireSizes <- round(tabulate(spreadState[["id"]])/Nreps,0) # Here tabulate() is equivalent to table() but faster
+            ret <- append(ret, list(fireSizes = fireSizes))
+          }
           if (isTRUE(doSNLLTest)) {
             # if (length(fireSizes) == 0) browser()
             burnedProb <- spreadState[, .N, by = "indices"]
@@ -191,29 +232,37 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
             #   the polygon database
             out[, burnedClass := burned]
             out[pixelID %in% annualFires$cells, burnedClass := 2]
-
             if (FALSE) { # THIS IS PLOTTING STUFF
+              if (FALSE) {
+                setDT(annualFireBufferedDT)
+                ss <- spread(r, spreadProb = 1, iterations = 200, loci = 9830319, returnIndices = TRUE)
+                out <- data.table(pixelID = ss$indices, ids = ss$id, prob = cells[ss$indices])
+                out <- annualFireBufferedDT[out, on = "pixelID"]
+                out[, burnedClass := buffer]
+              }
               r <- raster(landscape)
               r[out$pixelID] <- out$prob
-              clearPlot();Plot(r)
-              ex <- new("Extent", xmin = -1130927.72835113, xmax = -1029209.34163701,
-                        ymin = 8098144.00948992, ymax = 8224186.35824437)
-              exOther <- new("Extent", xmin = -1295020.59748428, xmax = -1180126.3836478,
-                             ymin = 8093087.29559748, ymax = 8233774.08805031)
-              exVSmall <- new("Extent", xmin = -1090977.9019513, xmax = -1070305.44912111,
-                              ymin = 8150890.10159652, ymax = 8173152.74310595)
+              #clearPlot();Plot(r)
+              #ex <- new("Extent", xmin = -1130927.72835113, xmax = -1029209.34163701,
+              #          ymin = 8098144.00948992, ymax = 8224186.35824437)
+              #exOther <- new("Extent", xmin = -1295020.59748428, xmax = -1180126.3836478,
+              #               ymin = 8093087.29559748, ymax = 8233774.08805031)
+              #exVSmall <- new("Extent", xmin = -1090977.9019513, xmax = -1070305.44912111,
+              #                ymin = 8150890.10159652, ymax = 8173152.74310595)
               bigFire <- raster(r)
-              biggest <- tail(sort(table(out$ids)),1)
               bigFire[out$pixelID] <- out$ids
-              bigFire[bigFire != as.numeric(names(biggest))] <- NA
+              keepFire <- tail(sort(table(out$ids)),1)
+              keepFire <- as.numeric(names(keepFire))
+              # keepFire <- 65
+              bigFire[bigFire != keepFire] <- NA
               bf <- trim(bigFire)
               ex <- extent(bf)
-              ex <- exVSmall
+              # ex <- exVSmall
               # ex <- clickExtent()
               # ex <- new("Extent", xmin = -1098283.46889952, xmax = -1037633.32535885,
               #            ymin = 7969991.96172249, ymax = 8030642.10526316)
               predictedFireProb <- crop(r, ex)
-              clearPlot();Plot(r)
+              # clearPlot();Plot(r)
               actualFire <- raster(r)
               actualFire[out$pixelID] <- out$burnedClass
               actualFire <- crop(actualFire, ex)
@@ -226,13 +275,17 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
               spreadProbMap <- raster(r)
               spreadProbMap[out$pixelID] <- cells[out$pixelID]
               spreadProbMap <- crop(spreadProbMap, ex)
-              spreadProbMap[spreadProbMap >= par[2]] <- par[2]
-              spreadProbMap[spreadProbMap <= par[1]] <- 0.23#par[1]
+              spreadProbMap[spreadProbMap >= par[1]] <- par[1]
+              ccc <- cells[out$pixelID];
+              ccc <- ccc[ccc > 0];
+              lowerLim <- quantile(ccc, 0.05);
+              ccc <- ccc[ccc > lowerLim];
+              spreadProbMap[spreadProbMap <= lowerLim] <- lowerLim
               predLiklihood <- raster(r)
               predLiklihood[out$pixelID] <- predictedLiklihood
               predLiklihood <- crop(predLiklihood, ex)
-              spIgnits <- SpatialPoints(coords = xyFromCell(r, loci))
-              spIgnits <- buffer(spIgnits, width = 100)
+              spIgnits <- SpatialPoints(coords = xyFromCell(r, loci[36]))
+              spIgnits <- buffer(spIgnits, width = 5000)
               spIgnits <- crop(spIgnits, ex)
               clearPlot(); Plot(actualFire, predictedFireProb, predLiklihood, spreadProbMap)
               Plot(spIgnits, addTo = "spreadProbMap", gp = gpar(fill = rep("black", 10)))
@@ -249,16 +302,17 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
             # ), na.rm = TRUE) # Sum of the negative log likelihood
           }
         } else {
-          #SNLL <- 1e7
+          SNLL <- 1e7
           fireSizes <- sample(1:3, 1)
         }
 
-        list(fireSizes = fireSizes)#, SNLL = SNLL)
+        return(ret)
       })
     results <- purrr::transpose(results)
 
     mess <- character()
     objFunRes <- 0
+
     if (isTRUE(doMADTest)) {
       a <- purrr::map2(historicalFiresAboveMin[yrs], results$fireSizes, function(x, y) {
         data.table(x, simFireSize = y)
@@ -266,13 +320,16 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 
       a <- rbindlist(a)
       a[, dev := abs(size - simFireSize)]
+      #a[, devLog := sqrt(abs(size - simFireSize))]
       mad <- round(mean(a$dev), 1)
+      #mad <- round(mean(a$devLog), 1)
       objFunRes <- objFunRes + mad #+ SNLLTest
       mess <- paste(" mad:", mad, "; ")
       objFunResList[ii] <- list(list(objFunRes = objFunRes, nFires = NROW(a)))
-      if (objFunRes > 2700) {
-        break
-      }
+      # if (mad > 2700) {
+      #   print(paste0("  ", Sys.getpid(), mess))
+      #   break
+      # }
 
     }
     if (isTRUE(doADTest)) {
@@ -282,6 +339,17 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       objFunRes <- objFunRes + adTest #+ SNLLTest
       mess <- paste(mess, " adTest:", adTest, "; ")
     }
+    if (isTRUE(doSNLL_FSTest)) {
+      SNLL_FSTest <- round(sum(unlist(results$SNLL)),1)
+      mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
+      objFunRes <- SNLL_FSTest #+ SNLL_FSTest
+      objFunResList[ii] <- list(list(objFunRes = objFunRes))#, nFires = NROW(a)))
+      print(paste0("  ", Sys.getpid(), mess))
+      if (SNLL_FSTest > 1100) {
+        break
+      }
+
+    }
     if (isTRUE(doSNLLTest)) {
       rescalor <- 6e4
       SNLLTest <- sum(unlist(results$SNLL)) / rescalor
@@ -290,13 +358,17 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 
     }
 
-  }
+  } # run through 2nd batch of smaller fires
   bb <- purrr::transpose(objFunResList)
   bb <- purrr::map(bb, unlist)
-  totalNFires <- sum(bb$nFires)
-  objFunRes <- do.call(sum, purrr::map2(bb$objFunRes, bb$nFires,
-                                        function(.x, .y) .x * .y))/totalNFires
-  print(paste0("  ", Sys.getpid(), mess))
+
+  if (isTRUE(doMADTest)) {
+    totalNFires <- sum(bb$nFires)
+    objFunRes <- do.call(sum, purrr::map2(bb$objFunRes, bb$nFires,
+                                          function(.x, .y) .x * .y))/totalNFires
+  } else {
+    objFunRes <- unlist(bb$objFunRes)
+  }
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
 }

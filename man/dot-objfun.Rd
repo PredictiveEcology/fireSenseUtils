@@ -18,6 +18,7 @@
   minFireSize = 2,
   tests = "mad",
   Nreps = 10,
+  plot.it = FALSE,
   verbose = TRUE
 )
 }
@@ -42,7 +43,7 @@
 
 \item{maxFireSpread}{DESCRIPTION NEEDED}
 
-\item{tests}{One or more of "mad", "adTest", or "SNLL" as a character vector. Default is "mad"}
+\item{tests}{One or more of "mad", "adTest", "SNLL", or "SNLL_FS" as a character vector. Default is "mad"}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 

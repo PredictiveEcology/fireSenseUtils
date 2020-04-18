@@ -93,7 +93,6 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
       idsBigger <- simSizes$ids[bigger]
       names(idsBigger) <- idsBigger
       out1 <- lapply(idsBigger, function(idBig) {
-        browser(expr = idBig == "423" || idBig == 423)
         wh <- which(df$ids %in% idBig)
         if (as.integer(verb) >= 2) print(paste("  Fire id:,",idBig, "finished. Num pixels in buffer:",
                                                simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
@@ -103,8 +102,6 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
         dt <- rbindlist(list(df[wh][lastIters],
                              df[wh][sample(which(df[wh]$active), needMore)]))
         dtOut <- dt[, list(buffer = 0, pixelID = indices, ids)]
-        #browser(expr = exists("jj"))
-        #rm(jj, envir = .GlobalEnv)
 
         dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1]
         dtOut
@@ -122,7 +119,9 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
       loci <- integer()
     }
   }
-  rbindlist(out)
+  out3 <- rbindlist(out)
+  setorderv(out3, "buffer", order = -1L)
+  out4 <- out3[, list(buffer = buffer[1], ids = ids[1]), by = "pixelID"]
 }
 
 #' @export
