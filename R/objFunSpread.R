@@ -204,7 +204,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 
             }
             emp <- emp[, list(lik = EnvStats::demp(x = size[1], obs = N)), by = "initialLocus"]
-            minLik <- min(emp$lik[emp$lik > 0])
+            minLik <- 1e-7#min(emp$lik[emp$lik > 0])
             set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
             SNLL_FS <- -sum(emp$lik)
             ret <- append(ret, list(SNLL_FS = SNLL_FS))
