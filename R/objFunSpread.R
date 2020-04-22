@@ -344,7 +344,9 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       SNLL_FSTest <- round(sum(unlist(results$SNLL)),1)
       failVal <- 1e5L
       if (SNLL_FSTest > 1100 && ii == 1) {
+        SNLL_FSTestOrig <- SNLL_FSTest
         SNLL_FSTest <- failVal
+        mess <- paste(mess, " SNLL_FSTestOrig:", SNLL_FSTestOrig, "; ")
       }
       mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
       objFunRes <- SNLL_FSTest #+ SNLL_FSTest
@@ -353,7 +355,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
       if (SNLL_FSTest == failVal && ii == 1) {
         break
       }
-
     }
     if (isTRUE(doSNLLTest)) {
       rescalor <- 6e4
@@ -375,6 +376,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   }
   if (isTRUE(doSNLL_FSTest)) {
     objFunRes <- sum(unlist(bb$objFunRes))
+    mess <- paste(" SNLL_FSTest total:", objFunRes, "; ", mess)
   }
   # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
