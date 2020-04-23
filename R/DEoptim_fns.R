@@ -16,7 +16,8 @@
 #' @param itermax Passed to \code{DEoptim.control}
 #' @param trace Passed to \code{DEoptim.control}
 #' @param strategy Passed to \code{DEoptim.control}
-#' @param cores A character vector of machine names (including possibly "localhost"), where
+#' @param cores A numeric (for running on localhost only) or a character vector of 
+#'   machine names (including possibly "localhost"), where
 #'   the length of the vector indicates how many cores should be used on that machine.
 #' @param logPath A character string indicating what file to write logs to. This 
 #'   \code{dirname(logPath)} must exist on each machine, though the function will make sure it
@@ -84,7 +85,7 @@ runDEoptim <- function(landscape,
     
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
-    browser()
+    if (is.numeric(cores)) cores <- rep("localhost", cores)
     revtunnel <- if (all(cores == "localhost")) FALSE else TRUE
     st <- system.time(cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel))
     clusterExport(cl, list("logPath"), envir = environment())
@@ -98,7 +99,7 @@ runDEoptim <- function(landscape,
     stopCluster(cl)
     
     
-    st <- system.time(cl <- future::makeClusterPSOCK(cores, revtunnel = TRUE, outfile = logPath))
+    st <- system.time(cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath))
     
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
@@ -113,6 +114,7 @@ runDEoptim <- function(landscape,
       }
     )
     control$cluster <- cl
+    browser()
     
   } else {
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
