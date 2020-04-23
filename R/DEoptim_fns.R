@@ -80,11 +80,14 @@ runDEoptim <- function(landscape,
     
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
+    browser()
     st <- system.time(cl <- future::makeClusterPSOCK(unique(cores), revtunnel = TRUE))
     clusterExport(cl, list("logPath"), envir = environment())
+    
     parallel::clusterEvalQ(
       cl, {
         reproducible::checkPath(dirname(logPath), create = TRUE)
+        devtools::install_github("PredictiveEcology/fireSenseUtils@development")
       }
     )
     stopCluster(cl)
@@ -116,7 +119,7 @@ runDEoptim <- function(landscape,
   # DEOptim call
   #####################################################################
   browser()
-  DE <- Cache(DEoptimIterative, lower = lower,
+  DE <- Cache(DEoptimIterative, itermax = itermax, lower = lower,
               upper = upper,
               control = do.call("DEoptim.control", control),
               formula = formula,
@@ -126,8 +129,8 @@ runDEoptim <- function(landscape,
               maxFireSpread = maxFireSpread,
               Nreps = Nreps,
               verbose = .verbose,
-              omitArgs = c("verbose"),
-              cacheId = "cd495b412420ad4a") # iteration 201 to 300
+              omitArgs = c("verbose"))#,
+              #cacheId = "cd495b412420ad4a") # iteration 201 to 300
   DE
 }
 
@@ -169,7 +172,7 @@ DEoptimIterative <- function(itermax, lower,
   iterStep <- 10
   for (iter in seq_len(itermax / iterStep) * iterStep) {
     control$itermax <- iterStep
-    
+    browser()
     st1 <- system.time(DE <- Cache(DEoptim,
                                    fireSenseUtils::.objfun,
                                    lower = lower,
@@ -182,8 +185,7 @@ DEoptimIterative <- function(itermax, lower,
                                    maxFireSpread = maxFireSpread,
                                    Nreps = Nreps,
                                    verbose = .verbose,
-                                   omitArgs = c("verbose"),
-                                   cacheId = "cd495b412420ad4a" # iteration 201 to 300
+                                   omitArgs = c("verbose")
     ))
     control$initialpop <- DE$member$pop
     if (isTRUE(visualizeDEoptim)) {
