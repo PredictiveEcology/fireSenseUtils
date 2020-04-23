@@ -67,7 +67,11 @@ runDEoptim <- function(landscape,
   control <- list(itermax = itermax,
                   trace = trace,
                   strategy = strategy)#,
-  
+  objsNeeded <- list("landscape",
+                     "annualDTx1000",
+                     "nonAnnualDTx1000",
+                     "fireBufferedListDT",
+                     "historicalFires")
   if (!is.null(cores)) {
     message("Starting ", paste(paste(unique(cores)), "x", table(cores),
                                collapse = ", "), " clusters")
@@ -81,7 +85,8 @@ runDEoptim <- function(landscape,
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
     browser()
-    st <- system.time(cl <- future::makeClusterPSOCK(unique(cores), revtunnel = TRUE))
+    revtunnel <- if (all(cores == "localhost")) FALSE else TRUE
+    st <- system.time(cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel))
     clusterExport(cl, list("logPath"), envir = environment())
     
     parallel::clusterEvalQ(
@@ -99,12 +104,7 @@ runDEoptim <- function(landscape,
     message("it took ", round(st[3],2), "s to start ",
             paste(paste(unique(cores)), "x", table(cores),
                   collapse = ", "), " threads")
-    clusterExport(cl, list("landscape",
-                           "annualDTx1000",
-                           "nonAnnualDTx1000",
-                           "fireBufferedListDT",
-                           "historicalFires",
-                           "logistic4p"), envir = environment())
+    clusterExport(cl, objsNeeded, envir = environment())
     parallel::clusterEvalQ(
       cl, {
         for (i in c("kSamples", "magrittr", "raster", "data.table",
@@ -114,6 +114,8 @@ runDEoptim <- function(landscape,
     )
     control$cluster <- cl
     
+  } else {
+    list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
   }
   #####################################################################
   # DEOptim call
@@ -128,7 +130,7 @@ runDEoptim <- function(landscape,
               tests = c("SNLL_FS"),
               maxFireSpread = maxFireSpread,
               Nreps = Nreps,
-              verbose = .verbose,
+              .verbose = .verbose,
               omitArgs = c("verbose"))#,
               #cacheId = "cd495b412420ad4a") # iteration 201 to 300
   DE
