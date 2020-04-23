@@ -62,7 +62,8 @@ It should contain all the years in \code{names(annualDTx1000)}}
 
 \item{strategy}{Passed to \code{DEoptim.control}}
 
-\item{cores}{A character vector of machine names (including possibly "localhost"), where
+\item{cores}{A numeric (for running on localhost only) or a character vector of 
+machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
 
 \item{logPath}{A character string indicating what file to write logs to. This 
