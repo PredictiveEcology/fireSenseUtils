@@ -17,6 +17,7 @@ runDEoptim(
   cores,
   logPath,
   cachePath,
+  iterStep = 25,
   lower,
   upper,
   formula,
@@ -38,6 +39,9 @@ DEoptimIterative(
   tests,
   maxFireSpread,
   Nreps,
+  visualizeDEoptim,
+  cachePath,
+  iterStep,
   .verbose
 )
 }
@@ -48,7 +52,7 @@ the pixelID and cells of other objects in this function call}
 \item{annualDTx1000}{A list of data.table objects. Each list element will be from 1
 year, and it must be the same length as \code{fireBufferedListDT} and \code{hhistoricalFires}}
 
-\item{nonAnnualDTx1000}{A list of data.table objects. Each list element must be named 
+\item{nonAnnualDTx1000}{A list of data.table objects. Each list element must be named
 with a concatenated sequence of names from \code{names(annualDTx1000)}, e.g., \code{1991_1992_1993}.
 It should contain all the years in \code{names(annualDTx1000)}}
 
@@ -62,15 +66,20 @@ It should contain all the years in \code{names(annualDTx1000)}}
 
 \item{strategy}{Passed to \code{DEoptim.control}}
 
-\item{cores}{A numeric (for running on localhost only) or a character vector of 
+\item{cores}{A numeric (for running on localhost only) or a character vector of
 machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
 
-\item{logPath}{A character string indicating what file to write logs to. This 
+\item{logPath}{A character string indicating what file to write logs to. This
 \code{dirname(logPath)} must exist on each machine, though the function will make sure it
 does internally}
 
 \item{cachePath}{The cachePath to store cache in. Should likely be \code{cachePath(sim)}}
+
+\item{iterStep}{Integer. Must be less than itermax. This will cause DEoptim to run the
+\code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
+each step, this function will plot, optionally, the parameter histograms (if
+\code{visualizeDEoptim} is \code{TRUE})}
 
 \item{lower}{Passed to \code{DEoptim}}
 
@@ -95,6 +104,6 @@ DEoptim outputs}
 
 }
 \description{
-Does the multiple cluster connections. This will only work if 
+Does the multiple cluster connections. This will only work if
 ssh keys are correctly made between machines (if using multiple machines).
 }

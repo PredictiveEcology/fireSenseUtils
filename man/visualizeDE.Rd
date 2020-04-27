@@ -2,7 +2,7 @@
 % Please edit documentation in R/DEoptim_fns.R
 \name{visualizeDE}
 \alias{visualizeDE}
-\title{Make histograms of DEoptim object}
+\title{Make histograms of DEoptim object pars}
 \usage{
 visualizeDE(DE, cachePath)
 }
@@ -13,5 +13,5 @@ visualizeDE(DE, cachePath)
 \code{loadFromCache} if \code{DE} is missing.}
 }
 \description{
-Make histograms of DEoptim object
+Make histograms of DEoptim object pars
 }
