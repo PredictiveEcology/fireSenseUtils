@@ -277,7 +277,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                      predLiklihood = predLiklihood,
                      spreadProbMap = spreadProbMap)
               })
-              browser(expr = yr == 1992)
               out3 <- purrr::transpose(out2)
               notSp <- grep("spIgnits", names(out3), value = TRUE, invert = TRUE)
 
@@ -288,7 +287,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                 Plot(spDat, addTo = grep(id, names(out4), value = TRUE)[2],
                      gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
               })
-              grid::grid.newpage()
+              # grid::grid.newpage()
 
               # Plot(predictedFireProb, predLiklihood, spreadProbMap, title = "")
               # Plot(predictedFireProb, title = paste0("fire prob, date: ",yr, ", id: ", thisFire$cells), new = TRUE)

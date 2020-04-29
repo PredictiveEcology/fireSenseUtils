@@ -22,7 +22,8 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
   purrr::pmap(list(cent = cent,
                    buff = buff),
               .f = function(cent, buff) {
-                cent <- sp::spTransform(cent, crs(ras))
+                if (!compareCRS(crs(ras), crs(cent)))
+                 cent <- sp::spTransform(cent, crs(ras))
                 whToUse <- cent[[idCol]] %in% buff$ids
                 idsNotInBuffer <- cent[[idCol]][!whToUse]
                 if (NROW(idsNotInBuffer) > 0) {
@@ -71,7 +72,6 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
                                                        # if (.BY[[1]] == "706") browser()
                                                        if (iter * 20 > .N) {
                                                          notFound <- FALSE
-                                                         browser()
                                                          ind1 <- which.max(maxSoFar)
                                                          out1 <- out1[ind1]
                                                        }
@@ -89,12 +89,13 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
 
                   spOrig <- as.data.frame(polyCentroids[match(replacementCentroids$id, polyCentroids[[idCol]]),])
                   spOrig <- spOrig[match(replacementCentroids$id, spOrig[[idCol]]),
-                                   grep("coords", names(spOrig), value = TRUE, invert = TRUE)]
+                                   grep("^x|y$|coords", names(spOrig), value = TRUE, invert = TRUE)]
                   sp <- SpatialPointsDataFrame(replacementCentroids[, c("x", "y")],
                                                spOrig,
                                                proj4string = crs(ras))
 
-                  suppressWarnings(polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id, polyCentroids[[idCol]]),], sp))
+                  suppressWarnings(polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id,
+                                                                               polyCentroids[[idCol]]),], sp))
                 }
                 centDT2 <- data.table(pixelID = cellFromXY(spTransform(polyCentroids, crs(ras)), object = ras),
                                       ids = polyCentroids[[idCol]])

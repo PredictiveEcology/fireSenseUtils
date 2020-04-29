@@ -9,7 +9,6 @@
   landscape,
   annualDTx1000,
   nonAnnualDTx1000,
-  pixelIndices,
   formula,
   historicalFires,
   fireBufferedListDT,
@@ -30,8 +29,6 @@
 \item{annualDTx1000}{DESCRIPTION NEEDED}
 
 \item{nonAnnualDTx1000}{DESCRIPTION NEEDED}
-
-\item{pixelIndices}{DESCRIPTION NEEDED}
 
 \item{formula}{DESCRIPTION NEEDED}
 
