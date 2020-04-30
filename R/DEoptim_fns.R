@@ -141,7 +141,6 @@ runDEoptim <- function(landscape,
               iterStep = iterStep,
               omitArgs = c("verbose"))#,
               #cacheId = "cd495b412420ad4a") # iteration 201 to 300
-  browser()
   DE
 }
 
@@ -211,29 +210,29 @@ DEoptimIterative <- function(itermax, lower,
         omitArgs = c("verbose")
       ))
     } else {
+      # This is for testing --> it is fast
       fn <- function(par, x) {
         -sum(dnorm(log = TRUE, x, mean = par[1], sd = par[2]))
       }
       st1 <- system.time(DE[[iter]] <- DEoptim(
-        fn, #fireSenseUtils::.objfun,
+        fn,
         lower = lower,
         upper = upper,
         control = do.call("DEoptim.control", control),
         x <- x1
-        #formula = formula,
-        #covMinMax = covMinMax,
-        # tests = c("mad", "SNLL_FS"),
-        #tests = c("SNLL_FS"),
-        #maxFireSpread = maxFireSpread,
-        #Nreps = Nreps#,
-        #verbose = .verbose,
-        #omitArgs = c("verbose")
       ))
     }
 
     control$initialpop <- DE[[iter]]$member$pop
     if (isTRUE(visualizeDEoptim)) {
+      if (isRstudioServer()) {
+        png(filename = paste0("DE_pars", rndstr(1, 6), ".png"),
+            width = 1000, height = 1200)
+      }
       visualizeDE(DE[[iter]], cachePath)
+      if (isRstudioServer()) {
+        dev.off()
+      }
     }
   }
 

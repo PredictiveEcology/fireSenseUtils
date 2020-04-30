@@ -115,7 +115,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
         #setDT(nonAnnDTx1000)
         setDT(annDTx1000)
         shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
-        # browser(expr = yr == 1991)
         if (!is.null(covMinMax)) {
           for (cn in colnames(covMinMax)) {
             set(shortAnnDTx1000, NULL, cn,
@@ -136,7 +135,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
         #set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
         #actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
         medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
-        # browser(expr = yr == 2014)
         if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
           if (verbose) {
             print(paste0(Sys.getpid(), "-- year: ",yr, ", spreadProb raster: median in buffered pixels = ",
@@ -196,7 +194,9 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                     paste("Fire year:",yr,"; Simulated fire sizes (# pixels); Actual Fire (red); Sorted by actual fire size"),
                     line = 2, side = 1)
             }
-            emp <- emp[, list(lik = EnvStats::demp(x = size[1], obs = N)), by = "initialLocus"]
+
+            # only use fires that escaped --> i.e., greater than 1 pixel
+            emp <- emp[N > 1, list(lik = EnvStats::demp(x = size[1], obs = N)), by = "initialLocus"]
             minLik <- 1e-7#min(emp$lik[emp$lik > 0])
             set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
             SNLL_FS <- -sum(emp$lik)
@@ -208,7 +208,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
             ret <- append(ret, list(fireSizes = fireSizes))
           }
           if (isTRUE(doSNLLTest)) {
-            # if (length(fireSizes) == 0) browser()
             burnedProb <- spreadState[, .N, by = "indices"]
             setnames(burnedProb, "indices", "pixelID")
             setDT(annualFireBufferedDT)
