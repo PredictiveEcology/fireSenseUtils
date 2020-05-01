@@ -226,8 +226,8 @@ DEoptimIterative <- function(itermax, lower,
     control$initialpop <- DE[[iter]]$member$pop
     if (isTRUE(visualizeDEoptim)) {
       if (!isRstudioServer()) {
-        png(filename = paste0("DE_pars", rndstr(1, 6), ".png"),
-            width = 1000, height = 1200)
+        png(filename = paste0("DE_pars", as.character(Sys.time()), "_", Sys.getpid(), ".png"),
+            width = 800, height = 1000)
       }
       visualizeDE(DE[[iter]], cachePath)
       if (!isRstudioServer()) {
