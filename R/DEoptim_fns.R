@@ -195,19 +195,24 @@ DEoptimIterative <- function(itermax, lower,
     control$storepopfrom <- control$itermax + 1
 
     if (TRUE) {
-      st1 <- system.time(DE[[iter]] <- Cache(DEoptim,
+      controlArgs <- do.call("DEoptim.control", control)
+      controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
+                                       "initialpop", "p", "c", "reltol",
+                                       "packages", "parVar", "foreachArgs")]
+      st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
         fireSenseUtils::.objfun,
         lower = lower,
         upper = upper,
-        control = do.call("DEoptim.control", control),
+        control = controlArgs,
         formula = formula,
         covMinMax = covMinMax,
         # tests = c("mad", "SNLL_FS"),
         tests = c("SNLL_FS"),
         maxFireSpread = maxFireSpread,
         Nreps = Nreps,
+        controlForCache = controlForCache,
         verbose = .verbose,
-        omitArgs = c("verbose")
+        omitArgs = c("verbose", "control")
       ))
     } else {
       # This is for testing --> it is fast
@@ -249,4 +254,11 @@ DEoptimIterative <- function(itermax, lower,
   # DE1$member <- as.matrix(rbindlist(lapply(DE, function(x) as.data.table(x$member$bestmemit))))
 
   DE
+}
+
+#' @importFrom rlang exec
+DEoptimForCache <- function(...) {
+  dots <- list(...)
+  dots["controlForCache"] <- NULL
+  do.call(DEoptim, dots)
 }
