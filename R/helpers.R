@@ -57,20 +57,39 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 #' @export
 #' @importFrom data.table as.data.table set
 #' @importFrom LandR asInteger
-annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
-  # whNotNA <- which(!is.na(rasterToMatch[]))
-  rastersDT <- lapply(annualStacks, whNotNA = whNotNA, function(x, whNotNA) {
-    a <- as.data.table(x[])[whNotNA]
-    a <- dtReplaceNAwith0(a)
-    a
-  })
-  lapply(rastersDT, function(x) {
-    for (col in colnames(x)) {
-      set(x, NULL, col, asInteger(x[[col]]*1000))
-    }
-  })
+#' @importFrom raster stack
+#' @importFrom usefun cbindFromList
 
-  rastersDT
+annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
+  stkName <- names(annualStacks)
+  rastersDT <- lapply(names(annualStacks), whNotNA = whNotNA, function(x, whNotNA) {
+    if (any(is(annualStacks, "list"),
+            is(annualStacks, "RasterStack"))){
+      lay <- annualStacks[[x]]
+      } else {
+        stop("annualStacks must be either a list or a RasterStack")
+      } 
+    layDT <- as.data.table(lay[])[whNotNA]
+    layDT <- dtReplaceNAwith0(layDT)
+    names(layDT) <- names(lay)
+    message("Layer ", names(layDT), " converted to data.table")
+    return(layDT)
+  })
+  if (is(annualStacks, "RasterStack")){ # Should be the prediction, raster stack
+    rastersDT <- usefun::cbindFromList(rastersDT)
+    rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
+      column <- asInteger(column*1000)
+      return(column)
+    }), .SDcols = names(rastersDT)]
+  } else {
+    lapply(rastersDT, function(x) { # Should be the fitting, list of years. Doesn't work for stack
+      for (col in colnames(x)) {
+        set(x, NULL, col, asInteger(x[[col]]*1000))
+        message("Layer ", col, " converted to integer")
+      }
+    })
+  }
+  return(rastersDT)
 }
 
 #' Generate random beta variates between 2 values and a mean
