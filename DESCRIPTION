@@ -29,7 +29,12 @@ Imports:
     reproducible,
     sf,
     SpaDES.tools,
-    stats
+    stats,
+    EnvStats,
+    future,
+    rlang,
+    sp,
+    usefun
 Suggests:
     dplyr,
     knitr,
@@ -46,6 +51,7 @@ Suggests:
 Remotes:
     PredictiveEcology/LandR@ecoregion,
     PredictiveEcology/reproducible@messagingOverhaul
+    PredictiveEcology/usefun@development
 VignetteBuilder:
     knitr,
     rmarkdown
