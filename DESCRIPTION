@@ -29,11 +29,11 @@ Imports:
     purrr,
     raster,
     reproducible,
+    rlang,
     sf,
+    sp,
     SpaDES.tools,
     stats,
-    rlang,
-    sp,
     usefulFuns
 Suggests:
     dplyr,
