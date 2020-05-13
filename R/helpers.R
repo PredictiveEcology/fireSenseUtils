@@ -58,8 +58,7 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 #' @importFrom data.table as.data.table set
 #' @importFrom LandR asInteger
 #' @importFrom raster stack
-#' @importFrom usefun cbindFromList
-
+#' @importFrom usefulFuns cbindFromList
 annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
   stkName <- names(annualStacks)
   rastersDT <- lapply(names(annualStacks), whNotNA = whNotNA, function(x, whNotNA) {
@@ -76,7 +75,7 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
     return(layDT)
   })
   if (is(annualStacks, "RasterStack")){ # Should be the prediction, raster stack
-    rastersDT <- usefun::cbindFromList(rastersDT)
+    rastersDT <- cbindFromList(rastersDT)
     rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
       column <- asInteger(column*1000)
       return(column)
