@@ -19,7 +19,9 @@ Imports:
     assertthat,
     crayon,
     data.table,
+    EnvStats,
     fasterize,
+    future,
     future.apply,
     kSamples,
     LandR,
@@ -30,11 +32,9 @@ Imports:
     sf,
     SpaDES.tools,
     stats,
-    EnvStats,
-    future,
     rlang,
     sp,
-    usefun
+    usefulFuns
 Suggests:
     dplyr,
     knitr,
@@ -51,7 +51,7 @@ Suggests:
 Remotes:
     PredictiveEcology/LandR@ecoregion,
     PredictiveEcology/reproducible@messagingOverhaul
-    PredictiveEcology/usefun@development
+    PredictiveEcology/usefulFuns@development
 VignetteBuilder:
     knitr,
     rmarkdown
