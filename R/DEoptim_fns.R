@@ -1,18 +1,24 @@
-#' Wrapper around DEoptim call
+utils::globalVariables(c(
+  ".BY", ".SD", "pars"
+))
+
+#' Wrapper around \code{DEoptim} call
 #'
 #' Does the multiple cluster connections. This will only work if
 #' ssh keys are correctly made between machines (if using multiple machines).
 #'
-#' @param landscape A RasterLayer which has the correct metadata associated with
-#'   the pixelID and cells of other objects in this function call
+#' @param landscape A \code{RasterLayer} which has the correct metadata associated with
+#'   the \code{pixelID} and cells of other objects in this function call
 #' @param annualDTx1000 A list of data.table objects. Each list element will be from 1
-#'   year, and it must be the same length as \code{fireBufferedListDT} and \code{hhistoricalFires}
+#'   year, and it must be the same length as \code{fireBufferedListDT} and \code{historicalFires}
 #' @param nonAnnualDTx1000 A list of data.table objects. Each list element must be named
-#'   with a concatenated sequence of names from \code{names(annualDTx1000)}, e.g., \code{1991_1992_1993}.
-#'   It should contain all the years in \code{names(annualDTx1000)}
+#'   with a concatenated sequence of names from \code{names(annualDTx1000)},
+#'   e.g., \code{1991_1992_1993}.
+#'   It should contain all the years in \code{names(annualDTx1000)}.
 #' @param fireBufferedListDT A list of data.table objects. It must be same length as
-#'   \code{annualDTx1000}, with same names. Each element is a data.table with columns:
-#'   \code{buff}...
+#'   \code{annualDTx1000}, with same names. Each element is a \code{data.table} with columns:
+#'   \code{buff}...TODO: INCOMPLETE
+#' @param historicalFires DESCRIPTION NEEDED
 #' @param itermax Passed to \code{DEoptim.control}
 #' @param trace Passed to \code{DEoptim.control}
 #' @param strategy Passed to \code{DEoptim.control}
@@ -21,10 +27,10 @@
 #'   the length of the vector indicates how many cores should be used on that machine.
 #' @param logPath A character string indicating what file to write logs to. This
 #'   \code{dirname(logPath)} must exist on each machine, though the function will make sure it
-#'   does internally
-#' @param cachePath The cachePath to store cache in. Should likely be \code{cachePath(sim)}
-#' @param iterStep Integer. Must be less than itermax. This will cause DEoptim to run the
-#'   \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
+#'   does internally.
+#' @param cachePath The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}
+#' @param iterStep Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
+#'   the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
 #'   each step, this function will plot, optionally, the parameter histograms (if
 #'   \code{visualizeDEoptim} is \code{TRUE})
 #' @param lower Passed to \code{DEoptim}
@@ -36,16 +42,16 @@
 #' @param Nreps Passed to \code{fireSenseUtils::.objfun}
 #' @param .verbose Passed to \code{fireSenseUtils::.objfun}
 #' @param visualizeDEoptim Logical. If \code{TRUE}, then histograms will be made of
-#'   DEoptim outputs
+#'   \code{DEoptim} outputs
 #'
-#' @return
+#' @return DESCRIPTION NEEDED
 #'
 #' @export
-#' @importFrom data.table rbindlist as.data.table set
 #' @importFrom crayon blurred
-#' @importFrom parallel clusterExport clusterEvalQ
-#' @importFrom reproducible checkPath
+#' @importFrom data.table rbindlist as.data.table set
 #' @importFrom future makeClusterPSOCK
+#' @importFrom parallel clusterExport clusterEvalQ stopCluster
+#' @importFrom reproducible Cache checkPath
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
@@ -92,7 +98,9 @@ runDEoptim <- function(landscape,
     #  multiple times per machine
     if (is.numeric(cores)) cores <- rep("localhost", cores)
     revtunnel <- if (all(cores == "localhost")) FALSE else TRUE
-    st <- system.time(cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel))
+    st <- system.time({
+      cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel)
+    })
     clusterExport(cl, list("logPath"), envir = environment())
 
     parallel::clusterEvalQ(
@@ -103,13 +111,13 @@ runDEoptim <- function(landscape,
     )
     stopCluster(cl)
 
-
-    st <- system.time(cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath))
+    st <- system.time({
+      cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
+    })
 
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
-            paste(paste(unique(cores)), "x", table(cores),
-                  collapse = ", "), " threads")
+            paste(paste(unique(cores)), "x", table(cores), collapse = ", "), " threads")
     clusterExport(cl, objsNeeded, envir = environment())
     parallel::clusterEvalQ(
       cl, {
@@ -144,12 +152,17 @@ runDEoptim <- function(landscape,
   DE
 }
 
-#' Make histograms of DEoptim object pars
+#' Make histograms of \code{DEoptim} object \code{pars}
 #'
-#' @export
 #' @param DE An object from a \code{DEoptim} call
 #' @param cachePath A \code{cacheRepo} to pass to \code{showCache} and
-#'   \code{loadFromCache} if \code{DE} is missing.
+#'        \code{loadFromCache} if \code{DE} is missing.
+#'
+#' @export
+#' @importFrom data.table as.data.table
+#' @importFrom graphics hist par
+#' @importFrom reproducible loadFromCache showCache
+#' @importFrom utils tail
 visualizeDE <- function(DE, cachePath) {
   if (missing(DE)) {
     if (missing(cachePath))
@@ -167,14 +180,23 @@ visualizeDE <- function(DE, cachePath) {
   aa[, pars := paste0("par", 1:NROW(aa))];
   dim1 <- floor(sqrt(NROW(aa)))
   dim2 <- NROW(aa) / dim1
-  par(mfrow = c(dim1,dim2));
+  par(mfrow = c(dim1, dim2));
   aa[, hist(t(.SD), main = as.character(.BY))[[2]], by = pars]
 }
 
-#' @inheritParams runDEoptim
+#' @param control DESCRIPTION NEEDED
+#'
 #' @export
+#' @importFrom data.table rbindlist setDTthreads
+#' @importFrom DEoptim DEoptim DEoptim.control
+#' @importFrom grDevices dev.off png
+#' @importFrom quickPlot isRstudioServer
+#' @importFrom reproducible Cache
+#' @importFrom stats dnorm rnorm
+#' @importFrom utils tail
 #' @rdname runDEoptim
-DEoptimIterative <- function(itermax, lower,
+DEoptimIterative <- function(itermax,
+                             lower,
                              upper,
                              control,
                              formula,
@@ -195,24 +217,24 @@ DEoptimIterative <- function(itermax, lower,
     control$storepopfrom <- control$itermax + 1
 
     if (TRUE) {
-      controlArgs <- do.call("DEoptim.control", control)
+      controlArgs <- do.call(DEoptim.control, control)
       controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
                                        "initialpop", "p", "c", "reltol",
                                        "packages", "parVar", "foreachArgs")]
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-        fireSenseUtils::.objfun,
-        lower = lower,
-        upper = upper,
-        control = controlArgs,
-        formula = formula,
-        covMinMax = covMinMax,
-        # tests = c("mad", "SNLL_FS"),
-        tests = c("SNLL_FS"),
-        maxFireSpread = maxFireSpread,
-        Nreps = Nreps,
-        controlForCache = controlForCache,
-        verbose = .verbose,
-        omitArgs = c("verbose", "control")
+                                             .objfun,
+                                             lower = lower,
+                                             upper = upper,
+                                             control = controlArgs,
+                                             formula = formula,
+                                             covMinMax = covMinMax,
+                                             # tests = c("mad", "SNLL_FS"),
+                                             tests = c("SNLL_FS"),
+                                             maxFireSpread = maxFireSpread,
+                                             Nreps = Nreps,
+                                             controlForCache = controlForCache,
+                                             verbose = .verbose,
+                                             omitArgs = c("verbose", "control")
       ))
     } else {
       # This is for testing --> it is fast
@@ -223,8 +245,8 @@ DEoptimIterative <- function(itermax, lower,
         fn,
         lower = lower,
         upper = upper,
-        control = do.call("DEoptim.control", control),
-        x <- x1
+        control = do.call(DEoptim.control, control),
+        x = x1
       ))
     }
 
@@ -241,7 +263,6 @@ DEoptimIterative <- function(itermax, lower,
     }
   }
 
-
   DE1 <- tail(DE, 1)[[1]]
   if (iter > 1) {
     bestvals <- which.min(unlist(lapply(DE, function(x) x$optim$bestval)))
@@ -256,7 +277,7 @@ DEoptimIterative <- function(itermax, lower,
   DE
 }
 
-#' @importFrom rlang exec
+#' @importFrom DEoptim DEoptim
 DEoptimForCache <- function(...) {
   dots <- list(...)
   dots["controlForCache"] <- NULL

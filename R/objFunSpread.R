@@ -1,5 +1,6 @@
-utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass", "N",
-                         "pixelID", "prob", "spreadProb"))
+utils::globalVariables(c(
+  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N",
+  "pixelID", "prob", "simFireSize", "size", "spreadProb"))
 
 #' Objective function for \code{fireSense_spreadFit} module
 #'
@@ -12,20 +13,26 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 #' @param fireBufferedListDT DESCRIPTION NEEDED
 #' @param covMinMax DESCRIPTION NEEDED
 #' @param maxFireSpread DESCRIPTION NEEDED
-#' @param tests One or more of "mad", "adTest", "SNLL", or "SNLL_FS" as a character vector. Default is "mad"
+#' @param minFireSize DESCRIPTION NEEDED
+#' @param tests One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
+#'              Default: \code{"mad"}.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
+#' @param plot.it DESCRIPTION NEEDED
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
-#' @importFrom data.table := rbindlist set setDT setDTthreads setnames
-#' @importFrom kSamples ad.test
-#' @importFrom purrr transpose pmap
-#' @importFrom raster ncell
-#' @importFrom SpaDES.tools spread
-#' @importFrom stats dbinom median terms
+#' @importFrom data.table := rbindlist set setDT setDTthreads setnames setorderv
 #' @importFrom EnvStats demp
+#' @importFrom graphics abline axis hist mtext
+#' @importFrom kSamples ad.test
+#' @importFrom purrr map2 pmap transpose
+#' @importFrom quickPlot clearPlot dev gpar Plot
+#' @importFrom raster buffer crop extent ncell raster trim xyFromCell
+#' @importFrom sp SpatialPoints
+#' @importFrom SpaDES.tools spread
+#' @importFrom stats dbinom median terms quantile
 #' @importFrom utils tail
 .objfun <- function(par,
                     landscape,
@@ -177,8 +184,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
             emp <- emp[annualFires, on = c("initialLocus" = "cells")]
             if (plot.it) {
               maxX <- log(max(emp$N))
-              par(mfrow = c(7,7), omi = c(0.5, 0, 0, 0),
-                  mai = c(0.2,0.3,0.4,0.1));
+              par(mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
+                  mai = c(0.2, 0.3, 0.4, 0.1));
               emp <- setorderv(emp, c("size"), order = -1L)
               emp[, {
                 dat <- round(log(N))
@@ -191,7 +198,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                 abline(v = log(size[1]), col = "red")
               }, by = "initialLocus"]
               mtext(outer = TRUE,
-                    paste("Fire year:",yr,"; Simulated fire sizes (# pixels); Actual Fire (red); Sorted by actual fire size"),
+                    paste("Fire year:", yr, "; Simulated fire sizes (# pixels);",
+                          "Actual Fire (red); Sorted by actual fire size"),
                     line = 2, side = 1)
             }
 
@@ -204,7 +212,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
           }
 
           if (isTRUE(doMADTest)) {
-            fireSizes <- round(tabulate(spreadState[["id"]])/Nreps,0) # Here tabulate() is equivalent to table() but faster
+            # Here tabulate() is equivalent to table() but faster
+            fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0)
             ret <- append(ret, list(fireSizes = fireSizes))
           }
           if (isTRUE(doSNLLTest)) {
@@ -391,6 +400,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 
 rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
   a1 <- x - minOrig # brings min to zero
-  a2 <- a1 * maxNew/max(a1)
+  a2 <- a1 * maxNew / max(a1)
   a2
 }

@@ -1,6 +1,6 @@
 Package: fireSenseUtils
 Type: Package
-Title: Utilites for Working With the 'fireSense' Group of 'SpaDES' Modules
+Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 Date: 2020-05-13
 Version: 0.0.0.9025
@@ -18,19 +18,24 @@ Imports:
     assertthat,
     crayon,
     data.table,
+    DEoptim,
     EnvStats,
     fasterize,
     future,
     future.apply,
     kSamples,
     LandR,
+    magrittr,
     methods,
+    quickPlot,
+    pemisc,
     purrr,
     raster,
     reproducible,
     rlang,
     sf,
     sp,
+    SpaDES.core,
     SpaDES.tools,
     stats,
     usefulFuns
@@ -38,16 +43,15 @@ Suggests:
     dplyr,
     knitr,
     lintr,
-    magrittr,
     PtProcess,
-    quickPlot,
     rgeos,
     rmarkdown,
-    SpaDES.core,
     spatstat,
+    spelling,
     testthat
 Remotes:
     PredictiveEcology/LandR@development,
+    PredictiveEcology/quickPlot@development,
     PredictiveEcology/reproducible@development,
     PredictiveEcology/usefulFuns@development
 VignetteBuilder:

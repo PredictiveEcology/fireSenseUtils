@@ -16,6 +16,8 @@ logistic3p(x, par, par1 = 0.1)
 \item{x}{DESCRIPTION NEEDED}
 
 \item{par}{DESCRIPTION NEEDED}
+
+\item{par1}{DESCRIPTION NEEDED}
 }
 \value{
 DESCRIPTION NEEDED

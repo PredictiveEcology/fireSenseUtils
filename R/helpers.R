@@ -18,6 +18,7 @@ logistic5p <- function(x, par) {
 }
 
 
+#' @param par1 DESCRIPTION NEEDED
 #' @export
 #' @rdname logistic
 logistic3p <- function(x, par, par1 = 0.1) {
@@ -67,7 +68,7 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
       lay <- annualStacks[[x]]
       } else {
         stop("annualStacks must be either a list or a RasterStack")
-      } 
+      }
     layDT <- as.data.table(lay[])[whNotNA]
     layDT <- dtReplaceNAwith0(layDT)
     names(layDT) <- names(lay)
@@ -93,12 +94,13 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
 
 #' Generate random beta variates between 2 values and a mean
 #' @inheritParams stats::rbeta
-#' @param shape2 If provided, passed to rbeta. If not, \code{m} must be (i.e., the mean)
+#' @param shape2 If provided, passed to \code{rbeta}. If not, \code{m} must be (i.e., the mean)
 #' @param l scalar numeric for the lower bound
 #' @param u scalar numeric for the upper bound
 #' @param m scalar numeric for the mean
 #'
 #' @export
+#' @importFrom stats rbeta
 rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
   if (is.null(shape2)) {
     m1 <- ((1)/(u - l) * (m - l))

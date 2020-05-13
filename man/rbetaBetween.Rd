@@ -18,7 +18,7 @@ rbetaBetween(n, l, u, m, shape1, shape2 = NULL)
 
 \item{shape1}{non-negative parameters of the Beta distribution.}
 
-\item{shape2}{If provided, passed to rbeta. If not, \code{m} must be (i.e., the mean)}
+\item{shape2}{If provided, passed to \code{rbeta}. If not, \code{m} must be (i.e., the mean)}
 }
 \description{
 Generate random beta variates between 2 values and a mean

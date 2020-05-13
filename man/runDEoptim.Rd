@@ -3,7 +3,7 @@
 \name{runDEoptim}
 \alias{runDEoptim}
 \alias{DEoptimIterative}
-\title{Wrapper around DEoptim call}
+\title{Wrapper around \code{DEoptim} call}
 \usage{
 runDEoptim(
   landscape,
@@ -46,19 +46,22 @@ DEoptimIterative(
 )
 }
 \arguments{
-\item{landscape}{A RasterLayer which has the correct metadata associated with
-the pixelID and cells of other objects in this function call}
+\item{landscape}{A \code{RasterLayer} which has the correct metadata associated with
+the \code{pixelID} and cells of other objects in this function call}
 
 \item{annualDTx1000}{A list of data.table objects. Each list element will be from 1
-year, and it must be the same length as \code{fireBufferedListDT} and \code{hhistoricalFires}}
+year, and it must be the same length as \code{fireBufferedListDT} and \code{historicalFires}}
 
 \item{nonAnnualDTx1000}{A list of data.table objects. Each list element must be named
-with a concatenated sequence of names from \code{names(annualDTx1000)}, e.g., \code{1991_1992_1993}.
-It should contain all the years in \code{names(annualDTx1000)}}
+with a concatenated sequence of names from \code{names(annualDTx1000)},
+e.g., \code{1991_1992_1993}.
+It should contain all the years in \code{names(annualDTx1000)}.}
 
 \item{fireBufferedListDT}{A list of data.table objects. It must be same length as
-\code{annualDTx1000}, with same names. Each element is a data.table with columns:
-\code{buff}...}
+\code{annualDTx1000}, with same names. Each element is a \code{data.table} with columns:
+\code{buff}...TODO: INCOMPLETE}
+
+\item{historicalFires}{DESCRIPTION NEEDED}
 
 \item{itermax}{Passed to \code{DEoptim.control}}
 
@@ -72,12 +75,12 @@ the length of the vector indicates how many cores should be used on that machine
 
 \item{logPath}{A character string indicating what file to write logs to. This
 \code{dirname(logPath)} must exist on each machine, though the function will make sure it
-does internally}
+does internally.}
 
-\item{cachePath}{The cachePath to store cache in. Should likely be \code{cachePath(sim)}}
+\item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
 
-\item{iterStep}{Integer. Must be less than itermax. This will cause DEoptim to run the
-\code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
+\item{iterStep}{Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
+the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
 each step, this function will plot, optionally, the parameter histograms (if
 \code{visualizeDEoptim} is \code{TRUE})}
 
@@ -98,10 +101,12 @@ each step, this function will plot, optionally, the parameter histograms (if
 \item{.verbose}{Passed to \code{fireSenseUtils::.objfun}}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of
-DEoptim outputs}
+\code{DEoptim} outputs}
+
+\item{control}{DESCRIPTION NEEDED}
 }
 \value{
-
+DESCRIPTION NEEDED
 }
 \description{
 Does the multiple cluster connections. This will only work if

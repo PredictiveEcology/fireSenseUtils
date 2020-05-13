@@ -2,7 +2,7 @@
 % Please edit documentation in R/makeLociList.R
 \name{makeLociList}
 \alias{makeLociList}
-\title{Convert a list of SpatialPointsDataFrame object to a list of data.table objects}
+\title{Convert a list of \code{SpatialPointsDataFrame} object to a list of \code{data.table} objects}
 \usage{
 makeLociList(
   ras,
@@ -16,7 +16,7 @@ makeLociList(
 \arguments{
 \item{ras}{A raster that will be the template for cells (pixel ids)}
 
-\item{pts}{A list of SpatialPointsDataFrame objects}
+\item{pts}{A list of \code{SpatialPointsDataFrame} objects}
 
 \item{idsCol}{Character string identifying column name in \code{pts} that has unique
 id per event (i.e., fire)}
@@ -26,7 +26,7 @@ id per event (i.e., fire)}
 \item{sizeCol}{Character string identifying column name in \code{pts} that has size of
 individual event. Can be in hectares or metres squared. Should set \code{sizeColUnits}}
 
-\item{sizeColUnits}{Character string. Either "ha" or "m2".}
+\item{sizeColUnits}{Character string. Either \code{"ha"} or \code{"m2"}.}
 }
 \value{
 A list of data.table objects, each with 4 columns, \code{"size"} (in pixels), \code{"date"},
@@ -35,6 +35,6 @@ A list of data.table objects, each with 4 columns, \code{"size"} (in pixels), \c
 }
 \description{
 Must supply a raster so that points can be converted to the cells on a raster.
-It is assumed that the \code{sizeCol} is accurate. If not, it should be reclaculated
-before this function call
+It is assumed that the \code{sizeCol} is accurate.
+If not, it should be recalculated before this function call.
 }

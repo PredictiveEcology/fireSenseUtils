@@ -40,33 +40,33 @@ bufferToArea(
 )
 }
 \arguments{
-\item{poly}{SpatialPolygons or a list of SpatialPolygons, containing polygons to buffer}
+\item{poly}{\code{SpatialPolygons} or a list of \code{SpatialPolygons}, containing polygons to buffer.}
 
-\item{rasterToMatch}{A RasterLayer with res, origin, extent, crs of desired outputted
-pixelID values}
+\item{rasterToMatch}{A \code{RasterLayer} with \code{res}, \code{origin}, \code{extent},
+\code{crs} of desired outputted \code{pixelID} values.}
 
-\item{areaMultiplier}{Either a scalar that will buffer areaMultiplier * fireSize or
-a function of fireSize. Default is 1. See \code{\link{multiplier}} for an example.}
+\item{areaMultiplier}{Either a scalar that will buffer \code{areaMultiplier * fireSize} or
+a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.}
 
 \item{verb}{Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
 
 \item{polyName}{Optional character string of the polygon layer name (not the individual polygons
-on a SpatialPolygons object)}
+on a \code{SpatialPolygons} object)}
 
 \item{field}{Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
 then each polygon will have its buffer calculated independently for each unique value
 in \code{field}}
 
-\item{minSize}{The absolute minimum size of the buffer & nonbuffer together. This will
-be imposed after \code{areaMultiplier}}
+\item{minSize}{The absolute minimum size of the buffer & non-buffer together. This will
+be imposed after \code{areaMultiplier}.}
 
 \item{...}{passed to \code{fasterize::fasterize}}
 }
 \value{
-A data.table (or list of data.tables if \code{poly} was a list) with 2 columns
-\code{buffer} and \code{pixelID}. \code{buffer} is either \code{1} (the
-original polygon) or \code{0} (in the buffer)
+A \code{data.table} (or list of \code{data.table}s if \code{poly} was a list) with 2 columns:
+\code{buffer} and \code{pixelID}. \code{buffer} is either \code{1} (the original polygon) or
+\code{0} (in the buffer).
 }
 \description{
 Create buffers around polygons based on area target for buffer

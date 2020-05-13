@@ -5,8 +5,7 @@
 \title{Get Fire SpatialPoints from Canadian Fire Database}
 \usage{
 getFirePoints_NFDB(
- 
-    url = "http://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point.zip",
+  url = NULL,
   studyArea = NULL,
   rasterToMatch = NULL,
   redownloadIn = 1,
@@ -24,6 +23,10 @@ getFirePoints_NFDB(
 
 \item{redownloadIn}{Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 0.5 would mean "redownload data older than 6 months"}
+
+\item{years}{Numeric vector of consecutive years to fetch.}
+
+\item{fireSizeColName}{Character describing the name of the column containing fire size information.}
 
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}
 }

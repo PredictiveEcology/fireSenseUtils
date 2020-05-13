@@ -1,31 +1,32 @@
+utils::globalVariables(c(
+  ".N", "goalSize", "simSize"
+))
+
 #' Create buffers around polygons based on area target for buffer
 #'
 #' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 #'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
-#' @export
-#' @importFrom data.table data.table
-#' @importFrom fasterize fasterize
-#' @importFrom purrr map2
-#' @importFrom sf st_as_sf st_crs st_transform
-#' @param poly SpatialPolygons or a list of SpatialPolygons, containing polygons to buffer
-#' @param rasterToMatch A RasterLayer with res, origin, extent, crs of desired outputted
-#'   pixelID values
-#' @param areaMultiplier Either a scalar that will buffer areaMultiplier * fireSize or
-#'   a function of fireSize. Default is 1. See \code{\link{multiplier}} for an example.
-#' @param minSize The absolute minimum size of the buffer & nonbuffer together. This will
-#'   be imposed after \code{areaMultiplier}
+#' @param poly \code{SpatialPolygons} or a list of \code{SpatialPolygons}, containing polygons to buffer.
+#' @param rasterToMatch A \code{RasterLayer} with \code{res}, \code{origin}, \code{extent},
+#'   \code{crs} of desired outputted \code{pixelID} values.
+#' @param areaMultiplier Either a scalar that will buffer \code{areaMultiplier * fireSize} or
+#'   a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.
+#' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
+#'   be imposed after \code{areaMultiplier}.
 #' @param polyName Optional character string of the polygon layer name (not the individual polygons
-#'   on a SpatialPolygons object)
+#'   on a \code{SpatialPolygons} object)
 #' @param field Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
 #'   then each polygon will have its buffer calculated independently for each unique value
 #'   in \code{field}
 #' @param ... passed to \code{fasterize::fasterize}
+#'
+#' @return
+#' A \code{data.table} (or list of \code{data.table}s if \code{poly} was a list) with 2 columns:
+#' \code{buffer} and \code{pixelID}. \code{buffer} is either \code{1} (the original polygon) or
+#' \code{0} (in the buffer).
+#'
 #' @export
 #' @rdname bufferToArea
-#' @return
-#' A data.table (or list of data.tables if \code{poly} was a list) with 2 columns
-#' \code{buffer} and \code{pixelID}. \code{buffer} is either \code{1} (the
-#' original polygon) or \code{0} (in the buffer)
 bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
                          verb = FALSE, polyName = NULL, field = NULL,
                          minSize = 500,
@@ -34,6 +35,7 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 }
 
 #' @export
+#' @importFrom purrr pmap
 #' @rdname bufferToArea
 bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
                               verb = FALSE, polyName = NULL, field = NULL,
@@ -48,6 +50,9 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
 }
 
 #' @export
+#' @importFrom data.table data.table rbindlist setorderv
+#' @importFrom fasterize fasterize
+#' @importFrom sf st_as_sf st_crs st_transform
 #' @rdname bufferToArea
 bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
                                          verb = FALSE, polyName = NULL, field = NULL,
@@ -94,9 +99,10 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
       names(idsBigger) <- idsBigger
       out1 <- lapply(idsBigger, function(idBig) {
         wh <- which(df$ids %in% idBig)
-        if (as.integer(verb) >= 2) print(paste("  Fire id:,",idBig, "finished. Num pixels in buffer:",
-                                               simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
-                                               ", in fire:", simSizes[ids == idBig]$actualSize))
+        if (as.integer(verb) >= 2)
+          print(paste("  Fire id:,",idBig, "finished. Num pixels in buffer:",
+                      simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
+                      ", in fire:", simSizes[ids == idBig]$actualSize))
         lastIters <- !df[wh]$active
         needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
         dt <- rbindlist(list(df[wh][lastIters],
@@ -124,6 +130,13 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   out4 <- out3[, list(buffer = buffer[1], ids = ids[1]), by = "pixelID"]
 }
 
+#' multiplier
+#'
+#' DESCRIPTION NEEDED
+#'
+#' @param size DESCRIPTION NEEDED
+#' @param minSize DESCRIPTION NEEDED
+#'
 #' @export
 multiplier <- function(size, minSize) {
   round(pmax(2, 14 - log(size)) * size, 0)
