@@ -1,9 +1,8 @@
 Package: fireSenseUtils
 Type: Package
 Title: Utilites for Working With the 'fireSense' Group of 'SpaDES' Modules
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-Date: 2020-04-30
+Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
+Date: 2020-05-13
 Version: 0.0.0.9025
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
@@ -49,8 +48,8 @@ Suggests:
     spatstat,
     testthat
 Remotes:
-    PredictiveEcology/LandR@ecoregion,
-    PredictiveEcology/reproducible@messagingOverhaul
+    PredictiveEcology/LandR@development,
+    PredictiveEcology/reproducible@development,
     PredictiveEcology/usefulFuns@development
 VignetteBuilder:
     knitr,
