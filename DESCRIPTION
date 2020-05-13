@@ -51,6 +51,7 @@ Suggests:
     testthat
 Remotes:
     PredictiveEcology/LandR@development,
+    PredictiveEcology/pemisc@development,
     PredictiveEcology/quickPlot@development,
     PredictiveEcology/reproducible@development,
     PredictiveEcology/usefulFuns@development
