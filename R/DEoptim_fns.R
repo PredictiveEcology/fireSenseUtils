@@ -52,6 +52,8 @@ runDEoptim <- function(landscape,
                        fireBufferedListDT,
                        historicalFires,
                        itermax,
+                       initialpop,
+                       NP,
                        trace,
                        strategy,
                        cores,
@@ -73,6 +75,10 @@ runDEoptim <- function(landscape,
   control <- list(itermax = itermax,
                   trace = trace,
                   strategy = strategy)#,
+  if (!is.null(initialpop))
+    control$initialpop <- initialpop
+  if (!is.null(NP))
+    control$NP <- NP
   objsNeeded <- list("landscape",
                      "annualDTx1000",
                      "nonAnnualDTx1000",
@@ -123,6 +129,7 @@ runDEoptim <- function(landscape,
   } else {
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
   }
+
   #####################################################################
   # DEOptim call
   #####################################################################
@@ -194,6 +201,7 @@ DEoptimIterative <- function(itermax, lower,
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
     control$storepopfrom <- control$itermax + 1
 
+    browser()
     if (TRUE) {
       controlArgs <- do.call("DEoptim.control", control)
       controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
@@ -219,12 +227,18 @@ DEoptimIterative <- function(itermax, lower,
       fn <- function(par, x) {
         -sum(dnorm(log = TRUE, x, mean = par[1], sd = par[2]))
       }
-      st1 <- system.time(DE[[iter]] <- DEoptim(
+      controlArgs <- do.call("DEoptim.control", control)
+      controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
+                                       "initialpop", "p", "c", "reltol",
+                                       "packages", "parVar", "foreachArgs")]
+      st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
         fn,
         lower = lower,
         upper = upper,
-        control = do.call("DEoptim.control", control),
-        x <- x1
+        controlForCache = controlForCache,
+        control = control,
+        x <- x1,
+        omitArgs = c("verbose", "control")
       ))
     }
 

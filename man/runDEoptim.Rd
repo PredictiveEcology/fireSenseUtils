@@ -12,6 +12,8 @@ runDEoptim(
   fireBufferedListDT,
   historicalFires,
   itermax,
+  initialpop,
+  NP,
   trace,
   strategy,
   cores,
