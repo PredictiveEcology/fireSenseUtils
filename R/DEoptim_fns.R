@@ -104,7 +104,7 @@ runDEoptim <- function(landscape,
     parallel::clusterEvalQ(
       cl, {
         reproducible::checkPath(dirname(logPath), create = TRUE)
-        devtools::install_github("PredictiveEcology/fireSenseUtils@development")
+        devtools::install_github("PredictiveEcology/fireSenseUtils@iterative", upgrade = FALSE)
       }
     )
     stopCluster(cl)
@@ -201,7 +201,6 @@ DEoptimIterative <- function(itermax, lower,
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
     control$storepopfrom <- control$itermax + 1
 
-    browser()
     if (TRUE) {
       controlArgs <- do.call("DEoptim.control", control)
       controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
