@@ -92,7 +92,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   lrgSmallFireYears <- list(large = names(largest),
                             small = smallest)
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
-  for (ii in 2) {
+  for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     results <- purrr::pmap(
       list(annDTx1000 = annualDTx1000[yrs],
