@@ -92,7 +92,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   lrgSmallFireYears <- list(large = names(largest),
                             small = smallest)
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
-  for (ii in 1:2) {
+  for (ii in 2) {
     yrs <- lrgSmallFireYears[[ii]]
     results <- purrr::pmap(
       list(annDTx1000 = annualDTx1000[yrs],
@@ -135,7 +135,13 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
         #set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
         #actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
         medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
+
+        out <- tryCatch(if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {}, error = function(x) "error")
+        if (identical(out, "error"))
+          browser()
+
         if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
+
           if (verbose) {
             print(paste0(Sys.getpid(), "-- year: ",yr, ", spreadProb raster: median in buffered pixels = ",
                          round(medSP, 3)))
@@ -391,6 +397,9 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 
 rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
   a1 <- x - minOrig # brings min to zero
-  a2 <- a1 * maxNew/max(a1)
+  if (any(a1 != 0))
+    a2 <- a1 * maxNew/max(a1)
+  else
+    a2 <- a1
   a2
 }
