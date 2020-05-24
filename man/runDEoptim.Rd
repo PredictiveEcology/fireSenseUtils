@@ -23,6 +23,7 @@ runDEoptim(
   lower,
   upper,
   formula,
+  objFunCoresInternal,
   covMinMax = covMinMax,
   tests,
   maxFireSpread,

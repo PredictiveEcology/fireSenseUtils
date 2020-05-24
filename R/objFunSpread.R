@@ -95,7 +95,6 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
-    browser()
     results <- parallel::mcmapply(
       mc.cores = objFunCoresInternal, mc.preschedule = FALSE,
       SIMPLIFY = FALSE,
