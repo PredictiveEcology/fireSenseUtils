@@ -40,6 +40,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
                     tests = "mad",
                     Nreps = 10,
                     plot.it = FALSE,
+                    objFunCoresInternal = 1,
                     #bufferedRealHistoricalFiresList,
                     verbose = TRUE){ #fireSense_SpreadFitRaster
   # Optimization's objective function
@@ -94,18 +95,23 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
-    results <- purrr::pmap(
-      list(annDTx1000 = annualDTx1000[yrs],
-           yr = years[yrs],
-           annualFires = historicalFiresAboveMin[yrs],
-           annualFireBufferedDT = fireBufferedListDT[yrs]),
-      par = par, parsModel = parsModel,
-      verbose = verbose,
-      nonAnnualDTx1000 = nonAnnualDTx1000,
-      indexNonAnnual = indexNonAnnual,
-      colsToUse = colsToUse,
-      covMinMax = covMinMax,
-      .f = function(yr, annDTx1000, par, parsModel,
+    browser()
+    results <- parallel::mcmapply(
+      mc.cores = objFunCoresInternal, mc.preschedule = FALSE,
+      SIMPLIFY = FALSE,
+      # results <- purrr::pmap(
+      annDTx1000 = annualDTx1000[yrs],
+      yr = years[yrs],
+      annualFires = historicalFiresAboveMin[yrs],
+      annualFireBufferedDT = fireBufferedListDT[yrs],
+      MoreArgs = list(par = par, parsModel = parsModel,
+                      verbose = verbose,
+                      nonAnnualDTx1000 = nonAnnualDTx1000,
+                      indexNonAnnual = indexNonAnnual,
+                      colsToUse = colsToUse,
+                      covMinMax = covMinMax),
+      # .f = function(yr, annDTx1000, par, parsModel,
+      function(yr, annDTx1000, par, parsModel,
                     annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                     indexNonAnnual, colsToUse, covMinMax,
                     verbose = TRUE) {

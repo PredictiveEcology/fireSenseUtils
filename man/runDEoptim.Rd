@@ -39,6 +39,7 @@ DEoptimIterative(
   formula,
   covMinMax,
   tests,
+  objFunCoresInternal,
   maxFireSpread,
   Nreps,
   visualizeDEoptim,

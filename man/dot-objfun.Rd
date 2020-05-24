@@ -18,6 +18,7 @@
   tests = "mad",
   Nreps = 10,
   plot.it = FALSE,
+  objFunCoresInternal = 1,
   verbose = TRUE
 )
 }
