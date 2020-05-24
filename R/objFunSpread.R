@@ -96,7 +96,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     results <- parallel::mcmapply(
-      mc.cores = objFunCoresInternal, mc.preschedule = FALSE,
+      mc.cores = min(length(years[yrs]), objFunCoresInternal), mc.preschedule = FALSE,
       SIMPLIFY = FALSE,
       # results <- purrr::pmap(
       annDTx1000 = annualDTx1000[yrs],
