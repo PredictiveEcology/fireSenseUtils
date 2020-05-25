@@ -45,7 +45,7 @@ Suggests:
     testthat
 Remotes:
     PredictiveEcology/LandR@development,
-    PredictiveEcology/reproducible@messagingOverhaul
+    PredictiveEcology/reproducible@development
 VignetteBuilder:
     knitr,
     rmarkdown
