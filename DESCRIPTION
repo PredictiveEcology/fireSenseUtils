@@ -44,7 +44,7 @@ Suggests:
     spatstat,
     testthat
 Remotes:
-    PredictiveEcology/LandR@ecoregion,
+    PredictiveEcology/LandR@devepment,
     PredictiveEcology/reproducible@messagingOverhaul
 VignetteBuilder:
     knitr,
