@@ -209,6 +209,7 @@ DEoptimIterative <- function(itermax, lower,
       controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
                                        "initialpop", "p", "c", "reltol",
                                        "packages", "parVar", "foreachArgs")]
+      browser()
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
         fireSenseUtils::.objfun,
         lower = lower,
