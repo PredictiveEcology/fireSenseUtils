@@ -98,7 +98,7 @@ runDEoptim <- function(landscape,
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
     if (is.numeric(cores)) cores <- rep("localhost", cores)
-    revtunnel <- if (all(cores == "localhost")) FALSE else TRUE
+    revtunnel <- FALSE #if (all(cores == "localhost")) FALSE else TRUE
     st <- system.time(cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel))
     clusterExport(cl, list("logPath"), envir = environment())
 
