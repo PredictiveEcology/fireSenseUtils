@@ -88,7 +88,7 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
   lowerSpreadProb <- 0.13
 
   fireSizesByYear <- unlist(lapply(historicalFiresAboveMin, function(x) sum(x$size)))
-  largest <- head(sort(fireSizesByYear, decreasing = TRUE), max(2, objFunCoresInternal))
+  largest <- head(sort(fireSizesByYear, decreasing = TRUE), 2)#max(2, objFunCoresInternal))
   smallest <- setdiff(names(fireSizesByYear), names(largest))
   lrgSmallFireYears <- list(large = names(largest),
                             small = smallest)
