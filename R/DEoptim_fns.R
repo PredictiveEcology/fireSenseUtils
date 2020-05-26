@@ -86,7 +86,7 @@ runDEoptim <- function(landscape,
                      "fireBufferedListDT",
                      "historicalFires")
   if (!is.null(cores)) {
-    message("Starting ", paste(paste(unique(cores)), "x", table(cores),
+    message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
                                collapse = ", "), " clusters")
     logPath <- file.path(logPath,
                          paste0("fireSense_SpreadFit_log", Sys.getpid()))
@@ -115,7 +115,7 @@ runDEoptim <- function(landscape,
 
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
-            paste(paste(unique(cores)), "x", table(cores),
+            paste(paste(names(table(cores))), "x", table(cores),
                   collapse = ", "), " threads")
     clusterExport(cl, objsNeeded, envir = environment())
     parallel::clusterEvalQ(
