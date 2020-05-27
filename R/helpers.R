@@ -24,6 +24,12 @@ logistic3p <- function(x, par, par1 = 0.1) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par[3L]
 }
 
+#' @export
+#' @rdname logistic
+logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
+  par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par4
+}
+
 #' Replace \code{NA}s in a \code{data.table} with zeros
 #'
 #' @param DT DESCRIPTION NEEDED

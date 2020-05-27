@@ -136,6 +136,8 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
             set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
           } else if (length(logisticPars) == 3) {
             set(shortAnnDTx1000, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
+          } else if (length(logisticPars) == 2) {
+            set(shortAnnDTx1000, NULL, "spreadProb", logistic2p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb, par4 = 0.5))
           }
           # logistic multiplication
           # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
