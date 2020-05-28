@@ -48,7 +48,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
       MoreArgs = list(
         rasterToMatch = rasterToMatch, verb = verb,
         areaMultiplier = areaMultiplier, field = field, minSize = minSize,
-        cores = cores,
+        cores = 1,
         ...),
       bufferToArea)
   } else {
@@ -56,6 +56,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
       .l = list(poly = poly, polyName = polyName),
       rasterToMatch = rasterToMatch, verb = verb,
       areaMultiplier = areaMultiplier, field = field, minSize = minSize,
+      cores = 1,
       ...,
       .f = bufferToArea)
   }
