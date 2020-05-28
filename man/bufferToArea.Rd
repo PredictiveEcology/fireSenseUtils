@@ -14,6 +14,7 @@ bufferToArea(
   polyName = NULL,
   field = NULL,
   minSize = 500,
+  cores = 1,
   ...
 )
 
@@ -25,6 +26,7 @@ bufferToArea(
   polyName = NULL,
   field = NULL,
   minSize = 500,
+  cores = 1,
   ...
 )
 

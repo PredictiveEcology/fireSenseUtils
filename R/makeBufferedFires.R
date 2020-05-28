@@ -28,7 +28,7 @@
 #' original polygon) or \code{0} (in the buffer)
 bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
                          verb = FALSE, polyName = NULL, field = NULL,
-                         minSize = 500,
+                         minSize = 500, cores = 1,
                          ...) {
   UseMethod("bufferToArea")
 }
@@ -37,13 +37,27 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 #' @rdname bufferToArea
 bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
                               verb = FALSE, polyName = NULL, field = NULL,
-                              minSize = 500, ...) {
+                              minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- names(poly)
-  out <-  purrr::pmap(
-    .l = list(poly = poly, polyName = polyName),
-    rasterToMatch = rasterToMatch, verb = verb,
-    areaMultiplier = areaMultiplier, field = field, minSize = minSize, ...,
-    .f = bufferToArea)
+  cores <- min(parallel::detectCores()-1, min(length(poly), cores))
+  if (cores > 1) {
+    out <-  parallel::mcMap(
+      mc.cores = cores,
+      poly = poly,
+      polyName = polyName,
+      MoreArgs = list(
+        rasterToMatch = rasterToMatch, verb = verb,
+        areaMultiplier = areaMultiplier, field = field, minSize = minSize,
+        ...),
+      bufferToArea)
+  } else {
+    out <-  purrr::pmap(
+      .l = list(poly = poly, polyName = polyName),
+      rasterToMatch = rasterToMatch, verb = verb,
+      areaMultiplier = areaMultiplier, field = field, minSize = minSize,
+      ...,
+      .f = bufferToArea)
+  }
   out
 }
 
@@ -81,8 +95,9 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   spreadProb <- 1
   # }
   while(length(loci) > 0) {
-    df <- data.table(loci, ids, id = seq(ids))
-    r1 <- spread(r, loci = loci, iterations = 1,
+    dups <- duplicated(loci)
+    df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq(ids[!dups]))
+    r1 <- spread(r, loci = df$loci, iterations = 1,
                  spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE)
     df <- df[r1, on = "id"]
     simSizes <- df[, list(simSize = .N), by = "ids"]
@@ -99,8 +114,13 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
                                                ", in fire:", simSizes[ids == idBig]$actualSize))
         lastIters <- !df[wh]$active
         needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
-        dt <- rbindlist(list(df[wh][lastIters],
-                             df[wh][sample(which(df[wh]$active), needMore)]))
+        if (needMore > 0) {
+          dt <- try(rbindlist(list(df[wh][lastIters],
+                                   df[wh][sample(which(df[wh]$active), needMore)])))
+        } else {
+          dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
+        }
+        if (is(dt, "try-error")) browser()#stop("try error here")
         dtOut <- dt[, list(buffer = 0, pixelID = indices, ids)]
 
         dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1]
