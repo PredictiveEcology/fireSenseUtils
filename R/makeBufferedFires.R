@@ -48,6 +48,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
       MoreArgs = list(
         rasterToMatch = rasterToMatch, verb = verb,
         areaMultiplier = areaMultiplier, field = field, minSize = minSize,
+        cores = cores,
         ...),
       bufferToArea)
   } else {
@@ -65,6 +66,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
 #' @rdname bufferToArea
 bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
                                          verb = FALSE, polyName = NULL, field = NULL,
+                                         cores = 1,
                                          minSize = 500, ...) {
   if (is.null(polyName)) polyName <- "Layer 1"
   if  (as.integer(verb) >= 1) print(paste("Buffering polygons on",polyName))

@@ -37,6 +37,7 @@ bufferToArea(
   verb = FALSE,
   polyName = NULL,
   field = NULL,
+  cores = 1,
   minSize = 500,
   ...
 )
