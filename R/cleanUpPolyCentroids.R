@@ -56,7 +56,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
                                                    out1 <- maxSoFar <- integer()
                                                    while(notFound) {
                                                      spr <- spread(loci = tail(head(pixelID, iter * 20), 20), ras, spreadProb = 1, iterations = 1,
-                                                                   allowOverlap = TRUE, returnIndices = TRUE)
+                                                                   allowOverlap = FALSE, returnIndices = TRUE)
                                                      out <- spr[, list(numNeighs = sum(ras[][indices], na.rm = TRUE)), by = "id"][, numNeighs := numNeighs - 1]
                                                      notFound <- (!any(out$numNeighs > 6))
                                                      if (!notFound) {
