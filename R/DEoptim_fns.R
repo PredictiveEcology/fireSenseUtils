@@ -194,11 +194,10 @@ DEoptimIterative <- function(itermax, lower,
                              Nreps,
                              visualizeDEoptim,
                              cachePath,
-                             iterStep,
+                             iterStep = 25,
                              .verbose) {
   data.table::setDTthreads(1)
   x1 <- rnorm(1e2, 1, 2) # this is for debugging below
-  iterStep <- 25
   DE <- list()
   for (iter in seq_len(ceiling(itermax / iterStep))) {
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
