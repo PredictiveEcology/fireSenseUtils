@@ -79,7 +79,7 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
   rastersDT
 }
 
-#' Convert annual raster stacks to \code{data.table}
+#' Convert annual raster stack to \code{data.table}
 #'
 #' @param annualStack DESCRIPTION NEEDED
 #' @param whNotNA DESCRIPTION NEEDED
@@ -93,33 +93,34 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
 #' @importFrom raster stack
 #' @importFrom usefulFuns cbindFromList
 annualStackToDTx1000 <- function(annualStack, whNotNA, ...) {
-  stkName <- names(annualStacks)
-  rastersDT <- lapply(names(annualStacks), whNotNA = whNotNA, function(x, whNotNA) {
-    if (any(is(annualStacks, "list"),
-            is(annualStacks, "RasterStack"))){
-      lay <- annualStacks[[x]]
+  stkName <- names(annualStack)
+  rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
+    if (any(is(annualStack, "list"),
+            is(annualStack, "RasterStack"))){
+      lay <- annualStack[[x]]
     } else {
-      stop("annualStacks must be either a list or a RasterStack")
+      stop("annualStack must be either a list or a RasterStack")
     }
     layDT <- as.data.table(lay[])[whNotNA]
     layDT <- dtReplaceNAwith0(layDT)
     names(layDT) <- names(lay)
-    message("Layer ", names(layDT), " converted to data.table")
     return(layDT)
   })
-  if (is(annualStacks, "RasterStack")){ # Should be the prediction, raster stack
-    rastersDT <- cbindFromList(rastersDT)
-    rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
-      column <- asInteger(column*1000)
-      return(column)
-    }), .SDcols = names(rastersDT)]
-  } else {
-    lapply(rastersDT, function(x) { # Should be the fitting, list of years. Doesn't work for stack
-      for (col in colnames(x)) {
-        set(x, NULL, col, asInteger(x[[col]]*1000))
-        message("Layer ", col, " converted to integer")
-      }
-    })
+  lapply(rastersDT, function(x) { # Should be the fitting and predicting
+    for (col in colnames(x)) {
+      set(x, NULL, col, asInteger(x[[col]]*1000))
+      message("Layer ", col, " converted to integer")
+    }
+  })
+  if (is(annualStack, "RasterStack")){ # Should be the prediction, raster stack
+    bindedList <- do.call(cbind, args = rastersDT)
+    bindedList <- data.table::data.table(bindedList)
+    if (any(duplicated(names(bindedList)))){
+      warning("There are duplicated names in the raster layer. Deleting...", 
+              immediate. = TRUE)
+      bindedList[, `:=`(which(duplicated(names(bindedList))), NULL)]
+    }
+    rastersDT <- bindedList
   }
   return(rastersDT)
 }
