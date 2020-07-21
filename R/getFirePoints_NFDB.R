@@ -22,7 +22,7 @@ getFirePoints_NFDB <- function(url = NULL,
                                redownloadIn = 1,
                                years = 1991:2017,
                                fireSizeColName = "SIZE_HA",
-                               NFDB_pointPath) {
+                               NFDB_pointPath = NULL) {
   if (is.null(NFDB_pointPath))
     stop("NFDB_pointPath must be specified and non-NULL.")
   if (is.null(url))
