@@ -13,7 +13,7 @@ harmonizeBufferAndPoints(cent, buff, ras, idCol = "NFIREID")
 or 0 (in a buffer), \code{ids} which are the fire ids which MUST match the ids
 in the \code{cent}}
 
-\item{ras}{The raster that created the pixelIDs in the \code{buff}}
+\item{ras}{The raster that created the \code{pixelIDs} in the \code{buff}}
 
 \item{idCol}{The column name as a character string with the fire ids. Defaults to
 \code{"NFIREID"}}

@@ -19,6 +19,8 @@ logistic2p(x, par, par1 = 0.1, par4 = 0.5)
 \item{x}{DESCRIPTION NEEDED}
 
 \item{par}{DESCRIPTION NEEDED}
+
+\item{par1}{DESCRIPTION NEEDED}
 }
 \value{
 DESCRIPTION NEEDED

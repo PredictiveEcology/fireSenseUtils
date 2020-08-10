@@ -1,5 +1,6 @@
-utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass", "N",
-                         "pixelID", "prob", "spreadProb"))
+utils::globalVariables(c(
+  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N",
+  "pixelID", "prob", "simFireSize", "size", "spreadProb"))
 
 #' Objective function for \code{fireSense_spreadFit} module
 #'
@@ -12,20 +13,26 @@ utils::globalVariables(c("..colsToUse", ".N", "buffer", "burned", "burnedClass",
 #' @param fireBufferedListDT DESCRIPTION NEEDED
 #' @param covMinMax DESCRIPTION NEEDED
 #' @param maxFireSpread DESCRIPTION NEEDED
-#' @param tests One or more of "mad", "adTest", "SNLL", or "SNLL_FS" as a character vector. Default is "mad"
+#' @param minFireSize DESCRIPTION NEEDED
+#' @param tests One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
+#'              Default: \code{"mad"}.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
+#' @param plot.it DESCRIPTION NEEDED
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
-#' @importFrom data.table := rbindlist set setDT setDTthreads setnames
-#' @importFrom kSamples ad.test
-#' @importFrom purrr transpose pmap
-#' @importFrom raster ncell
-#' @importFrom SpaDES.tools spread
-#' @importFrom stats dbinom median terms
+#' @importFrom data.table := rbindlist set setDT setDTthreads setnames setorderv
 #' @importFrom EnvStats demp
+#' @importFrom graphics abline axis hist mtext
+#' @importFrom kSamples ad.test
+#' @importFrom purrr map2 pmap transpose
+#' @importFrom quickPlot clearPlot dev gpar Plot
+#' @importFrom raster buffer crop extent ncell raster trim xyFromCell
+#' @importFrom sp SpatialPoints
+#' @importFrom SpaDES.tools spread
+#' @importFrom stats dbinom median terms quantile
 #' @importFrom utils tail
 .objfun <- function(par,
                     landscape,
