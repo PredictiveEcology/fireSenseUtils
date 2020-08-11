@@ -54,6 +54,7 @@ Remotes:
     PredictiveEcology/pemisc@development,
     PredictiveEcology/quickPlot@development,
     PredictiveEcology/reproducible@development,
+    PredictiveEcology/Require@development,
     PredictiveEcology/usefulFuns@development
 VignetteBuilder:
     knitr,
