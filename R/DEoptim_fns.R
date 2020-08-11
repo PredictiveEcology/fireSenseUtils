@@ -20,6 +20,8 @@ utils::globalVariables(c(
 #'   \code{buff}...TODO: INCOMPLETE
 #' @param historicalFires DESCRIPTION NEEDED
 #' @param itermax Passed to \code{DEoptim.control}
+#' @param initialpop DESCRIPTION NEEDED
+#' @param NP DESCRIPTION NEEDED
 #' @param trace Passed to \code{DEoptim.control}
 #' @param strategy Passed to \code{DEoptim.control}
 #' @param cores A numeric (for running on localhost only) or a character vector of
@@ -36,6 +38,7 @@ utils::globalVariables(c(
 #' @param lower Passed to \code{DEoptim}
 #' @param upper Passed to \code{DEoptim}
 #' @param formula Passed to \code{DEoptim}
+#' @param objFunCoresInternal DESCRIPTION NEEDED
 #' @param covMinMax Passed to \code{fireSenseUtils::.objfun}
 #' @param tests Passed to \code{fireSenseUtils::.objfun}
 #' @param maxFireSpread Passed to \code{fireSenseUtils::.objfun}
@@ -58,6 +61,8 @@ runDEoptim <- function(landscape,
                        fireBufferedListDT,
                        historicalFires,
                        itermax,
+                       initialpop,
+                       NP,
                        trace,
                        strategy,
                        cores,
@@ -67,6 +72,7 @@ runDEoptim <- function(landscape,
                        lower,
                        upper,
                        formula,
+                       objFunCoresInternal,
                        covMinMax = covMinMax,
                        tests,
                        maxFireSpread,
@@ -79,13 +85,17 @@ runDEoptim <- function(landscape,
   control <- list(itermax = itermax,
                   trace = trace,
                   strategy = strategy)#,
+  if (!is.null(initialpop))
+    control$initialpop <- initialpop
+  if (!is.null(NP))
+    control$NP <- NP
   objsNeeded <- list("landscape",
                      "annualDTx1000",
                      "nonAnnualDTx1000",
                      "fireBufferedListDT",
                      "historicalFires")
   if (!is.null(cores)) {
-    message("Starting ", paste(paste(unique(cores)), "x", table(cores),
+    message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
                                collapse = ", "), " clusters")
     logPath <- file.path(logPath,
                          paste0("fireSense_SpreadFit_log", Sys.getpid()))
@@ -106,7 +116,7 @@ runDEoptim <- function(landscape,
     parallel::clusterEvalQ(
       cl, {
         reproducible::checkPath(dirname(logPath), create = TRUE)
-        devtools::install_github("PredictiveEcology/fireSenseUtils@development")
+        devtools::install_github("PredictiveEcology/fireSenseUtils@iterative", upgrade = FALSE)
       }
     )
     stopCluster(cl)
@@ -117,7 +127,8 @@ runDEoptim <- function(landscape,
 
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
-            paste(paste(unique(cores)), "x", table(cores), collapse = ", "), " threads")
+            paste(paste(names(table(cores))), "x", table(cores),
+                  collapse = ", "), " threads")
     clusterExport(cl, objsNeeded, envir = environment())
     parallel::clusterEvalQ(
       cl, {
@@ -131,6 +142,7 @@ runDEoptim <- function(landscape,
   } else {
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
   }
+
   #####################################################################
   # DEOptim call
   #####################################################################
@@ -142,6 +154,7 @@ runDEoptim <- function(landscape,
               # tests = c("mad", "SNLL_FS"),
               tests = c("SNLL_FS"),
               maxFireSpread = maxFireSpread,
+              objFunCoresInternal = objFunCoresInternal,
               Nreps = Nreps,
               .verbose = .verbose,
               visualizeDEoptim = visualizeDEoptim,
@@ -202,15 +215,15 @@ DEoptimIterative <- function(itermax,
                              formula,
                              covMinMax,
                              tests,
+                             objFunCoresInternal,
                              maxFireSpread,
                              Nreps,
                              visualizeDEoptim,
                              cachePath,
-                             iterStep,
+                             iterStep = 25,
                              .verbose) {
   data.table::setDTthreads(1)
   x1 <- rnorm(1e2, 1, 2) # this is for debugging below
-  iterStep <- 25
   DE <- list()
   for (iter in seq_len(ceiling(itermax / iterStep))) {
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
@@ -222,30 +235,37 @@ DEoptimIterative <- function(itermax,
                                        "initialpop", "p", "c", "reltol",
                                        "packages", "parVar", "foreachArgs")]
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-                                             .objfun,
-                                             lower = lower,
-                                             upper = upper,
-                                             control = controlArgs,
-                                             formula = formula,
-                                             covMinMax = covMinMax,
-                                             # tests = c("mad", "SNLL_FS"),
-                                             tests = c("SNLL_FS"),
-                                             maxFireSpread = maxFireSpread,
-                                             Nreps = Nreps,
-                                             controlForCache = controlForCache,
-                                             verbose = .verbose,
-                                             omitArgs = c("verbose", "control")
+        fireSenseUtils::.objfun,
+        lower = lower,
+        upper = upper,
+        control = controlArgs,
+        formula = formula,
+        covMinMax = covMinMax,
+        # tests = c("mad", "SNLL_FS"),
+        tests = c("SNLL_FS"),
+        maxFireSpread = maxFireSpread,
+        Nreps = Nreps,
+        controlForCache = controlForCache,
+        objFunCoresInternal = objFunCoresInternal,
+        verbose = .verbose,
+        omitArgs = c("verbose", "control")
       ))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
         -sum(dnorm(log = TRUE, x, mean = par[1], sd = par[2]))
       }
-      st1 <- system.time(DE[[iter]] <- DEoptim(
+      controlArgs <- do.call("DEoptim.control", control)
+      controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
+                                       "initialpop", "p", "c", "reltol",
+                                       "packages", "parVar", "foreachArgs")]
+      st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
         fn,
         lower = lower,
         upper = upper,
-        control = do.call(DEoptim.control, control),
+        controlForCache = controlForCache,
+        control = control,
+        omitArgs = c("verbose", "control"),
         x = x1
       ))
     }

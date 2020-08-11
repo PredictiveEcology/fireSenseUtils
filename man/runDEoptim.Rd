@@ -12,6 +12,8 @@ runDEoptim(
   fireBufferedListDT,
   historicalFires,
   itermax,
+  initialpop,
+  NP,
   trace,
   strategy,
   cores,
@@ -21,6 +23,7 @@ runDEoptim(
   lower,
   upper,
   formula,
+  objFunCoresInternal,
   covMinMax = covMinMax,
   tests,
   maxFireSpread,
@@ -37,11 +40,12 @@ DEoptimIterative(
   formula,
   covMinMax,
   tests,
+  objFunCoresInternal,
   maxFireSpread,
   Nreps,
   visualizeDEoptim,
   cachePath,
-  iterStep,
+  iterStep = 25,
   .verbose
 )
 }
@@ -64,6 +68,10 @@ It should contain all the years in \code{names(annualDTx1000)}.}
 \item{historicalFires}{DESCRIPTION NEEDED}
 
 \item{itermax}{Passed to \code{DEoptim.control}}
+
+\item{initialpop}{DESCRIPTION NEEDED}
+
+\item{NP}{DESCRIPTION NEEDED}
 
 \item{trace}{Passed to \code{DEoptim.control}}
 
@@ -89,6 +97,8 @@ each step, this function will plot, optionally, the parameter histograms (if
 \item{upper}{Passed to \code{DEoptim}}
 
 \item{formula}{Passed to \code{DEoptim}}
+
+\item{objFunCoresInternal}{DESCRIPTION NEEDED}
 
 \item{covMinMax}{Passed to \code{fireSenseUtils::.objfun}}
 

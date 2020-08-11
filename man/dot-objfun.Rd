@@ -18,6 +18,7 @@
   tests = "mad",
   Nreps = 10,
   plot.it = FALSE,
+  objFunCoresInternal = 1,
   verbose = TRUE
 )
 }
@@ -48,6 +49,8 @@ Default: \code{"mad"}.}
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
 \item{plot.it}{DESCRIPTION NEEDED}
+
+\item{objFunCoresInternal}{DESCRIPTION NEEDED}
 
 \item{verbose}{DESCRIPTION NEEDED}
 }

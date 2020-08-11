@@ -4,20 +4,21 @@ utils::globalVariables(c(
 
 #' Create buffers around polygons based on area target for buffer
 #'
-#' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
-#'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
 #' @param poly \code{SpatialPolygons} or a list of \code{SpatialPolygons}, containing polygons to buffer.
 #' @param rasterToMatch A \code{RasterLayer} with \code{res}, \code{origin}, \code{extent},
 #'   \code{crs} of desired outputted \code{pixelID} values.
 #' @param areaMultiplier Either a scalar that will buffer \code{areaMultiplier * fireSize} or
 #'   a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.
-#' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
-#'   be imposed after \code{areaMultiplier}.
+#' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
+#'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
 #' @param polyName Optional character string of the polygon layer name (not the individual polygons
 #'   on a \code{SpatialPolygons} object)
 #' @param field Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
 #'   then each polygon will have its buffer calculated independently for each unique value
 #'   in \code{field}
+#' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
+#'   be imposed after \code{areaMultiplier}.
+#' @param cores number of processor cores to use
 #' @param ... passed to \code{fasterize::fasterize}
 #'
 #' @return
@@ -29,8 +30,7 @@ utils::globalVariables(c(
 #' @rdname bufferToArea
 bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
                          verb = FALSE, polyName = NULL, field = NULL,
-                         minSize = 500,
-                         ...) {
+                         minSize = 500, cores = 1, ...) {
   UseMethod("bufferToArea")
 }
 
@@ -39,13 +39,29 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 #' @rdname bufferToArea
 bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
                               verb = FALSE, polyName = NULL, field = NULL,
-                              minSize = 500, ...) {
+                              minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- names(poly)
-  out <-  purrr::pmap(
-    .l = list(poly = poly, polyName = polyName),
-    rasterToMatch = rasterToMatch, verb = verb,
-    areaMultiplier = areaMultiplier, field = field, minSize = minSize, ...,
-    .f = bufferToArea)
+  cores <- min(parallel::detectCores() - 1, min(length(poly), cores))
+  if (cores > 1) {
+    out <-  parallel::mcMap(
+      mc.cores = cores,
+      poly = poly,
+      polyName = polyName,
+      MoreArgs = list(
+        rasterToMatch = rasterToMatch, verb = verb,
+        areaMultiplier = areaMultiplier, field = field, minSize = minSize,
+        cores = 1,
+        ...),
+      bufferToArea)
+  } else {
+    out <-  purrr::pmap(
+      .l = list(poly = poly, polyName = polyName),
+      rasterToMatch = rasterToMatch, verb = verb,
+      areaMultiplier = areaMultiplier, field = field, minSize = minSize,
+      cores = 1,
+      ...,
+      .f = bufferToArea)
+  }
   out
 }
 
@@ -56,7 +72,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
 #' @rdname bufferToArea
 bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
                                          verb = FALSE, polyName = NULL, field = NULL,
-                                         minSize = 500, ...) {
+                                         minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- "Layer 1"
   if  (as.integer(verb) >= 1) print(paste("Buffering polygons on",polyName))
   r <- fasterize::fasterize(
@@ -85,9 +101,10 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   # } else {
   spreadProb <- 1
   # }
-  while(length(loci) > 0) {
-    df <- data.table(loci, ids, id = seq(ids))
-    r1 <- spread(r, loci = loci, iterations = 1,
+  while (length(loci) > 0) {
+    dups <- duplicated(loci)
+    df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq(ids[!dups]))
+    r1 <- spread(r, loci = df$loci, iterations = 1,
                  spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE)
     df <- df[r1, on = "id"]
     simSizes <- df[, list(simSize = .N), by = "ids"]
@@ -105,8 +122,13 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
                       ", in fire:", simSizes[ids == idBig]$actualSize))
         lastIters <- !df[wh]$active
         needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
-        dt <- rbindlist(list(df[wh][lastIters],
-                             df[wh][sample(which(df[wh]$active), needMore)]))
+        if (needMore > 0) {
+          dt <- try(rbindlist(list(df[wh][lastIters],
+                                   df[wh][sample(which(df[wh]$active), needMore)])))
+        } else {
+          dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
+        }
+        if (is(dt, "try-error")) browser()#stop("try error here")
         dtOut <- dt[, list(buffer = 0, pixelID = indices, ids)]
 
         dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1]
@@ -139,5 +161,5 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 #'
 #' @export
 multiplier <- function(size, minSize) {
-  round(pmax(2, 14 - log(size)) * size, 0)
+  round(pmax(3, 14 - log(size)) * size, 0)
 }
