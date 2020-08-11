@@ -1,7 +1,7 @@
 # fireSenseUtils
 
 <!-- badges: start -->
-[![Travis build status](https://travis-ci.org/PredictiveEcology/fireSenseUtils.svg?branch=master)](https://travis-ci.org/PredictiveEcology/fireSenseUtils)
+[![R build status](https://github.com/PredictiveEcology/fireSenseUtils/workflows/R-CMD-check/badge.svg)](https://github.com/PredictiveEcology/fireSenseUtils/actions)
 <!-- badges: end -->
 
 The goal of `fireSenseUtils` is to ...
