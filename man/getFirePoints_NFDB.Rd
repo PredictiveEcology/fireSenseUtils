@@ -11,7 +11,7 @@ getFirePoints_NFDB(
   redownloadIn = 1,
   years = 1991:2017,
   fireSizeColName = "SIZE_HA",
-  NFDB_pointPath = NULL
+  NFDB_pointPath
 )
 }
 \arguments{
