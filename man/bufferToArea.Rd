@@ -37,8 +37,8 @@ bufferToArea(
   verb = FALSE,
   polyName = NULL,
   field = NULL,
-  cores = 1,
   minSize = 500,
+  cores = 1,
   ...
 )
 }
@@ -63,6 +63,8 @@ in \code{field}}
 
 \item{minSize}{The absolute minimum size of the buffer & non-buffer together. This will
 be imposed after \code{areaMultiplier}.}
+
+\item{cores}{number of processor cores to use}
 
 \item{...}{passed to \code{fasterize::fasterize}}
 }
