@@ -2,20 +2,45 @@
 % Please edit documentation in R/helpers.R
 \name{annualStackToDTx1000}
 \alias{annualStackToDTx1000}
-\title{Convert annual raster stack to \code{data.table}}
+\alias{annualStackToDTx1000.RasterLayer}
+\alias{annualStackToDTx1000.list}
+\alias{annualStackToDTx1000.RasterStack}
+\title{Convert list of annual raster stack to \code{data.table}}
 \usage{
 annualStackToDTx1000(annualStack, whNotNA, ...)
+
+\method{annualStackToDTx1000}{RasterLayer}(annualStack, whNotNA, ...)
+
+\method{annualStackToDTx1000}{list}(annualStack, whNotNA, ...)
+
+\method{annualStackToDTx1000}{RasterStack}(annualStack, whNotNA, ...)
 }
 \arguments{
-\item{annualStack}{DESCRIPTION NEEDED}
+\item{whNotNA}{Pixel indexes that should go through this process (i.e. not NA)}
 
-\item{whNotNA}{DESCRIPTION NEEDED}
+\item{...}{Not currently used}
 
-\item{...}{DESCRIPTION NEEDED}
+\item{annualStacks}{RasterStack or list of rasters to convert to data.table
+and multiply by 1000 to save space}
 }
 \value{
-DESCRIPTION NEEDED
+Data.table of the raster stack or the list
 }
 \description{
-Convert annual raster stack to \code{data.table}
+Convert list of annual raster stack to \code{data.table}
+}
+\examples{
+library(raster)
+r1 <- raster(extent(0,10,0,10), vals = 1:100)
+r2 <- raster(extent(0,10,0,10), vals = 100:1)
+r3 <- raster(extent(0,10,0,10), vals = 200:101)
+
+# list of Rasters
+lRast <- list(r1, r2, r3)
+lRast[[1]][5] <- NA
+whNotNA <- setdiff(1:ncell(r1), 5)
+names(lRast) <- c("OneToHun", "HunToOne", "TwoHunToOneHun")
+out1 <- annualStackToDTx1000(lRast, whNotNA)
+out2 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+
 }

@@ -64,7 +64,7 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 #' @export
 #' @rdname annualStackToDTx1000
 #'
-annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
+annualStackToDTx1000 <- function(annualStack, whNotNA, ...) {
   UseMethod("annualStackToDTx1000", annualStack)
 }
 
@@ -74,34 +74,52 @@ annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
 #' @importFrom raster stack
 #' @importFrom usefulFuns cbindFromList
 #' @rdname annualStackToDTx1000
+annualStackToDTx1000.RasterLayer <- function(annualStack, whNotNA, ...) {
+  layDT <- as.data.table(annualStack[])[whNotNA]
+  layDT <- dtReplaceNAwith0(layDT)
+  set(layDT, NULL, 1L, asInteger(layDT[[1]]*1000))
+  names(layDT) <- names(annualStack)
+  message("Layer ", names(layDT), " converted to data.table")
+  layDT
+}
+#' @export
+#' @importFrom data.table as.data.table set
+#' @importFrom LandR asInteger
+#' @importFrom raster stack
+#' @importFrom usefulFuns cbindFromList
+#' @rdname annualStackToDTx1000
 annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
+  # check for names
+  # check for rasters
   stkName <- names(annualStack)
-  rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
-    if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
-      lay <- annualStack[[x]]
-      } else {
-        stop("annualStack must be either a list or a RasterStack")
-      }
-    layDT <- as.data.table(lay[])[whNotNA]
-    layDT <- dtReplaceNAwith0(layDT)
-    names(layDT) <- names(lay)
-    message("Layer ", names(layDT), " converted to data.table")
-    return(layDT)
-  })
-  if (is(annualStack, "RasterStack")) { # Should be the prediction, raster stack
-    rastersDT <- cbindFromList(rastersDT)
-    rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
-      column <- asInteger(column*1000)
-      return(column)
-    }), .SDcols = names(rastersDT)]
-  } else {
-    lapply(rastersDT, function(x) { # Should be the fitting, list of years. Doesn't work for stack
-      for (col in colnames(x)) {
-        set(x, NULL, col, asInteger(x[[col]]*1000))
-        message("Layer ", col, " converted to integer")
-      }
-    })
-  }
+  out <- lapply(annualStack, whNotNA = whNotNA, annualStackToDTx1000, ...)
+  rastersDT <- as.data.table(out)
+  # rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
+  #   if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
+  #     lay <- annualStack[[x]]
+  #     } else {
+  #       stop("annualStack must be either a list or a RasterStack")
+  #     }
+  #   layDT <- as.data.table(lay[])[whNotNA]
+  #   layDT <- dtReplaceNAwith0(layDT)
+  #   names(layDT) <- names(lay)
+  #   message("Layer ", names(layDT), " converted to data.table")
+  #   return(layDT)
+  # })
+  # if (is(annualStack, "RasterStack")) { # Should be the prediction, raster stack
+  #   rastersDT <- cbindFromList(rastersDT)
+  #   rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
+  #     column <- asInteger(column*1000)
+  #     return(column)
+  #   }), .SDcols = names(rastersDT)]
+  # } else {
+  #   lapply(rastersDT, function(x) { # Should be the fitting, list of years. Doesn't work for stack
+  #     for (col in colnames(x)) {
+  #       set(x, NULL, col, asInteger(x[[col]]*1000))
+  #       message("Layer ", col, " converted to integer")
+  #     }
+  #   })
+  # }
   return(rastersDT)
 }
 
@@ -111,35 +129,66 @@ annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
 #' @importFrom raster stack
 #' @importFrom usefulFuns cbindFromList
 #' @rdname annualStackToDTx1000
+#' @examples
+#' library(raster)
+#' r1 <- raster(extent(0,10,0,10), vals = 1:100)
+#' r2 <- raster(extent(0,10,0,10), vals = 100:1)
+#' r3 <- raster(extent(0,10,0,10), vals = 200:101)
+#' r4 <- raster(extent(0,10,0,10), vals = 300:201)
+#'
+#' # list of Rasters
+#' lRast <- list(r1, r2, r3)
+#' lRast[[1]][5] <- NA
+#' whNotNA <- setdiff(1:ncell(r1), 5)
+#' names(lRast) <- c("OneToHun", "HunToOne", "TwoHunToOneHun")
+#' out1 <- annualStackToDTx1000(lRast, whNotNA)
+#'
+#' # RasterStack
+#' out2 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+#'
+#' # List of RasterStacks
+#' s1 <- raster::stack(r1, r2)
+#' names(s1) <- names(lRast)[1:2]
+#' s2 <- raster::stack(r4, r3)
+#' names(s2) <- c(names(lRast)[3], "ThreeHunToTwoHun")
+#' out3 <- annualStackToDTx1000(list(s1, s2), whNotNA)
+#'
+#' # With duplicated names -- to remove duplicates
+#' names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
+#' out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+#'
 annualStackToDTx1000.RasterStack <- function(annualStack, whNotNA, ...) {
-  stkName <- names(annualStack)
-  rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
-    if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
-      lay <- annualStack[[x]]
-    } else {
-      stop("annualStack must be either a list or a RasterStack")
-    }
-    layDT <- as.data.table(lay[])[whNotNA]
-    layDT <- dtReplaceNAwith0(layDT)
-    names(layDT) <- names(lay)
-    return(layDT)
-  })
-  lapply(rastersDT, function(x) { # Should be the fitting and predicting
-    for (col in colnames(x)) {
-      set(x, NULL, col, asInteger(x[[col]]*1000))
-      message("Layer ", col, " converted to integer")
-    }
-  })
-  if (is(annualStack, "RasterStack")) { # Should be the prediction, raster stack
-    bindedList <- do.call(cbind, args = rastersDT)
-    bindedList <- data.table::data.table(bindedList)
-    if (any(duplicated(names(bindedList)))) {
-      warning("There are duplicated names in the raster layer. Deleting...",
-              immediate. = TRUE)
-      bindedList[, `:=`(which(duplicated(names(bindedList))), NULL)]
-    }
-    rastersDT <- bindedList
-  }
+  annualList <- unstack(annualStack)
+  names(annualList) <- names(annualStack)
+  rastersDT <- annualStackToDTx1000(annualList, whNotNA, ...)
+  # stkName <- names(annualStack)
+  # rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
+  #   if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
+  #     lay <- annualStack[[x]]
+  #   } else {
+  #     stop("annualStack must be either a list or a RasterStack")
+  #   }
+  #   layDT <- as.data.table(lay[])[whNotNA]
+  #   layDT <- dtReplaceNAwith0(layDT)
+  #   names(layDT) <- names(lay)
+  #   return(layDT)
+  # })
+  # lapply(rastersDT, function(x) { # Should be the fitting and predicting
+  #   for (col in colnames(x)) {
+  #     set(x, NULL, col, asInteger(x[[col]]*1000))
+  #     message("Layer ", col, " converted to integer")
+  #   }
+  # })
+  # if (is(annualStack, "RasterStack")) { # Should be the prediction, raster stack
+  #   bindedList <- do.call(cbind, args = rastersDT)
+  #   bindedList <- data.table::data.table(bindedList)
+  #   if (any(duplicated(names(bindedList)))) {
+  #     warning("There are duplicated names in the raster layer. Deleting...",
+  #             immediate. = TRUE)
+  #     bindedList[, `:=`(which(duplicated(names(bindedList))), NULL)]
+  #   }
+  #   rastersDT <- bindedList
+  # }
   return(rastersDT)
 }
 
