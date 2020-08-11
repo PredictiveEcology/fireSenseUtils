@@ -63,8 +63,7 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
   stkName <- names(annualStacks)
   rastersDT <- lapply(names(annualStacks), whNotNA = whNotNA, function(x, whNotNA) {
-    if (any(is(annualStacks, "list"),
-            is(annualStacks, "RasterStack"))){
+    if (any(is(annualStacks, "list"), is(annualStacks, "RasterStack"))) {
       lay <- annualStacks[[x]]
       } else {
         stop("annualStacks must be either a list or a RasterStack")
@@ -75,7 +74,7 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
     message("Layer ", names(layDT), " converted to data.table")
     return(layDT)
   })
-  if (is(annualStacks, "RasterStack")){ # Should be the prediction, raster stack
+  if (is(annualStacks, "RasterStack")) { # Should be the prediction, raster stack
     rastersDT <- cbindFromList(rastersDT)
     rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
       column <- asInteger(column*1000)
