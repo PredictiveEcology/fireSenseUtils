@@ -34,13 +34,32 @@ library(raster)
 r1 <- raster(extent(0,10,0,10), vals = 1:100)
 r2 <- raster(extent(0,10,0,10), vals = 100:1)
 r3 <- raster(extent(0,10,0,10), vals = 200:101)
+r4 <- raster(extent(0,10,0,10), vals = 300:201)
 
 # list of Rasters
 lRast <- list(r1, r2, r3)
 lRast[[1]][5] <- NA
 whNotNA <- setdiff(1:ncell(r1), 5)
+
+# unnamed -- should error
+out1 <- annualStackToDTx1000(lRast, whNotNA)
+
+# named
 names(lRast) <- c("OneToHun", "HunToOne", "TwoHunToOneHun")
 out1 <- annualStackToDTx1000(lRast, whNotNA)
+
+# RasterStack
 out2 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+
+# List of RasterStacks
+s1 <- raster::stack(r1, r2)
+names(s1) <- names(lRast)[1:2]
+s2 <- raster::stack(r4, r3)
+names(s2) <- c(names(lRast)[3], "ThreeHunToTwoHun")
+out3 <- annualStackToDTx1000(list(s1, s2), whNotNA)
+
+# With duplicated names -- to remove duplicates --> actually, this doesn't make sense: RasterStack can't have duplicated names
+names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
+out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
 
 }
