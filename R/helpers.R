@@ -24,6 +24,7 @@ logistic3p <- function(x, par, par1 = 0.1) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par[3L]
 }
 
+#' @param par4 DESCRIPTION NEEDED
 #' @export
 #' @rdname logistic
 logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {

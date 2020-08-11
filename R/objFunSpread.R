@@ -18,6 +18,7 @@ utils::globalVariables(c(
 #'              Default: \code{"mad"}.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #' @param plot.it DESCRIPTION NEEDED
+#' @param objFunCoresInternal DESCRIPTION NEEDED
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
@@ -49,7 +50,7 @@ utils::globalVariables(c(
                     plot.it = FALSE,
                     objFunCoresInternal = 1,
                     #bufferedRealHistoricalFiresList,
-                    verbose = TRUE){ #fireSense_SpreadFitRaster
+                    verbose = TRUE) { #fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
   data.table::setDTthreads(1)

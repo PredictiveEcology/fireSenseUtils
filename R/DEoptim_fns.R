@@ -20,6 +20,8 @@ utils::globalVariables(c(
 #'   \code{buff}...TODO: INCOMPLETE
 #' @param historicalFires DESCRIPTION NEEDED
 #' @param itermax Passed to \code{DEoptim.control}
+#' @param initialpop DESCRIPTION NEEDED
+#' @param NP DESCRIPTION NEEDED
 #' @param trace Passed to \code{DEoptim.control}
 #' @param strategy Passed to \code{DEoptim.control}
 #' @param cores A numeric (for running on localhost only) or a character vector of
@@ -36,6 +38,7 @@ utils::globalVariables(c(
 #' @param lower Passed to \code{DEoptim}
 #' @param upper Passed to \code{DEoptim}
 #' @param formula Passed to \code{DEoptim}
+#' @param objFunCoresInternal DESCRIPTION NEEDED
 #' @param covMinMax Passed to \code{fireSenseUtils::.objfun}
 #' @param tests Passed to \code{fireSenseUtils::.objfun}
 #' @param maxFireSpread Passed to \code{fireSenseUtils::.objfun}

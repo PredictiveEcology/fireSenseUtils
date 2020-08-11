@@ -50,6 +50,8 @@ Default: \code{"mad"}.}
 
 \item{plot.it}{DESCRIPTION NEEDED}
 
+\item{objFunCoresInternal}{DESCRIPTION NEEDED}
+
 \item{verbose}{DESCRIPTION NEEDED}
 }
 \value{
