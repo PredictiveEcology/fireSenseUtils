@@ -262,7 +262,7 @@ DEoptimIterative <- function(itermax,
         upper = upper,
         controlForCache = controlForCache,
         control = control,
-        omitArgs = c("verbose", "control")
+        omitArgs = c("verbose", "control"),
         x = x1
       ))
     }
