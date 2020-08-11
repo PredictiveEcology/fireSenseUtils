@@ -55,51 +55,81 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 
 #' Convert list of annual raster stack to \code{data.table}
 #'
-#' @param annualStacks RasterStack or list of rasters to convert to data.table
-#'                     and multiply by 1000 to save space
+#' @param x \code{RasterStack} or list of rasters to convert to \code{data.table}
+#'          and multiply by 1000 to save space
 #' @param whNotNA Pixel indexes that should go through this process (i.e. not NA)
 #' @param ... Not currently used
 #'
-#' @return Data.table of the raster stack or the list
+#' @return \code{data.table} of the raster stack or the list
 #' @export
 #' @rdname annualStackToDTx1000
 #'
-annualStackToDTx1000 <- function(annualStack, whNotNA, ...) {
-  UseMethod("annualStackToDTx1000", annualStack)
+#' @examples
+#' library(raster)
+#' r1 <- raster(extent(0,10,0,10), vals = 1:100)
+#' r2 <- raster(extent(0,10,0,10), vals = 100:1)
+#' r3 <- raster(extent(0,10,0,10), vals = 200:101)
+#' r4 <- raster(extent(0,10,0,10), vals = 300:201)
+#'
+#' # list of Rasters
+#' lRast <- list(r1, r2, r3)
+#' lRast[[1]][5] <- NA
+#' whNotNA <- setdiff(1:ncell(r1), 5)
+#'
+#' # unnamed -- should error
+#' try(out1 <- annualStackToDTx1000(lRast, whNotNA))
+#'
+#' # named
+#' names(lRast) <- c("OneToHun", "HunToOne", "TwoHunToOneHun")
+#' out1 <- annualStackToDTx1000(lRast, whNotNA)
+#'
+#' # RasterStack
+#' out2 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+#'
+#' # List of RasterStacks
+#' s1 <- raster::stack(r1, r2)
+#' names(s1) <- names(lRast)[1:2]
+#' s2 <- raster::stack(r4, r3)
+#' names(s2) <- c(names(lRast)[3], "ThreeHunToTwoHun")
+#' out3 <- annualStackToDTx1000(list(s1 = s1, s2 = s2), whNotNA) ## named list required
+#'
+#' # With duplicated names -- to remove duplicates;
+#' #  actually, this doesn't make sense: RasterStack can't have duplicated names
+#' names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
+#' out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+#'
+annualStackToDTx1000 <- function(x, whNotNA, ...) {
+  UseMethod("annualStackToDTx1000")
 }
 
 #' @export
 #' @importFrom data.table as.data.table set
 #' @importFrom LandR asInteger
-#' @importFrom raster stack
-#' @importFrom usefulFuns cbindFromList
 #' @rdname annualStackToDTx1000
-annualStackToDTx1000.RasterLayer <- function(annualStack, whNotNA, ...) {
-  layDT <- as.data.table(annualStack[])[whNotNA]
+annualStackToDTx1000.RasterLayer <- function(x, whNotNA, ...) {
+  layDT <- as.data.table(x[])[whNotNA]
   layDT <- dtReplaceNAwith0(layDT)
   set(layDT, NULL, 1L, asInteger(layDT[[1L]]*1000))
-  names(layDT) <- names(annualStack)
+  names(layDT) <- names(x)
   message("Layer ", names(layDT), " converted to data.table")
   layDT
 }
+
 #' @export
-#' @importFrom data.table as.data.table set
-#' @importFrom LandR asInteger
-#' @importFrom raster stack
-#' @importFrom usefulFuns cbindFromList
+#' @importFrom data.table as.data.table
 #' @rdname annualStackToDTx1000
-annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
+annualStackToDTx1000.list <- function(x, whNotNA, ...) {
   # check for names
   # check for rasters
-  if (is.null(names(annualStack)))
-    stop("The annualStack must be a named list (or stack)")
-  out <- lapply(annualStack, whNotNA = whNotNA, annualStackToDTx1000, ...)
+  if (is.null(names(x)))
+    stop("x must be a named list (or stack)")
+  out <- lapply(x, whNotNA = whNotNA, annualStackToDTx1000, ...)
   rastersDT <- as.data.table(out)
-  # rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
-  #   if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
-  #     lay <- annualStack[[x]]
+  # rastersDT <- lapply(names(x), whNotNA = whNotNA, function(x, whNotNA) {
+  #   if (any(is(x, "list"), is(x, "RasterStack"))) {
+  #     lay <- x[[x]]
   #     } else {
-  #       stop("annualStack must be either a list or a RasterStack")
+  #       stop("x must be either a list or a RasterStack")
   #     }
   #   layDT <- as.data.table(lay[])[whNotNA]
   #   layDT <- dtReplaceNAwith0(layDT)
@@ -107,7 +137,7 @@ annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
   #   message("Layer ", names(layDT), " converted to data.table")
   #   return(layDT)
   # })
-  # if (is(annualStack, "RasterStack")) { # Should be the prediction, raster stack
+  # if (is(x, "RasterStack")) { # Should be the prediction, raster stack
   #   rastersDT <- cbindFromList(rastersDT)
   #   rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
   #     column <- asInteger(column*1000)
@@ -128,51 +158,17 @@ annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
 #' @importFrom data.table as.data.table set
 #' @importFrom LandR asInteger
 #' @importFrom raster stack unstack
-#' @importFrom usefulFuns cbindFromList
 #' @rdname annualStackToDTx1000
-#' @examples
-#' library(raster)
-#' r1 <- raster(extent(0,10,0,10), vals = 1:100)
-#' r2 <- raster(extent(0,10,0,10), vals = 100:1)
-#' r3 <- raster(extent(0,10,0,10), vals = 200:101)
-#' r4 <- raster(extent(0,10,0,10), vals = 300:201)
-#'
-#' # list of Rasters
-#' lRast <- list(r1, r2, r3)
-#' lRast[[1]][5] <- NA
-#' whNotNA <- setdiff(1:ncell(r1), 5)
-#'
-#' # unnamed -- should error
-#' out1 <- annualStackToDTx1000(lRast, whNotNA)
-#'
-#' # named
-#' names(lRast) <- c("OneToHun", "HunToOne", "TwoHunToOneHun")
-#' out1 <- annualStackToDTx1000(lRast, whNotNA)
-#'
-#' # RasterStack
-#' out2 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
-#'
-#' # List of RasterStacks
-#' s1 <- raster::stack(r1, r2)
-#' names(s1) <- names(lRast)[1:2]
-#' s2 <- raster::stack(r4, r3)
-#' names(s2) <- c(names(lRast)[3], "ThreeHunToTwoHun")
-#' out3 <- annualStackToDTx1000(list(s1, s2), whNotNA)
-#'
-#' # With duplicated names -- to remove duplicates --> actually, this doesn't make sense: RasterStack can't have duplicated names
-#' names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
-#' out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
-#'
-annualStackToDTx1000.RasterStack <- function(annualStack, whNotNA, ...) {
-  annualList <- raster::unstack(annualStack)
-  names(annualList) <- names(annualStack)
+annualStackToDTx1000.RasterStack <- function(x, whNotNA, ...) {
+  annualList <- raster::unstack(x)
+  names(annualList) <- names(x)
   rastersDT <- annualStackToDTx1000(annualList, whNotNA, ...)
-  # stkName <- names(annualStack)
-  # rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
-  #   if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
-  #     lay <- annualStack[[x]]
+  # stkName <- names(x)
+  # rastersDT <- lapply(names(x), whNotNA = whNotNA, function(x, whNotNA) {
+  #   if (any(is(x, "list"), is(x, "RasterStack"))) {
+  #     lay <- x[[x]]
   #   } else {
-  #     stop("annualStack must be either a list or a RasterStack")
+  #     stop("x must be either a list or a RasterStack")
   #   }
   #   layDT <- as.data.table(lay[])[whNotNA]
   #   layDT <- dtReplaceNAwith0(layDT)
@@ -185,7 +181,7 @@ annualStackToDTx1000.RasterStack <- function(annualStack, whNotNA, ...) {
   #     message("Layer ", col, " converted to integer")
   #   }
   # })
-  # if (is(annualStack, "RasterStack")) { # Should be the prediction, raster stack
+  # if (is(x, "RasterStack")) { # Should be the prediction, raster stack
   #   bindedList <- do.call(cbind, args = rastersDT)
   #   bindedList <- data.table::data.table(bindedList)
   #   if (any(duplicated(names(bindedList)))) {

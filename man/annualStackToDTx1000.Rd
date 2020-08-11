@@ -7,24 +7,24 @@
 \alias{annualStackToDTx1000.RasterStack}
 \title{Convert list of annual raster stack to \code{data.table}}
 \usage{
-annualStackToDTx1000(annualStack, whNotNA, ...)
+annualStackToDTx1000(x, whNotNA, ...)
 
-\method{annualStackToDTx1000}{RasterLayer}(annualStack, whNotNA, ...)
+\method{annualStackToDTx1000}{RasterLayer}(x, whNotNA, ...)
 
-\method{annualStackToDTx1000}{list}(annualStack, whNotNA, ...)
+\method{annualStackToDTx1000}{list}(x, whNotNA, ...)
 
-\method{annualStackToDTx1000}{RasterStack}(annualStack, whNotNA, ...)
+\method{annualStackToDTx1000}{RasterStack}(x, whNotNA, ...)
 }
 \arguments{
+\item{x}{\code{RasterStack} or list of rasters to convert to \code{data.table}
+and multiply by 1000 to save space}
+
 \item{whNotNA}{Pixel indexes that should go through this process (i.e. not NA)}
 
 \item{...}{Not currently used}
-
-\item{annualStacks}{RasterStack or list of rasters to convert to data.table
-and multiply by 1000 to save space}
 }
 \value{
-Data.table of the raster stack or the list
+\code{data.table} of the raster stack or the list
 }
 \description{
 Convert list of annual raster stack to \code{data.table}
@@ -42,7 +42,7 @@ lRast[[1]][5] <- NA
 whNotNA <- setdiff(1:ncell(r1), 5)
 
 # unnamed -- should error
-out1 <- annualStackToDTx1000(lRast, whNotNA)
+try(out1 <- annualStackToDTx1000(lRast, whNotNA))
 
 # named
 names(lRast) <- c("OneToHun", "HunToOne", "TwoHunToOneHun")
@@ -56,9 +56,10 @@ s1 <- raster::stack(r1, r2)
 names(s1) <- names(lRast)[1:2]
 s2 <- raster::stack(r4, r3)
 names(s2) <- c(names(lRast)[3], "ThreeHunToTwoHun")
-out3 <- annualStackToDTx1000(list(s1, s2), whNotNA)
+out3 <- annualStackToDTx1000(list(s1 = s1, s2 = s2), whNotNA) ## named list required
 
-# With duplicated names -- to remove duplicates --> actually, this doesn't make sense: RasterStack can't have duplicated names
+# With duplicated names -- to remove duplicates;
+#  actually, this doesn't make sense: RasterStack can't have duplicated names
 names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
 out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
 
