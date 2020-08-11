@@ -53,26 +53,34 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
   DT
 }
 
-#' Convert annual raster stacks to \code{data.table}
+#' Convert list of annual raster stack to \code{data.table}
 #'
-#' @param annualStacks DESCRIPTION NEEDED
-#' @param whNotNA DESCRIPTION NEEDED
-#' @param ... DESCRIPTION NEEDED
+#' @param annualStacks RasterStack or list of rasters to convert to data.table
+#'                     and multiply by 1000 to save space
+#' @param whNotNA Pixel indexes that should go through this process (i.e. not NA)
+#' @param ... Not currently used
 #'
-#' @return DESCRIPTION NEEDED
+#' @return Data.table of the raster stack or the list
+#' @export
+#' @rdname annualStackToDTx1000
 #'
+annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
+  UseMethod("annualStackToDTx1000", annualStack)
+}
+
 #' @export
 #' @importFrom data.table as.data.table set
 #' @importFrom LandR asInteger
 #' @importFrom raster stack
 #' @importFrom usefulFuns cbindFromList
-annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
-  stkName <- names(annualStacks)
-  rastersDT <- lapply(names(annualStacks), whNotNA = whNotNA, function(x, whNotNA) {
-    if (any(is(annualStacks, "list"), is(annualStacks, "RasterStack"))) {
-      lay <- annualStacks[[x]]
+#' @rdname annualStackToDTx1000
+annualStackToDTx1000.list <- function(annualStack, whNotNA, ...) {
+  stkName <- names(annualStack)
+  rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
+    if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
+      lay <- annualStack[[x]]
       } else {
-        stop("annualStacks must be either a list or a RasterStack")
+        stop("annualStack must be either a list or a RasterStack")
       }
     layDT <- as.data.table(lay[])[whNotNA]
     layDT <- dtReplaceNAwith0(layDT)
@@ -80,7 +88,7 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
     message("Layer ", names(layDT), " converted to data.table")
     return(layDT)
   })
-  if (is(annualStacks, "RasterStack")) { # Should be the prediction, raster stack
+  if (is(annualStack, "RasterStack")) { # Should be the prediction, raster stack
     rastersDT <- cbindFromList(rastersDT)
     rastersDT[ , (names(rastersDT)) := lapply(X = .SD, FUN = function(column){
       column <- asInteger(column*1000)
@@ -97,20 +105,13 @@ annualStacksToDTx1000 <- function(annualStacks, whNotNA, ...) {
   return(rastersDT)
 }
 
-#' Convert annual raster stack to \code{data.table}
-#'
-#' @param annualStack DESCRIPTION NEEDED
-#' @param whNotNA DESCRIPTION NEEDED
-#' @param ... DESCRIPTION NEEDED
-#'
-#' @return DESCRIPTION NEEDED
-#'
 #' @export
 #' @importFrom data.table as.data.table set
 #' @importFrom LandR asInteger
 #' @importFrom raster stack
 #' @importFrom usefulFuns cbindFromList
-annualStackToDTx1000 <- function(annualStack, whNotNA, ...) {
+#' @rdname annualStackToDTx1000
+annualStackToDTx1000.RasterStack <- function(annualStack, whNotNA, ...) {
   stkName <- names(annualStack)
   rastersDT <- lapply(names(annualStack), whNotNA = whNotNA, function(x, whNotNA) {
     if (any(is(annualStack, "list"), is(annualStack, "RasterStack"))) {
