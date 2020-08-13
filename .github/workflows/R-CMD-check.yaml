@@ -72,6 +72,10 @@ jobs:
       - name: Install dependencies
         run: |
           remotes::install_deps(dependencies = TRUE)
+          if (R.version$major < 4) {
+            remotes::install_cran("versions")
+            versions::install.versions("XML", "3.99-0.3")
+          }
           remotes::install_cran("rcmdcheck")
         shell: Rscript {0}
 
