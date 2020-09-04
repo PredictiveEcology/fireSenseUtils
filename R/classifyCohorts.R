@@ -23,7 +23,7 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
 
   #Assertion
   if (!((NROW(cohortData[is.na(totalBiomass) & burnClass != "class5", ]) == 0) &
-        (NROW(cohortData[!is.na(totalBiomass) & burnClass == "class5", ]) == 0)) {
+        (NROW(cohortData[!is.na(totalBiomass) & burnClass == "class5", ]) == 0))) {
     stop('there is a problem setting the burn class. contact module developers')
   }
 
