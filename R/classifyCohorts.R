@@ -15,7 +15,7 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
   joinCol <- c('FuelClass', eval(sppEquivCol))
   sppEquivSubset <- sppEquiv[, .SD, .SDcols = joinCol]
 
-  cohortData <- cohortData[sppEquivSubset, by = sppEquivCol]
+  cohortData <- cohortData[sppEquivSubset, on = sppEquivCol]
   setnames(cohortData, 'FuelClass', 'burnClass')
   cohortData[age < 15, burnClass := "class1"]
   if (!"totalBiomass" %in% names(cohortData))
