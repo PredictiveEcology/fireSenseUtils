@@ -11,7 +11,7 @@
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom raster getValues raster
 classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap, flammableMap, sppEquiv, sppEquivCol){
-
+  cohortData <- copy(cohortData)
   joinCol <- c('FuelClass', eval(sppEquivCol))
   sppEquivSubset <- sppEquiv[, .SD, .SDcols = joinCol]
 
@@ -54,8 +54,8 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
   # ARE NA in the pixelGroupMap are the pixels that are class5
   class5ras <- raster(pixelGroupMap)
   pixGroupVals <- getValues(pixelGroupMap)
-  flammableVals <- getValues(flammable)
-  class5 <- which(is.na(pixelGroupMap[]) & !is.na(flammable[]))
+  flammableVals <- getValues(flammableMap)
+  class5 <- which(is.na(pixelGroupMap[]) & !is.na(flammableMap[]))
   class5ras[class5] <- 1
 
   classList <- c(classList, list(class5ras))
