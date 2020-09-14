@@ -4,6 +4,7 @@
 \alias{logistic4p}
 \alias{logistic5p}
 \alias{logistic3p}
+\alias{logistic2p}
 \title{Four- and five-parameter logistic functions}
 \usage{
 logistic4p(x, par)
@@ -11,6 +12,8 @@ logistic4p(x, par)
 logistic5p(x, par)
 
 logistic3p(x, par, par1 = 0.1)
+
+logistic2p(x, par, par1 = 0.1, par4 = 0.5)
 }
 \arguments{
 \item{x}{DESCRIPTION NEEDED}
@@ -18,6 +21,8 @@ logistic3p(x, par, par1 = 0.1)
 \item{par}{DESCRIPTION NEEDED}
 
 \item{par1}{DESCRIPTION NEEDED}
+
+\item{par4}{DESCRIPTION NEEDED}
 }
 \value{
 DESCRIPTION NEEDED
