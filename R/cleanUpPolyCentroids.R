@@ -33,9 +33,13 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
     buff = buff
   ),
   .f = function(cent, buff) {
+    if (!nrow(buff) > 0) { #cent can be >1 row while buff = 0, if poly is small
+      return(NULL)
+    }
     if (!compareCRS(crs(ras), crs(cent))) {
       cent <- sp::spTransform(cent, crs(ras))
     }
+
     whToUse <- cent[[idCol]] %in% buff$ids
     idsNotInBuffer <- cent[[idCol]][!whToUse]
     if (NROW(idsNotInBuffer) > 0) {
@@ -51,7 +55,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
     notInAFire <- centDT[!inOrigFire, on = c("pixelID")]
     if (NROW(notInAFire)) {
       inAFire <- buff[buffer == 1]
-      fr <- cbind(xyFromCell(rasterToMatch, inAFire$pixelID),
+      fr <- cbind(xyFromCell(ras, inAFire$pixelID),
         id = inAFire$ids, pixelID = inAFire$pixelID
       )
       from <- cbind(id = notInAFire$ids, xyFromCell(ras, notInAFire$pixelID))
