@@ -53,6 +53,6 @@ getFirePolygons <- function(years, studyArea, pathInputs,
     out[seq_len(NROW(out)), "POLY_HA"] <- rgeos::gArea(out, byid = TRUE) / (1e4)
     out
   })
-  names(firePolygonsList) <- paste0("Year", years)
+  names(firePolygonsList) <- as.character(years)
   return(firePolygonsList)
 }
