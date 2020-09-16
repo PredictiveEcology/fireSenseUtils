@@ -62,6 +62,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
       ...,
       .f = bufferToArea)
   }
+  names(out) <- names(poly)
   out
 }
 
