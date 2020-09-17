@@ -24,6 +24,10 @@ fitting and for prediction. These must be quantitative.}
 \item{numClasses}{A vector indicating how many classes should be attempted. The function
 will return the number of classes that best classify the data into homogeneous groups.}
 
+\item{AUC}{Logical. Should the Area Under the receiver operating Curve be returned?}
+
+\item{plotAUC}{Logical. Should the plot of the AUC be made.}
+
 \item{mod}{A model of class \code{Mclust}, e.g,. coming from \code{Mclust} or
 \code{burnClassGenerator}}
 }

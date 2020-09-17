@@ -9,6 +9,8 @@ utils::globalVariables(c(
 #' fitting and for prediction. These must be quantitative.
 #' @param numClasses A vector indicating how many classes should be attempted. The function
 #' will return the number of classes that best classify the data into homogeneous groups.
+#' @param AUC Logical. Should the Area Under the receiver operating Curve be returned?
+#' @param plotAUC Logical. Should the plot of the AUC be made.
 #'
 #' @return
 #' A list with 2 elements, first the \code{model}, which comes from \code{mclust::Mclust},
@@ -59,15 +61,19 @@ burnClassGenerator <- function(df, numClasses = 4:9, AUC = TRUE, plotAUC = FALSE
 
   mod <- Mclust(dftrain, G = numClasses)
 
-  summ <- burnClassSummary(mod)
-  set(dftest, NULL, "burnClass", burnClassPredict(mod, dftest))
-  dftest[summ[,c("burnClass", "burned")], burnProb := i.burned, on = "burnClass"]
-  rocDF <- data.frame(predictions = dftest$burnProb, labels = dftest$burned)
-  args <- list(rocDF$labels, rocDF$predictions, ci=TRUE, ci.alpha=0.9, stratified=FALSE, smoothed = TRUE)
-  if (plotAUC) args <- modifyList(args, list(plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
-                                             print.auc=TRUE, show.thres=TRUE))
-  pROC_obj <- do.call(roc, args)
-  list(model = mod, AUC = pROC_obj$auc)
+  AUC <- NA
+  if (isTRUE(AUC)) {
+    summ <- burnClassSummary(mod)
+    set(dftest, NULL, "burnClass", burnClassPredict(mod, dftest))
+    dftest[summ[,c("burnClass", "burned")], burnProb := i.burned, on = "burnClass"]
+    rocDF <- data.frame(predictions = dftest$burnProb, labels = dftest$burned)
+    args <- list(rocDF$labels, rocDF$predictions, ci=TRUE, ci.alpha=0.9, stratified=FALSE, smoothed = TRUE)
+    if (plotAUC) args <- modifyList(args, list(plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
+                                               print.auc=TRUE, show.thres=TRUE))
+    pROC_obj <- do.call(roc, args)
+    AUC <- pROC_obj$auc
+  }
+  list(model = mod, AUC = AUC)
 }
 
 #' @rdname burnClass
