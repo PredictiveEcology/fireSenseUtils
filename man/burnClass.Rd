@@ -48,6 +48,8 @@ Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering,
 classification and density estimation using Gaussian finite mixture models,
 The R Journal, 8/1, pp. 205-233.
 \url{https://journal.r-project.org/archive/2016/RJ-2016-021/RJ-2016-021.pdf}
+}
+\section{The algorithm}{
 
 The basic solution is to take all covariates, including the binary "not burned", "burned"
 (coded as 0 and 1, respectively), and do model-based clustering with the \code{mclust}
@@ -58,6 +60,24 @@ including whether they burned or not.
 From this, we can identify groups by looking at the mean values of "burned" to see
 what their burn tendency is as a "homogeneous" group.
 }
+
+\section{Categorical data}{
+
+For now, it is recommended to convert categorical data to dummy variables, 0 and 1.
+E.g., For land cover, wetland class can be converted to a column "wetland" with
+1 for data points that are wetlands and 0 for non-wetland.
+}
+
+\section{How much data to include}{
+
+This has not been tested yet; however, I believe that having a relatively similar
+number of "burned" and "unburned" pixels (within 3x either way), is probably a good idea.
+In other words, if there are 100,000 burned data points, there should be between 30,000 and
+300,000 unburned data points. If there are already buffers around the burned polygons that
+include unburned pixels, then these buffers can be used as part of the unburned
+content.
+}
+
 \examples{
 \dontrun{
 #################################
