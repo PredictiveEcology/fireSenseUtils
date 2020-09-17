@@ -40,8 +40,7 @@ Generate, Summarize, Predict Burn Classes from Covariates
 }
 \details{
 This was inspired by reading here:
-\url{
-https://www.datanovia.com/en/blog/types-of-clustering-methods-overview-and-quick-start-r-code/}
+\url{https://www.datanovia.com/en/blog/types-of-clustering-methods-overview-and-quick-start-r-code/}
 and here:
 \url{https://www.datanovia.com/en/lessons/model-based-clustering-essentials/}, with
 citation here:
