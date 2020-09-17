@@ -50,7 +50,6 @@ Suggests:
     testthat
 Remotes:
     traversc/stringfish,
-    PredictiveEcology/Require@development,
     PredictiveEcology/reproducible@development,
     PredictiveEcology/quickPlot@development,
     PredictiveEcology/pemisc@development
