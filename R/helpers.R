@@ -104,7 +104,6 @@ annualStackToDTx1000 <- function(x, whNotNA, ...) {
 
 #' @export
 #' @importFrom data.table as.data.table set
-#' @importFrom LandR asInteger
 #' @rdname annualStackToDTx1000
 annualStackToDTx1000.RasterLayer <- function(x, whNotNA, ...) {
   layDT <- as.data.table(x[])[whNotNA]
@@ -156,7 +155,6 @@ annualStackToDTx1000.list <- function(x, whNotNA, ...) {
 
 #' @export
 #' @importFrom data.table as.data.table set
-#' @importFrom LandR asInteger
 #' @importFrom raster stack unstack
 #' @rdname annualStackToDTx1000
 annualStackToDTx1000.RasterStack <- function(x, whNotNA, ...) {
@@ -211,3 +209,5 @@ rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
   out <- rbeta(n, shape1, shape2)
   out * (u - l) + (l)
 }
+
+asInteger <- function (x) as.integer(floor(x + 0.5))

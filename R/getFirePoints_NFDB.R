@@ -12,9 +12,9 @@
 #' @return A \code{SpatialPointsDataFrame}.
 #'
 #' @export
-#' @importFrom LandR asInteger
 #' @importFrom raster crs crs<- res
 #' @importFrom reproducible Cache Checksums prepInputs
+#' @importFrom utils getFromNamespace
 #' @importFrom SpaDES.core dyear
 getFirePoints_NFDB <- function(url = NULL,
                                studyArea = NULL, rasterToMatch = NULL,
@@ -96,7 +96,6 @@ getFirePoints_NFDB <- function(url = NULL,
 #' @return A \code{SpatialPointsDataFrame}.
 #'
 #' @export
-#' @importFrom LandR asInteger
 #' @importFrom raster crs crs<- res
 #' @importFrom reproducible Cache Checksums prepInputs projectInputs
 #' @importFrom sp coordinates<-
