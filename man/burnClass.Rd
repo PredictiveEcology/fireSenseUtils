@@ -35,24 +35,34 @@ and second the Area Under the Curve or AUC as an indicator of the overal goodnes
 Generate, Summarize, Predict Burn Classes from Covariates
 }
 \examples{
+\dontrun{
 #################################
 # Use own data; here is a generated set for reprex
 library("data.table")
 N <- 1e5
-DT <- data.table(burned = sample(c(0, 0, 0, 1), replace = TRUE, size = N))
-set(DT, NULL, "jp", rlnorm(N, mean = 4 + 0.5 * DT$burned, sd = 0.25))
-set(DT, NULL, "bs", rlnorm(N, mean = 4 + 0.3 * DT$burned, sd = 0.25))
-set(DT, NULL, "ws", rlnorm(N, mean = 4 + 0.2 * DT$burned, sd = 0.25))
-set(DT, NULL, "age", rlnorm(N, mean = 4 - 0.2* DT$burned, sd = 0.25))
-DT[, c("jp", "bs", "ws", "age") := lapply(.SD, function(x) x/max(x) * 1000), .SDcols = c("jp", "bs", "ws", "age")]
-DT[, c("age") := lapply(.SD, function(x) x/max(x) * 200), .SDcols = c("age")]
-DT2 <- copy(DT)
-summary(DT)
-boxplot(DT$age ~ DT$burned)
+DT <- list()
+for (i in c("train", "test")) {
+  DT[[i]] <- data.table(burned = sample(c(0, 0, 0, 1), replace = TRUE, size = N))
+  set(DT[[i]], NULL, "jp", rlnorm(N, mean = 4 + 0.5 * DT[[i]]$burned, sd = 0.25))
+  set(DT[[i]], NULL, "bs", rlnorm(N, mean = 4 + 0.3 * DT[[i]]$burned, sd = 0.25))
+  set(DT[[i]], NULL, "ws", rlnorm(N, mean = 4 + 0.2 * DT[[i]]$burned, sd = 0.25))
+  set(DT[[i]], NULL, "age", rlnorm(N, mean = 4 - 0.2* DT[[i]]$burned, sd = 0.25))
+  DT[[i]][, c("jp", "bs", "ws", "age") := lapply(.SD, function(x) x/max(x) * 1000), .SDcols = c("jp", "bs", "ws", "age")]
+  DT[[i]][, c("age") := lapply(.SD, function(x) x/max(x) * 200), .SDcols = c("age")]
+  summary(DT[[i]])
+  boxplot(DT[[i]]$age ~ DT[[i]]$burned)
+}
 
+bc <- burnClassGenerator(DT[["train"]], 4:8)
+# Show if the model is good at predicting burn state
+(bc$AUC) # area under the curve
 
-bc <- burnClassGenerator(DT, 4:8)
+# print summary of mean values of each burn class
 (summ <- burnClassSummary(bc$model))
-set(DT, NULL, "burnClass", burnClassPredict(bc$model, df = DT))
-prob <- burnProbFromClass(bc$model, DT)
+
+# predict -- add Burn Class to object
+set(DT[["test"]], NULL, "burnClass", burnClassPredict(bc$model, df = DT[["test"]]))
+prob <- burnProbFromClass(bc$model, DT[["test"]])
+
+}
 }
