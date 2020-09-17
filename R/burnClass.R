@@ -12,6 +12,27 @@ utils::globalVariables(c(
 #' @param AUC Logical. Should the Area Under the receiver operating Curve be returned?
 #' @param plotAUC Logical. Should the plot of the AUC be made.
 #'
+#' @details
+#' This was inspired by reading here:
+#' \url{
+#' https://www.datanovia.com/en/blog/types-of-clustering-methods-overview-and-quick-start-r-code/}
+#' and here:
+#' \url{https://www.datanovia.com/en/lessons/model-based-clustering-essentials/}, with
+#' citation here:
+#' Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering,
+#' classification and density estimation using Gaussian finite mixture models,
+#' The R Journal, 8/1, pp. 205-233.
+#' \url{https://journal.r-project.org/archive/2016/RJ-2016-021/RJ-2016-021.pdf}
+#'
+#' The basic solution is to take all covariates, including the binary "not burned", "burned"
+#' (coded as 0 and 1, respectively), and do model-based clustering with the \code{mclust}
+#' R package. We can choose a fixed number of burn classes, or a finite range (see
+#' \code{numClasses} argument.
+#' This will make \code{numClasses} "homogeneous" groups,
+#' including whether they burned or not.
+#' From this, we can identify groups by looking at the mean values of "burned" to see
+#' what their burn tendency is as a "homogeneous" group.
+#'
 #' @return
 #' A list with 2 elements, first the \code{model}, which comes from \code{mclust::Mclust},
 #' and second the Area Under the Curve or AUC as an indicator of the overal goodness of fit.
@@ -20,6 +41,7 @@ utils::globalVariables(c(
 #' @importFrom mclust Mclust mclustBIC
 #' @importFrom pROC roc
 #' @importFrom utils modifyList
+#' @author Eliot McIntire
 #' @export
 #' @examples
 #' \dontrun{
