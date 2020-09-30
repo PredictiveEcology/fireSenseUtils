@@ -12,11 +12,10 @@
 #' @return A \code{SpatialPointsDataFrame}.
 #'
 #' @export
-#' @importFrom LandR asInteger
 #' @importFrom raster crs crs<- res
 #' @importFrom reproducible Cache Checksums prepInputs
+#' @importFrom utils getFromNamespace
 #' @importFrom SpaDES.core dyear
-#' @importFrom tools file_path_sans_ext
 getFirePoints_NFDB <- function(url = NULL,
                                studyArea = NULL, rasterToMatch = NULL,
                                redownloadIn = 1,
@@ -34,7 +33,7 @@ getFirePoints_NFDB <- function(url = NULL,
   whIsOK <- which(check$result[whRowIsShp] == "OK")
   needNewDownload <- TRUE
   if (any(whIsOK)) {
-    filesToCheck <- tools::file_path_sans_ext(unlist(lapply(
+    filesToCheck <- getFromNamespace("filePathSansExt", "reproducible")(unlist(lapply( # don't use tools::file_path_sans_ext to keep package number down
       check[whRowIsShp[whIsOK], "expectedFile"], as.character)))
     dateOfFile <- substr(x = filesToCheck,
                          start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck))
@@ -97,12 +96,10 @@ getFirePoints_NFDB <- function(url = NULL,
 #' @return A \code{SpatialPointsDataFrame}.
 #'
 #' @export
-#' @importFrom LandR asInteger
 #' @importFrom raster crs crs<- res
 #' @importFrom reproducible Cache Checksums prepInputs projectInputs
 #' @importFrom sp coordinates<-
 #' @importFrom SpaDES.core dyear
-#' @importFrom tools file_path_sans_ext
 getFirePoints_NFDB_V2 <- function(url = NULL,
                                   studyArea = NULL,
                                   rasterToMatch = NULL,
@@ -121,7 +118,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
   whIsOK <- which(check$result[whRowIsShp] == "OK")
   needNewDownload <- TRUE
   if (any(whIsOK)) {
-    filesToCheck <- tools::file_path_sans_ext(unlist(lapply(
+    filesToCheck <- getFromNamespace("filePathSansExt", "reproducible")(unlist(lapply( # don't use tools::file_path_sans_ext to keep package number down
       check[whRowIsShp[whIsOK], "expectedFile"], as.character)))
     dateOfFile <- substr(x = filesToCheck,
                          start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck))

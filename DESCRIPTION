@@ -15,7 +15,6 @@ Authors@R: c(
 Depends:
     R (>= 3.6)
 Imports:
-    assertthat,
     crayon,
     data.table,
     DEoptim,
@@ -24,26 +23,26 @@ Imports:
     future,
     future.apply,
     kSamples,
-    LandR,
     magrittr,
+    mclust,
     methods,
     quickPlot,
     pemisc,
+    pROC,
     purrr,
     raster,
     reproducible,
-    rlang,
     sf,
     sp,
     SpaDES.core,
     SpaDES.tools,
-    stats,
-    usefulFuns
+    stats
 Suggests:
     dplyr,
     knitr,
     lintr,
     PtProcess,
+    Require,
     rgeos,
     rmarkdown,
     spatstat,
@@ -51,12 +50,9 @@ Suggests:
     testthat
 Remotes:
     traversc/stringfish,
-    PredictiveEcology/Require@development,
     PredictiveEcology/reproducible@development,
     PredictiveEcology/quickPlot@development,
-    PredictiveEcology/pemisc@development,
-    PredictiveEcology/LandR@development,
-    PredictiveEcology/usefulFuns@development
+    PredictiveEcology/pemisc@development
 VignetteBuilder:
     knitr,
     rmarkdown
