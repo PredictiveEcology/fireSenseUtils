@@ -95,7 +95,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   }
   fireSize <- initialDf[, list(actualSize = .N,
                                # simSize = .N,# needed for numIters
-                               goalSize = pmax(minSize, areaMultiplier(.N))), by = "ids"]
+                               goalSize = pmax(minSize, am(.N))), by = "ids"]
 
   out <- list()
   simSizes <- initialDf[, list(simSize = .N), by = "ids"]
