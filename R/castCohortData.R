@@ -4,7 +4,7 @@
 #' @param terrainRasters rasterStack of terrain covariates
 #' @param pixelGroupMap pixelGroupMap to join terrain with pixelGroup
 #' @param climateRasters if predicting, a single raster layer (for now), else raster stack of historical climate
-#' @param index relevant pixel IDs for subsetting, if applicable. list okay
+#' @param index list of relevant pixel IDs for subsetting, if applicable
 #' @return a trimmed cohortData with wide-layout
 #' @importFrom data.table dcast set setnafill
 #' @importFrom dplyr bind_cols
@@ -37,13 +37,17 @@ castCohortData <- function(cohortData, terrainRasters, pixelGroupMap, index = NU
     #NAs from non-treed data
 
     #need to grab climate layers for each year
-    climate <- lapply()
+    fullCovariates <- lapply(names(index), FUN = function(x, i = index, clim = climateRasters, ter = terrain) {
+      browser()
+      index <- index[i]
+      clim <- clim[[i]]
+    })
 
 
- } else {
-   set(terrain, j = 'MDC', value = getValues(climateRasters))
-
- }
+  } else {
+    set(terrain, j = 'MDC', value = getValues(climateRasters))
+    #this will be for predicting
+  }
 
 
   #if index is non null, this function is being used for fitting. need to get years
