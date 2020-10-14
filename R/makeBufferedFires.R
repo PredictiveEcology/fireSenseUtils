@@ -86,7 +86,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   }
   loci <- which(!is.na(r[]))
   ids <- r[loci]
-  
+
   initialDf <- data.table(loci, ids, id = seq(ids))
   am <- if (is(areaMultiplier, "function")) {
     areaMultiplier
