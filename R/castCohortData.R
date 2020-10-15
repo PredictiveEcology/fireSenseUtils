@@ -20,12 +20,14 @@ castCohortData <- function(cohortData, terrainDT, pixelGroupMap, index = NULL, c
   cohortDataWide <- dcast(cohortData, pixelGroup + standAge ~ speciesCode, value.var = c("B"),
                           fill = 0)
 
-  set(terrainDT, j = 'pixelGroup', value = getValues(pixelGroupMap))
+  cohortDataWideLong <- data.table('pixelID' = 1:ncell(pixelGroupMap), 'pixelGroup' = getValues(pixelGroupMap))
+  cohortDataWide <- cohortDataWideLong[cohortDataWide, on = c("pixelGroup")]
+  #we need pixelIndex due to terrain - this way we don't have to store long version of sim$terrainDT
 
   #if index is present, we need pixelIndices too
   if (!is.null(index)) {
     terrainDT<- terrainDT[!is.na(get(terrainNames))]
-    terrainDT <- cohortDataWide[terrainDT, on = c("pixelGroup")]
+    terrainDT <- cohortDataWide[terrainDT, on = c("pixelID")]
     terrainDT <- data.table::setnafill(terrainDT, fill = 0, cols = names(cohortDataWide))
     set(terrainDT, , 'pixelGroup', NULL)
     #NAs from non-treed data
