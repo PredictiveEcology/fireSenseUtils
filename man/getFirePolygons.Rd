@@ -4,16 +4,22 @@
 \alias{getFirePolygons}
 \title{Download and prepare fire data from National Fire Database}
 \usage{
-getFirePolygons(years, studyArea, pathInputs, version = NULL)
+getFirePolygons(
+  years,
+  studyArea,
+  destinationPath,
+  version = NULL,
+  useInnerCache = FALSE
+)
 }
 \arguments{
-\item{years}{DESCRIPTION NEEDED}
+\item{years}{years to filter fire polygons by}
 
-\item{studyArea}{DESCRIPTION NEEDED}
+\item{studyArea}{study area to subset fire polygons to}
 
-\item{pathInputs}{DESCRIPTION NEEDED}
+\item{destinationPath}{the directory where the fire polys will be stored}
 
-\item{version}{DESCRIPTION NEEDED}
+\item{useInnerCache}{cache the prepInputs call}
 }
 \value{
 DESCRIPTION NEEDED

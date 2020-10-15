@@ -3,14 +3,13 @@
 #' @param rasterToMatch template raster
 #' @param studyArea SpatialPolygonsDataFrame file of studyArea
 #' @param destinationPath directory where data is downloaded
-#' @param landcover
 #' @return a raster stack of terrain indices
 #' @importFrom raster raster stack terrain
-#' @importfrom reproducible prepInputs
+#' @importFrom reproducible prepInputs
 #' @importFrom spatialEco hli
 #' @export
 #' @rdname prepTerrainCovariates
-prepTerrainCovariates <- function(rasterToMatch, studyArea, dPath, landcover) {
+prepTerrainCovariates <- function(rasterToMatch, studyArea, dPath) {
 
   DEM <- prepInputs(url = 'https://drive.google.com/file/d/121x_CfWy2XP_-1av0cYE7sxUfb4pmsup/view?usp=sharing',
                     destinationPath = dPath,

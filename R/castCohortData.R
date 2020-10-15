@@ -1,7 +1,7 @@
 #' preparing covariates for fitting modules
 #'
 #' @param cohortData DESCRIPTION NEEDED
-#' @param terrainRasters rasterStack of terrain covariates
+#' @param terrainDT rasterStack of terrain covariates converted to data.table
 #' @param pixelGroupMap pixelGroupMap to join terrain with pixelGroup
 #' @param climateRasters if predicting, a single raster layer (for now), else raster stack of historical climate
 #' @param index list of relevant pixel IDs for subsetting, if applicable
@@ -10,45 +10,42 @@
 #' @importFrom dplyr bind_cols
 #' @export
 #' @rdname castCohortData
-castCohortData <- function(cohortData, terrainRasters, pixelGroupMap, index = NULL, climateRasters) {
-  browser()
+castCohortData <- function(cohortData, terrainDT, pixelGroupMap, index = NULL, climateRasters) {
+  #this can be made more efficient if the terrain data.table is constructed outside the function and passed in...
+  terrainDT <- copy(terrainDT)
+  terrainNames <- colnames(terrainDT)
   #need stand age for predictions
   cohortData[, standAge := sum(B * age)/sum(B), .(pixelGroup)]
 
   cohortDataWide <- dcast(cohortData, pixelGroup + standAge ~ speciesCode, value.var = c("B"),
                           fill = 0)
-  #get terrain of pixelGroups
-  terrain <- lapply(names(terrainRasters), FUN = function(x){
-    y <- data.table(getValues(terrainRasters[[x]]))
-  }) %>%
-    dplyr::bind_cols(.)
-  setnames(terrain, names(terrainRasters))
 
-  setDT(terrain) #needed to pre-allocate space for new columns
-  set(terrain, j = 'pixelGroup', value = getValues(pixelGroupMap))
+  set(terrainDT, j = 'pixelGroup', value = getValues(pixelGroupMap))
 
   #if index is present, we need pixelIndices too
   if (!is.null(index)) {
-    set(terrain, j = 'pixelIndex', value = 1:ncell(pixelGroupMap))
-    terrain <- terrain[!is.na(get(names(terrainRasters)))]
-    terrain <- cohortDataWide[terrain, on = c("pixelGroup")]
-    terrain <- data.table::setnafill(terrain, fill = 0, cols = names(cohortDataWide))
-    set(terrain, , 'pixelGroup', NULL)
+    terrainDT<- terrainDT[!is.na(get(terrainNames))]
+    terrainDT <- cohortDataWide[terrainDT, on = c("pixelGroup")]
+    terrainDT <- data.table::setnafill(terrainDT, fill = 0, cols = names(cohortDataWide))
+    set(terrainDT, , 'pixelGroup', NULL)
     #NAs from non-treed data
 
     #need to grab climate layers for each year
-    fullCovariates <- lapply(names(index), FUN = function(x, i = index, clim = climateRasters, ter = terrain) {
-      browser()
-      index <- index[i]
-      clim <- clim[[i]]
+    fullCovariates <- lapply(names(index), FUN = function(x, ind = index, clim = climateRasters, ter = terrainDT) {
+      ind <- ind[[x]]
+      clim <- clim[[x]]
+      climDat <- data.table(pixelID = 1:ncell(clim), MDC = getValues(clim))
+      ind <- climDat[ind, on = c("pixelID")]
+      fullYear <- ter[ind, on = c("pixelID")]
+      return(fullYear)
     })
-
+    fullCovariates <- rbindlist(fullCovariates) #I don't think these need to be separated by year anymore..
 
   } else {
-    set(terrain, j = 'MDC', value = getValues(climateRasters))
-    #this will be for predicting
+    set(terrainDT, j = 'MDC', value = getValues(climateRasters))
+    #this will be for predicting- when we get there
+    #do stuff and make fulLCovariates
   }
 
-
-  #if index is non null, this function is being used for fitting. need to get years
+  return(fullCovariates)
 }
