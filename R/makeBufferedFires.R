@@ -91,7 +91,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   am <- if (is(areaMultiplier, "function")) {
     areaMultiplier
   } else {
-    function(x) areaMultiplier
+    function(x) areaMultiplier * x
   }
   fireSize <- initialDf[, list(actualSize = .N,
                                # simSize = .N,# needed for numIters
