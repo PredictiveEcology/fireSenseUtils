@@ -10,17 +10,19 @@
 #' @export
 #' @rdname prepTerrainCovariates
 prepTerrainCovariates <- function(rasterToMatch, studyArea, dPath) {
-
   DEM <- prepInputs(url = 'https://drive.google.com/file/d/121x_CfWy2XP_-1av0cYE7sxUfb4pmsup/view?usp=sharing',
                     destinationPath = dPath,
                     studyArea = studyArea,
                     rasterToMatch = rasterToMatch,
                     userTags = c("DEM", "fireSenseUtils"))
   otherIndices <- raster::terrain(x = DEM,
-                                  opt = c('slope', 'TPI'),
+                                  opt = c('TPI'),
                                   unit = 'degrees')
   hli <- spatialEco::hli(DEM)
+
+  #if we add saga wetness index or dynatop's TWI or catchment area, here is the place
+
   terrainCovariates <- stack(otherIndices, hli)
-  names(terrainCovariates) <- c('TPI', 'slope', 'HLI')
+  names(terrainCovariates) <- c('TPI', 'HLI')
   return(terrainCovariates)
 }
