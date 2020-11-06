@@ -4,24 +4,18 @@
 \alias{castCohortData}
 \title{preparing covariates for fitting modules}
 \usage{
-castCohortData(
-  cohortData,
-  terrainDT,
-  pixelGroupMap,
-  index = NULL,
-  climateRasters
-)
+castCohortData(cohortData, terrainDT = NULL, pixelGroupMap, lcc)
 }
 \arguments{
 \item{cohortData}{DESCRIPTION NEEDED}
 
-\item{terrainDT}{rasterStack of terrain covariates converted to data.table}
+\item{terrainDT}{optional data table of terrain covariates with pixelIndex}
 
 \item{pixelGroupMap}{pixelGroupMap to join terrain with pixelGroup}
 
-\item{index}{list of relevant pixel IDs for subsetting, if applicable}
+\item{lcc}{data.table of dummified landcover}
 
-\item{climateRasters}{if predicting, a single raster layer (for now), else raster stack of historical climate}
+\item{nonForestedLCCGroups}{a named list of nonforested LCC to group}
 }
 \value{
 a trimmed cohortData with wide-layout
