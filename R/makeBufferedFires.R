@@ -62,6 +62,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
       ...,
       .f = bufferToArea)
   }
+  names(out) <- names(poly)
   out
 }
 
@@ -73,23 +74,28 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
 bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
                                          verb = FALSE, polyName = NULL, field = NULL,
                                          minSize = 500, cores = 1, ...) {
+
   if (is.null(polyName)) polyName <- "Layer 1"
   if  (as.integer(verb) >= 1) print(paste("Buffering polygons on",polyName))
   r <- fasterize::fasterize(
     sf::st_transform(sf::st_as_sf(poly), sf::st_crs(rasterToMatch)),
     raster = rasterToMatch, field = field, ...)
 
+  if (all(is.na(r[]))) {
+    return(data.table(pixelID = numeric(), buffer = numeric(), ids = numeric()))
+  }
   loci <- which(!is.na(r[]))
   ids <- r[loci]
+
   initialDf <- data.table(loci, ids, id = seq(ids))
   am <- if (is(areaMultiplier, "function")) {
     areaMultiplier
   } else {
-    function(x) areaMultiplier
+    function(x) areaMultiplier * x
   }
   fireSize <- initialDf[, list(actualSize = .N,
                                # simSize = .N,# needed for numIters
-                               goalSize = pmax(minSize, areaMultiplier(.N))), by = "ids"]
+                               goalSize = pmax(minSize, am(.N))), by = "ids"]
 
   out <- list()
   simSizes <- initialDf[, list(simSize = .N), by = "ids"]
