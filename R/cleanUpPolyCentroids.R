@@ -28,6 +28,7 @@ utils::globalVariables(c(
 #' @importFrom raster cellFromXY compareCRS crs xyFromCell
 #' @importFrom utils head tail
 harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
+
   purrr::pmap(list(
     cent = cent,
     buff = buff
@@ -127,7 +128,8 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
     )
     notInAFire <- centDT2[!inOrigFire, on = c("pixelID")]
 
-    if (NROW(notInAFire) > 0) browser()
+    # if (NROW(notInAFire) > 0) browser()
+    #fires will be rejected if centroid is outside
 
     polyCentroids
   })
