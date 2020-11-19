@@ -152,7 +152,8 @@ normalizeRaster <- function(x) { ## TODO: use pemisc version
 #  
 #  # Create the fire attribute dataset that describes the starting locations
 #  # and the size of the fires to be spread. This is needed to fit the statistical model of spread probabilities
-#  fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.logical(escaped)], data = data.frame(size = fireSize))
+#  fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.logical(escaped)],
+#                                                              data = data.frame(size = fireSize))
 
 ## ----fit_ignition_model, message=FALSE----------------------------------------
 #  modules <- list("fireSense_IgnitionFit")
@@ -266,7 +267,6 @@ normalizeRaster <- function(x) { ## TODO: use pemisc version
 #  )
 #  
 #  fireSense_SizeFitted <- sim$fireSense_SizeFitted # Extract the fitted model from the sim object
-#  
 
 ## ----produce_maps_tp_params, message=FALSE------------------------------------
 #  

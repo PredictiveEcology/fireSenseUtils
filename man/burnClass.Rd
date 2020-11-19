@@ -16,10 +16,11 @@ burnClassPredict(mod, df)
 burnProbFromClass(mod, df)
 }
 \arguments{
-\item{df}{A data.frame (or data.table), with covarites, including "burned" (a binary 0, 1
-notburned = 0, burned = 1), e.g., timeSinceFire, biomassJackPine, etc. that will
-be used to find fuel classes. This set of covariates must be available both during
-fitting and for prediction. These must be quantitative.}
+\item{df}{A \code{data.frame} (or \code{data.table}), with covariates, including "burned"
+(a binary 0, 1; not burned = 0, burned = 1), e.g., \code{timeSinceFire}, \code{biomassJackPine},
+etc. that will be used to find fuel classes.
+This set of covariates must be available both during fitting and for prediction.
+These must be quantitative.}
 
 \item{numClasses}{A vector indicating how many classes should be attempted. The function
 will return the number of classes that best classify the data into homogeneous groups.}
@@ -33,7 +34,7 @@ will return the number of classes that best classify the data into homogeneous g
 }
 \value{
 A list with 2 elements, first the \code{model}, which comes from \code{mclust::Mclust},
-and second the Area Under the Curve or AUC as an indicator of the overal goodness of fit.
+and second the Area Under the Curve or AUC as an indicator of the overall goodness of fit.
 }
 \description{
 Generate, Summarize, Predict Burn Classes from Covariates

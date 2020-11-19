@@ -2,7 +2,7 @@
 % Please edit documentation in R/classifyCohorts.R
 \name{classifyCohortsFireSenseSpread}
 \alias{classifyCohortsFireSenseSpread}
-\title{classify pixelGroups by flammability}
+\title{Classify \code{pixelGroups} by flammability}
 \usage{
 classifyCohortsFireSenseSpread(
   cohortData,
@@ -37,5 +37,5 @@ If not provided and \code{mixedType == 2}, will attempt to use
 DESCRIPTION NEEDDED when this finally runs
 }
 \description{
-classify pixelGroups by flammability
+Classify \code{pixelGroups} by flammability
 }

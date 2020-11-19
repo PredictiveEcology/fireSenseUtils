@@ -4,12 +4,12 @@
 \alias{prepTerrainCovariates}
 \title{preparing terrain covariates for fireSense modules}
 \usage{
-prepTerrainCovariates(rasterToMatch, studyArea, dPath)
+prepTerrainCovariates(rasterToMatch, studyArea, destinationPath)
 }
 \arguments{
 \item{rasterToMatch}{template raster}
 
-\item{studyArea}{SpatialPolygonsDataFrame file of studyArea}
+\item{studyArea}{\code{SpatialPolygonsDataFrame} file of \code{studyArea}}
 
 \item{destinationPath}{directory where data is downloaded}
 }

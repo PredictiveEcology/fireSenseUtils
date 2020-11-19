@@ -14,8 +14,6 @@ castCohortData(cohortData, terrainDT = NULL, pixelGroupMap, lcc)
 \item{pixelGroupMap}{pixelGroupMap to join terrain with pixelGroup}
 
 \item{lcc}{data.table of dummified landcover}
-
-\item{nonForestedLCCGroups}{a named list of nonforested LCC to group}
 }
 \value{
 a trimmed cohortData with wide-layout

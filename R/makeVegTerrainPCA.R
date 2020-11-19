@@ -1,3 +1,7 @@
+globalVariables(c(
+  ".SD", ".SDcols", "year"
+))
+
 #' Create PCA data for glm - for fitting and predicting
 #'
 #' @param dataForPCA a data.table of fireSense covariates for each pixelID,
@@ -6,20 +10,20 @@
 #'
 #' @return a list of the PCA and a data.table with components converted to integer
 #'
+#' @export
 #' @importFrom data.table data.table
 #' @importFrom LandR asInteger
-#'
-#' @export
+#' @importFrom stats prcomp
 #' @rdname makeVegTerrainPCA
 makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL) {
-
   if (is.null(PCAmodel)) {
     #year should be present in data
     vegTerrainPCA <- prcomp(dataForPCA[, .SD, .SDcols = !c("pixelGroup", 'pixelID', 'year')],
                             center = TRUE, scale. = TRUE, rank = 10)
   } else{
     #To be tested
-    vegTerrainPCA <- prcomp(object = PCAmodel, newdata = dataForPCA[, .SD., .SDcols = !c("pixelGroup", 'pixelID')])
+    vegTerrainPCA <- prcomp(object = PCAmodel,
+                            newdata = dataForPCA[, .SD, .SDcols = !c("pixelGroup", 'pixelID')])
   }
   # store as Integer
   vegComponents <- as.data.table(vegTerrainPCA$x * 1000)
@@ -31,4 +35,4 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL) {
   }
 
   return(list('vegComponents' = vegComponents, 'vegTerrainPCA' = vegTerrainPCA))
-  }
+}

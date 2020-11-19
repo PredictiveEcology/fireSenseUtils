@@ -1,22 +1,31 @@
-#' classify pixelGroups by flammability
+globalVariables(c(
+  "age", "B", "BperClass", "burnClass", "propBurnClassFire", "totalBiomass"
+))
+
+#' Classify \code{pixelGroups} by flammability
+#'
 #' @template cohortData
 #' @template pixelGroupMap
 #' @template sppEquiv
 #' @template sppEquivCol
 #' @param yearCohort the year the cohortData represents
 #' @param flammableMap  binary map of flammable pixels - see \code{LandR::defineFlammable}
+#'
 #' @return DESCRIPTION NEEDDED when this finally runs
 #'
 #' @export
+#' @importFrom data.table copy
 #' @importFrom SpaDES.tools rasterizeReduced
-#' @importFrom raster getValues raster
-classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap, flammableMap, sppEquiv, sppEquivCol){
+#' @importFrom raster getValues nlayers raster
+#'
+classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
+                                           sppEquiv, sppEquivCol) {
   cohortData <- copy(cohortData)
   joinCol <- c('FuelClass', eval(sppEquivCol))
   sppEquivSubset <- sppEquiv[, .SD, .SDcols = joinCol]
 
-  cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)] 
-  #data.table needs an argument for which column names are kept during join 
+  cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
+  #data.table needs an argument for which column names are kept during join
   setnames(cohortData, 'FuelClass', 'burnClass')
   cohortData[age < 15, burnClass := "class1"]
   if (!"totalBiomass" %in% names(cohortData))

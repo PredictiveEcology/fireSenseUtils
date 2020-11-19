@@ -10,7 +10,7 @@
 #' @export
 #' @importFrom reproducible prepInputs
 getFirePolygons <- function(years, studyArea, destinationPath,
-                            version = NULL, useInnerCache = FALSE) {
+                            useInnerCache = FALSE) {
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
   firePolys <- prepInputs(url = currentURL,
                           studyArea = studyArea,

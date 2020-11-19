@@ -23,6 +23,7 @@ Imports:
     future,
     future.apply,
     kSamples,
+    LandR,
     magrittr,
     mclust,
     methods,
@@ -36,6 +37,7 @@ Imports:
     sp,
     SpaDES.core,
     SpaDES.tools,
+    spatialEco,
     stats
 Suggests:
     dplyr,
