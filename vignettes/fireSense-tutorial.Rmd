@@ -286,7 +286,8 @@ dataFireSense_SizeFit[, fire_size := fireSize]
 
 # Create the fire attribute dataset that describes the starting locations 
 # and the size of the fires to be spread. This is needed to fit the statistical model of spread probabilities
-fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.logical(escaped)], data = data.frame(size = fireSize))
+fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.logical(escaped)],
+                                                            data = data.frame(size = fireSize))
 ```
 
 ## Fit the statistical model of fire ignitions
@@ -417,7 +418,6 @@ sim <- simInitAndSpades(
 )
 
 fireSense_SizeFitted <- sim$fireSense_SizeFitted # Extract the fitted model from the sim object
-
 ```
 
 ### Produce the maps of the tapered Pareto parameters
