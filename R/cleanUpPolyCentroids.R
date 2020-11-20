@@ -27,7 +27,7 @@ utils::globalVariables(c(
 #' @importFrom SpaDES.tools distanceFromEachPoint spread
 #' @importFrom raster cellFromXY compareCRS crs xyFromCell
 #' @importFrom utils head tail
-harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "NFIREID") {
+harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
 
   purrr::pmap(list(
     cent = cent,
