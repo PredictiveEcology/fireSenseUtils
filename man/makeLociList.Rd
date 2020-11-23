@@ -7,7 +7,7 @@
 makeLociList(
   ras,
   pts,
-  idsCol = "NFIREID",
+  idsCol = "FIRE_ID",
   dateCol = "YEAR",
   sizeCol = "POLY_HA",
   sizeColUnits = "ha"

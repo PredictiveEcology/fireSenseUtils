@@ -18,7 +18,7 @@ classifyCohortsFireSenseSpread(
 \code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
 and \code{sumB}.}
 
-\item{yearCohort}{the year the cohortData represents}
+\item{yearCohort}{the year the \code{cohortData} represents}
 
 \item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
@@ -34,7 +34,7 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{sppEquivCol}{the column name to use from \code{sppEquiv}.}
 }
 \value{
-DESCRIPTION NEEDDED when this finally runs
+DESCRIPTION NEEDED when this finally runs
 }
 \description{
 Classify \code{pixelGroups} by flammability

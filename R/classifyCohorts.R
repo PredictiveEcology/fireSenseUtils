@@ -8,10 +8,10 @@ globalVariables(c(
 #' @template pixelGroupMap
 #' @template sppEquiv
 #' @template sppEquivCol
-#' @param yearCohort the year the cohortData represents
+#' @param yearCohort the year the \code{cohortData} represents
 #' @param flammableMap  binary map of flammable pixels - see \code{LandR::defineFlammable}
 #'
-#' @return DESCRIPTION NEEDDED when this finally runs
+#' @return DESCRIPTION NEEDED when this finally runs
 #'
 #' @export
 #' @importFrom data.table copy

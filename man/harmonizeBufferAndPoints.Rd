@@ -4,7 +4,7 @@
 \alias{harmonizeBufferAndPoints}
 \title{Cleaning up the polygon points}
 \usage{
-harmonizeBufferAndPoints(cent, buff, ras, idCol = "NFIREID")
+harmonizeBufferAndPoints(cent, buff, ras, idCol = "FIRE_ID")
 }
 \arguments{
 \item{cent}{List of points as \code{SpatialPointsDataFrame}}
