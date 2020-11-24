@@ -12,7 +12,7 @@
 
 <meta name="author" content="Jean Marchal, Eliot McIntire, Tati Micheletti, Alex Chubaty" />
 
-<meta name="date" content="2020-11-19" />
+<meta name="date" content="2020-11-24" />
 
 <title>fireSense tutorial</title>
 
@@ -367,7 +367,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">fireSense tutorial</h1>
 <h4 class="author">Jean Marchal, Eliot McIntire, Tati Micheletti, Alex Chubaty</h4>
-<h4 class="date">2020-11-19</h4>
+<h4 class="date">2020-11-24</h4>
 
 
 
@@ -437,16 +437,16 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb1-49"><a href="#cb1-49"></a><span class="co">#  summarise(n_fires = n()) %&gt;%</span></span>
 <span id="cb1-50"><a href="#cb1-50"></a><span class="co">#  right_join(landcoverDataLowRes) %&gt;%</span></span>
 <span id="cb1-51"><a href="#cb1-51"></a><span class="co">#  left_join(weatherDataLowRes) %&gt;%</span></span>
-<span id="cb1-52"><a href="#cb1-52"></a>  <span class="kw">mutate</span>(<span class="dt">n_fires =</span> <span class="kw">ifelse</span>(<span class="kw">is.na</span>(n_fires), <span class="dv">0</span>, n_fires))</span>
+<span id="cb1-52"><a href="#cb1-52"></a><span class="co">#  mutate(n_fires = ifelse(is.na(n_fires), 0, n_fires))</span></span>
 <span id="cb1-53"><a href="#cb1-53"></a></span>
 <span id="cb1-54"><a href="#cb1-54"></a><span class="co"># Converting the above from tibble to data.table </span></span>
 <span id="cb1-55"><a href="#cb1-55"></a>dataFireSense_IgnitionFit &lt;-<span class="st"> </span><span class="kw">data.table</span>(</span>
 <span id="cb1-56"><a href="#cb1-56"></a>  <span class="kw">extract</span>(landTypeOneLowRes, fireLocations, <span class="dt">cellnumbers =</span> <span class="ot">TRUE</span>),</span>
 <span id="cb1-57"><a href="#cb1-57"></a>  <span class="dt">landtype_2_pp =</span> <span class="kw">extract</span>(landTypeTwoLowRes, fireLocations, <span class="dt">cellnumbers =</span> <span class="ot">FALSE</span>),</span>
 <span id="cb1-58"><a href="#cb1-58"></a>  <span class="dt">weather =</span> <span class="kw">extract</span>(weatherLowRes, fireLocations, <span class="dt">cellnumbers =</span> <span class="ot">FALSE</span>)</span>
-<span id="cb1-59"><a href="#cb1-59"></a>  )</span>
-<span id="cb1-60"><a href="#cb1-60"></a><span class="kw">setnames</span>(dataFireSense, <span class="dt">old =</span> <span class="st">&quot;layer&quot;</span>, <span class="dt">new =</span> <span class="st">&quot;landtype_1_pp&quot;</span>)</span>
-<span id="cb1-61"><a href="#cb1-61"></a>dataFireSense_IgnitionFit &lt;-<span class="st"> </span>dataFireSense[, <span class="kw">list</span>(</span>
+<span id="cb1-59"><a href="#cb1-59"></a>)</span>
+<span id="cb1-60"><a href="#cb1-60"></a><span class="kw">setnames</span>(dataFireSense_IgnitionFit, <span class="dt">old =</span> <span class="st">&quot;layer&quot;</span>, <span class="dt">new =</span> <span class="st">&quot;landtype_1_pp&quot;</span>)</span>
+<span id="cb1-61"><a href="#cb1-61"></a>dataFireSense_IgnitionFit &lt;-<span class="st"> </span>dataFireSense_IgnitionFit[, <span class="kw">list</span>(</span>
 <span id="cb1-62"><a href="#cb1-62"></a>  <span class="dt">n_fires =</span> .N, <span class="dt">landtype_1_pp =</span> landtype_<span class="dv">1</span>_pp[<span class="dv">1</span>], </span>
 <span id="cb1-63"><a href="#cb1-63"></a>  <span class="dt">landtype_2_pp =</span> landtype_<span class="dv">2</span>_pp[<span class="dv">1</span>], <span class="dt">weather =</span> weather[<span class="dv">1</span>]</span>
 <span id="cb1-64"><a href="#cb1-64"></a>), by =<span class="st"> </span>cells]</span>
@@ -455,7 +455,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb1-67"><a href="#cb1-67"></a>  <span class="dt">landtype_1_pp =</span> <span class="kw">extract</span>(landTypeOne, fireLocations, <span class="dt">cellnumbers =</span> <span class="ot">FALSE</span>),</span>
 <span id="cb1-68"><a href="#cb1-68"></a>  <span class="dt">landtype_2_pp =</span> <span class="kw">extract</span>(landTypeTwo, fireLocations, <span class="dt">cellnumbers =</span> <span class="ot">FALSE</span>),</span>
 <span id="cb1-69"><a href="#cb1-69"></a>  <span class="dt">weather =</span> <span class="kw">extract</span>(weather, fireLocations, <span class="dt">cellnumbers =</span> <span class="ot">FALSE</span>)</span>
-<span id="cb1-70"><a href="#cb1-70"></a>  )</span>
+<span id="cb1-70"><a href="#cb1-70"></a>)</span>
 <span id="cb1-71"><a href="#cb1-71"></a></span>
 <span id="cb1-72"><a href="#cb1-72"></a><span class="co"># Create the dataset necessary to fit the statistical model fire escapes</span></span>
 <span id="cb1-73"><a href="#cb1-73"></a><span class="co">#dataFireSense_EscapeFit &lt;- tibble(</span></span>
@@ -639,53 +639,52 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb4-41"><a href="#cb4-41"></a>fireSense_SizeFitted &lt;-<span class="st"> </span>sim<span class="op">$</span>fireSense_SizeFitted <span class="co"># Extract the fitted model from the sim object</span></span></code></pre></div>
 <div id="produce-the-maps-of-the-tapered-pareto-parameters" class="section level3">
 <h3>Produce the maps of the tapered Pareto parameters</h3>
-<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a></span>
-<span id="cb5-2"><a href="#cb5-2"></a>modules &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="st">&quot;fireSense_SizePredict&quot;</span>)</span>
-<span id="cb5-3"><a href="#cb5-3"></a></span>
-<span id="cb5-4"><a href="#cb5-4"></a>times &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">end =</span> <span class="dv">1</span>)</span>
-<span id="cb5-5"><a href="#cb5-5"></a></span>
-<span id="cb5-6"><a href="#cb5-6"></a><span class="co"># Define fireSense_SizePredict module inputs</span></span>
-<span id="cb5-7"><a href="#cb5-7"></a>objects &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
-<span id="cb5-8"><a href="#cb5-8"></a>  <span class="dt">fireSense_SizeFitted =</span> fireSense_SizeFitted,</span>
-<span id="cb5-9"><a href="#cb5-9"></a>  <span class="dt">landtype_1_pp =</span> landTypeOne,</span>
-<span id="cb5-10"><a href="#cb5-10"></a>  <span class="dt">landtype_2_pp =</span> landTypeTwo,</span>
-<span id="cb5-11"><a href="#cb5-11"></a>  <span class="dt">weather =</span> weather</span>
-<span id="cb5-12"><a href="#cb5-12"></a>)</span>
-<span id="cb5-13"><a href="#cb5-13"></a></span>
-<span id="cb5-14"><a href="#cb5-14"></a><span class="co"># Define fireSense_SizePredict module outputs</span></span>
-<span id="cb5-15"><a href="#cb5-15"></a>outputs &lt;-<span class="st"> </span><span class="kw">rbind</span>(</span>
-<span id="cb5-16"><a href="#cb5-16"></a>  <span class="kw">data.frame</span>(</span>
-<span id="cb5-17"><a href="#cb5-17"></a>    <span class="dt">file =</span> <span class="st">&quot;fireSense_SizePredicted_Beta.tif&quot;</span>,</span>
-<span id="cb5-18"><a href="#cb5-18"></a>    <span class="dt">fun =</span> <span class="st">&quot;writeRaster&quot;</span>,</span>
-<span id="cb5-19"><a href="#cb5-19"></a>    <span class="dt">objectName =</span> <span class="st">&quot;fireSense_SizePredicted_Beta&quot;</span>,</span>
-<span id="cb5-20"><a href="#cb5-20"></a>    <span class="dt">package =</span> <span class="st">&quot;raster&quot;</span>,</span>
-<span id="cb5-21"><a href="#cb5-21"></a>    <span class="dt">saveTime =</span> <span class="dv">1</span></span>
-<span id="cb5-22"><a href="#cb5-22"></a>  ),</span>
-<span id="cb5-23"><a href="#cb5-23"></a>  <span class="kw">data.frame</span>(</span>
-<span id="cb5-24"><a href="#cb5-24"></a>    <span class="dt">file =</span> <span class="st">&quot;fireSense_SizePredicted_Theta.tif&quot;</span>,</span>
-<span id="cb5-25"><a href="#cb5-25"></a>    <span class="dt">fun =</span> <span class="st">&quot;writeRaster&quot;</span>,</span>
-<span id="cb5-26"><a href="#cb5-26"></a>    <span class="dt">objectName =</span> <span class="st">&quot;fireSense_SizePredicted_Theta&quot;</span>,</span>
-<span id="cb5-27"><a href="#cb5-27"></a>    <span class="dt">package =</span> <span class="st">&quot;raster&quot;</span>,</span>
-<span id="cb5-28"><a href="#cb5-28"></a>    <span class="dt">saveTime =</span> <span class="dv">1</span></span>
-<span id="cb5-29"><a href="#cb5-29"></a>  )</span>
-<span id="cb5-30"><a href="#cb5-30"></a>)</span>
-<span id="cb5-31"><a href="#cb5-31"></a></span>
-<span id="cb5-32"><a href="#cb5-32"></a><span class="co"># Define fireSense_SizePredict module parameters</span></span>
-<span id="cb5-33"><a href="#cb5-33"></a>parameters &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
-<span id="cb5-34"><a href="#cb5-34"></a>  <span class="dt">fireSense_SizePredict =</span> <span class="kw">list</span>(</span>
-<span id="cb5-35"><a href="#cb5-35"></a>    <span class="dt">data =</span> <span class="kw">c</span>(<span class="st">&quot;landtype_1_pp&quot;</span>, <span class="st">&quot;landtype_2_pp&quot;</span>, <span class="st">&quot;weather&quot;</span>),</span>
-<span id="cb5-36"><a href="#cb5-36"></a>    <span class="dt">modelName =</span> <span class="st">&quot;fireSense_SizeFitted&quot;</span> <span class="co"># This is the default</span></span>
-<span id="cb5-37"><a href="#cb5-37"></a>  )</span>
-<span id="cb5-38"><a href="#cb5-38"></a>)</span>
-<span id="cb5-39"><a href="#cb5-39"></a></span>
-<span id="cb5-40"><a href="#cb5-40"></a><span class="co"># Run the simulation</span></span>
-<span id="cb5-41"><a href="#cb5-41"></a>sim &lt;-<span class="st"> </span><span class="kw">simInitAndSpades</span>(</span>
-<span id="cb5-42"><a href="#cb5-42"></a>  <span class="dt">modules =</span> modules,</span>
-<span id="cb5-43"><a href="#cb5-43"></a>  <span class="dt">objects =</span> objects,</span>
-<span id="cb5-44"><a href="#cb5-44"></a>  <span class="dt">outputs =</span> outputs,</span>
-<span id="cb5-45"><a href="#cb5-45"></a>  <span class="dt">params =</span> parameters,</span>
-<span id="cb5-46"><a href="#cb5-46"></a>  <span class="dt">times =</span> times</span>
-<span id="cb5-47"><a href="#cb5-47"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1"></a>modules &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="st">&quot;fireSense_SizePredict&quot;</span>)</span>
+<span id="cb5-2"><a href="#cb5-2"></a></span>
+<span id="cb5-3"><a href="#cb5-3"></a>times &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">end =</span> <span class="dv">1</span>)</span>
+<span id="cb5-4"><a href="#cb5-4"></a></span>
+<span id="cb5-5"><a href="#cb5-5"></a><span class="co"># Define fireSense_SizePredict module inputs</span></span>
+<span id="cb5-6"><a href="#cb5-6"></a>objects &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
+<span id="cb5-7"><a href="#cb5-7"></a>  <span class="dt">fireSense_SizeFitted =</span> fireSense_SizeFitted,</span>
+<span id="cb5-8"><a href="#cb5-8"></a>  <span class="dt">landtype_1_pp =</span> landTypeOne,</span>
+<span id="cb5-9"><a href="#cb5-9"></a>  <span class="dt">landtype_2_pp =</span> landTypeTwo,</span>
+<span id="cb5-10"><a href="#cb5-10"></a>  <span class="dt">weather =</span> weather</span>
+<span id="cb5-11"><a href="#cb5-11"></a>)</span>
+<span id="cb5-12"><a href="#cb5-12"></a></span>
+<span id="cb5-13"><a href="#cb5-13"></a><span class="co"># Define fireSense_SizePredict module outputs</span></span>
+<span id="cb5-14"><a href="#cb5-14"></a>outputs &lt;-<span class="st"> </span><span class="kw">rbind</span>(</span>
+<span id="cb5-15"><a href="#cb5-15"></a>  <span class="kw">data.frame</span>(</span>
+<span id="cb5-16"><a href="#cb5-16"></a>    <span class="dt">file =</span> <span class="st">&quot;fireSense_SizePredicted_Beta.tif&quot;</span>,</span>
+<span id="cb5-17"><a href="#cb5-17"></a>    <span class="dt">fun =</span> <span class="st">&quot;writeRaster&quot;</span>,</span>
+<span id="cb5-18"><a href="#cb5-18"></a>    <span class="dt">objectName =</span> <span class="st">&quot;fireSense_SizePredicted_Beta&quot;</span>,</span>
+<span id="cb5-19"><a href="#cb5-19"></a>    <span class="dt">package =</span> <span class="st">&quot;raster&quot;</span>,</span>
+<span id="cb5-20"><a href="#cb5-20"></a>    <span class="dt">saveTime =</span> <span class="dv">1</span></span>
+<span id="cb5-21"><a href="#cb5-21"></a>  ),</span>
+<span id="cb5-22"><a href="#cb5-22"></a>  <span class="kw">data.frame</span>(</span>
+<span id="cb5-23"><a href="#cb5-23"></a>    <span class="dt">file =</span> <span class="st">&quot;fireSense_SizePredicted_Theta.tif&quot;</span>,</span>
+<span id="cb5-24"><a href="#cb5-24"></a>    <span class="dt">fun =</span> <span class="st">&quot;writeRaster&quot;</span>,</span>
+<span id="cb5-25"><a href="#cb5-25"></a>    <span class="dt">objectName =</span> <span class="st">&quot;fireSense_SizePredicted_Theta&quot;</span>,</span>
+<span id="cb5-26"><a href="#cb5-26"></a>    <span class="dt">package =</span> <span class="st">&quot;raster&quot;</span>,</span>
+<span id="cb5-27"><a href="#cb5-27"></a>    <span class="dt">saveTime =</span> <span class="dv">1</span></span>
+<span id="cb5-28"><a href="#cb5-28"></a>  )</span>
+<span id="cb5-29"><a href="#cb5-29"></a>)</span>
+<span id="cb5-30"><a href="#cb5-30"></a></span>
+<span id="cb5-31"><a href="#cb5-31"></a><span class="co"># Define fireSense_SizePredict module parameters</span></span>
+<span id="cb5-32"><a href="#cb5-32"></a>parameters &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
+<span id="cb5-33"><a href="#cb5-33"></a>  <span class="dt">fireSense_SizePredict =</span> <span class="kw">list</span>(</span>
+<span id="cb5-34"><a href="#cb5-34"></a>    <span class="dt">data =</span> <span class="kw">c</span>(<span class="st">&quot;landtype_1_pp&quot;</span>, <span class="st">&quot;landtype_2_pp&quot;</span>, <span class="st">&quot;weather&quot;</span>),</span>
+<span id="cb5-35"><a href="#cb5-35"></a>    <span class="dt">modelName =</span> <span class="st">&quot;fireSense_SizeFitted&quot;</span> <span class="co"># This is the default</span></span>
+<span id="cb5-36"><a href="#cb5-36"></a>  )</span>
+<span id="cb5-37"><a href="#cb5-37"></a>)</span>
+<span id="cb5-38"><a href="#cb5-38"></a></span>
+<span id="cb5-39"><a href="#cb5-39"></a><span class="co"># Run the simulation</span></span>
+<span id="cb5-40"><a href="#cb5-40"></a>sim &lt;-<span class="st"> </span><span class="kw">simInitAndSpades</span>(</span>
+<span id="cb5-41"><a href="#cb5-41"></a>  <span class="dt">modules =</span> modules,</span>
+<span id="cb5-42"><a href="#cb5-42"></a>  <span class="dt">objects =</span> objects,</span>
+<span id="cb5-43"><a href="#cb5-43"></a>  <span class="dt">outputs =</span> outputs,</span>
+<span id="cb5-44"><a href="#cb5-44"></a>  <span class="dt">params =</span> parameters,</span>
+<span id="cb5-45"><a href="#cb5-45"></a>  <span class="dt">times =</span> times</span>
+<span id="cb5-46"><a href="#cb5-46"></a>)</span></code></pre></div>
 </div>
 <div id="use-predicted-parameters-of-the-tapered-pareto-as-inputs-to-the-statistical-model-of-the-spread-probabilities" class="section level3">
 <h3>Use predicted parameters of the tapered Pareto as inputs to the statistical model of the spread probabilities</h3>
@@ -751,46 +750,45 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h2>Predict maps of fire ignition rates, escape and spread probabilities</h2>
 <div id="fire-ignition-rates" class="section level3">
 <h3>Fire ignition rates</h3>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a></span>
-<span id="cb7-2"><a href="#cb7-2"></a>modules &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="st">&quot;fireSense_IgnitionPredict&quot;</span>)</span>
-<span id="cb7-3"><a href="#cb7-3"></a></span>
-<span id="cb7-4"><a href="#cb7-4"></a>times &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">end =</span> <span class="dv">1</span>)</span>
-<span id="cb7-5"><a href="#cb7-5"></a></span>
-<span id="cb7-6"><a href="#cb7-6"></a><span class="co"># Define fireSense_IgnitionPredict module inputs</span></span>
-<span id="cb7-7"><a href="#cb7-7"></a>objects &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
-<span id="cb7-8"><a href="#cb7-8"></a>  <span class="dt">fireSense_IgnitionFitted =</span> fireSense_IgnitionFitted,</span>
-<span id="cb7-9"><a href="#cb7-9"></a>  <span class="dt">landtype_1_pp =</span> landTypeOne,</span>
-<span id="cb7-10"><a href="#cb7-10"></a>  <span class="dt">landtype_2_pp =</span> landTypeTwo,</span>
-<span id="cb7-11"><a href="#cb7-11"></a>  <span class="dt">weather =</span> weather</span>
-<span id="cb7-12"><a href="#cb7-12"></a>)</span>
-<span id="cb7-13"><a href="#cb7-13"></a></span>
-<span id="cb7-14"><a href="#cb7-14"></a><span class="co"># Define fireSense_IgnitionPredict module outputs</span></span>
-<span id="cb7-15"><a href="#cb7-15"></a>outputs &lt;-<span class="st"> </span><span class="kw">rbind</span>(</span>
-<span id="cb7-16"><a href="#cb7-16"></a>  <span class="kw">data.frame</span>(</span>
-<span id="cb7-17"><a href="#cb7-17"></a>    <span class="dt">file =</span> <span class="kw">paste0</span>(<span class="st">&quot;fireSense_IgnitionPredicted.tif&quot;</span>),</span>
-<span id="cb7-18"><a href="#cb7-18"></a>    <span class="dt">fun =</span> <span class="st">&quot;writeRaster&quot;</span>,</span>
-<span id="cb7-19"><a href="#cb7-19"></a>    <span class="dt">objectName =</span> <span class="st">&quot;fireSense_IgnitionPredicted&quot;</span>,</span>
-<span id="cb7-20"><a href="#cb7-20"></a>    <span class="dt">package =</span> <span class="st">&quot;raster&quot;</span>,</span>
-<span id="cb7-21"><a href="#cb7-21"></a>    <span class="dt">saveTime =</span> <span class="dv">1</span></span>
-<span id="cb7-22"><a href="#cb7-22"></a>  )</span>
-<span id="cb7-23"><a href="#cb7-23"></a>)</span>
-<span id="cb7-24"><a href="#cb7-24"></a></span>
-<span id="cb7-25"><a href="#cb7-25"></a><span class="co"># Define fireSense_IgnitionPredict module parameters</span></span>
-<span id="cb7-26"><a href="#cb7-26"></a>parameters &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
-<span id="cb7-27"><a href="#cb7-27"></a>  <span class="dt">fireSense_IgnitionPredict =</span> <span class="kw">list</span>(</span>
-<span id="cb7-28"><a href="#cb7-28"></a>    <span class="dt">data =</span> <span class="kw">c</span>(<span class="st">&quot;landtype_1_pp&quot;</span>, <span class="st">&quot;landtype_2_pp&quot;</span>, <span class="st">&quot;weather&quot;</span>),</span>
-<span id="cb7-29"><a href="#cb7-29"></a>    <span class="dt">modelName =</span> <span class="st">&quot;fireSense_IgnitionFitted&quot;</span> <span class="co"># This is the default</span></span>
-<span id="cb7-30"><a href="#cb7-30"></a>  )</span>
-<span id="cb7-31"><a href="#cb7-31"></a>)</span>
-<span id="cb7-32"><a href="#cb7-32"></a></span>
-<span id="cb7-33"><a href="#cb7-33"></a><span class="co"># Run the simulation</span></span>
-<span id="cb7-34"><a href="#cb7-34"></a>sim &lt;-<span class="st"> </span><span class="kw">simInitAndSpades</span>(</span>
-<span id="cb7-35"><a href="#cb7-35"></a>  <span class="dt">modules =</span> modules,</span>
-<span id="cb7-36"><a href="#cb7-36"></a>  <span class="dt">objects =</span> objects,</span>
-<span id="cb7-37"><a href="#cb7-37"></a>  <span class="dt">outputs =</span> outputs,</span>
-<span id="cb7-38"><a href="#cb7-38"></a>  <span class="dt">params =</span> parameters,</span>
-<span id="cb7-39"><a href="#cb7-39"></a>  <span class="dt">times =</span> times</span>
-<span id="cb7-40"><a href="#cb7-40"></a>)</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1"></a>modules &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="st">&quot;fireSense_IgnitionPredict&quot;</span>)</span>
+<span id="cb7-2"><a href="#cb7-2"></a></span>
+<span id="cb7-3"><a href="#cb7-3"></a>times &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">start =</span> <span class="dv">1</span>, <span class="dt">end =</span> <span class="dv">1</span>)</span>
+<span id="cb7-4"><a href="#cb7-4"></a></span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="co"># Define fireSense_IgnitionPredict module inputs</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a>objects &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
+<span id="cb7-7"><a href="#cb7-7"></a>  <span class="dt">fireSense_IgnitionFitted =</span> fireSense_IgnitionFitted,</span>
+<span id="cb7-8"><a href="#cb7-8"></a>  <span class="dt">landtype_1_pp =</span> landTypeOne,</span>
+<span id="cb7-9"><a href="#cb7-9"></a>  <span class="dt">landtype_2_pp =</span> landTypeTwo,</span>
+<span id="cb7-10"><a href="#cb7-10"></a>  <span class="dt">weather =</span> weather</span>
+<span id="cb7-11"><a href="#cb7-11"></a>)</span>
+<span id="cb7-12"><a href="#cb7-12"></a></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="co"># Define fireSense_IgnitionPredict module outputs</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a>outputs &lt;-<span class="st"> </span><span class="kw">rbind</span>(</span>
+<span id="cb7-15"><a href="#cb7-15"></a>  <span class="kw">data.frame</span>(</span>
+<span id="cb7-16"><a href="#cb7-16"></a>    <span class="dt">file =</span> <span class="kw">paste0</span>(<span class="st">&quot;fireSense_IgnitionPredicted.tif&quot;</span>),</span>
+<span id="cb7-17"><a href="#cb7-17"></a>    <span class="dt">fun =</span> <span class="st">&quot;writeRaster&quot;</span>,</span>
+<span id="cb7-18"><a href="#cb7-18"></a>    <span class="dt">objectName =</span> <span class="st">&quot;fireSense_IgnitionPredicted&quot;</span>,</span>
+<span id="cb7-19"><a href="#cb7-19"></a>    <span class="dt">package =</span> <span class="st">&quot;raster&quot;</span>,</span>
+<span id="cb7-20"><a href="#cb7-20"></a>    <span class="dt">saveTime =</span> <span class="dv">1</span></span>
+<span id="cb7-21"><a href="#cb7-21"></a>  )</span>
+<span id="cb7-22"><a href="#cb7-22"></a>)</span>
+<span id="cb7-23"><a href="#cb7-23"></a></span>
+<span id="cb7-24"><a href="#cb7-24"></a><span class="co"># Define fireSense_IgnitionPredict module parameters</span></span>
+<span id="cb7-25"><a href="#cb7-25"></a>parameters &lt;-<span class="st"> </span><span class="kw">list</span>(</span>
+<span id="cb7-26"><a href="#cb7-26"></a>  <span class="dt">fireSense_IgnitionPredict =</span> <span class="kw">list</span>(</span>
+<span id="cb7-27"><a href="#cb7-27"></a>    <span class="dt">data =</span> <span class="kw">c</span>(<span class="st">&quot;landtype_1_pp&quot;</span>, <span class="st">&quot;landtype_2_pp&quot;</span>, <span class="st">&quot;weather&quot;</span>),</span>
+<span id="cb7-28"><a href="#cb7-28"></a>    <span class="dt">modelName =</span> <span class="st">&quot;fireSense_IgnitionFitted&quot;</span> <span class="co"># This is the default</span></span>
+<span id="cb7-29"><a href="#cb7-29"></a>  )</span>
+<span id="cb7-30"><a href="#cb7-30"></a>)</span>
+<span id="cb7-31"><a href="#cb7-31"></a></span>
+<span id="cb7-32"><a href="#cb7-32"></a><span class="co"># Run the simulation</span></span>
+<span id="cb7-33"><a href="#cb7-33"></a>sim &lt;-<span class="st"> </span><span class="kw">simInitAndSpades</span>(</span>
+<span id="cb7-34"><a href="#cb7-34"></a>  <span class="dt">modules =</span> modules,</span>
+<span id="cb7-35"><a href="#cb7-35"></a>  <span class="dt">objects =</span> objects,</span>
+<span id="cb7-36"><a href="#cb7-36"></a>  <span class="dt">outputs =</span> outputs,</span>
+<span id="cb7-37"><a href="#cb7-37"></a>  <span class="dt">params =</span> parameters,</span>
+<span id="cb7-38"><a href="#cb7-38"></a>  <span class="dt">times =</span> times</span>
+<span id="cb7-39"><a href="#cb7-39"></a>)</span></code></pre></div>
 </div>
 <div id="fire-escape-probabilities" class="section level3">
 <h3>Fire escape probabilities</h3>
@@ -951,7 +949,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <span id="cb10-50"><a href="#cb10-50"></a>burnMap &lt;-<span class="st"> </span>sim<span class="op">$</span>burnMap</span>
 <span id="cb10-51"><a href="#cb10-51"></a></span>
 <span id="cb10-52"><a href="#cb10-52"></a><span class="kw">Plot</span>(burnMap)</span></code></pre></div>
-<p>Note that all the steps above could be done in one simulation / SpaDES call()</p>
+<p>Note that all the steps above could be done in one simulation / SpaDES call.</p>
 </div>
 </div>
 <div id="additional-resources" class="section level1">
