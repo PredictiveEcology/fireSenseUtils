@@ -7,15 +7,20 @@ knitr::opts_chunk$set(
 )
 
 library(reproducible)
-Require(c("magrittr", "dplyr", "pemisc", "PtProcess", "quickPlot",
+Require(c("magrittr", "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
           "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
 
 options(reproducible.useCache = FALSE) # Turn off caching
 
-#setPaths(
-#  modulePath = normalizePath("../NWT/modules"), ## TODO: fix paths
-#  outputPath = normalizePath("../NWT/outputs")
-#)
+moduleDir <- checkPath(file.path(tempdir(), "modules"), create = TRUE)
+outputDir <- checkPath(file.path(tempdir(), "outputs"), create = TRUE)
+
+setPaths(
+  modulePath = moduleDir,
+  outputPath = outputDir
+)
+
+## TODO: download modules to moduleDir -- use git or downloadModule() ???
 
 normalizeRaster <- function(x) { ## TODO: use pemisc version
   # Normalize raster values
@@ -74,16 +79,16 @@ normalizeRaster <- function(x) { ## TODO: use pemisc version
 #  #  summarise(n_fires = n()) %>%
 #  #  right_join(landcoverDataLowRes) %>%
 #  #  left_join(weatherDataLowRes) %>%
-#    mutate(n_fires = ifelse(is.na(n_fires), 0, n_fires))
+#  #  mutate(n_fires = ifelse(is.na(n_fires), 0, n_fires))
 #  
 #  # Converting the above from tibble to data.table
 #  dataFireSense_IgnitionFit <- data.table(
 #    extract(landTypeOneLowRes, fireLocations, cellnumbers = TRUE),
 #    landtype_2_pp = extract(landTypeTwoLowRes, fireLocations, cellnumbers = FALSE),
 #    weather = extract(weatherLowRes, fireLocations, cellnumbers = FALSE)
-#    )
-#  setnames(dataFireSense, old = "layer", new = "landtype_1_pp")
-#  dataFireSense_IgnitionFit <- dataFireSense[, list(
+#  )
+#  setnames(dataFireSense_IgnitionFit, old = "layer", new = "landtype_1_pp")
+#  dataFireSense_IgnitionFit <- dataFireSense_IgnitionFit[, list(
 #    n_fires = .N, landtype_1_pp = landtype_1_pp[1],
 #    landtype_2_pp = landtype_2_pp[1], weather = weather[1]
 #  ), by = cells]
@@ -92,7 +97,7 @@ normalizeRaster <- function(x) { ## TODO: use pemisc version
 #    landtype_1_pp = extract(landTypeOne, fireLocations, cellnumbers = FALSE),
 #    landtype_2_pp = extract(landTypeTwo, fireLocations, cellnumbers = FALSE),
 #    weather = extract(weather, fireLocations, cellnumbers = FALSE)
-#    )
+#  )
 #  
 #  # Create the dataset necessary to fit the statistical model fire escapes
 #  #dataFireSense_EscapeFit <- tibble(
@@ -269,7 +274,6 @@ normalizeRaster <- function(x) { ## TODO: use pemisc version
 #  fireSense_SizeFitted <- sim$fireSense_SizeFitted # Extract the fitted model from the sim object
 
 ## ----produce_maps_tp_params, message=FALSE------------------------------------
-#  
 #  modules <- list("fireSense_SizePredict")
 #  
 #  times <- list(start = 1, end = 1)
@@ -375,7 +379,6 @@ normalizeRaster <- function(x) { ## TODO: use pemisc version
 #  fireSense_SpreadFitted <- sim$fireSense_SpreadFitted # Extract the fitted model from the sim object
 
 ## ----predict_ignition_rates, message=FALSE------------------------------------
-#  
 #  modules <- list("fireSense_IgnitionPredict")
 #  
 #  times <- list(start = 1, end = 1)
