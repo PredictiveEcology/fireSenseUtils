@@ -106,10 +106,9 @@ runDEoptim <- function(landscape,
 
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
-    browser()
     if (is.numeric(cores)) cores <- rep("localhost", cores)
     revtunnel <- ifelse (all(cores == "localhost"), FALSE, TRUE)
-    browser()
+
     st <- system.time({
       cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel)
     })
@@ -118,7 +117,7 @@ runDEoptim <- function(landscape,
     parallel::clusterEvalQ(
       cl, {
         reproducible::checkPath(dirname(logPath), create = TRUE)
-        devtools::install_github("PredictiveEcology/fireSenseUtils@development", upgrade = FALSE)
+        devtools::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
       }
     )
     stopCluster(cl)
