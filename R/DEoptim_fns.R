@@ -37,7 +37,7 @@ utils::globalVariables(c(
 #'   \code{visualizeDEoptim} is \code{TRUE})
 #' @param lower Passed to \code{DEoptim}
 #' @param upper Passed to \code{DEoptim}
-#' @param formula Passed to \code{DEoptim}
+#' @param FS_formula Passed to \code{DEoptim}
 #' @param objFunCoresInternal DESCRIPTION NEEDED
 #' @param covMinMax Passed to \code{fireSenseUtils::.objfun}
 #' @param tests Passed to \code{fireSenseUtils::.objfun}
@@ -71,7 +71,7 @@ runDEoptim <- function(landscape,
                        iterStep = 25,
                        lower,
                        upper,
-                       formula,
+                       FS_formula,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
                        tests,
@@ -106,8 +106,10 @@ runDEoptim <- function(landscape,
 
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
+    browser()
     if (is.numeric(cores)) cores <- rep("localhost", cores)
     revtunnel <- if (all(cores == "localhost")) FALSE else TRUE
+    browser()
     st <- system.time({
       cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel)
     })
@@ -116,11 +118,10 @@ runDEoptim <- function(landscape,
     parallel::clusterEvalQ(
       cl, {
         reproducible::checkPath(dirname(logPath), create = TRUE)
-        devtools::install_github("PredictiveEcology/fireSenseUtils@iterative", upgrade = FALSE)
+        devtools::install_github("PredictiveEcology/fireSenseUtils@development", upgrade = FALSE)
       }
     )
     stopCluster(cl)
-
     st <- system.time({
       cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
     })
@@ -149,7 +150,7 @@ runDEoptim <- function(landscape,
   DE <- Cache(DEoptimIterative, itermax = itermax, lower = lower,
               upper = upper,
               control = do.call("DEoptim.control", control),
-              formula = formula,
+              FS_formula = FS_formula,
               covMinMax = covMinMax,
               # tests = c("mad", "SNLL_FS"),
               tests = c("SNLL_FS"),
@@ -212,7 +213,7 @@ DEoptimIterative <- function(itermax,
                              lower,
                              upper,
                              control,
-                             formula,
+                             FS_formula,
                              covMinMax,
                              tests,
                              objFunCoresInternal,
@@ -239,7 +240,7 @@ DEoptimIterative <- function(itermax,
         lower = lower,
         upper = upper,
         control = controlArgs,
-        formula = formula,
+        FS_formula = FS_formula,
         covMinMax = covMinMax,
         # tests = c("mad", "SNLL_FS"),
         tests = c("SNLL_FS"),
