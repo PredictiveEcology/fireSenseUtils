@@ -108,7 +108,7 @@ runDEoptim <- function(landscape,
     #  multiple times per machine
     browser()
     if (is.numeric(cores)) cores <- rep("localhost", cores)
-    revtunnel <- if (all(cores == "localhost")) FALSE else TRUE
+    revtunnel <- ifelse (all(cores == "localhost"), FALSE, TRUE)
     browser()
     st <- system.time({
       cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel)
