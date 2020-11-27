@@ -116,6 +116,7 @@ runDEoptim <- function(landscape,
 
     parallel::clusterEvalQ(
       cl, {
+        Require::Require("reproducible")
         reproducible::checkPath(dirname(logPath), create = TRUE)
         devtools::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
       }
