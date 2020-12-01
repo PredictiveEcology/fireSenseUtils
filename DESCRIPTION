@@ -51,10 +51,10 @@ Suggests:
     spelling,
     testthat
 Remotes:
-    traversc/stringfish,
-    PredictiveEcology/reproducible@development,
+    PredictiveEcology/LandR@development,
+    PredictiveEcology/pemisc@development,
     PredictiveEcology/quickPlot@development,
-    PredictiveEcology/pemisc@development
+    PredictiveEcology/reproducible@development
 VignetteBuilder:
     knitr,
     rmarkdown
