@@ -39,7 +39,7 @@ utils::globalVariables(c(
                     landscape,
                     annualDTx1000,
                     nonAnnualDTx1000,
-                    formula, #loci, sizes,
+                    FS_formula, #loci, sizes,
                     historicalFires,
                     fireBufferedListDT,
                     covMinMax = NULL,
@@ -53,6 +53,7 @@ utils::globalVariables(c(
                     verbose = TRUE) { #fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
+
   data.table::setDTthreads(1)
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
@@ -72,7 +73,7 @@ utils::globalVariables(c(
   lapply(nonAnnualDTx1000, setDT)
   #lapply(fireBufferedListDT, setDT)
   # dtThreadsOrig <- data.table::setDTthreads(1)
-  colsToUse <- attributes(terms(formula))[["term.labels"]]
+  colsToUse <- attributes(terms(FS_formula))[["term.labels"]]
   # How many of the parameters belong to the model?
   parsModel <- length(colsToUse)
   ncells <- ncell(landscape)
@@ -94,7 +95,6 @@ utils::globalVariables(c(
     }
   )
   lowerSpreadProb <- 0.13
-
   fireSizesByYear <- unlist(lapply(historicalFiresAboveMin, function(x) sum(x$size)))
   largest <- head(sort(fireSizesByYear, decreasing = TRUE), 2)#max(2, objFunCoresInternal))
   smallest <- setdiff(names(fireSizesByYear), names(largest))
@@ -152,7 +152,6 @@ utils::globalVariables(c(
           #set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
           #actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
           medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
-
           out <- tryCatch(if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {}, error = function(x) "error")
           if (identical(out, "error"))
             browser()

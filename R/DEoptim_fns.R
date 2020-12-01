@@ -37,7 +37,7 @@ utils::globalVariables(c(
 #'   \code{visualizeDEoptim} is \code{TRUE})
 #' @param lower Passed to \code{DEoptim}
 #' @param upper Passed to \code{DEoptim}
-#' @param formula Passed to \code{DEoptim}
+#' @param FS_formula Passed to \code{DEoptim}
 #' @param objFunCoresInternal DESCRIPTION NEEDED
 #' @param covMinMax Passed to \code{fireSenseUtils::.objfun}
 #' @param tests Passed to \code{fireSenseUtils::.objfun}
@@ -61,17 +61,17 @@ runDEoptim <- function(landscape,
                        fireBufferedListDT,
                        historicalFires,
                        itermax,
-                       initialpop,
-                       NP,
+                       initialpop = NULL,
+                       NP = NULL,
                        trace,
                        strategy,
-                       cores,
+                       cores = NULL,
                        logPath,
                        cachePath,
                        iterStep = 25,
                        lower,
                        upper,
-                       formula,
+                       FS_formula,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
                        tests,
@@ -107,7 +107,8 @@ runDEoptim <- function(landscape,
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
     if (is.numeric(cores)) cores <- rep("localhost", cores)
-    revtunnel <- if (all(cores == "localhost")) FALSE else TRUE
+    revtunnel <- ifelse (all(cores == "localhost"), FALSE, TRUE)
+
     st <- system.time({
       cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel)
     })
@@ -115,12 +116,14 @@ runDEoptim <- function(landscape,
 
     parallel::clusterEvalQ(
       cl, {
-        reproducible::checkPath(dirname(logPath), create = TRUE)
-        devtools::install_github("PredictiveEcology/fireSenseUtils@iterative", upgrade = FALSE)
+        if (!require("reproducible")) install.packages("reproducible") # will do Require too
+        Require::checkPath(dirname(logPath), create = TRUE)
+        message(Sys.info()[['nodename']])
+        Require::Require("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
+        # devtools::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
       }
     )
     stopCluster(cl)
-
     st <- system.time({
       cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
     })
@@ -149,7 +152,7 @@ runDEoptim <- function(landscape,
   DE <- Cache(DEoptimIterative, itermax = itermax, lower = lower,
               upper = upper,
               control = do.call("DEoptim.control", control),
-              formula = formula,
+              FS_formula = FS_formula,
               covMinMax = covMinMax,
               # tests = c("mad", "SNLL_FS"),
               tests = c("SNLL_FS"),
@@ -212,7 +215,7 @@ DEoptimIterative <- function(itermax,
                              lower,
                              upper,
                              control,
-                             formula,
+                             FS_formula,
                              covMinMax,
                              tests,
                              objFunCoresInternal,
@@ -239,7 +242,7 @@ DEoptimIterative <- function(itermax,
         lower = lower,
         upper = upper,
         control = controlArgs,
-        formula = formula,
+        FS_formula = FS_formula,
         covMinMax = covMinMax,
         # tests = c("mad", "SNLL_FS"),
         tests = c("SNLL_FS"),

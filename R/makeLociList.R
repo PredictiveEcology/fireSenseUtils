@@ -53,6 +53,7 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
     if (is.numeric(lociDF[[index]]) && max(lociDF[[index]] < 1e9) && !is.integer(lociDF[[index]]))
       set(lociDF, NULL, index, as.integer(lociDF[[index]]))
   }
-
+  lociDF[, date := paste0("year", date)] #fires now have year in front
   split(lociDF, f = lociDF$date, keep.by = FALSE)
+
 }
