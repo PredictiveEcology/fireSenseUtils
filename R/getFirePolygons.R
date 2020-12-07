@@ -9,6 +9,7 @@
 #'
 #' @export
 #' @importFrom reproducible prepInputs
+#' @importfrom raster isLonlat
 getFirePolygons <- function(years, studyArea, destinationPath,
                             useInnerCache = FALSE) {
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
@@ -22,7 +23,10 @@ getFirePolygons <- function(years, studyArea, destinationPath,
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys){
     firePoly <- polys[polys$YEAR == x,]
     if (nrow(firePoly) > 0) {
-    firePoly$POLY_HA <- rgeos::gArea(firePoly, byid = TRUE)
+      if (isLonLat(firePoly)) {
+        stop("please use a study area that is projected in metres")
+      }
+    firePoly$POLY_HA <- round(rgeos::gArea(firePoly, byid = TRUE)/1e4, digits = 2)
     firePoly <- firePoly[!duplicated(firePoly$FIRE_ID),]
     return(firePoly)
     } else {
