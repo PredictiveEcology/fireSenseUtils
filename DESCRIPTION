@@ -51,10 +51,10 @@ Suggests:
     spelling,
     testthat
 Remotes:
-    PredictiveEcology/reproducible@development,
-    PredictiveEcology/quickPlot@development,
+    PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
-    PredictiveEcology/LandR@development
+    PredictiveEcology/quickPlot@development,
+    PredictiveEcology/reproducible@development
 VignetteBuilder:
     knitr,
     rmarkdown
