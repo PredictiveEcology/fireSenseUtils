@@ -14,6 +14,7 @@ getFirePolygons <- function(years, studyArea, destinationPath,
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
   firePolys <- prepInputs(url = currentURL,
                           studyArea = studyArea,
+                          useSAcrs = TRUE,
                           destinationPath = destinationPath,
                           useCache = useInnerCache) #this object will cache several gigabytes of cached for a small object
 
