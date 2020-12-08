@@ -138,6 +138,7 @@ runDEoptim <- function(landscape,
         for (i in c("kSamples", "magrittr", "raster", "data.table",
                     "SpaDES.tools", "fireSenseUtils"))
           library(i, character.only = TRUE)
+        message('loading ', i, ' at ', Sys.time())
       }
     )
     control$cluster <- cl
@@ -226,6 +227,7 @@ DEoptimIterative <- function(itermax,
                              iterStep = 25,
                              .verbose) {
   data.table::setDTthreads(1)
+  message("starting DEoptimIterative at ", Sys.time())
   x1 <- rnorm(1e2, 1, 2) # this is for debugging below
   DE <- list()
   for (iter in seq_len(ceiling(itermax / iterStep))) {
