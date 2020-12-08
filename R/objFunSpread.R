@@ -77,6 +77,7 @@ utils::globalVariables(c(
   # How many of the parameters belong to the model?
   parsModel <- length(colsToUse)
   ncells <- ncell(landscape)
+
   r <- raster(landscape)
   years <- as.character(names(annualDTx1000))
   names(years) <- years
@@ -124,8 +125,8 @@ utils::globalVariables(c(
                  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                  indexNonAnnual, colsToUse, covMinMax,
                  verbose = TRUE) {
-          # needed because data.table objects were recovered from disk
 
+          # needed because data.table objects were recovered from disk
           # Rescale to numerics and /1000
           #setDT(nonAnnDTx1000)
           setDT(annDTx1000)
@@ -153,8 +154,9 @@ utils::globalVariables(c(
           #actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
           medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
           out <- tryCatch(if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {}, error = function(x) "error")
-          if (identical(out, "error"))
-            browser()
+          if (identical(out, "error")) {
+            # browser()
+          }
 
           if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
 
@@ -332,6 +334,8 @@ utils::globalVariables(c(
               # ), na.rm = TRUE) # Sum of the negative log likelihood
             }
           } else {
+            stop("encountered error with spreadProb - contact module developers")
+            #Ian added this stop. Unclear what is supposed to happen. Object ret doesn't exist
             SNLL <- 1e7
             fireSizes <- sample(1:3, 1)
           }
@@ -373,10 +377,11 @@ utils::globalVariables(c(
       if (isTRUE(doSNLL_FSTest)) {
         SNLL_FSTest <- round(sum(unlist(results$SNLL)),1)
         failVal <- 1e5L
-        if (SNLL_FSTest > 550 * length(results$SNLL_FS) && ii == 1) {
+        threshold <- 525 * length(results$SNLL_FS) #parameterize?
+        if (SNLL_FSTest > threshold && ii == 1) { #fine tune this threshold
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal
-          mess <- paste(mess, " SNLL_FSTestOrig:", SNLL_FSTestOrig, "; ")
+          mess <- paste('SNLL threshold:', threshold,'; ', "SNLL_FSTestOrig:", SNLL_FSTestOrig, "; ")
         }
         mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
         objFunRes <- SNLL_FSTest #+ SNLL_FSTest
