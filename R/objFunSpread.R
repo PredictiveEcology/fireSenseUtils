@@ -386,6 +386,7 @@ utils::globalVariables(c(
         mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
         objFunRes <- SNLL_FSTest #+ SNLL_FSTest
         objFunResList[ii] <- list(list(objFunRes = objFunRes))#, nFires = NROW(a)))
+        print(Sys.time())
         print(paste0("  ", Sys.getpid(), mess))
         if (SNLL_FSTest == failVal && ii == 1) {
           break
