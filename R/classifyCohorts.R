@@ -31,11 +31,11 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
   if (!"totalBiomass" %in% names(cohortData))
     cohortData[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
 
-  #Assertion
-  if (!((NROW(cohortData[is.na(totalBiomass) & burnClass != "class5", ]) == 0) &
-        (NROW(cohortData[!is.na(totalBiomass) & burnClass == "class5", ]) == 0))) {
-    stop('there is a problem setting the burn class. contact module developers')
-  }
+  #Assertion - no longer accurate with no class 5
+  # if (!((NROW(cohortData[is.na(totalBiomass) & burnClass != "class5", ]) == 0) &
+  #       (NROW(cohortData[!is.na(totalBiomass) & burnClass == "class5", ]) == 0))) {
+  #   stop('there is a problem setting the burn class. contact module developers')
+  # }
 
   cohortData[, BperClass := sum(B), by = c("burnClass", "pixelGroup")]
 
@@ -61,15 +61,6 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
   # Identify non-forested pixels (non-ice/water/rocks) as class5
   # Pixels that are *NOT* NA in the RTM when this has been NA'ed for water, ice, and rocks, and
   # ARE NA in the pixelGroupMap are the pixels that are class5
-  class5ras <- raster(pixelGroupMap)
-  pixGroupVals <- getValues(pixelGroupMap)
-  flammableVals <- getValues(flammableMap)
-  class5 <- which(is.na(pixelGroupMap[]) & !is.na(flammableMap[]))
-  class5ras[class5] <- 1
-
-  classList <- c(classList, list(class5ras))
-
-
-  names(classList) <- paste0("class", 1:5)
+  names(classList) <- paste0("fuelclass", 1:4)
   return(classList)
 }
