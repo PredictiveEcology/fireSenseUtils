@@ -12,17 +12,17 @@ runDEoptim(
   fireBufferedListDT,
   historicalFires,
   itermax,
-  initialpop,
-  NP,
+  initialpop = NULL,
+  NP = NULL,
   trace,
   strategy,
-  cores,
+  cores = NULL,
   logPath,
   cachePath,
   iterStep = 25,
   lower,
   upper,
-  formula,
+  FS_formula,
   objFunCoresInternal,
   covMinMax = covMinMax,
   tests,
@@ -37,7 +37,7 @@ DEoptimIterative(
   lower,
   upper,
   control,
-  formula,
+  FS_formula,
   covMinMax,
   tests,
   objFunCoresInternal,
@@ -96,7 +96,7 @@ each step, this function will plot, optionally, the parameter histograms (if
 
 \item{upper}{Passed to \code{DEoptim}}
 
-\item{formula}{Passed to \code{DEoptim}}
+\item{FS_formula}{Passed to \code{DEoptim}}
 
 \item{objFunCoresInternal}{DESCRIPTION NEEDED}
 

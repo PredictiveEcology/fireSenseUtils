@@ -16,7 +16,7 @@ globalVariables(c(
 #' @export
 #' @importFrom data.table copy
 #' @importFrom SpaDES.tools rasterizeReduced
-#' @importFrom raster getValues nlayers raster
+#' @importFrom raster getValues nlayers raster stack
 #'
 classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
                                            sppEquiv, sppEquivCol) {
@@ -40,27 +40,25 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
   cohortData[, BperClass := sum(B), by = c("burnClass", "pixelGroup")]
 
   cohortData[, propBurnClassFire := BperClass/totalBiomass]
-  # Fix 0/0
+  # Fix zero age, zero biomass
   cohortData[is.na(propBurnClassFire), propBurnClassFire := 0]
   # testthat::expect_true(NROW(cohortData) == NROW(na.omit(cohortData)))
 
-  # Remove speciesCode so I can remove duplicates (i.e. different species that make the same class)
   toRemove <- names(cohortData)[!names(cohortData) %in% c("pixelGroup", "burnClass", "propBurnClassFire")]
   cohortData[, c(toRemove) := NULL]
   cohortData <- unique(cohortData)
-
   classList <- lapply(paste0("class", 1:4), function(cls){
     cohortDataub <- cohortData[burnClass == cls, ]
     ras <- rasterizeReduced(reduced = cohortDataub, fullRaster = pixelGroupMap,
                             newRasterCols = "propBurnClassFire",
                             mapcode = "pixelGroup")
-    names(ras) <- paste0(cls, "_", yearCohort)
+    #need to make sure fuel class is 0 and not NA if absent entirely
+    #this way the non-treed pixels appear as zeros.
+    ras[!is.na(flammableMap[]) & flammableMap[] == 1 & is.na(ras[])] <- 0
     return(ras)
   })
 
-  # Identify non-forested pixels (non-ice/water/rocks) as class5
-  # Pixels that are *NOT* NA in the RTM when this has been NA'ed for water, ice, and rocks, and
-  # ARE NA in the pixelGroupMap are the pixels that are class5
+  classList <- stack(classList)
   names(classList) <- paste0("fuelclass", 1:4)
   return(classList)
 }
