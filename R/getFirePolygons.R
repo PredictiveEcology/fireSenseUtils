@@ -8,10 +8,9 @@
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
+#' @importFrom raster isLonLat
 #' @importFrom reproducible prepInputs
-#' @importfrom raster isLonlat
-getFirePolygons <- function(years, studyArea, destinationPath,
-                            useInnerCache = FALSE) {
+getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
   firePolys <- prepInputs(url = currentURL,
                           studyArea = studyArea,

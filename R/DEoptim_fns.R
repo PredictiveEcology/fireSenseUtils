@@ -55,6 +55,7 @@ utils::globalVariables(c(
 #' @importFrom future makeClusterPSOCK
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
 #' @importFrom reproducible Cache checkPath
+#' @importFrom utils install.packages
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
