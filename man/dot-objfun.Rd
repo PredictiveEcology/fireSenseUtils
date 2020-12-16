@@ -31,6 +31,8 @@
 
 \item{nonAnnualDTx1000}{DESCRIPTION NEEDED}
 
+\item{FS_formula}{DESCRIPTION NEEDED}
+
 \item{historicalFires}{DESCRIPTION NEEDED}
 
 \item{fireBufferedListDT}{DESCRIPTION NEEDED}
@@ -51,8 +53,6 @@ Default: \code{"mad"}.}
 \item{objFunCoresInternal}{DESCRIPTION NEEDED}
 
 \item{verbose}{DESCRIPTION NEEDED}
-
-\item{formula}{DESCRIPTION NEEDED}
 }
 \value{
 DESCRIPTION NEEDED
