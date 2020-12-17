@@ -100,15 +100,15 @@ each step, this function will plot, optionally, the parameter histograms (if
 
 \item{objFunCoresInternal}{DESCRIPTION NEEDED}
 
-\item{covMinMax}{Passed to \code{fireSenseUtils::.objfun}}
+\item{covMinMax}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
-\item{tests}{Passed to \code{fireSenseUtils::.objfun}}
+\item{tests}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
-\item{maxFireSpread}{Passed to \code{fireSenseUtils::.objfun}}
+\item{maxFireSpread}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
-\item{Nreps}{Passed to \code{fireSenseUtils::.objfun}}
+\item{Nreps}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
-\item{.verbose}{Passed to \code{fireSenseUtils::.objfun}}
+\item{.verbose}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of
 \code{DEoptim} outputs}
