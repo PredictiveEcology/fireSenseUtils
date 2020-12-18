@@ -4,19 +4,33 @@
 \alias{castCohortData}
 \title{preparing covariates for fitting modules}
 \usage{
-castCohortData(cohortData, terrainDT = NULL, pixelGroupMap, lcc)
+castCohortData(
+  cohortData,
+  terrainDT = NULL,
+  pixelGroupMap,
+  lcc,
+  ageMap,
+  missingLCC
+)
 }
 \arguments{
-\item{cohortData}{DESCRIPTION NEEDED}
+\item{cohortData}{A \code{data.table} with columns: \code{pixelGroup}, \code{ecoregionGroup},
+\code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
+and \code{sumB}.}
 
 \item{terrainDT}{optional data table of terrain covariates with pixelIndex}
 
 \item{pixelGroupMap}{pixelGroupMap to join terrain with pixelGroup}
 
 \item{lcc}{data.table of dummified landcover}
+
+\item{ageMap}{a stand age map to assign ages to non-forest LCC}
+
+\item{missingLCC}{Pixels on forested LCC but absent from cohortData will be assigned this LCC.
+must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'}
 }
 \value{
-a trimmed cohortData with wide-layout
+a trimmed cohortData with wide-layout and rows for every pixel in lcc
 }
 \description{
 preparing covariates for fitting modules

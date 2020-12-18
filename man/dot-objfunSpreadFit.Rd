@@ -53,8 +53,6 @@ Default: \code{"mad"}.}
 \item{objFunCoresInternal}{DESCRIPTION NEEDED}
 
 \item{verbose}{DESCRIPTION NEEDED}
-
-\item{formula}{DESCRIPTION NEEDED}
 }
 \value{
 DESCRIPTION NEEDED
