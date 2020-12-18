@@ -39,11 +39,11 @@ utils::globalVariables(c(
 #' @param upper Passed to \code{DEoptim}
 #' @param FS_formula Passed to \code{DEoptim}
 #' @param objFunCoresInternal DESCRIPTION NEEDED
-#' @param covMinMax Passed to \code{fireSenseUtils::.objfun}
-#' @param tests Passed to \code{fireSenseUtils::.objfun}
-#' @param maxFireSpread Passed to \code{fireSenseUtils::.objfun}
-#' @param Nreps Passed to \code{fireSenseUtils::.objfun}
-#' @param .verbose Passed to \code{fireSenseUtils::.objfun}
+#' @param covMinMax Passed to \code{fireSenseUtils::.objfunSpreadFit}
+#' @param tests Passed to \code{fireSenseUtils::.objfunSpreadFit}
+#' @param maxFireSpread Passed to \code{fireSenseUtils::.objfunSpreadFit}
+#' @param Nreps Passed to \code{fireSenseUtils::.objfunSpreadFit}
+#' @param .verbose Passed to \code{fireSenseUtils::.objfunSpreadFit}
 #' @param visualizeDEoptim Logical. If \code{TRUE}, then histograms will be made of
 #'   \code{DEoptim} outputs
 #'
@@ -86,15 +86,19 @@ runDEoptim <- function(landscape,
   control <- list(itermax = itermax,
                   trace = trace,
                   strategy = strategy)#,
+
   if (!is.null(initialpop))
     control$initialpop <- initialpop
+
   if (!is.null(NP))
     control$NP <- NP
+
   objsNeeded <- list("landscape",
                      "annualDTx1000",
                      "nonAnnualDTx1000",
                      "fireBufferedListDT",
                      "historicalFires")
+
   if (!is.null(cores)) {
     message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
                                collapse = ", "), " clusters")
@@ -108,7 +112,7 @@ runDEoptim <- function(landscape,
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #  multiple times per machine
     if (is.numeric(cores)) cores <- rep("localhost", cores)
-    revtunnel <- ifelse (all(cores == "localhost"), FALSE, TRUE)
+    revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
     st <- system.time({
       cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel)
@@ -131,8 +135,7 @@ runDEoptim <- function(landscape,
 
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
-            paste(paste(names(table(cores))), "x", table(cores),
-                  collapse = ", "), " threads")
+            paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads")
     clusterExport(cl, objsNeeded, envir = environment())
     parallel::clusterEvalQ(
       cl, {
@@ -241,7 +244,7 @@ DEoptimIterative <- function(itermax,
                                        "initialpop", "p", "c", "reltol",
                                        "packages", "parVar", "foreachArgs")]
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-        fireSenseUtils::.objfun,
+        fireSenseUtils::.objfunSpreadFit,
         lower = lower,
         upper = upper,
         control = controlArgs,

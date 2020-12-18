@@ -35,22 +35,22 @@ utils::globalVariables(c(
 #' @importFrom SpaDES.tools spread
 #' @importFrom stats dbinom median terms quantile
 #' @importFrom utils tail
-.objfun <- function(par,
-                    landscape,
-                    annualDTx1000,
-                    nonAnnualDTx1000,
-                    FS_formula, #loci, sizes,
-                    historicalFires,
-                    fireBufferedListDT,
-                    covMinMax = NULL,
-                    maxFireSpread = 0.28, # 0.257 makes gigantic fires
-                    minFireSize = 2,
-                    tests = "mad",
-                    Nreps = 10,
-                    plot.it = FALSE,
-                    objFunCoresInternal = 1,
-                    #bufferedRealHistoricalFiresList,
-                    verbose = TRUE) { #fireSense_SpreadFitRaster
+.objfunSpreadFit <- function(par,
+                             landscape,
+                             annualDTx1000,
+                             nonAnnualDTx1000,
+                             FS_formula, #loci, sizes,
+                             historicalFires,
+                             fireBufferedListDT,
+                             covMinMax = NULL,
+                             maxFireSpread = 0.28, # 0.257 makes gigantic fires
+                             minFireSize = 2,
+                             tests = "mad",
+                             Nreps = 10,
+                             plot.it = FALSE,
+                             objFunCoresInternal = 1,
+                             #bufferedRealHistoricalFiresList,
+                             verbose = TRUE) { #fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
 
