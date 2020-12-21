@@ -34,7 +34,7 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{sppEquivCol}{the column name to use from \code{sppEquiv}.}
 }
 \value{
-DESCRIPTION NEEDED when this finally runs
+a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
 }
 \description{
 Classify \code{pixelGroups} by flammability
