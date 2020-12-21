@@ -124,8 +124,9 @@ runDEoptim <- function(landscape,
         if (!require("reproducible")) install.packages("reproducible") # will do Require too
         Require::checkPath(dirname(logPath), create = TRUE)
         message(Sys.info()[['nodename']])
-        Require::Require("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
-        # devtools::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
+        # Use the devtools SHA hashing so it skips if unnecessary
+        # Require::Require("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
+        devtools::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
       }
     )
     stopCluster(cl)
@@ -137,6 +138,7 @@ runDEoptim <- function(landscape,
     message("it took ", round(st[3],2), "s to start ",
             paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads")
     clusterExport(cl, objsNeeded, envir = environment())
+    list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
     parallel::clusterEvalQ(
       cl, {
         for (i in c("kSamples", "magrittr", "raster", "data.table",
@@ -154,7 +156,8 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
-  DE <- Cache(DEoptimIterative, itermax = itermax, lower = lower,
+  DE <- #Cache(
+    DEoptimIterative(itermax = itermax, lower = lower,
               upper = upper,
               control = do.call("DEoptim.control", control),
               FS_formula = FS_formula,
@@ -166,9 +169,10 @@ runDEoptim <- function(landscape,
               Nreps = Nreps,
               .verbose = .verbose,
               visualizeDEoptim = visualizeDEoptim,
-              cachePath = cachePath,
+              #cachePath = cachePath,
               iterStep = iterStep,
-              omitArgs = c("verbose"))#,
+              #omitArgs = c("verbose")
+  )#,
               #cacheId = "cd495b412420ad4a") # iteration 201 to 300
   DE
 }
@@ -243,7 +247,8 @@ DEoptimIterative <- function(itermax,
       controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
                                        "initialpop", "p", "c", "reltol",
                                        "packages", "parVar", "foreachArgs")]
-      st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
+      st1 <- system.time(DE[[iter]] <- #Cache(
+        DEoptimForCache(
         fireSenseUtils::.objfunSpreadFit,
         lower = lower,
         upper = upper,
@@ -256,8 +261,8 @@ DEoptimIterative <- function(itermax,
         Nreps = Nreps,
         controlForCache = controlForCache,
         objFunCoresInternal = objFunCoresInternal,
-        verbose = .verbose,
-        omitArgs = c("verbose", "control")
+        verbose = .verbose#,
+        #omitArgs = c("verbose", "control")
       ))
     } else {
       # This is for testing --> it is fast
