@@ -8,7 +8,7 @@ utils::globalVariables(c(
 #' @param landscape DESCRIPTION NEEDED
 #' @param annualDTx1000 DESCRIPTION NEEDED
 #' @param nonAnnualDTx1000 DESCRIPTION NEEDED
-#' @param FS_formula DESCRIPTION NEEDED
+#' @param FS_formula Formula, put provided as a character string, not class formula
 #' @param historicalFires DESCRIPTION NEEDED
 #' @param fireBufferedListDT DESCRIPTION NEEDED
 #' @param covMinMax DESCRIPTION NEEDED
@@ -73,6 +73,8 @@ utils::globalVariables(c(
   lapply(nonAnnualDTx1000, setDT)
   #lapply(fireBufferedListDT, setDT)
   # dtThreadsOrig <- data.table::setDTthreads(1)
+  if (is.formula(FS_formula)) stop("FS_formula must be provided as a charater string because it takes too much RAM otherwise")
+  FS_formula <- as.formula(FS_formula)
   colsToUse <- attributes(terms(FS_formula))[["term.labels"]]
   # How many of the parameters belong to the model?
   parsModel <- length(colsToUse)
@@ -377,7 +379,7 @@ utils::globalVariables(c(
       if (isTRUE(doSNLL_FSTest)) {
         SNLL_FSTest <- round(sum(unlist(results$SNLL)),1)
         failVal <- 1e5L
-        threshold <- 525 * length(results$SNLL_FS) #parameterize?
+        threshold <- 550 * length(results$SNLL_FS) #parameterize?
         if (SNLL_FSTest > threshold && ii == 1) { #fine tune this threshold
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal
