@@ -81,7 +81,7 @@ utils::globalVariables(c(
   lapply(nonAnnualDTx1000, setDT)
   #lapply(fireBufferedListDT, setDT)
   # dtThreadsOrig <- data.table::setDTthreads(1)
-  if (is.formula(FS_formula)) stop("FS_formula must be provided as a charater string because it takes too much RAM otherwise")
+  if (is(FS_formula, "formula")) stop("FS_formula must be provided as a charater string because it takes too much RAM otherwise")
   FS_formula <- as.formula(FS_formula)
   colsToUse <- attributes(terms(FS_formula))[["term.labels"]]
   # How many of the parameters belong to the model?
