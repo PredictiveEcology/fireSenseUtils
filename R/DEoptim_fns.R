@@ -254,11 +254,12 @@ DEoptimIterative <- function(itermax,
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
     control$storepopfrom <- control$itermax + 1
 
+    controlArgs <- do.call("DEoptim.control", control)
+    controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
+                                     "initialpop", "p", "c", "reltol",
+                                     "packages", "parVar", "foreachArgs")]
+
     if (TRUE) {
-      controlArgs <- do.call(DEoptim.control, control)
-      controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
-                                       "initialpop", "p", "c", "reltol",
-                                       "packages", "parVar", "foreachArgs")]
       st1 <- system.time(DE[[iter]] <- #Cache(
         DEoptimForCache(
         fireSenseUtils::.objfunSpreadFit,
@@ -280,10 +281,7 @@ DEoptimIterative <- function(itermax,
       fn <- function(par, x) {
         -sum(dnorm(log = TRUE, x, mean = par[1], sd = par[2]))
       }
-      controlArgs <- do.call("DEoptim.control", control)
-      controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
-                                       "initialpop", "p", "c", "reltol",
-                                       "packages", "parVar", "foreachArgs")]
+
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
         fn,
         lower = lower,
