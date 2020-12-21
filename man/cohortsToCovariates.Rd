@@ -16,6 +16,10 @@ cohortsToCovariates(
 )
 }
 \arguments{
+\item{cohortData}{A \code{data.table} with columns: \code{pixelGroup}, \code{ecoregionGroup},
+\code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
+and \code{sumB}.}
+
 \item{terrainDT}{optional data table of terrain covariates with pixelIndex}
 
 \item{lcc}{data.table of dummified landcover}
@@ -26,6 +30,9 @@ cohortsToCovariates(
 
 \item{missingLCC}{Pixels on forested LCC but absent from cohortData will be assigned this LCC.
 must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'}
+
+\item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
+raster operations (i.e., the one used throughout the simulation).}
 
 \item{fireYears}{vector of fire years representing range used to determine time since disturbance}
 }

@@ -24,22 +24,21 @@ utils::globalVariables(c(
 #'   be used to rescale the covariates internally so that they are all between 0 and 1. It is important
 #'   to not simply rescale internally here because only 1 year is run at a time; all years
 #'   must be rescaled for a given covariate by the same amount.
-#' @param maxFireSpread A value for spreadProb that is considered impossible to go above. Default 0.28, which
-#'   is overly generous unless there are many non-flammable pixels (e.g., lakes).
+#' @param maxFireSpread A value for spreadProb that is considered impossible to go above.
+#'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
 #' @param minFireSize DESCRIPTION NEEDED
 #' @param tests One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
 #'              Default: \code{"mad"}.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #' @param plot.it DESCRIPTION NEEDED
-#' @param objFunCoresInternal Internally, this function can use mcmapply to run multiple parallel
-#'   spread function calls. This should only be >1L if there are spare threads. It is highly
-#'   likely that there won't be. However, sometimes the DEoptims is
+#' @param objFunCoresInternal Internally, this function can use \code{mcmapply} to run multiple
+#'   parallel \code{spread} function calls. This should only be >1L if there are spare threads.
+#'   It is highly likely that there won't be. However, sometimes the \code{DEoptim} is
 #'   particularly inefficient, it starts X cores, and immediately several of them are
-#'   stopped inside this function because the parameters are so bad,
-#'   only 2 year are attempted. Then the core will stay idle until all other
-#'   cores for the DEoptim iteration are complete. Similarly, if only physical
-#'   cores are used for DEoptim, the additional use of hyperthreaded cores here,
-#'   internally will speed things up (i.e., this maybe could be 2L or 3L)
+#'   stopped inside this function because the parameters are so bad, only 2 year are attempted.
+#'   Then the core will stay idle until all other cores for the \code{DEoptim} iteration are complete.
+#'   Similarly, if only physical cores are used for \code{DEoptim}, the additional use of
+#'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
@@ -54,7 +53,7 @@ utils::globalVariables(c(
 #' @importFrom raster buffer crop extent ncell raster trim xyFromCell
 #' @importFrom sp SpatialPoints
 #' @importFrom SpaDES.tools spread
-#' @importFrom stats dbinom median terms quantile
+#' @importFrom stats as.formula dbinom median terms quantile
 #' @importFrom utils tail
 .objfunSpreadFit <- function(par,
                              landscape,
@@ -95,7 +94,8 @@ utils::globalVariables(c(
   lapply(nonAnnualDTx1000, setDT)
   #lapply(fireBufferedListDT, setDT)
   # dtThreadsOrig <- data.table::setDTthreads(1)
-  if (is(FS_formula, "formula")) stop("FS_formula must be provided as a charater string because it takes too much RAM otherwise")
+  if (is(FS_formula, "formula"))
+    stop("FS_formula must be provided as a charater string because it takes too much RAM otherwise.")
   FS_formula <- as.formula(FS_formula)
   colsToUse <- attributes(terms(FS_formula))[["term.labels"]]
   # How many of the parameters belong to the model?
