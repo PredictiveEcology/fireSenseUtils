@@ -45,9 +45,14 @@ enormous amount of data hidden in the formula environment; this is bad for DEopt
 
 \item{fireBufferedListDT}{DESCRIPTION NEEDED}
 
-\item{covMinMax}{DESCRIPTION NEEDED}
+\item{covMinMax}{This is a 2 row by multiple column data.frame indicating
+the minimum and maximum values of the original covariate data values. These will
+be used to rescale the covariates internally so that they are all between 0 and 1. It is important
+to not simply rescale internally here because only 1 year is run at a time; all years
+must be rescaled for a given covariate by the same amount.}
 
-\item{maxFireSpread}{DESCRIPTION NEEDED}
+\item{maxFireSpread}{A value for spreadProb that is considered impossible to go above. Default 0.28, which
+is overly generous unless there are many non-flammable pixels (e.g., lakes).}
 
 \item{minFireSize}{DESCRIPTION NEEDED}
 
@@ -58,7 +63,15 @@ Default: \code{"mad"}.}
 
 \item{plot.it}{DESCRIPTION NEEDED}
 
-\item{objFunCoresInternal}{DESCRIPTION NEEDED}
+\item{objFunCoresInternal}{Internally, this function can use mcmapply to run multiple parallel
+spread function calls. This should only be >1L if there are spare threads. It is highly
+likely that there won't be. However, sometimes the DEoptims is
+particularly inefficient, it starts X cores, and immediately several of them are
+stopped inside this function because the parameters are so bad,
+only 2 year are attempted. Then the core will stay idle until all other
+cores for the DEoptim iteration are complete. Similarly, if only physical
+cores are used for DEoptim, the additional use of hyperthreaded cores here,
+internally will speed things up (i.e., this maybe could be 2L or 3L)}
 
 \item{verbose}{DESCRIPTION NEEDED}
 }
