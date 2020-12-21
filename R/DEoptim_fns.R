@@ -161,7 +161,6 @@ runDEoptim <- function(landscape,
       }
     )
     control$cluster <- cl
-
   } else {
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
   }
@@ -268,8 +267,7 @@ DEoptimIterative <- function(itermax,
         control = controlArgs,
         FS_formula = FS_formula,
         covMinMax = covMinMax,
-        # tests = c("mad", "SNLL_FS"),
-        tests = c("SNLL_FS"),
+        tests = c("SNLL_FS"), # c("mad", "SNLL_FS"),
         maxFireSpread = maxFireSpread,
         Nreps = Nreps,
         controlForCache = controlForCache,
