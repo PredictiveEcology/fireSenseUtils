@@ -5,10 +5,18 @@ utils::globalVariables(c(
 #' Objective function for \code{fireSense_spreadFit} module
 #'
 #' @param par parameters
-#' @param landscape DESCRIPTION NEEDED
-#' @param annualDTx1000 DESCRIPTION NEEDED
-#' @param nonAnnualDTx1000 DESCRIPTION NEEDED
-#' @param FS_formula Formula, put provided as a character string, not class formula
+#' @param landscape A RasterLayer with extent, res, proj used for SpaDES.tools::spread
+#' @param annualDTx1000 A list of data.table class objects. Each list element is
+#'   data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
+#'   year. The columns in the data.table must integers, that are 1000x their actual values as
+#'   this function will divide by 1000.
+#' @param nonAnnualDTx1000 Like \code{annualDTx1000}, but with where each list element will be
+#'   used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_yearzzzz" where the
+#'   xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
+#'   The columns are variables that are used for more than 1 year.
+#' @param FS_formula Formula, put provided as a character string, not class \code{formula}.
+#'   (if it is provided as a class \code{formula}, then it invariably will have an
+#'   enormous amount of data hidden in the formula environment; this is bad for DEoptim)
 #' @param historicalFires DESCRIPTION NEEDED
 #' @param fireBufferedListDT DESCRIPTION NEEDED
 #' @param covMinMax DESCRIPTION NEEDED

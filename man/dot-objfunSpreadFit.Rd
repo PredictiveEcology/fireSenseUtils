@@ -25,13 +25,21 @@
 \arguments{
 \item{par}{parameters}
 
-\item{landscape}{DESCRIPTION NEEDED}
+\item{landscape}{A RasterLayer with extent, res, proj used for SpaDES.tools::spread}
 
-\item{annualDTx1000}{DESCRIPTION NEEDED}
+\item{annualDTx1000}{A list of data.table class objects. Each list element is
+data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
+year. The columns in the data.table must integers, that are 1000x their actual values as
+this function will divide by 1000.}
 
-\item{nonAnnualDTx1000}{DESCRIPTION NEEDED}
+\item{nonAnnualDTx1000}{Like \code{annualDTx1000}, but with where each list element will be
+used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_yearzzzz" where the
+xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
+The columns are variables that are used for more than 1 year.}
 
-\item{FS_formula}{DESCRIPTION NEEDED}
+\item{FS_formula}{Formula, put provided as a character string, not class \code{formula}.
+(if it is provided as a class \code{formula}, then it invariably will have an
+enormous amount of data hidden in the formula environment; this is bad for DEoptim)}
 
 \item{historicalFires}{DESCRIPTION NEEDED}
 
