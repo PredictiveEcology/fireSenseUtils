@@ -56,6 +56,7 @@ utils::globalVariables(c(
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
 #' @importFrom reproducible Cache checkPath
 #' @importFrom utils install.packages
+#' @importFrom RhpcBLASctl blas_set_num_threads omp_set_num_threads blas_get_num_procs omp_get_max_threads
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
@@ -80,6 +81,18 @@ runDEoptim <- function(landscape,
                        Nreps,
                        .verbose,
                        visualizeDEoptim) {
+
+  origBlas <- blas_get_num_procs()
+  if (origBlas > 1) {
+    blas_set_num_threads(1)
+    on.exit(blas_set_num_threads(origBlas), add = TRUE)
+  }
+  origOmp <- omp_get_max_threads()
+  if (origOmp > 1) {
+    omp_set_num_threads(1)
+    on.exit(omp_set_num_threads(origOmp), add = TRUE)
+  }
+
   ####################################################################
   #  Cluster
   ####################################################################

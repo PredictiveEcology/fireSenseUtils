@@ -76,6 +76,7 @@ utils::globalVariables(c(
   # lapply(historicalFires, setDT)
 
   data.table::setDTthreads(1)
+
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
   doSNLL_FSTest <- any(grepl("snll_fs", tolower(tests)))

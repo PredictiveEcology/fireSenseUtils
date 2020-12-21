@@ -35,6 +35,7 @@ Imports:
     purrr,
     raster,
     reproducible,
+    RhpcBLASctl,
     sf,
     sp,
     SpaDES.core,
