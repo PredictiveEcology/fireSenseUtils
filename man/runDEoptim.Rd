@@ -29,7 +29,8 @@ runDEoptim(
   maxFireSpread,
   Nreps,
   .verbose,
-  visualizeDEoptim
+  visualizeDEoptim,
+  .plotSize = list(height = 1600, width = 2000)
 )
 
 DEoptimIterative(
@@ -46,7 +47,8 @@ DEoptimIterative(
   visualizeDEoptim,
   cachePath,
   iterStep = 25,
-  .verbose
+  .verbose,
+  .plotSize = list(height = 1600, width = 2000)
 )
 }
 \arguments{
@@ -111,7 +113,9 @@ each step, this function will plot, optionally, the parameter histograms (if
 \item{.verbose}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of
-\code{DEoptim} outputs}
+\code{DEoptim} outputs.}
+
+\item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
 
 \item{control}{DESCRIPTION NEEDED}
 }

@@ -45,7 +45,8 @@ utils::globalVariables(c(
 #' @param Nreps Passed to \code{fireSenseUtils::.objfunSpreadFit}
 #' @param .verbose Passed to \code{fireSenseUtils::.objfunSpreadFit}
 #' @param visualizeDEoptim Logical. If \code{TRUE}, then histograms will be made of
-#'   \code{DEoptim} outputs
+#'   \code{DEoptim} outputs.
+#' @param .plotSize List specifying plot \code{height} and \code{width}, in pixels.
 #'
 #' @return DESCRIPTION NEEDED
 #'
@@ -55,8 +56,8 @@ utils::globalVariables(c(
 #' @importFrom future makeClusterPSOCK
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
 #' @importFrom reproducible Cache checkPath
-#' @importFrom utils install.packages
 #' @importFrom RhpcBLASctl blas_set_num_threads omp_set_num_threads blas_get_num_procs omp_get_max_threads
+#' @importFrom utils install.packages
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
@@ -80,7 +81,8 @@ runDEoptim <- function(landscape,
                        maxFireSpread,
                        Nreps,
                        .verbose,
-                       visualizeDEoptim) {
+                       visualizeDEoptim,
+                       .plotSize = list(height = 1600, width = 2000)) {
 
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -181,6 +183,7 @@ runDEoptim <- function(landscape,
               Nreps = Nreps,
               .verbose = .verbose,
               visualizeDEoptim = visualizeDEoptim,
+              .plotSize = .plotSize,
               #cachePath = cachePath,
               iterStep = iterStep,
               #omitArgs = c("verbose")
@@ -204,7 +207,7 @@ visualizeDE <- function(DE, cachePath) {
   if (missing(DE)) {
     if (missing(cachePath))
       stop("Must provide either DE or cachePath")
-    message("DE not supplied; visulizing the most recent added to Cache")
+    message("DE not supplied; visualizing the most recent added to Cache")
     sc <- showCache(userTags = "DEoptim")
     cacheID <- tail(sc$cacheId, 1)
     DE <- reproducible::loadFromCache(cachePath, cacheId = cacheID)
@@ -245,7 +248,8 @@ DEoptimIterative <- function(itermax,
                              visualizeDEoptim,
                              cachePath,
                              iterStep = 25,
-                             .verbose) {
+                             .verbose,
+                             .plotSize = list(height = 1600, width = 2000)) {
   data.table::setDTthreads(1)
   message("starting DEoptimIterative at ", Sys.time())
   x1 <- rnorm(1e2, 1, 2) # this is for debugging below
@@ -297,7 +301,7 @@ DEoptimIterative <- function(itermax,
     if (isTRUE(visualizeDEoptim)) {
       if (!isRstudioServer()) {
         png(filename = paste0("DE_pars", as.character(Sys.time()), "_", Sys.getpid(), ".png"),
-            width = 800, height = 1000)
+            width = .plotSize$width, height = .plotSize$height)
       }
       visualizeDE(DE[[iter]], cachePath)
       if (!isRstudioServer()) {
