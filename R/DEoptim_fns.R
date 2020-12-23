@@ -56,7 +56,7 @@ utils::globalVariables(c(
 #' @importFrom future makeClusterPSOCK
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
 #' @importFrom reproducible Cache checkPath
-#' @importFrom RhpcBLASctl blas_set_num_threads omp_set_num_threads blas_get_num_procs omp_get_max_threads
+#' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
 #' @importFrom utils install.packages
 runDEoptim <- function(landscape,
                        annualDTx1000,
@@ -98,9 +98,7 @@ runDEoptim <- function(landscape,
   ####################################################################
   #  Cluster
   ####################################################################
-  control <- list(itermax = itermax,
-                  trace = trace,
-                  strategy = strategy)#,
+  control <- list(itermax = itermax, trace = trace, strategy = strategy)
 
   if (!is.null(initialpop))
     control$initialpop <- initialpop
@@ -136,9 +134,9 @@ runDEoptim <- function(landscape,
 
     parallel::clusterEvalQ(
       cl, {
-        if (!require("reproducible")) install.packages("reproducible") # will do Require too
+        if (!require("reproducible", quietly = TRUE)) install.packages("reproducible") # will do Require too
         Require::checkPath(dirname(logPath), create = TRUE)
-        message(Sys.info()[['nodename']])
+        message(Sys.info()[["nodename"]])
         # Use the devtools SHA hashing so it skips if unnecessary
         # Require::Require("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
         devtools::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
