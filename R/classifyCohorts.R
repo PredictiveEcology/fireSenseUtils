@@ -59,7 +59,7 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
   } else {
     cohortData <- noTies
   }
-  classes <- c("class1", sort(unique(cohortData$burnClass)))
+  classes <-sort(unique(cohortData$burnClass))
   classList <- lapply(classes, function(cls){
     cohortDataub <- cohortData[burnClass == cls, ]
     cohortDataub[,  LeaderValue := 1]
