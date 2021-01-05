@@ -149,7 +149,6 @@ utils::globalVariables(c(
                  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                  indexNonAnnual, colsToUse, covMinMax,
                  verbose = TRUE) {
-
           # needed because data.table objects were recovered from disk
           # Rescale to numerics and /1000
           #setDT(nonAnnDTx1000)
