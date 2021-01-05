@@ -9,8 +9,9 @@ castCohortData(
   terrainDT = NULL,
   pixelGroupMap,
   lcc,
-  ageMap,
-  missingLCC
+  ageMap = NULL,
+  missingLCC,
+  year
 )
 }
 \arguments{
@@ -24,9 +25,11 @@ and \code{sumB}.}
 
 \item{lcc}{data.table of dummified landcover}
 
-\item{ageMap}{a stand age map to assign ages to non-forest LCC}
+\item{ageMap}{a stand age map to assign ages to non-forest LCC used during predict}
 
-\item{missingLCC}{Pixels on forested LCC but absent from cohortData will be assigned this LCC.
+\item{missingLCC}{Pixels on forested LCC but absent from cohortData will be assigned this LCC.}
+
+\item{year}{numeric representing the year represented by cohortData
 must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'}
 }
 \value{
