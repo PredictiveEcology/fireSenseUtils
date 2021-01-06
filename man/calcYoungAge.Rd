@@ -2,7 +2,7 @@
 % Please edit documentation in R/timeSinceDisturbance.R
 \name{calcYoungAge}
 \alias{calcYoungAge}
-\title{iteratively calculate youngAge column  in FS covariates}
+\title{Iteratively calculate \code{youngAge} column  in FS covariates}
 \usage{
 calcYoungAge(years, annualCovariates, standAgeMap, fireBufferedListDT)
 }
@@ -19,5 +19,5 @@ calcYoungAge(years, annualCovariates, standAgeMap, fireBufferedListDT)
 a raster layer with unified standAge and time-since-disturbance values
 }
 \description{
-iteratively calculate youngAge column  in FS covariates
+Iteratively calculate \code{youngAge} column  in FS covariates
 }

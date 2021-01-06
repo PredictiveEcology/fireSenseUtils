@@ -1,24 +1,26 @@
 
 globalVariables(c(
-  "nonForest_lowFlam", "nonForest_highFlam"
+  "nonForest_highFlam", "nonForest_lowFlam"
 ))
 #' preparing a time since disturbance map from stand age and fire data
 #'
 #' @param standAgeMap initial stand age map
-#' @param firePolys list of spatialPolygon Objects comprising annual fires
-#' @param year the year represented by standAge
-#' @param lcc data.table with landcover values - landcoverDT
+#' @param firePolys list of \code{spatialPolygon} objects comprising annual fires
+#' @param year the year represented by \code{standAge}
+#' @param lcc \code{data.table} with landcover values - \code{landcoverDT}
+#'
 #' @return a raster layer with values representing time since disturbance
 #'
-#' @importFrom raster raster setValues
-#' @importFrom sf st_collection_extract
-#' @importFrom fasterize fasterize
+#' @export
 #' @importFrom data.table data.table
+#' @importFrom fasterize fasterize
 #' @importFrom magrittr %>%
+#' @importFrom raster getValues raster setValues
+#' @importFrom sf st_collection_extract
 makeTSD <- function(year, firePolys, standAgeMap, lcc) {
-  #TODO Make this work with lcc values that aren't hardcoded ie line 33
-  #get particular fire polys in format that can be fasterized
-  polysNeeded <- names(firePolys) %in% paste0("year", c(year-16):year-1) %>%
+  ## TODO: Make this work with lcc values that aren't hardcoded ie line 33
+  ## get particular fire polys in format that can be fasterized
+  polysNeeded <- names(firePolys) %in% paste0("year", c(year - 16):year - 1) %>%
     firePolys[.] %>%
     .[lengths(.) > 0] %>% #gets rid of missing years that break function
     lapply(., FUN = sf::st_as_sf) %>%
@@ -39,7 +41,7 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc) {
   return(standAgeMap)
 }
 
-#' iteratively calculate youngAge column  in FS covariates
+#' Iteratively calculate \code{youngAge} column  in FS covariates
 #'
 #' @param standAgeMap template raster
 #' @param years the years over which to iterate
@@ -51,12 +53,11 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc) {
 #' @export
 #' @importFrom raster raster setValues
 #' @importFrom data.table data.table
-calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT){
-
+calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT) {
   #this is safest way to subset given the NULL year
   for (year in years) {
     fires <- fireBufferedListDT[[paste0("year", year)]]
-    if (!is.null(fires)){
+    if (!is.null(fires)) {
       pix <- annualCovariates[[paste0("year", year)]]$pixelID
       ages <- standAgeMap[pix]
       young <- ifelse(ages < 16, 1, 0)

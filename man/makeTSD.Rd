@@ -7,13 +7,13 @@
 makeTSD(year, firePolys, standAgeMap, lcc)
 }
 \arguments{
-\item{year}{the year represented by standAge}
+\item{year}{the year represented by \code{standAge}}
 
-\item{firePolys}{list of spatialPolygon Objects comprising annual fires}
+\item{firePolys}{list of \code{spatialPolygon} objects comprising annual fires}
 
 \item{standAgeMap}{initial stand age map}
 
-\item{lcc}{data.table with landcover values - landcoverDT}
+\item{lcc}{\code{data.table} with landcover values - \code{landcoverDT}}
 }
 \value{
 a raster layer with values representing time since disturbance
