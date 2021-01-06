@@ -34,7 +34,7 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc) {
     fasterize(sf = ., raster = standAgeMap, background = year - 16, field = "YEAR", fun = "max") %>%
     setValues(., values = year - getValues(.))
 
-  pixToUpdate <- lcc[nonForest_highFlam > 1 | nonForest_lowFlam > 0,]$pixelID
+  pixToUpdate <- lcc[nonForest_highFlam > 0 | nonForest_lowFlam > 0,]$pixelID
 
   standAgeMap[pixToUpdate] <- initialTSD[pixToUpdate]
 
