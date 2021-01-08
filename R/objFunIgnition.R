@@ -37,8 +37,7 @@ extractSpecial <- function(v, k){
 #' @param mod_env DESCRIPTION NEEDED
 #' @param offset DESCRIPTION NEEDED
 #' @return DESCRIPTION NEEDED
-obj <- function(params, linkinv, nll, sm, nx, mm, mod_env, offset)
-{
+objIgnition <- function(params, linkinv, nll, sm, nx, mm, mod_env, offset) {
   ## Parameters scaling
   params <- drop(params %*% sm)
 
@@ -65,7 +64,7 @@ obj <- function(params, linkinv, nll, sm, nx, mm, mod_env, offset)
 #'
 #' @importFrom stats model.matrix
 #' @return DESCRIPTION NEEDED
-objPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
+objIgnitionPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
   ## Parameters scaling
   params <- drop(params %*% sm)
 
