@@ -2,7 +2,7 @@
 % Please edit documentation in R/objFunIgnition.R
 \name{oom}
 \alias{oom}
-\title{order of magnitude}
+\title{Order of Magnitude}
 \usage{
 oom(x)
 }
@@ -13,5 +13,5 @@ oom(x)
 DESCRIPTION NEEDED
 }
 \description{
-order of magnitude
+Order of Magnitude
 }

@@ -12,29 +12,31 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(fasterize)
+library(ggplot2)
+library(raster)
+library(reproducible)
+library(sf)
+
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 ```
 
 ## R Markdown
 
 ```{compare LCC and fire data}
-library(raster)
-library(reproducible)
-library(data.table)
-library(fasterize)
-library(sf)
 dPath <- tempdir()
 lccUrl <- paste0("ftp://ftp.ccrs.nrcan.gc.ca/ad/NLCCLandCover/",
-                    "LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip")
+                 "LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip")
 lcc <- prepInputs(url = lccUrl, destinationpath = dPath)
-fireUrl <- 'https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip'
-firePolygons <- prepInputs(url = fireUrl, destinationPath = dPath, fun = 'sf::read_sf')
+fireUrl <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
+firePolygons <- prepInputs(url = fireUrl, destinationPath = dPath, fun = "sf::read_sf")
 firePolygons <- sf::st_transform(firePolygons, crs = crs(lcc))
 
 #rasterize firePolygons
 firePolygons$dummyVar <- 1
 firePolygons <- firePolygons[firePolygons$YEAR > 2004,]
-fireRaster <- fasterize(sf = firePolygons, raster = lcc, field = 'dummyVar')
+fireRaster <- fasterize(sf = firePolygons, raster = lcc, field = "dummyVar")
 fireLoc <- 1:ncell(lcc)
 fireLoc <- fireLoc[!is.na(getValues(fireRaster))]
 
@@ -42,22 +44,18 @@ burned <- data.table(pixelID = 1:ncell(lcc), lcc = getValues(lcc))
 burned[pixelID %in% fireLoc, burn := 1]
 burnCalc <- burned[, .(available = .N, burned = sum(burn, na.rm = TRUE)), .(lcc)]
 
-burnCalc[, 'percentBurned' := round(burned/available * 100, digits = 3)]
+burnCalc[, "percentBurned" := round(burned/available * 100, digits = 3)]
 setkey(burnCalc, lcc)
 burnCalc
 ```
 
-
-
 ## Including Plots
 
 ```{fire, echo=FALSE}
-library(ggplot2)
 ggplot(data = burnCalc, aes(x = lcc, y = percentBurned)) + 
-  geom_bar(stat = 'identity') + 
+  geom_bar(stat = "identity") + 
    theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
   ylab("percent burned (%)") + 
   scale_x_continuous("LCC", labels = as.character(burnCalc$lcc), breaks = burnCalc$lcc) + 
   theme_bw()
-
 ```
