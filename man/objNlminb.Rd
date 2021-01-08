@@ -2,7 +2,7 @@
 % Please edit documentation in R/objFunIgnition.R
 \name{objNlminb}
 \alias{objNlminb}
-\title{TODO: add a description}
+\title{Nlminb wrapper}
 \usage{
 objNlminb(start, objective, lower, upper, control)
 }
@@ -21,5 +21,5 @@ objNlminb(start, objective, lower, upper, control)
 DESCRIPTION NEEDED
 }
 \description{
-TODO: add a description
+Nlminb wrapper
 }

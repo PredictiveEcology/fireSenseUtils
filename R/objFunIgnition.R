@@ -1,4 +1,13 @@
 
+#' Handling piecewise terms in a formula
+#' @param variable DESCRIPTION NEEDED
+#' @param knot DESCRIPTION NEEDED
+#' @return DESCRIPTION NEEDED
+
+#' @export
+pw <- function(variable, knot) pmax(variable - knot, 0)
+
+
 #' order of magnitude
 #'
 #' @param x DESCRIPTION NEEDED
@@ -72,7 +81,7 @@ objPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx, mod_env
 }
 
 
-#'  TODO: add a description
+#' Nlminb wrapper
 #' @param start DESCRIPTION NEEDED
 #' @param objective DESCRIPTION NEEDED
 #' @param lower DESCRIPTION NEEDED
