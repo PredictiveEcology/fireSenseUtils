@@ -37,6 +37,7 @@ extractSpecial <- function(v, k){
 #' @param mod_env DESCRIPTION NEEDED
 #' @param offset DESCRIPTION NEEDED
 #' @return DESCRIPTION NEEDED
+#' @export
 objIgnition <- function(params, linkinv, nll, sm, nx, mm, mod_env, offset) {
   ## Parameters scaling
   params <- drop(params %*% sm)
@@ -64,6 +65,7 @@ objIgnition <- function(params, linkinv, nll, sm, nx, mm, mod_env, offset) {
 #'
 #' @importFrom stats model.matrix
 #' @return DESCRIPTION NEEDED
+#' @export
 objIgnitionPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
   ## Parameters scaling
   params <- drop(params %*% sm)
@@ -87,6 +89,7 @@ objIgnitionPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx,
 #' @param upper DESCRIPTION NEEDED
 #' @param control DESCRIPTION NEEDED
 #' @return DESCRIPTION NEEDED
+#' @export
 objNlminb <- function(start, objective, lower, upper, control) {
   nlminb.call <- quote(nlminb(start = start, objective = objective, lower = lower, upper = upper, control = control))
   nlminb.call[names(formals(objective)[-1L])] <- parse(text = formalArgs(objective)[-1L])
