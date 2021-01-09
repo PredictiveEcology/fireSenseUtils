@@ -24,11 +24,13 @@ knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 
 ## R Markdown
 
-```{compare LCC and fire data}
+```{r compare_LCC_and_fire_data}
 dPath <- tempdir()
 lccUrl <- paste0("ftp://ftp.ccrs.nrcan.gc.ca/ad/NLCCLandCover/",
                  "LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip")
-lcc <- prepInputs(url = lccUrl, destinationpath = dPath)
+lcc <- prepInputs(url = lccUrl, destinationPath = dPath,
+                  targetFile = "LCC2005_V1_4a.tif", alsoExtract = NA)
+
 fireUrl <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
 firePolygons <- prepInputs(url = fireUrl, destinationPath = dPath, fun = "sf::read_sf")
 firePolygons <- sf::st_transform(firePolygons, crs = crs(lcc))
@@ -51,7 +53,7 @@ burnCalc
 
 ## Including Plots
 
-```{fire, echo=FALSE}
+```{r fire, echo=FALSE}
 ggplot(data = burnCalc, aes(x = lcc, y = percentBurned)) + 
   geom_bar(stat = "identity") + 
    theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
