@@ -1,7 +1,7 @@
-
 globalVariables(c(
   "nonForest_highFlam", "nonForest_lowFlam"
 ))
+
 #' preparing a time since disturbance map from stand age and fire data
 #'
 #' @param standAgeMap initial stand age map

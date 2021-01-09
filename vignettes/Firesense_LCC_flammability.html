@@ -12,7 +12,7 @@
 
 <meta name="author" content="Ian Eddy, Eliot McIntire, Steve Cumming, Alex Chubaty" />
 
-<meta name="date" content="2020-12-15" />
+<meta name="date" content="2021-01-08" />
 
 <title>fireSense LCC flammability analysis</title>
 
@@ -46,29 +46,24 @@
 
 <h1 class="title toc-ignore">fireSense LCC flammability analysis</h1>
 <h4 class="author">Ian Eddy, Eliot McIntire, Steve Cumming, Alex Chubaty</h4>
-<h4 class="date">2020-12-15</h4>
+<h4 class="date">2021-01-08</h4>
 
 
 
 <div id="r-markdown" class="section level2">
 <h2>R Markdown</h2>
-<pre class="compare"><code>library(raster)
-library(reproducible)
-library(data.table)
-library(fasterize)
-library(sf)
-dPath &lt;- tempdir()
+<pre class="compare"><code>dPath &lt;- tempdir()
 lccUrl &lt;- paste0(&quot;ftp://ftp.ccrs.nrcan.gc.ca/ad/NLCCLandCover/&quot;,
-                    &quot;LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip&quot;)
+                 &quot;LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip&quot;)
 lcc &lt;- prepInputs(url = lccUrl, destinationpath = dPath)
-fireUrl &lt;- &#39;https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip&#39;
-firePolygons &lt;- prepInputs(url = fireUrl, destinationPath = dPath, fun = &#39;sf::read_sf&#39;)
+fireUrl &lt;- &quot;https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip&quot;
+firePolygons &lt;- prepInputs(url = fireUrl, destinationPath = dPath, fun = &quot;sf::read_sf&quot;)
 firePolygons &lt;- sf::st_transform(firePolygons, crs = crs(lcc))
 
 #rasterize firePolygons
 firePolygons$dummyVar &lt;- 1
 firePolygons &lt;- firePolygons[firePolygons$YEAR &gt; 2004,]
-fireRaster &lt;- fasterize(sf = firePolygons, raster = lcc, field = &#39;dummyVar&#39;)
+fireRaster &lt;- fasterize(sf = firePolygons, raster = lcc, field = &quot;dummyVar&quot;)
 fireLoc &lt;- 1:ncell(lcc)
 fireLoc &lt;- fireLoc[!is.na(getValues(fireRaster))]
 
@@ -76,7 +71,7 @@ burned &lt;- data.table(pixelID = 1:ncell(lcc), lcc = getValues(lcc))
 burned[pixelID %in% fireLoc, burn := 1]
 burnCalc &lt;- burned[, .(available = .N, burned = sum(burn, na.rm = TRUE)), .(lcc)]
 
-burnCalc[, &#39;percentBurned&#39; := round(burned/available * 100, digits = 3)]
+burnCalc[, &quot;percentBurned&quot; := round(burned/available * 100, digits = 3)]
 setkey(burnCalc, lcc)
 burnCalc</code></pre>
 </div>
