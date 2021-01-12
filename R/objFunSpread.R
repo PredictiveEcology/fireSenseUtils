@@ -24,7 +24,7 @@ utils::globalVariables(c(
 #'   be used to rescale the covariates internally so that they are all between 0 and 1. It is important
 #'   to not simply rescale internally here because only 1 year is run at a time; all years
 #'   must be rescaled for a given covariate by the same amount.
-#' @param maxFireSpread A value for spreadProb that is considered impossible to go above.
+#' @param maxFireSpread A value for \code{spreadProb} that is considered impossible to go above.
 #'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
 #' @param minFireSize DESCRIPTION NEEDED
 #' @param tests One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
@@ -164,7 +164,9 @@ utils::globalVariables(c(
           # matrix multiplication
           covPars <- tail(x = par, n = parsModel)
           logisticPars <- head(x = par, n = length(par) - parsModel)
-          if (logisticPars[1] > maxFireSpread) warning("The first parameter of the logistic is > ", maxFireSpread, ". The parameter should be lowered.")
+          if (logisticPars[1] > maxFireSpread)
+            warning("The first parameter of the logistic is > ", maxFireSpread, ".",
+                    "The parameter should be lowered.")
           if (length(logisticPars) == 4) {
             set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
           } else if (length(logisticPars) == 3) {
@@ -183,7 +185,6 @@ utils::globalVariables(c(
           }
 
           if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
-
             if (verbose) {
               print(paste0(Sys.getpid(), "-- year: ",yr, ", spreadProb raster: median in buffered pixels = ",
                            round(medSP, 3)))
@@ -225,8 +226,8 @@ utils::globalVariables(c(
               emp <- emp[annualFires, on = c("initialLocus" = "cells")]
               if (plot.it) {
                 maxX <- log(max(emp$N))
-                par(mfrow = c(7,7), omi = c(0.5, 0, 0, 0),
-                    mai = c(0.2,0.3,0.4,0.1));
+                par(mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
+                    mai = c(0.2, 0.3, 0.4, 0.1));
                 emp <- setorderv(emp, c("size"), order = -1L)
                 emp[, {
                   dat <- round(log(N))
@@ -420,12 +421,10 @@ utils::globalVariables(c(
         rescalor <- 6e4
         SNLLTest <- sum(unlist(results$SNLL)) / rescalor
         mess <- paste(mess, " SNLLTest:", SNLLTest, "; ")
-        objFunRes <- objFunRes + SNLLTest #+ SNLLTest
-
+        objFunRes <- objFunRes + SNLLTest
       }
-
     }
-  }# run through 2nd batch of smaller fires
+  } # run through 2nd batch of smaller fires
 
   bb <- purrr::transpose(objFunResList)
   bb <- purrr::map(bb, unlist)
@@ -433,13 +432,14 @@ utils::globalVariables(c(
   if (isTRUE(doMADTest) && !isTRUE(doSNLL_FSTest)) {
     totalNFires <- sum(bb$nFires)
     objFunRes <- do.call(sum, purrr::map2(bb$objFunRes, bb$nFires,
-                                          function(.x, .y) .x * .y))/totalNFires
+                                          function(.x, .y) .x * .y)) / totalNFires
   }
   if (isTRUE(doSNLL_FSTest)) {
     objFunRes <- sum(unlist(bb$objFunRes))
     mess <- paste(" SNLL_FSTest total:", objFunRes, "; ", mess)
   }
-  # Figure out what we want from these. This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
+  ## Figure out what we want from these.
+  ## This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
 }
 

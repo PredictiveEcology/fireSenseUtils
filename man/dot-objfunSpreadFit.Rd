@@ -51,7 +51,7 @@ be used to rescale the covariates internally so that they are all between 0 and 
 to not simply rescale internally here because only 1 year is run at a time; all years
 must be rescaled for a given covariate by the same amount.}
 
-\item{maxFireSpread}{A value for spreadProb that is considered impossible to go above.
+\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
 Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
 
 \item{minFireSize}{DESCRIPTION NEEDED}
