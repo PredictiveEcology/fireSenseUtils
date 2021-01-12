@@ -1,12 +1,18 @@
 ## ----setup, include=FALSE-----------------------------------------------------
+library(knitr)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE,
+  eval = TRUE
+)
+
 library(data.table)
 library(fasterize)
 library(ggplot2)
 library(raster)
 library(reproducible)
 library(sf)
-
-knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 
 ## ----compare_LCC_and_fire_data------------------------------------------------
 dPath <- tempdir()
