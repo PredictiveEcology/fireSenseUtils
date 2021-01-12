@@ -41,6 +41,9 @@ utils::globalVariables(c(
 #'   Similarly, if only physical cores are used for \code{DEoptim}, the additional use of
 #'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).
 #' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
+#'   Lowering the threshold value will be more restrictive, but being too restrictive will result
+#'   in DEoptim rejecting more tests and using the "fail value" of 10000.
+#'   Too high a threshold, and more years will be run and it will take longer to find values.
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
@@ -435,7 +438,7 @@ utils::globalVariables(c(
       if (isTRUE(doSNLL_FSTest)) {
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 1)
         failVal <- 1e5L
-        threshold <- thresh * length(results$SNLL_FS) ## lower is _more_ restrictive
+        threshold <- thresh * length(results$SNLL_FS) ## lower is _more_ restrictive; too high takes too long
         if (SNLL_FSTest > threshold && ii == 1) {
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal

@@ -73,7 +73,10 @@ Then the core will stay idle until all other cores for the \code{DEoptim} iterat
 Similarly, if only physical cores are used for \code{DEoptim}, the additional use of
 hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).}
 
-\item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.}
+\item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
+Lowering the threshold value will be more restrictive, but being too restrictive will result
+in DEoptim rejecting more tests and using the "fail value" of 10000.
+Too high a threshold, and more years will be run and it will take longer to find values.}
 
 \item{verbose}{DESCRIPTION NEEDED}
 }
