@@ -435,7 +435,7 @@ utils::globalVariables(c(
       if (isTRUE(doSNLL_FSTest)) {
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 1)
         failVal <- 1e5L
-        threshold <- thresh * length(results$SNLL_FS) ## need to fine tune this threshold
+        threshold <- thresh * length(results$SNLL_FS) ## lower is _more_ restrictive
         if (SNLL_FSTest > threshold && ii == 1) {
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal
