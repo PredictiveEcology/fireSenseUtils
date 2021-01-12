@@ -116,7 +116,8 @@ runDEoptim <- function(landscape,
     message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
                                collapse = ", "), " clusters")
     logPath <- file.path(logPath,
-                         paste0("fireSense_SpreadFit_log", Sys.getpid()))
+                         paste0("fireSense_SpreadFit_", format(Sys.time(), "%Y-%m-%d_%H%M%S"),
+                                "_pid", Sys.getpid(), ".log"))
     message(crayon::blurred(paste0("Starting parallel model fitting for ",
                                    "fireSense_SpreadFit. Log: ", logPath)))
 
