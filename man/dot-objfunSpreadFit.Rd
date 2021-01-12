@@ -19,6 +19,7 @@
   Nreps = 10,
   plot.it = FALSE,
   objFunCoresInternal = 1,
+  thresh = 550,
   verbose = TRUE
 )
 }
@@ -71,6 +72,8 @@ stopped inside this function because the parameters are so bad, only 2 year are 
 Then the core will stay idle until all other cores for the \code{DEoptim} iteration are complete.
 Similarly, if only physical cores are used for \code{DEoptim}, the additional use of
 hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).}
+
+\item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.}
 
 \item{verbose}{DESCRIPTION NEEDED}
 }

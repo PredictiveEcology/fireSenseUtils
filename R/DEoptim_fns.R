@@ -43,6 +43,7 @@ utils::globalVariables(c(
 #' @param tests Passed to \code{fireSenseUtils::.objfunSpreadFit}
 #' @param maxFireSpread Passed to \code{fireSenseUtils::.objfunSpreadFit}
 #' @param Nreps Passed to \code{fireSenseUtils::.objfunSpreadFit}
+#' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
 #' @param .verbose Passed to \code{fireSenseUtils::.objfunSpreadFit}
 #' @param visualizeDEoptim Logical. If \code{TRUE}, then histograms will be made of
 #'   \code{DEoptim} outputs.
@@ -80,6 +81,7 @@ runDEoptim <- function(landscape,
                        tests,
                        maxFireSpread,
                        Nreps,
+                       thresh = 550,
                        .verbose,
                        visualizeDEoptim,
                        .plotSize = list(height = 1600, width = 2000)) {
@@ -185,6 +187,7 @@ runDEoptim <- function(landscape,
               .plotSize = .plotSize,
               #cachePath = cachePath,
               iterStep = iterStep,
+              thresh = thresh,
               #omitArgs = c("verbose")
   )#,
               #cacheId = "cd495b412420ad4a") # iteration 201 to 300
@@ -247,6 +250,7 @@ DEoptimIterative <- function(itermax,
                              visualizeDEoptim,
                              cachePath,
                              iterStep = 25,
+                             thresh = 550,
                              .verbose,
                              .plotSize = list(height = 1600, width = 2000)) {
   data.table::setDTthreads(1)
@@ -276,6 +280,7 @@ DEoptimIterative <- function(itermax,
         Nreps = Nreps,
         controlForCache = controlForCache,
         objFunCoresInternal = objFunCoresInternal,
+        thresh = thresh,
         verbose = .verbose#,
         #omitArgs = c("verbose", "control")
       ))

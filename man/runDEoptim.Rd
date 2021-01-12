@@ -28,6 +28,7 @@ runDEoptim(
   tests,
   maxFireSpread,
   Nreps,
+  thresh = 550,
   .verbose,
   visualizeDEoptim,
   .plotSize = list(height = 1600, width = 2000)
@@ -47,6 +48,7 @@ DEoptimIterative(
   visualizeDEoptim,
   cachePath,
   iterStep = 25,
+  thresh = 550,
   .verbose,
   .plotSize = list(height = 1600, width = 2000)
 )
@@ -109,6 +111,8 @@ each step, this function will plot, optionally, the parameter histograms (if
 \item{maxFireSpread}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
 \item{Nreps}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
+
+\item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.}
 
 \item{.verbose}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
