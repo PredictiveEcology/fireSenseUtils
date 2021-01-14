@@ -60,7 +60,7 @@ calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListD
     if (!is.null(fires)) {
       pix <- annualCovariates[[paste0("year", year)]]$pixelID
       ages <- standAgeMap[pix]
-      young <- ifelse(ages < 16, 1000, 0) #1000 ensures same magnitude as PCA
+      young <- ifelse(ages < 16, 1, 0)
       annualCovariates[[paste0("year", year)]][, youngAge := young]
       burnedPix <- fires[buffer == 1]$pixelID
       standAgeMap[burnedPix] <- 0
