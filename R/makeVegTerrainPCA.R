@@ -26,8 +26,7 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL) {
                             newdata = dataForPCA[, .SD, .SDcols = !c("pixelGroup", "pixelID", "youngAge")])
   }
   # store as Integer
-  vegComponents <- as.data.table(vegTerrainPCA$x * 1000)
-  vegComponents <- vegComponents[, lapply(.SD, asInteger), .SDcols = colnames(vegComponents)]
+  vegComponents <- as.data.table(vegTerrainPCA$x)
 
   #put age and pixelID back in
   set(vegComponents, NULL, "pixelID" ,dataForPCA$pixelID)
