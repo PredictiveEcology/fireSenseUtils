@@ -17,9 +17,11 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   echo = TRUE,
-  eval = FALSE
+  eval = FALSE ## TODO: re-enable, but note that vignette takes a while to build
 )
+```
 
+```{r packages}
 library(data.table)
 library(fasterize)
 library(ggplot2)
@@ -28,7 +30,7 @@ library(reproducible)
 library(sf)
 ```
 
-## R Markdown
+## Compare LCC and fire data
 
 ```{r compare_LCC_and_fire_data}
 dPath <- tempdir()
@@ -57,7 +59,7 @@ setkey(burnCalc, lcc)
 burnCalc
 ```
 
-## Including Plots
+## Plot
 
 ```{r fire, echo=FALSE}
 ggplot(data = burnCalc, aes(x = lcc, y = percentBurned)) + 
