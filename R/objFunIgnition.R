@@ -9,8 +9,8 @@ pw <- function(variable, knot) pmax(variable - knot, 0)
 
 #' Order of Magnitude
 #'
-#' @param x DESCRIPTION NEEDED
-#' @return DESCRIPTION NEEDED
+#' @param x a numeric
+#' @return the order of magnitude
 #' @export
 oom <- function(x) 10^(ceiling(log10(abs(x))))
 
@@ -34,12 +34,12 @@ extractSpecial <- function(v, k) {
 #' Objective function when no piecewise model is used
 #'
 #' @param params DESCRIPTION NEEDED
-#' @param linkinv DESCRIPTION NEEDED
-#' @param nll DESCRIPTION NEEDED
-#' @param sm DESCRIPTION NEEDED
-#' @param nx DESCRIPTION NEEDED
-#' @param mm DESCRIPTION NEEDED
-#' @param mod_env DESCRIPTION NEEDED
+#' @param linkinv the link function
+#' @param nll the log-likelihood function
+#' @param sm scaling matrix
+#' @param nx number of covariates
+#' @param mm model matrix containing data
+#' @param mod_env the environment containing params - can be a data.frame
 #' @param offset DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
@@ -58,7 +58,7 @@ extractSpecial <- function(v, k) {
   if (any(mu <= 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
     return(1e20)
   } else {
-    return(eval(nll, envir = as.list(environment()), enclos = mod_env))
+    return(eval(nll, envir = mod_env))
   }
 }
 
@@ -71,7 +71,7 @@ extractSpecial <- function(v, k) {
 #' @param sm DESCRIPTION NEEDED
 #' @param updateKnotExpr DESCRIPTION NEEDED
 #' @param nx DESCRIPTION NEEDED
-#' @param mod_env DESCRIPTION NEEDED
+#' @param mod_env the environment containing params - can be a data.frame
 #' @param offset DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
@@ -102,19 +102,22 @@ extractSpecial <- function(v, k) {
 #' Wrapper around \code{stats::nlminb}
 #'
 #' @param start DESCRIPTION NEEDED
-#' @param objective DESCRIPTION NEEDED
-#' @param lower DESCRIPTION NEEDED
-#' @param upper DESCRIPTION NEEDED
+#' @param objective objective function
+#' @param lower lower bounds on coefficients
+#' @param upper upper bounds on coefficients
 #' @param control DESCRIPTION NEEDED
+#' @param ... additional arguments passed to objective function
 #'
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
 #' @importFrom stats nlminb
-objNlminb <- function(start, objective, lower, upper, control) {
-  nlminb.call <- quote(nlminb(start = start, objective = objective, lower = lower, upper = upper, control = control))
-  nlminb.call[names(formals(objective)[-1L])] <- parse(text = formalArgs(objective)[-1L])
-
+objNlminb <- function(start, objective, lower, upper, control, ...) {
+  dots <- list(...)
+  nlminb.call <- quote(nlminb(start = start, objective = objective, lower = lower, upper = upper, control = control,
+                              linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx, mm = dots$mm,
+                              mod_env = dots$mod_env, offset = dots$offset))
+  #passes linkinv, nll, sm, nx, mm, mod_env, and offset
   o <- eval(nlminb.call)
 
   i <- 1L

@@ -4,18 +4,20 @@
 \alias{objNlminb}
 \title{\code{objNlminb}}
 \usage{
-objNlminb(start, objective, lower, upper, control)
+objNlminb(start, objective, lower, upper, control, ...)
 }
 \arguments{
 \item{start}{DESCRIPTION NEEDED}
 
-\item{objective}{DESCRIPTION NEEDED}
+\item{objective}{objective function}
 
-\item{lower}{DESCRIPTION NEEDED}
+\item{lower}{lower bounds on coefficients}
 
-\item{upper}{DESCRIPTION NEEDED}
+\item{upper}{upper bounds on coefficients}
 
 \item{control}{DESCRIPTION NEEDED}
+
+\item{...}{additional arguments passed to objective function}
 }
 \value{
 DESCRIPTION NEEDED

@@ -9,17 +9,17 @@
 \arguments{
 \item{params}{DESCRIPTION NEEDED}
 
-\item{linkinv}{DESCRIPTION NEEDED}
+\item{linkinv}{the link function}
 
-\item{nll}{DESCRIPTION NEEDED}
+\item{nll}{the log-likelihood function}
 
-\item{sm}{DESCRIPTION NEEDED}
+\item{sm}{scaling matrix}
 
-\item{nx}{DESCRIPTION NEEDED}
+\item{nx}{number of covariates}
 
-\item{mm}{DESCRIPTION NEEDED}
+\item{mm}{model matrix containing data}
 
-\item{mod_env}{DESCRIPTION NEEDED}
+\item{mod_env}{the environment containing params - can be a data.frame}
 
 \item{offset}{DESCRIPTION NEEDED}
 }

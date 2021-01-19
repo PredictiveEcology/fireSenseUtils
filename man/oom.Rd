@@ -7,10 +7,10 @@
 oom(x)
 }
 \arguments{
-\item{x}{DESCRIPTION NEEDED}
+\item{x}{a numeric}
 }
 \value{
-DESCRIPTION NEEDED
+the order of magnitude
 }
 \description{
 Order of Magnitude

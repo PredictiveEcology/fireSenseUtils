@@ -31,7 +31,7 @@
 
 \item{nx}{DESCRIPTION NEEDED}
 
-\item{mod_env}{DESCRIPTION NEEDED}
+\item{mod_env}{the environment containing params - can be a data.frame}
 
 \item{offset}{DESCRIPTION NEEDED}
 }

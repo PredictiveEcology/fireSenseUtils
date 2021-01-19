@@ -14,24 +14,9 @@ classifyCohortsFireSenseSpread(
 )
 }
 \arguments{
-\item{cohortData}{A \code{data.table} with columns: \code{pixelGroup}, \code{ecoregionGroup},
-\code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
-and \code{sumB}.}
-
 \item{yearCohort}{the year the \code{cohortData} represents}
 
-\item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
-number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
-
 \item{flammableMap}{binary map of flammable pixels - see \code{LandR::defineFlammable}}
-
-\item{sppEquiv}{table with species name equivalencies between the kNN and final naming formats.
-See \code{data("sppEquivalencies_CA", "LandR")}.
-Only necessary if \code{mixedType == 2}.
-If not provided and \code{mixedType == 2}, will attempt to use
-\code{data("sppEquivalencies_CA", "LandR")}.}
-
-\item{sppEquivCol}{the column name to use from \code{sppEquiv}.}
 }
 \value{
 a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
