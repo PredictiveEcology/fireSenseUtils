@@ -103,8 +103,10 @@ knitr::opts_chunk$set(
   echo = TRUE,
   eval = FALSE ## TODO: temporary until I can rework this vignette to actually run
 )
+```
 
-library(reproducible)
+```{r init}
+library(Require)
 Require(c("magrittr", "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
           "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
 
