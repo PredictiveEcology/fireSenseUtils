@@ -142,7 +142,7 @@ runDEoptim <- function(landscape,
         message(Sys.info()[["nodename"]])
         # Use the devtools SHA hashing so it skips if unnecessary
         # Require::Require("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
-        devtools::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
+        remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
       }
     )
     stopCluster(cl)

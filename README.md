@@ -11,7 +11,7 @@ The goal of `fireSenseUtils` is to ...
 You can install the development version of `fireSenseUtils` from GitHub with:
 
 ``` r
-devtools::install_github("PredictiveEcology/fireSenseUtils")
+remotes::install_github("PredictiveEcology/fireSenseUtils")
 ```
 
 ## Example
