@@ -38,7 +38,7 @@ Imports:
     sf,
     sp,
     SpaDES.core,
-    SpaDES.tools,
+    SpaDES.tools (>=0.3.7),
     spatialEco,
     stats
 Suggests:
