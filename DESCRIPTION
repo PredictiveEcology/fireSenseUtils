@@ -39,7 +39,7 @@ Imports:
     sf,
     sp,
     SpaDES.core,
-    SpaDES.tools (>=0.3.7),
+    SpaDES.tools (>= 0.3.7),
     spatialEco,
     stats
 Suggests:
@@ -57,6 +57,7 @@ Suggests:
 Remotes:
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
+    PredictiveEcology/SpaDES.tools@development,
     PredictiveEcology/quickPlot@development,
     PredictiveEcology/reproducible@development
 VignetteBuilder:
