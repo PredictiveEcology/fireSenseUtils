@@ -178,9 +178,13 @@ runDEoptim <- function(landscape,
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
+          if (packageVersion("SpaDES.tools") < "0.3.7")
+            source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
+          installGitHubPackage("PredictiveEcology/Require@development")
+
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
-          Require::Require("PredictiveEcology/fireSenseUtils@development (>=0.0.4.9008)", upgrade = FALSE)
+          Require::Require("PredictiveEcology/fireSenseUtils@development (>=0.0.4.9010)", upgrade = FALSE)
           # Use the devtools SHA hashing so it skips if unnecessary
           # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
