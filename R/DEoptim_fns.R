@@ -162,7 +162,7 @@ runDEoptim <- function(landscape,
           # If this is first time that packages need to be installed for this user on this machine
           #   there won't be a folder present that is writeable
           if (file.access(.libPaths()[1], mode = 2) < 0) {
-            messeage("The .libPaths()[1] is not writable; trying normal alternatives")
+            message("The .libPaths()[1] is not writable; trying normal alternatives")
             RLibPath <- file.path("~", "R", paste0(R.version$platform, "-library"),
                                   paste0(R.version$major, ".", gsub("\\..+", "", R.version$minor)))
 
