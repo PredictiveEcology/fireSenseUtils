@@ -396,7 +396,8 @@ utils::globalVariables(c(
               # ), na.rm = TRUE) # Sum of the negative log likelihood
             }
           } else {
-            stop("encountered error with spreadProb - contact module developers")
+            stop("encountered error with spreadProb in fireSenseUtils:::.objFunSpreadFit",
+                 " - Most likely that `maxFireSpread` needs to be raised to accommodate logistic parameter")
             # Ian added this stop. Unclear what is supposed to happen. Object ret doesn't exist
             SNLL <- 1e7
             fireSizes <- sample(1:3, 1)
