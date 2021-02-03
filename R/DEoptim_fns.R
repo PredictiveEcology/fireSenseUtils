@@ -172,19 +172,21 @@ runDEoptim <- function(landscape,
           }
 
           if (!require("Require", quietly = TRUE)) install.packages("Require") # will do Require too
-          #    Require::checkPath(dirname(logPath), create = TRUE)
           message(Sys.info()[["nodename"]])
-          # Sys.setenv("GITHUB_PAT"=Sys.getenv("GITHUB_PAT"))
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          if (packageVersion("SpaDES.tools") < "0.3.7")
+          if (packageVersion("SpaDES.tools") < "0.3.7") {
             source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
-          installGitHubPackage("PredictiveEcology/Require@development")
+            installGitHubPackage("PredictiveEcology/Require@development")
+            installGitHubPackage("PredictiveEcology/SpaDES.tools@development")
+          }
+          Require::checkPath(dirname(logPath), create = TRUE)
 
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
-          Require::Require("PredictiveEcology/fireSenseUtils@development (>=0.0.4.9010)", upgrade = FALSE)
+          Require::Require(paste0("PredictiveEcology/fireSenseUtils@development (>=",
+                                  packageVersion("fireSenseUtils"),")"), upgrade = FALSE)
           # Use the devtools SHA hashing so it skips if unnecessary
           # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
@@ -315,22 +317,24 @@ DEoptimIterative <- function(itermax,
 
     if (TRUE) {
       st1 <- system.time(DE[[iter]] <- #Cache(
-        DEoptimForCache(
-        fireSenseUtils::.objfunSpreadFit,
-        lower = lower,
-        upper = upper,
-        control = controlArgs,
-        FS_formula = FS_formula,
-        covMinMax = covMinMax,
-        tests = c("SNLL_FS"), # c("mad", "SNLL_FS"),
-        maxFireSpread = maxFireSpread,
-        Nreps = Nreps,
-        controlForCache = controlForCache,
-        objFunCoresInternal = objFunCoresInternal,
-        thresh = thresh,
-        verbose = .verbose#,
-        #omitArgs = c("verbose", "control")
-      ))
+                           DEoptimForCache(
+                             fireSenseUtils::.objfunSpreadFit,
+                             lower = lower,
+                             upper = upper,
+                             control = controlArgs,
+                             FS_formula = FS_formula,
+                             covMinMax = covMinMax,
+                             tests = c("SNLL_FS"), # c("mad", "SNLL_FS"),
+                             maxFireSpread = maxFireSpread,
+                             mutuallyExclusive = list("youngAge" = c("vegPC")),
+                             doAssertions = TRUE,
+                             Nreps = Nreps,
+                             controlForCache = controlForCache,
+                             objFunCoresInternal = objFunCoresInternal,
+                             thresh = thresh,
+                             verbose = .verbose#,
+                             #omitArgs = c("verbose", "control")
+                           ))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
@@ -338,13 +342,13 @@ DEoptimIterative <- function(itermax,
       }
 
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-        fn,
-        lower = lower,
-        upper = upper,
-        controlForCache = controlForCache,
-        control = control,
-        omitArgs = c("verbose", "control"),
-        x = x1
+                                             fn,
+                                             lower = lower,
+                                             upper = upper,
+                                             controlForCache = controlForCache,
+                                             control = control,
+                                             omitArgs = c("verbose", "control"),
+                                             x = x1
       ))
     }
 
