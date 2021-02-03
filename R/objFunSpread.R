@@ -155,29 +155,29 @@ utils::globalVariables(c(
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
-      # results <- parallel::mcmapply(                             # normal
-      #   mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
-      #   mc.preschedule = FALSE,                                  # normal
-      #   SIMPLIFY = FALSE,                                        # normal
-      results <- purrr::pmap(                        # interactive debugging
-       .l = list(                                   # interactive debugging
+      results <- parallel::mcmapply(                             # normal
+        mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
+        mc.preschedule = FALSE,                                  # normal
+        SIMPLIFY = FALSE,                                        # normal
+      # results <- purrr::pmap(                        # interactive debugging
+      #  .l = list(                                   # interactive debugging
           annDTx1000 = annualDTx1000[yrs],
           yr = years[yrs],
           annualFires = historicalFiresAboveMin[yrs],
-      annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
-      #annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
-          ),                                         # interactive debugging
-       # MoreArgs = list(                                         # normal
+      #annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
+      annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
+      #    ),                                         # interactive debugging
+        MoreArgs = list(                                         # normal
           par = par, parsModel = parsModel,
           verbose = verbose,
           nonAnnualDTx1000 = nonAnnualDTx1000,
           indexNonAnnual = indexNonAnnual,
           colsToUse = colsToUse,
-          covMinMax = covMinMax,                     # interactive debugging
-        #  covMinMax = covMinMax                              # normal
-        #),                                                   # normal
-         .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
-        #function(yr, annDTx1000, par, parsModel,             # normal
+       #   covMinMax = covMinMax,                     # interactive debugging
+          covMinMax = covMinMax                              # normal
+        ),                                                   # normal
+        # .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
+        function(yr, annDTx1000, par, parsModel,             # normal
                  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                  indexNonAnnual, colsToUse, covMinMax,
                  verbose = TRUE) {
@@ -187,7 +187,6 @@ utils::globalVariables(c(
           setDT(annDTx1000)
           shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
           if (!is.null(covMinMax)) {
-            browser()
             for (cn in colnames(covMinMax)) {
               set(
                 shortAnnDTx1000, NULL, cn,
