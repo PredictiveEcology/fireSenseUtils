@@ -127,27 +127,76 @@ runDEoptim <- function(landscape,
 
     # Make sure logPath can be written in the workers -- need to create the dir
 
-    ## Make cluster with just one worker per machine --> don't need to do these steps
-    #  multiple times per machine
     if (is.numeric(cores)) cores <- rep("localhost", cores)
-    revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
-    st <- system.time({
-      cl <- future::makeClusterPSOCK(unique(cores), revtunnel = revtunnel)
-    })
-    clusterExport(cl, list("logPath"), envir = environment())
+    ## Make cluster with just one worker per machine --> don't need to do these steps
+    #     multiple times per machine, if not all 'localhost'
+    revtunnel <- FALSE
+    if (!identical("localhost", unique(cores))) {
+      revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
-    parallel::clusterEvalQ(
-      cl, {
-        if (!require("reproducible", quietly = TRUE)) install.packages("reproducible") # will do Require too
-        Require::checkPath(dirname(logPath), create = TRUE)
-        message(Sys.info()[["nodename"]])
-        # Use the devtools SHA hashing so it skips if unnecessary
-        # Require::Require("PredictiveEcology/fireSenseUtils@development", dependencies = TRUE)
-        remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
-      }
-    )
-    stopCluster(cl)
+      coresUnique <- setdiff(unique(cores), "localhost")
+      st <- system.time({
+        cl <- future::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
+      })
+      clusterExport(cl, list("logPath"), envir = environment())
+
+      parallel::clusterEvalQ(
+        cl, {
+
+          # Use the binary packages for install if Ubuntu & Linux
+          if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
+            .os.version <- strsplit(system("lsb_release -c", intern = TRUE), ":\t")[[1]][[2]]
+            .user.agent <- paste0(
+              "R/", getRversion(), " R (",
+              paste(getRversion(), R.version["platform"], R.version["arch"], R.version["os"]),
+              ")"
+            )
+            optsNew <- list("repos" = c(CRAN = paste0("https://packagemanager.rstudio.com/all/__linux__/",
+                                                      .os.version, "/latest")),
+                            "HTTPUserAgent" = .user.agent)
+            opts <- options(optsNew)
+            on.exit({
+              options(opts)
+            }, add = TRUE)
+          }
+
+          # If this is first time that packages need to be installed for this user on this machine
+          #   there won't be a folder present that is writeable
+          if (file.access(.libPaths()[1], mode = 2) < 0) {
+            message("The .libPaths()[1] is not writable; trying normal alternatives")
+            RLibPath <- file.path("~", "R", paste0(R.version$platform, "-library"),
+                                  paste0(R.version$major, ".", gsub("\\..+", "", R.version$minor)))
+
+            if (!dir.exists(RLibPath)) {
+              dir.create(RLibPath, recursive = TRUE)
+            }
+          }
+
+          if (!require("Require", quietly = TRUE)) install.packages("Require") # will do Require too
+          message(Sys.info()[["nodename"]])
+          # Use Require with minimum version number as the mechanism for updating; remotes is
+          #    too crazy with installing same package multiple times as recursive packages
+          #    are dealt with
+          if (packageVersion("SpaDES.tools") < "0.3.7") {
+            source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
+            installGitHubPackage("PredictiveEcology/Require@development")
+            installGitHubPackage("PredictiveEcology/SpaDES.tools@development")
+          }
+          Require::checkPath(dirname(logPath), create = TRUE)
+
+          if (!require("igraph"))
+            install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
+          Require::Require(paste0("PredictiveEcology/fireSenseUtils@development (>=",
+                                  packageVersion("fireSenseUtils"),")"), upgrade = FALSE)
+          # Use the devtools SHA hashing so it skips if unnecessary
+          # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
+        }
+      )
+      parallel::stopCluster(cl)
+    }
+
+    ## Now make full cluster with one worker per core listed in "cores"
     st <- system.time({
       cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
     })
@@ -175,24 +224,24 @@ runDEoptim <- function(landscape,
   #####################################################################
   DE <- #Cache(
     DEoptimIterative(itermax = itermax, lower = lower,
-              upper = upper,
-              control = do.call("DEoptim.control", control),
-              FS_formula = FS_formula,
-              covMinMax = covMinMax,
-              # tests = c("mad", "SNLL_FS"),
-              tests = c("SNLL_FS"),
-              maxFireSpread = maxFireSpread,
-              objFunCoresInternal = objFunCoresInternal,
-              Nreps = Nreps,
-              .verbose = .verbose,
-              visualizeDEoptim = visualizeDEoptim,
-              .plotSize = .plotSize,
-              #cachePath = cachePath,
-              iterStep = iterStep,
-              thresh = thresh,
-              #omitArgs = c("verbose")
-  )#,
-              #cacheId = "cd495b412420ad4a") # iteration 201 to 300
+                     upper = upper,
+                     control = do.call("DEoptim.control", control),
+                     FS_formula = FS_formula,
+                     covMinMax = covMinMax,
+                     # tests = c("mad", "SNLL_FS"),
+                     tests = c("SNLL_FS"),
+                     maxFireSpread = maxFireSpread,
+                     objFunCoresInternal = objFunCoresInternal,
+                     Nreps = Nreps,
+                     .verbose = .verbose,
+                     visualizeDEoptim = visualizeDEoptim,
+                     .plotSize = .plotSize,
+                     #cachePath = cachePath,
+                     iterStep = iterStep,
+                     thresh = thresh,
+                     #omitArgs = c("verbose")
+    )#,
+  #cacheId = "cd495b412420ad4a") # iteration 201 to 300
   DE
 }
 
@@ -270,22 +319,24 @@ DEoptimIterative <- function(itermax,
 
     if (TRUE) {
       st1 <- system.time(DE[[iter]] <- #Cache(
-        DEoptimForCache(
-        fireSenseUtils::.objfunSpreadFit,
-        lower = lower,
-        upper = upper,
-        control = controlArgs,
-        FS_formula = FS_formula,
-        covMinMax = covMinMax,
-        tests = c("SNLL_FS"), # c("mad", "SNLL_FS"),
-        maxFireSpread = maxFireSpread,
-        Nreps = Nreps,
-        controlForCache = controlForCache,
-        objFunCoresInternal = objFunCoresInternal,
-        thresh = thresh,
-        verbose = .verbose#,
-        #omitArgs = c("verbose", "control")
-      ))
+                           DEoptimForCache(
+                             fireSenseUtils::.objfunSpreadFit,
+                             lower = lower,
+                             upper = upper,
+                             control = controlArgs,
+                             FS_formula = FS_formula,
+                             covMinMax = covMinMax,
+                             tests = c("SNLL_FS"), # c("mad", "SNLL_FS"),
+                             maxFireSpread = maxFireSpread,
+                             mutuallyExclusive = list("youngAge" = c("vegPC")),
+                             doAssertions = TRUE,
+                             Nreps = Nreps,
+                             controlForCache = controlForCache,
+                             objFunCoresInternal = objFunCoresInternal,
+                             thresh = thresh,
+                             verbose = .verbose#,
+                             #omitArgs = c("verbose", "control")
+                           ))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
@@ -293,13 +344,13 @@ DEoptimIterative <- function(itermax,
       }
 
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-        fn,
-        lower = lower,
-        upper = upper,
-        controlForCache = controlForCache,
-        control = control,
-        omitArgs = c("verbose", "control"),
-        x = x1
+                                             fn,
+                                             lower = lower,
+                                             upper = upper,
+                                             controlForCache = controlForCache,
+                                             control = control,
+                                             omitArgs = c("verbose", "control"),
+                                             x = x1
       ))
     }
 

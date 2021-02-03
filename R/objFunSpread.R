@@ -28,6 +28,18 @@ utils::globalVariables(c(
 #' @param maxFireSpread A value for \code{spreadProb} that is considered impossible to go above.
 #'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
 #' @param minFireSize DESCRIPTION NEEDED
+#' @param mutuallyExclusive If there are any covariates, e.g,. youngAge, that should be
+#'   considered mutually exclusive, i.e., "if youngAge is non-zero, should vegPC2 be set to zero", then
+#'   this can be done here. A named list, where the name of the list element must be a single
+#'   covariate column name in either \code{annualDTx1000} or \code{nonAnnualDTx1000}. The list
+#'   content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
+#'   The values of all column names that match the grep value will be set to \code{0}, whenever
+#'   the name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
+#'   meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
+#'   is non-zero.
+#' @param doAssertions Logical. If \code{TRUE}, the default, the function will test a few minor things
+#'   for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
+#'   take some small amount of time.
 #' @param tests One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
 #'              Default: \code{"mad"}.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
@@ -70,8 +82,10 @@ utils::globalVariables(c(
                              covMinMax = NULL,
                              maxFireSpread = 0.28, # 0.257 makes gigantic fires
                              minFireSize = 2,
-                             tests = "mad",
+                             tests = "snll_fs",
                              Nreps = 10,
+                             mutuallyExclusive = list("youngAge" = c("vegPC")),
+                             doAssertions = TRUE,
                              plot.it = FALSE,
                              objFunCoresInternal = 1,
                              thresh = 550,
@@ -141,25 +155,29 @@ utils::globalVariables(c(
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
-      results <- parallel::mcmapply(
-        mc.cores = min(length(years[yrs]), objFunCoresInternal),
-        mc.preschedule = FALSE,
-        SIMPLIFY = FALSE,
-        # results <- purrr::pmap(
-        annDTx1000 = annualDTx1000[yrs],
-        yr = years[yrs],
-        annualFires = historicalFiresAboveMin[yrs],
-        annualFireBufferedDT = fireBufferedListDT[yrs],
-        MoreArgs = list(
+      results <- parallel::mcmapply(                             # normal
+        mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
+        mc.preschedule = FALSE,                                  # normal
+        SIMPLIFY = FALSE,                                        # normal
+      # results <- purrr::pmap(                        # interactive debugging
+      #  .l = list(                                   # interactive debugging
+          annDTx1000 = annualDTx1000[yrs],
+          yr = years[yrs],
+          annualFires = historicalFiresAboveMin[yrs],
+      #annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
+      annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
+      #    ),                                         # interactive debugging
+        MoreArgs = list(                                         # normal
           par = par, parsModel = parsModel,
           verbose = verbose,
           nonAnnualDTx1000 = nonAnnualDTx1000,
           indexNonAnnual = indexNonAnnual,
           colsToUse = colsToUse,
-          covMinMax = covMinMax
-        ),
-        # .f = function(yr, annDTx1000, par, parsModel,
-        function(yr, annDTx1000, par, parsModel,
+       #   covMinMax = covMinMax,                     # interactive debugging
+          covMinMax = covMinMax                              # normal
+        ),                                                   # normal
+        # .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
+        function(yr, annDTx1000, par, parsModel,             # normal
                  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                  indexNonAnnual, colsToUse, covMinMax,
                  verbose = TRUE) {
@@ -172,11 +190,32 @@ utils::globalVariables(c(
             for (cn in colnames(covMinMax)) {
               set(
                 shortAnnDTx1000, NULL, cn,
-                rescaleKnown(shortAnnDTx1000[[cn]], 0, 1000, covMinMax[[cn]][1], covMinMax[[cn]][2])
+                rescaleKnown2(shortAnnDTx1000[[cn]], 0, 1000,
+                             covMinMax[[cn]][1] * 1000,
+                             covMinMax[[cn]][2] * 1000)
               )
             }
           }
+          if (!is.null(mutuallyExclusive)) {
+            for (cov1 in names(mutuallyExclusive)) {
+              for (grepVal in mutuallyExclusive[[cov1]]) {
+                cns <- grep(grepVal, colnames(shortAnnDTx1000), value = TRUE)
+                whToZero <- which(shortAnnDTx1000[[cov1]] != 0)
+                if (length(whToZero)) {
+                  for (cn in cns) {
+                    set(shortAnnDTx1000, whToZero, cn, 0)
+                  }
+                }
+              }
+            }
+          }
           mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
+          if (doAssertions) {
+            test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
+            test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
+            if (!all(test1, test2))
+              stop("Covariates are not all between 0 and 1, which they should be")
+          }
           # matrix multiplication
           covPars <- tail(x = par, n = parsModel)
           logisticPars <- head(x = par, n = length(par) - parsModel)
@@ -490,4 +529,12 @@ rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
     a2 <- a1
   }
   a2
+}
+
+rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
+  A <- maxOrig - minOrig # range of original
+  b <- maxNew - minNew # range of new
+  z <- b/A # ratio of range size
+  C <- x - minOrig # make it have a new minimum above the minOrig
+  D <- C * z
 }
