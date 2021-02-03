@@ -1,5 +1,5 @@
 globalVariables(c(
-  ".SD", ".SDcols", "year"
+  ".SD", ".SDcols", "..dontWant", "year"
 ))
 
 #' Create PCA data for glm - for fitting and predicting

@@ -47,6 +47,7 @@ Suggests:
     ggplot2,
     knitr,
     lintr,
+    parallel,
     PtProcess,
     Require,
     rgeos,

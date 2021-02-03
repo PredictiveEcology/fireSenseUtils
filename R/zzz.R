@@ -1,4 +1,4 @@
-.onLoad <- function(libname, pkgname) {
-  packageStartupMessage("Using fireSenseUtils version ", packageVersion("fireSenseUtils"))
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage("Using fireSenseUtils version ", utils::packageVersion("fireSenseUtils"))
   invisible()
 }

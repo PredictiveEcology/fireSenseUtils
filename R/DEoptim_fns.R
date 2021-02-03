@@ -58,7 +58,7 @@ utils::globalVariables(c(
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
 #' @importFrom reproducible Cache checkPath
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
-#' @importFrom utils install.packages
+#' @importFrom utils install.packages packageVersion
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
@@ -177,16 +177,16 @@ runDEoptim <- function(landscape,
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
           if (packageVersion("SpaDES.tools") < "0.3.7") {
-            source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
-            installGitHubPackage("PredictiveEcology/Require@development")
-            installGitHubPackage("PredictiveEcology/SpaDES.tools@development")
+            #source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
+            #installGitHubPackage("PredictiveEcology/Require@development")
+            #installGitHubPackage("PredictiveEcology/SpaDES.tools@development")
           }
           Require::checkPath(dirname(logPath), create = TRUE)
 
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
           Require::Require(paste0("PredictiveEcology/fireSenseUtils@development (>=",
-                                  packageVersion("fireSenseUtils"),")"), upgrade = FALSE)
+                                  packageVersion("fireSenseUtils"), ")"), upgrade = FALSE)
           # Use the devtools SHA hashing so it skips if unnecessary
           # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
