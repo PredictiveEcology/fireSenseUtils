@@ -9,16 +9,15 @@ globalVariables(c(
 #' @param lcc data.table of dummified landcover
 #' @param pixelGroupMap pixelGroupMap to join terrain with pixelGroup
 #' @param ageMap a stand age map to assign ages to non-forest LCC used during predict
-#' @param missingLCC Pixels on forested LCC but absent from cohortData will be assigned this LCC.
+#' @param missingLCC LCC class to assign forested pixels absent from cohortData
 #' @param year numeric representing the year represented by cohortData
-#' must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'
 #'
 #' @return a trimmed cohortData with wide-layout and rows for every pixel in lcc
 #'
 #' @export
 #' @importFrom data.table copy dcast set setnafill
 #' @rdname castCohortData
-castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, ageMap = NULL, missingLCC, year) {
+castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, ageMap = NULL, missingLCC, year = NULL) {
 
   #need stand age for predictions but it won't be included in PCAer
   cohortData[, standAge := sum(B * age) / sum(B), .(pixelGroup)] # don't chain with magrittr
@@ -50,7 +49,8 @@ castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, age
   set(cohortData, NULL, 'standAge', NULL)
   #we only care if stand age is young
   #we don't care at all about this during fit as we will reclassify it anyway
-
-  set(cohortData, NULL, 'year', year)
+  if (!is.null(year)) {
+    set(cohortData, NULL, 'year', year)
+  }
   return(cohortData)
 }

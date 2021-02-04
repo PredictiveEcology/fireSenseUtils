@@ -11,7 +11,7 @@ castCohortData(
   lcc,
   ageMap = NULL,
   missingLCC,
-  year
+  year = NULL
 )
 }
 \arguments{
@@ -27,10 +27,9 @@ and \code{sumB}.}
 
 \item{ageMap}{a stand age map to assign ages to non-forest LCC used during predict}
 
-\item{missingLCC}{Pixels on forested LCC but absent from cohortData will be assigned this LCC.}
+\item{missingLCC}{LCC class to assign forested pixels absent from cohortData}
 
-\item{year}{numeric representing the year represented by cohortData
-must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'}
+\item{year}{numeric representing the year represented by cohortData}
 }
 \value{
 a trimmed cohortData with wide-layout and rows for every pixel in lcc
