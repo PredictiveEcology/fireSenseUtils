@@ -15,6 +15,10 @@ castCohortData(
 )
 }
 \arguments{
+\item{cohortData}{A \code{data.table} with columns: \code{pixelGroup}, \code{ecoregionGroup},
+\code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
+and \code{sumB}.}
+
 \item{terrainDT}{optional data table of terrain covariates with pixelIndex}
 
 \item{pixelGroupMap}{pixelGroupMap to join terrain with pixelGroup}
