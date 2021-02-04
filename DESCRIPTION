@@ -33,7 +33,6 @@ Imports:
     pROC,
     purrr,
     raster,
-    remotes,
     reproducible,
     RhpcBLASctl,
     sf,

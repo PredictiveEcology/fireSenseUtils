@@ -197,17 +197,8 @@ utils::globalVariables(c(
             }
           }
           if (!is.null(mutuallyExclusive)) {
-            for (cov1 in names(mutuallyExclusive)) {
-              for (grepVal in mutuallyExclusive[[cov1]]) {
-                cns <- grep(grepVal, colnames(shortAnnDTx1000), value = TRUE)
-                whToZero <- which(shortAnnDTx1000[[cov1]] != 0)
-                if (length(whToZero)) {
-                  for (cn in cns) {
-                    set(shortAnnDTx1000, whToZero, cn, 0)
-                  }
-                }
-              }
-            }
+            shortAnnDTx1000 <- makeMutuallyExclusive(dt = shortAnnDTx1000,
+                                                     mutuallyExclusiveCols = mutuallyExclusive)
           }
           mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
           if (doAssertions) {
