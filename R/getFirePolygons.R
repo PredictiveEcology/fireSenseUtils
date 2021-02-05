@@ -11,6 +11,12 @@
 #' @importFrom raster isLonLat
 #' @importFrom reproducible prepInputs
 getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
+  ## TODO: remove this workaround once ploygonShortcut working correctly
+  RPS <- getOption("reproducible.polygonShortcut")
+  options(reproducible.polygonShortcut = FALSE)
+  on.exit(options(reproducible.polygonShortcut = RPS))
+  ## end workaround
+
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
   firePolys <- prepInputs(url = currentURL,
                           studyArea = studyArea,
