@@ -19,8 +19,8 @@ globalVariables(c(
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom raster getValues nlayers raster stack
 #'
-classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
-                                           sppEquiv, sppEquivCol) {
+cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
+                                 sppEquiv, sppEquivCol) {
 
   cohortData <- copy(cohortData)
   joinCol <- c('FuelClass', eval(sppEquivCol))
