@@ -36,11 +36,11 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
               field = "YEAR", fun = "max") %>%
     setValues(., values = year - getValues(.))
 
-  pixToUpdate <- lcc[nonForest_highFlam > 0 | nonForest_lowFlam > 0,]$pixelID
+  pixToUpdate <- lcc[nonForest_highFlam > 0 | nonForest_lowFlam > 0, ]$pixelID
 
-  falseYoungs <- standAgeMap[][pixToUpdate] <= cutoffForYoungAge
+  falseYoungs <- standAgeMap[pixToUpdate] <= cutoffForYoungAge | is.na(standAgeMap[pixToUpdate])
   trueYoungs <- initialTSD[pixToUpdate] <= cutoffForYoungAge
-  standAgeMap[pixToUpdate[falseYoungs]] <- cutoffForYoungAge
+  standAgeMap[pixToUpdate[falseYoungs]] <- cutoffForYoungAge + 1
   standAgeMap[pixToUpdate[trueYoungs]] <- initialTSD[pixToUpdate[trueYoungs]]
 
   return(standAgeMap)
