@@ -228,22 +228,40 @@ utils::globalVariables(c(
           # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
           # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
           medSP <- median(shortAnnDTx1000$spreadProb, na.rm = TRUE)
+          cells[as.integer(shortAnnDTx1000$pixelID)] <- shortAnnDTx1000$spreadProb
 
-          if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
-            if (verbose) {
+          nonEdgeValues <- cells[cells > (lowerSpreadProb * 1.025) | cells > (logisticPars[1] * 0.99)]
+          sdSP <- diff(quantile(nonEdgeValues, c(0.1, 0.9)))
+
+          medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
+          spreadOutEnough <- sdSP/medSP > 0.03
+          ret <- list()
+          minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
+          loci <- annualFires$cells
+
+          if (verbose) {
+            summ <- summary(nonEdgeValues)
+            if (isTRUE(!spreadOutEnough)) {
               print(paste0(
-                Sys.getpid(), "-- year: ", yr, ", spreadProb raster: median in buffered pixels = ",
-                round(medSP, 3)
+                Sys.getpid(), " not spread out enough; bailing: ",
+                paste(names(summ), round(summ, 3), collapse = ", ")
               ))
             }
-            cells[as.integer(shortAnnDTx1000$pixelID)] <- shortAnnDTx1000$spreadProb
+          }
+
+          if (medSPRight && spreadOutEnough) {
+            if (verbose) {
+              print(paste0(
+                Sys.getpid(), "-- year: ", yr, ", spreadProb value dbn: ",
+                paste(names(summ), round(summ, 3), collapse = ", ")
+              ))
+            }
             # maxSizes <- rep(annualFires$size, times = Nreps)
 
             # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
             # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
-            maxSizes <- multiplier(annualFires$size)
+            maxSizes <- multiplier(annualFires$size, minSize = 500)
             # maxSizes <- annualFires$size * 2
-            loci <- annualFires$cells
             # if (any(cells[loci] == 0)) {
             cells[loci] <- 1
             # }
@@ -265,20 +283,37 @@ utils::globalVariables(c(
                 quick = TRUE
               )
             })
+            if (isTRUE(plot.it)) {
+              par(
+                mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
+                mai = c(0.2, 0.3, 0.4, 0.1)
+              )
+
+              lapply(colnames(mat), function(cn) hist(mat[, cn], main = cn))
+              mtext(side = 3, "Histograms of distribution of rescaled variables", outer = T, line = -1)
+              hist(nonEdgeValues, main = "spreadProb")
+              sam <- sample(NROW(mat), NROW(mat) / 100)
+              val <- mat[sam, ] %*% covPars
+              plot(val, logistic2p(val, logisticPars, par1 = lowerSpreadProb, par4 = 0.5), pch = ".",
+                   main = paste0("logit params: ", paste(round(logisticPars, 3), collapse = ", ")))
+            }
             spreadState <- rbindlist(spreadState, idcol = "rep")
-            ret <- list()
             if (isTRUE(doSNLL_FSTest)) {
               emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
               emp <- emp[annualFires, on = c("initialLocus" = "cells")]
               if (plot.it) {
-                maxX <- log(max(annualFires$size))
-                par(
-                  mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
-                  mai = c(0.2, 0.3, 0.4, 0.1)
-                )
+                maxX <- log(max(c(annualFires$size, emp$N)))
                 emp <- setorderv(emp, c("size"), order = -1L)
-                sam <- c(unique(emp$ids)[1:4],
-                         sample(unique(emp$ids)[-(1:4)], size = 45))
+                numLargest <- 4
+                uniqueEmpIds <- unique(emp$ids)
+                sam <- if (length(uniqueEmpIds) >= (45 - length(par) - 1)) {
+                  try(c(unique(emp$ids)[1:numLargest],
+                               sample(unique(emp$ids)[-(1:numLargest)],
+                                      size = min(length(unique(emp$ids)) - numLargest, 45 - length(par) - 1))))
+                } else {
+                  uniqueEmpIds
+                }
+                if (is(sam, "try-error")) browser()
                 emp[ids %in% sam,
                   {
                     dat <- round(log(N))
@@ -307,7 +342,6 @@ utils::globalVariables(c(
 
               # only use fires that escaped --> i.e., greater than 1 pixel
               emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
-              minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
               set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
               SNLL_FS <- -sum(emp$lik)
               ret <- append(ret, list(SNLL_FS = SNLL_FS))
@@ -424,10 +458,13 @@ utils::globalVariables(c(
               # ), na.rm = TRUE) # Sum of the negative log likelihood
             }
           } else {
-            stop("encountered error with spreadProb - contact module developers")
+            llik <- rep(log(minLik), length(loci))
+            SNLL_FS <- -sum(llik)
+            ret <- append(ret, list(SNLL_FS = SNLL_FS))
+            #stop("encountered error with spreadProb - contact module developers")
             # Ian added this stop. Unclear what is supposed to happen. Object ret doesn't exist
-            SNLL <- 1e7
-            fireSizes <- sample(1:3, 1)
+            #SNLL <- 1e7
+            #fireSizes <- sample(1:3, 1)
           }
 
           return(ret)
