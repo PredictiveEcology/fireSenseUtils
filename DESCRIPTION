@@ -2,7 +2,11 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
+<<<<<<< HEAD
 Date: 2021-02-04
+=======
+Date: 2021-02-02
+>>>>>>> a60d096eded2c3a44d5cf91829e718d23396c997
 Version: 0.0.4.9015
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
@@ -33,7 +37,6 @@ Imports:
     pROC,
     purrr,
     raster,
-    remotes,
     reproducible,
     RhpcBLASctl,
     sf,

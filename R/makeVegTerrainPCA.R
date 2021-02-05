@@ -30,13 +30,16 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
     #year should be present in data
     vegTerrainPCA <- prcomp(dd, center = TRUE, scale. = TRUE, rank = 10)
   } else{
-    #To be tested
-    vegTerrainPCA <- prcomp(object = PCAmodel, newdata = dd)
+    vegTerrainPCA <- predict(object = PCAmodel, newdata = dd)
   }
   # store as Integer
-  vegComponents <- as.data.table(vegTerrainPCA$x)
-
-  #put age and pixelID back in
+  if (is.null(PCAmodel)){
+    vegComponents <- as.data.table(vegTerrainPCA$x)
+  } else {
+    vegComponents <- as.data.table(vegTerrainPCA) #object is a matrix, not prcomp
+    vegTerrainPCA <- NULL # predict only needs the data.table
+  }
+    #put age and pixelID back in
   set(vegComponents, NULL, "pixelID" ,dataForPCA$pixelID)
   set(vegComponents, NULL, "youngAge", dataForPCA$youngAge)
 
