@@ -11,7 +11,8 @@ castCohortData(
   lcc,
   ageMap = NULL,
   missingLCC,
-  year
+  year,
+  cutoffForYoungAge = 15
 )
 }
 \arguments{
@@ -31,6 +32,9 @@ and \code{sumB}.}
 
 \item{year}{numeric representing the year represented by cohortData
 must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'}
+
+\item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
+"young" --> youngAge column will be 1 if age <= 15}
 }
 \value{
 a trimmed cohortData with wide-layout and rows for every pixel in lcc
