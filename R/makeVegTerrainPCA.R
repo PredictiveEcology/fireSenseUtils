@@ -44,6 +44,7 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
   if (!is.null(dataForPCA$year)) {
     vegComponents[, year := dataForPCA$year]
   }
+  vegTerrainPCA$x <- NULL
 
   #put age back in
 
