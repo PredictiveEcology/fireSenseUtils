@@ -167,5 +167,5 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 #'
 #' @export
 multiplier <- function(size, minSize) {
-  round(pmax(3, 14 - log(size)) * size, 0)
+  pmax(minSize, round(pmax(3, 14 - log(size)) * size, 0))
 }
