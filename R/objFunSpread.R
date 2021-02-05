@@ -155,29 +155,29 @@ utils::globalVariables(c(
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
-      results <- parallel::mcmapply(                             # normal
-        mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
-        mc.preschedule = FALSE,                                  # normal
-        SIMPLIFY = FALSE,                                        # normal
-      # results <- purrr::pmap(                        # interactive debugging
-      #  .l = list(                                   # interactive debugging
+      # results <- parallel::mcmapply(                             # normal
+      #   mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
+      #   mc.preschedule = FALSE,                                  # normal
+      #   SIMPLIFY = FALSE,                                        # normal
+       results <- purrr::pmap(                        # interactive debugging
+        .l = list(                                   # interactive debugging
           annDTx1000 = annualDTx1000[yrs],
           yr = years[yrs],
           annualFires = historicalFiresAboveMin[yrs],
-      #annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
-      annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
-      #    ),                                         # interactive debugging
-        MoreArgs = list(                                         # normal
+      annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
+      #annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
+          ),                                         # interactive debugging
+      #  MoreArgs = list(                                         # normal
           par = par, parsModel = parsModel,
           verbose = verbose,
           nonAnnualDTx1000 = nonAnnualDTx1000,
           indexNonAnnual = indexNonAnnual,
           colsToUse = colsToUse,
-       #   covMinMax = covMinMax,                     # interactive debugging
-          covMinMax = covMinMax                              # normal
-        ),                                                   # normal
-        # .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
-        function(yr, annDTx1000, par, parsModel,             # normal
+          covMinMax = covMinMax,                     # interactive debugging
+       #   covMinMax = covMinMax                              # normal
+      #  ),                                                   # normal
+         .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
+        #function(yr, annDTx1000, par, parsModel,             # normal
                  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                  indexNonAnnual, colsToUse, covMinMax,
                  verbose = TRUE) {
@@ -236,11 +236,7 @@ utils::globalVariables(c(
           # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
           # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
           # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
-          medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
-          out <- tryCatch(if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {}, error = function(x) "error")
-          if (identical(out, "error")) {
-            # browser()
-          }
+          medSP <- median(shortAnnDTx1000$spreadProb, na.rm = TRUE)
 
           if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
             if (verbose) {
@@ -254,13 +250,12 @@ utils::globalVariables(c(
 
             # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
             # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
-
             maxSizes <- multiplier(annualFires$size)
             # maxSizes <- annualFires$size * 2
             loci <- annualFires$cells
-            if (any(cells[loci] == 0)) {
-              cells[loci] <- 1
-            }
+            # if (any(cells[loci] == 0)) {
+            cells[loci] <- 1
+            # }
             dups <- duplicated(annualFires$cells)
             if (any(dups)) {
               annualFires <- annualFires[which(!dups), ] #
@@ -285,13 +280,15 @@ utils::globalVariables(c(
               emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
               emp <- emp[annualFires, on = c("initialLocus" = "cells")]
               if (plot.it) {
-                maxX <- log(max(emp$N))
+                maxX <- log(max(annualFires$size))
                 par(
                   mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
                   mai = c(0.2, 0.3, 0.4, 0.1)
                 )
                 emp <- setorderv(emp, c("size"), order = -1L)
-                emp[,
+                sam <- c(unique(emp$ids)[1:4],
+                         sample(unique(emp$ids)[-(1:4)], size = 45))
+                emp[ids %in% sam,
                   {
                     dat <- round(log(N))
                     h <- hist(dat,
@@ -304,12 +301,13 @@ utils::globalVariables(c(
                     axis(1, at = seqq, labels = round(exp(seqq), 0))
                     abline(v = log(size[1]), col = "red")
                   },
-                  by = "initialLocus"
+                  by = "ids"
                 ]
                 mtext(
                   outer = TRUE,
                   paste(
-                    "Fire year:", yr, "; Simulated fire sizes (# pixels); Actual Fire (red);",
+                    "Sample of up to 49 fires (including 4 largest) for fire year:",
+                    yr, "; Simulated fire sizes (# pixels); Actual Fire (red);",
                     "Sorted by actual fire size."
                   ),
                   line = 2, side = 1
@@ -317,8 +315,8 @@ utils::globalVariables(c(
               }
 
               # only use fires that escaped --> i.e., greater than 1 pixel
-              emp <- emp[N > 1, list(lik = EnvStats::demp(x = size[1], obs = N)), by = "initialLocus"]
-              minLik <- 1e-7 # min(emp$lik[emp$lik > 0])
+              emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
+              minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
               set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
               SNLL_FS <- -sum(emp$lik)
               ret <- append(ret, list(SNLL_FS = SNLL_FS))
