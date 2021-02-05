@@ -10,7 +10,8 @@ cohortsToFuelClasses(
   pixelGroupMap,
   flammableMap,
   sppEquiv,
-  sppEquivCol
+  sppEquivCol,
+  cutoffForYoungAge
 )
 }
 \arguments{
@@ -32,6 +33,8 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \code{data("sppEquivalencies_CA", "LandR")}.}
 
 \item{sppEquivCol}{the column name to use from \code{sppEquiv}.}
+
+\item{cutoffForYoungAge}{age at and below which pixels are considered 'young'}
 }
 \value{
 a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}

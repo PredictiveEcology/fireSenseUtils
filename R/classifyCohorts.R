@@ -11,6 +11,7 @@ globalVariables(c(
 #' @template sppEquivCol
 #' @param yearCohort the year the \code{cohortData} represents
 #' @param flammableMap  binary map of flammable pixels - see \code{LandR::defineFlammable}
+#' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #'
 #' @return a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
 #'
@@ -20,7 +21,7 @@ globalVariables(c(
 #' @importFrom raster getValues nlayers raster stack
 #'
 cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
-                                 sppEquiv, sppEquivCol) {
+                                 sppEquiv, sppEquivCol, cutoffForYoungAge) {
 
   cohortData <- copy(cohortData)
   joinCol <- c('FuelClass', eval(sppEquivCol))
@@ -29,7 +30,7 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
   #data.table needs an argument for which column names are kept during join
   setnames(cohortData, 'FuelClass', 'burnClass')
-  cohortData[age < 15, burnClass := "class1"]
+  cohortData[age <= cutoffForYoungAge, burnClass := "class1"]
   if (!"totalBiomass" %in% names(cohortData))
     cohortData[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
 
