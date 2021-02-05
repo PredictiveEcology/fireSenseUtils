@@ -4,7 +4,13 @@
 \alias{calcYoungAge}
 \title{Iteratively calculate \code{youngAge} column  in FS covariates}
 \usage{
-calcYoungAge(years, annualCovariates, standAgeMap, fireBufferedListDT)
+calcYoungAge(
+  years,
+  annualCovariates,
+  standAgeMap,
+  fireBufferedListDT,
+  cutoffForYoungAge = 15
+)
 }
 \arguments{
 \item{years}{the years over which to iterate}
@@ -14,6 +20,9 @@ calcYoungAge(years, annualCovariates, standAgeMap, fireBufferedListDT)
 \item{standAgeMap}{template raster}
 
 \item{fireBufferedListDT}{data.table containing non-annual burn and buffer pixelIDs}
+
+\item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
+"young" --> youngAge column will be 1 if age <= 15}
 }
 \value{
 a raster layer with unified standAge and time-since-disturbance values
