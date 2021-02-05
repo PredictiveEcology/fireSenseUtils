@@ -174,7 +174,7 @@ utils::globalVariables(c(
           indexNonAnnual = indexNonAnnual,
           colsToUse = colsToUse,
           covMinMax = covMinMax,                     # interactive debugging
-       #   covMinMax = covMinMax                              # normal
+      #    covMinMax = covMinMax                              # normal
       #  ),                                                   # normal
          .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
         #function(yr, annDTx1000, par, parsModel,             # normal

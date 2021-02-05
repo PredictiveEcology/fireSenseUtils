@@ -7,26 +7,27 @@ knitr::opts_chunk$set(
   eval = FALSE ## TODO: temporary until I can rework this vignette to actually run
 )
 
-library(reproducible)
-Require(c("magrittr", "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
-          "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
-
-options(reproducible.useCache = FALSE) # Turn off caching
-
-moduleDir <- checkPath(file.path(tempdir(), "modules"), create = TRUE)
-outputDir <- checkPath(file.path(tempdir(), "outputs"), create = TRUE)
-
-setPaths(
-  modulePath = moduleDir,
-  outputPath = outputDir
-)
-
-## TODO: download modules to moduleDir -- use git or downloadModule() ???
-
-normalizeRaster <- function(x) { ## TODO: use pemisc version
-  # Normalize raster values
-  (x - minValue(x)) / (maxValue(x) - minValue(x))
-}
+## ----init---------------------------------------------------------------------
+#  library(Require)
+#  Require(c("magrittr", "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
+#            "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
+#  
+#  options(reproducible.useCache = FALSE) # Turn off caching
+#  
+#  moduleDir <- checkPath(file.path(tempdir(), "modules"), create = TRUE)
+#  outputDir <- checkPath(file.path(tempdir(), "outputs"), create = TRUE)
+#  
+#  setPaths(
+#    modulePath = moduleDir,
+#    outputPath = outputDir
+#  )
+#  
+#  ## TODO: download modules to moduleDir -- use git or downloadModule() ???
+#  
+#  normalizeRaster <- function(x) { ## TODO: use pemisc version
+#    # Normalize raster values
+#    (x - minValue(x)) / (maxValue(x) - minValue(x))
+#  }
 
 ## ----create_data, message=FALSE-----------------------------------------------
 #  # Create a raster template describing the study area
