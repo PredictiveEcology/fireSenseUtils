@@ -137,7 +137,8 @@ runDEoptim <- function(landscape,
       st <- system.time({
         cl <- future::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
       })
-      clusterExport(cl, list("logPath"), envir = environment())
+      packageVersionFSU <- packageVersion("fireSenseUtils")
+      clusterExport(cl, list("logPath", "packageVersionFSU"), envir = environment())
 
       parallel::clusterEvalQ(
         cl, {
@@ -186,7 +187,7 @@ runDEoptim <- function(landscape,
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
           Require::Require(paste0("PredictiveEcology/fireSenseUtils@development (>=",
-                                  packageVersion("fireSenseUtils"), ")"), upgrade = FALSE)
+                                  packageVersionFSU, ")"), upgrade = FALSE)
           # Use the devtools SHA hashing so it skips if unnecessary
           # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
