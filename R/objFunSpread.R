@@ -217,6 +217,7 @@ utils::globalVariables(c(
             )
           }
           if (length(logisticPars) == 4) {
+            stop("logistic with 4 parameters not tested yet")
             set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
           } else if (length(logisticPars) == 3) {
             set(shortAnnDTx1000, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
