@@ -501,7 +501,7 @@ utils::globalVariables(c(
           historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
           simulatedFires <- unlist(results$fireSizes)
           adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
-          if (!is(adTest, "try-error")) {
+          if (is(adTest, "try-error")) {
             adTest <- 1e5L
           }
           adTest <- adTest * 50
