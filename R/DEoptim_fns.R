@@ -196,6 +196,7 @@ runDEoptim <- function(landscape,
     }
 
     ## Now make full cluster with one worker per core listed in "cores"
+    message("Starting main parallel cluster ...")
     st <- system.time({
       cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
     })
@@ -203,7 +204,9 @@ runDEoptim <- function(landscape,
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
             paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads")
-    clusterExport(cl, objsNeeded, envir = environment())
+    message("Moving objects to each node in cluster")
+    stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
+    message("it took ", round(stMoveObjects[3],2), "s to move objects to nodes")
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
     parallel::clusterEvalQ(
       cl, {
@@ -228,7 +231,7 @@ runDEoptim <- function(landscape,
                      FS_formula = FS_formula,
                      covMinMax = covMinMax,
                      # tests = c("mad", "SNLL_FS"),
-                     tests = c("SNLL_FS"),
+                     tests = c("SNLL_FS", "adtest"),
                      maxFireSpread = maxFireSpread,
                      objFunCoresInternal = objFunCoresInternal,
                      Nreps = Nreps,
