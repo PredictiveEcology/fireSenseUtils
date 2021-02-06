@@ -294,8 +294,8 @@ utils::globalVariables(c(
               hist(nonEdgeValues, main = "spreadProb")
               sam <- sample(NROW(mat), NROW(mat) / 100)
               val <- mat[sam, ] %*% covPars
-              plot(val, logistic2p(val, logisticPars, par1 = lowerSpreadProb, par4 = 0.5), pch = ".",
-                   main = paste0("logit params: ", paste(round(logisticPars, 3), collapse = ", ")))
+              plot(val, shortAnnDTx1000$spreadProb[sam], pch = ".",
+                   main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", ")))
             }
             spreadState <- rbindlist(spreadState, idcol = "rep")
             if (isTRUE(doSNLL_FSTest)) {
@@ -347,7 +347,7 @@ utils::globalVariables(c(
               ret <- append(ret, list(SNLL_FS = SNLL_FS))
             }
 
-            if (isTRUE(doMADTest)) {
+            if (isTRUE(doMADTest) || isTRUE(doADTest)) {
               fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0) # Here tabulate() is equivalent to table() but faster
               ret <- append(ret, list(fireSizes = fireSizes))
             }
@@ -494,11 +494,14 @@ utils::globalVariables(c(
         # }
       }
       if (isTRUE(doADTest)) {
-        historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
-        simulatedFires <- unlist(results$fireSizes)
-        adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
-        objFunRes <- objFunRes + adTest #+ SNLLTest
-        mess <- paste(mess, " adTest:", adTest, "; ")
+        if (ii == 2) {
+          historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
+          simulatedFires <- unlist(results$fireSizes)
+          adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
+          adTest <- adTest * 50
+          objFunRes <- objFunRes + adTest #+ SNLLTest
+          mess <- paste(mess, " adTest:", adTest, "; ")
+        }
       }
       if (isTRUE(doSNLL_FSTest)) {
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 1)
@@ -510,7 +513,7 @@ utils::globalVariables(c(
           mess <- paste("SNLL threshold:", threshold, "; ", "SNLL_FSTestOrig:", SNLL_FSTestOrig, "; ")
         }
         mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
-        objFunRes <- SNLL_FSTest #+ SNLL_FSTest
+        objFunRes <- objFunRes + SNLL_FSTest #+ SNLL_FSTest
         objFunResList[ii] <- list(list(objFunRes = objFunRes)) # , nFires = NROW(a)))
         print(Sys.time())
         print(paste0("  ", Sys.getpid(), mess))
