@@ -232,6 +232,7 @@ utils::globalVariables(c(
 
           nonEdgeValues <- cells[cells > (lowerSpreadProb * 1.025) | cells > (logisticPars[1] * 0.99)]
           sdSP <- diff(quantile(nonEdgeValues, c(0.1, 0.9)))
+          if (is.na(sdSP)) sdSP <- 0
 
           medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
           spreadOutEnough <- sdSP/medSP > 0.03
@@ -249,6 +250,8 @@ utils::globalVariables(c(
             }
           }
 
+          #att <- try(if (medSPRight && spreadOutEnough) { "hi" })
+          #if (is(att, "try-error")) browser()
           if (medSPRight && spreadOutEnough) {
             if (verbose) {
               print(paste0(
@@ -498,6 +501,9 @@ utils::globalVariables(c(
           historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
           simulatedFires <- unlist(results$fireSizes)
           adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
+          if (!is(adTest, "try-error")) {
+            adTest <- 1e5L
+          }
           adTest <- adTest * 50
           objFunRes <- objFunRes + adTest #+ SNLLTest
           mess <- paste(mess, " adTest:", adTest, "; ")
