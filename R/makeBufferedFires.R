@@ -37,7 +37,7 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 #' @export
 #' @importFrom purrr pmap
 #' @rdname bufferToArea
-bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
+bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
                               verb = FALSE, polyName = NULL, field = NULL,
                               minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- names(poly)
@@ -71,7 +71,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
 #' @importFrom fasterize fasterize
 #' @importFrom sf st_as_sf st_crs st_transform
 #' @rdname bufferToArea
-bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
+bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 10,
                                          verb = FALSE, polyName = NULL, field = NULL,
                                          minSize = 500, cores = 1, ...) {
 
@@ -166,6 +166,6 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 #' @param minSize DESCRIPTION NEEDED
 #'
 #' @export
-multiplier <- function(size, minSize) {
-  pmax(minSize, round(pmax(3, 14 - log(size)) * size, 0))
+multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
+  pmax(minSize, round(pmax(baseMultiplier, 14 - log(size)) * size, 0))
 }
