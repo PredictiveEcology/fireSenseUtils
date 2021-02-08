@@ -71,6 +71,7 @@ runDEoptim <- function(landscape,
                        strategy,
                        cores = NULL,
                        logPath,
+                       doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                        cachePath,
                        iterStep = 25,
                        lower,
@@ -196,6 +197,7 @@ runDEoptim <- function(landscape,
     }
 
     ## Now make full cluster with one worker per core listed in "cores"
+    message("Starting main parallel cluster ...")
     st <- system.time({
       cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
     })
@@ -203,7 +205,9 @@ runDEoptim <- function(landscape,
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
             paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads")
-    clusterExport(cl, objsNeeded, envir = environment())
+    message("Moving objects to each node in cluster")
+    stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
+    message("it took ", round(stMoveObjects[3],2), "s to move objects to nodes")
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
     parallel::clusterEvalQ(
       cl, {
@@ -228,11 +232,12 @@ runDEoptim <- function(landscape,
                      FS_formula = FS_formula,
                      covMinMax = covMinMax,
                      # tests = c("mad", "SNLL_FS"),
-                     tests = c("SNLL_FS"),
+                     tests = c("SNLL_FS", "adtest"),
                      maxFireSpread = maxFireSpread,
                      objFunCoresInternal = objFunCoresInternal,
                      Nreps = Nreps,
                      .verbose = .verbose,
+                     doObjFunAssertions = doObjFunAssertions,
                      visualizeDEoptim = visualizeDEoptim,
                      .plotSize = .plotSize,
                      #cachePath = cachePath,
@@ -299,6 +304,7 @@ DEoptimIterative <- function(itermax,
                              Nreps,
                              visualizeDEoptim,
                              cachePath,
+                             doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                              iterStep = 25,
                              thresh = 550,
                              .verbose,
@@ -325,10 +331,10 @@ DEoptimIterative <- function(itermax,
                              control = controlArgs,
                              FS_formula = FS_formula,
                              covMinMax = covMinMax,
-                             tests = c("SNLL_FS"), # c("mad", "SNLL_FS"),
+                             tests = tests,
                              maxFireSpread = maxFireSpread,
                              mutuallyExclusive = list("youngAge" = c("vegPC")),
-                             doAssertions = TRUE,
+                             doAssertions = doObjFunAssertions,
                              Nreps = Nreps,
                              controlForCache = controlForCache,
                              objFunCoresInternal = objFunCoresInternal,

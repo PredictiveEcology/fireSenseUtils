@@ -217,6 +217,7 @@ utils::globalVariables(c(
             )
           }
           if (length(logisticPars) == 4) {
+            stop("logistic with 4 parameters not tested yet")
             set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
           } else if (length(logisticPars) == 3) {
             set(shortAnnDTx1000, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
@@ -232,6 +233,7 @@ utils::globalVariables(c(
 
           nonEdgeValues <- cells[cells > (lowerSpreadProb * 1.025) | cells > (logisticPars[1] * 0.99)]
           sdSP <- diff(quantile(nonEdgeValues, c(0.1, 0.9)))
+          if (is.na(sdSP)) sdSP <- 0
 
           medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
           spreadOutEnough <- sdSP/medSP > 0.03
@@ -249,6 +251,8 @@ utils::globalVariables(c(
             }
           }
 
+          #att <- try(if (medSPRight && spreadOutEnough) { "hi" })
+          #if (is(att, "try-error")) browser()
           if (medSPRight && spreadOutEnough) {
             if (verbose) {
               print(paste0(
@@ -260,7 +264,16 @@ utils::globalVariables(c(
 
             # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
             # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
-            maxSizes <- multiplier(annualFires$size, minSize = 500)
+            setDT(annualFireBufferedDT)
+            minSize <- 4000
+            if (doAssertions) {
+              tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
+              minSizes <- tableOfBufferedMaps$numAvailPixels
+              minSize <- quantile(minSizes, 0.3)
+              if (minSize < 2000)
+                warning("The fireSizeBufferDT has too many fires < 2000 burned + unburned pixels; needs larger buffers")
+            }
+            maxSizes <- fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
             # maxSizes <- annualFires$size * 2
             # if (any(cells[loci] == 0)) {
             cells[loci] <- 1
@@ -275,7 +288,7 @@ utils::globalVariables(c(
             spreadState <- lapply(seq_len(Nreps), function(i) {
               SpaDES.tools::spread(
                 landscape = r,
-                maxSize = maxSizes,
+                # maxSize = maxSizes,
                 loci = loci,
                 spreadProb = cells,
                 returnIndices = TRUE,
@@ -294,15 +307,16 @@ utils::globalVariables(c(
               hist(nonEdgeValues, main = "spreadProb")
               sam <- sample(NROW(mat), NROW(mat) / 100)
               val <- mat[sam, ] %*% covPars
-              plot(val, logistic2p(val, logisticPars, par1 = lowerSpreadProb, par4 = 0.5), pch = ".",
-                   main = paste0("logit params: ", paste(round(logisticPars, 3), collapse = ", ")))
+              plot(val, shortAnnDTx1000$spreadProb[sam], pch = ".",
+                   main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", ")))
             }
             spreadState <- rbindlist(spreadState, idcol = "rep")
             if (isTRUE(doSNLL_FSTest)) {
               emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
               emp <- emp[annualFires, on = c("initialLocus" = "cells")]
               if (plot.it) {
-                maxX <- log(max(c(annualFires$size, emp$N)))
+                emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL]
+                maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
                 emp <- setorderv(emp, c("size"), order = -1L)
                 numLargest <- 4
                 uniqueEmpIds <- unique(emp$ids)
@@ -326,14 +340,15 @@ utils::globalVariables(c(
                     seqq <- seq(0, ceiling(maxX), by = 1)
                     axis(1, at = seqq, labels = round(exp(seqq), 0))
                     abline(v = log(size[1]), col = "red")
+                    abline(v = log(unique(numAvailPixels)), col = "green")
                   },
                   by = "ids"
                 ]
                 mtext(
                   outer = TRUE,
                   paste(
-                    "Sample of up to 49 fires (including 4 largest) for fire year:",
-                    yr, "; Simulated fire sizes (# pixels); Actual Fire (red);",
+                    yr, "; sample of fires (incl. 4 largest)",
+                    "; Simulated fire sizes (# pixels); Actual Fire (red); Available pixels to burn (green - should be well right of hist bars) ; ",
                     "Sorted by actual fire size."
                   ),
                   line = 2, side = 1
@@ -347,14 +362,13 @@ utils::globalVariables(c(
               ret <- append(ret, list(SNLL_FS = SNLL_FS))
             }
 
-            if (isTRUE(doMADTest)) {
+            if (isTRUE(doMADTest) || isTRUE(doADTest)) {
               fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0) # Here tabulate() is equivalent to table() but faster
               ret <- append(ret, list(fireSizes = fireSizes))
             }
             if (isTRUE(doSNLLTest)) {
               burnedProb <- spreadState[, .N, by = "indices"]
               setnames(burnedProb, "indices", "pixelID")
-              setDT(annualFireBufferedDT)
               out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
 
               # fix the out
@@ -494,11 +508,17 @@ utils::globalVariables(c(
         # }
       }
       if (isTRUE(doADTest)) {
-        historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
-        simulatedFires <- unlist(results$fireSizes)
-        adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
-        objFunRes <- objFunRes + adTest #+ SNLLTest
-        mess <- paste(mess, " adTest:", adTest, "; ")
+        if (ii == 2) {
+          historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
+          simulatedFires <- unlist(results$fireSizes)
+          adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
+          if (is(adTest, "try-error")) {
+            adTest <- 1e5L
+          }
+          adTest <- adTest * 50
+          objFunRes <- objFunRes + adTest #+ SNLLTest
+          mess <- paste(mess, " adTest:", adTest, "; ")
+        }
       }
       if (isTRUE(doSNLL_FSTest)) {
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 1)
@@ -510,7 +530,7 @@ utils::globalVariables(c(
           mess <- paste("SNLL threshold:", threshold, "; ", "SNLL_FSTestOrig:", SNLL_FSTestOrig, "; ")
         }
         mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
-        objFunRes <- SNLL_FSTest #+ SNLL_FSTest
+        objFunRes <- objFunRes + SNLL_FSTest #+ SNLL_FSTest
         objFunResList[ii] <- list(list(objFunRes = objFunRes)) # , nFires = NROW(a)))
         print(Sys.time())
         print(paste0("  ", Sys.getpid(), mess))
