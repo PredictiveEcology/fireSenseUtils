@@ -117,8 +117,6 @@ runDEoptim <- function(landscape,
                      "historicalFires")
 
   if (!is.null(cores)) {
-    message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
-                               collapse = ", "), " clusters")
     logPath <- file.path(logPath,
                          paste0("fireSense_SpreadFit_", format(Sys.time(), "%Y-%m-%d_%H%M%S"),
                                 "_pid", Sys.getpid(), ".log"))
@@ -133,9 +131,11 @@ runDEoptim <- function(landscape,
     #     multiple times per machine, if not all 'localhost'
     revtunnel <- FALSE
     if (!identical("localhost", unique(cores))) {
+
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
       coresUnique <- setdiff(unique(cores), "localhost")
+      message("Making sure packages with sufficient versions installed and loaded on: ", paste(coresUnique, collapse = ", "))
       st <- system.time({
         cl <- future::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
       })
@@ -197,26 +197,60 @@ runDEoptim <- function(landscape,
     }
 
     ## Now make full cluster with one worker per core listed in "cores"
+    message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
+                               collapse = ", "), " clusters")
     message("Starting main parallel cluster ...")
-    st <- system.time({
+    st <- system.time(
       cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
-    })
+    )
 
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
             paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads")
     message("Moving objects to each node in cluster")
-    stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
+
+    stMoveObjects <- try({
+      system.time({
+        objsToCopy <- mget(unlist(objsNeeded))
+        filenameForTransfer <- tempfile(fileext = ".qs")#"/tmp/objsToCopy.qs"
+        Require::checkPath(dirname(filenameForTransfer), create = TRUE) # during development, this was deleted accidentally
+        qs::qsave(objsToCopy, file = filenameForTransfer)
+        stExport <- system.time(outExp <- clusterExport(cl, varlist = "filenameForTransfer", envir = environment()))
+        out11 <- clusterEvalQ(cl, {
+          Require::checkPath(dirname(filenameForTransfer), create = TRUE)
+        })
+        out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
+          st1 <- system.time(system(paste0("rsync -a ",filenameForTransfer," ", ip, ":", filenameForTransfer)))
+        })
+        out <- clusterEvalQ(cl, {
+          out <- qs::qread(file = filenameForTransfer)
+          list2env(out, envir = .GlobalEnv)
+        })
+        # Delete the file
+        out <- clusterEvalQ(cl, {
+          if (dir.exists(dirname(filenameForTransfer)))
+            try(unlink(dirname(filenameForTransfer), recursive = TRUE), silent = TRUE)
+        })
+      })
+    })
+
+    if (is(stMoveObjects, "try-error")) {
+      message("The attempt to move objects to cluster using rsync and qs failed; trying clusterExport")
+      stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
+      list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
+    }
     message("it took ", round(stMoveObjects[3],2), "s to move objects to nodes")
-    list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
-    parallel::clusterEvalQ(
+    message("loading packages in cluster nodes")
+    stPackages <- system.time(parallel::clusterEvalQ(
       cl, {
         for (i in c("kSamples", "magrittr", "raster", "data.table",
                     "SpaDES.tools", "fireSenseUtils"))
           library(i, character.only = TRUE)
         message('loading ', i, ' at ', Sys.time())
       }
-    )
+    ))
+    message("it took ", round(stPackages[3],2), "s to load packages")
+
     control$cluster <- cl
   } else {
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
