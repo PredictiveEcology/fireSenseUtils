@@ -21,7 +21,7 @@ bufferToArea(
 \method{bufferToArea}{list}(
   poly,
   rasterToMatch,
-  areaMultiplier = 1,
+  areaMultiplier = 10,
   verb = FALSE,
   polyName = NULL,
   field = NULL,
@@ -33,7 +33,7 @@ bufferToArea(
 \method{bufferToArea}{SpatialPolygons}(
   poly,
   rasterToMatch,
-  areaMultiplier = 1,
+  areaMultiplier = 10,
   verb = FALSE,
   polyName = NULL,
   field = NULL,
