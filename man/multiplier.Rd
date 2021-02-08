@@ -10,6 +10,8 @@ multiplier(size, minSize = 1000, baseMultiplier = 5)
 \item{size}{DESCRIPTION NEEDED}
 
 \item{minSize}{DESCRIPTION NEEDED}
+
+\item{baseMultiplier}{DESCRIPTION NEEDED}
 }
 \description{
 DESCRIPTION NEEDED

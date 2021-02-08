@@ -30,6 +30,7 @@ utils::globalVariables(c(
 #' @param logPath A character string indicating what file to write logs to. This
 #'   \code{dirname(logPath)} must exist on each machine, though the function will make sure it
 #'   does internally.
+#' @param doObjFunAssertions logical indicating whether to do assertions.
 #' @param cachePath The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}
 #' @param iterStep Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
 #'   the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
@@ -143,7 +144,6 @@ runDEoptim <- function(landscape,
 
       parallel::clusterEvalQ(
         cl, {
-
           # Use the binary packages for install if Ubuntu & Linux
           if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
             .os.version <- strsplit(system("lsb_release -c", intern = TRUE), ":\t")[[1]][[2]]

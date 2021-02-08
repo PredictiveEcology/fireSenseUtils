@@ -91,6 +91,8 @@ the length of the vector indicates how many cores should be used on that machine
 \code{dirname(logPath)} must exist on each machine, though the function will make sure it
 does internally.}
 
+\item{doObjFunAssertions}{logical indicating whether to do assertions.}
+
 \item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
 
 \item{iterStep}{Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
