@@ -17,7 +17,7 @@ globalVariables(c(
 #' @importFrom fasterize fasterize
 #' @importFrom magrittr %>%
 #' @importFrom raster getValues raster setValues
-#' @importFrom sf st_collection_extract
+#' @importFrom sf st_as_sf st_collection_extract
 makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
   ## TODO: Make this work with lcc values that aren't hardcoded ie line 33
   ## get particular fire polys in format that can be fasterized

@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N",
+  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N", "numAvailPixels",
   "pixelID", "prob", "simFireSize", "size", "spreadProb"
 ))
 
@@ -271,7 +271,8 @@ utils::globalVariables(c(
               minSizes <- tableOfBufferedMaps$numAvailPixels
               minSize <- quantile(minSizes, 0.3)
               if (minSize < 2000)
-                warning("The fireSizeBufferDT has too many fires < 2000 burned + unburned pixels; needs larger buffers")
+                warning("The fireSizeBufferDT has too many fires < 2000 burned + unburned pixels;",
+                        " needs larger buffers.")
             }
             maxSizes <- fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
             # maxSizes <- annualFires$size * 2
