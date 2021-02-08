@@ -8,10 +8,10 @@
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
-#' @importFrom raster isLonLat
+#' @importFrom raster crs isLonLat
 #' @importFrom reproducible prepInputs
 getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
-  ## TODO: remove this workaround once ploygonShortcut working correctly
+  ## TODO: remove this workaround once polygonShortcut working correctly
   RPS <- getOption("reproducible.polygonShortcut")
   options(reproducible.polygonShortcut = FALSE)
   on.exit(options(reproducible.polygonShortcut = RPS))
@@ -24,6 +24,8 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
                           destinationPath = destinationPath,
                           useCache = useInnerCache) #this object will cache several gigabytes of cached for a small object
 
+  stopifnot(identical(crs(firePolys), crs(studyArea)))
+
   firePolys$YEAR <- as.numeric(firePolys$YEAR) #why is it character?
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys){
     firePoly <- polys[polys$YEAR == x,]
@@ -31,7 +33,7 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
       if (isLonLat(firePoly)) {
         stop("please use a study area that is projected in metres")
       }
-    firePoly$POLY_HA <- round(rgeos::gArea(firePoly, byid = TRUE)/1e4, digits = 2)
+    firePoly$POLY_HA <- round(rgeos::gArea(firePoly, byid = TRUE) / 1e4, digits = 2)
     firePoly <- firePoly[!duplicated(firePoly$FIRE_ID),]
     return(firePoly)
     } else {
