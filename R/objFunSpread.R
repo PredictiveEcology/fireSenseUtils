@@ -264,7 +264,16 @@ utils::globalVariables(c(
 
             # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
             # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
-            maxSizes <- multiplier(annualFires$size, minSize = 500)
+            setDT(annualFireBufferedDT)
+            minSize <- 4000
+            if (doAssertions) {
+              tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
+              minSizes <- tableOfBufferedMaps$numAvailPixels
+              minSize <- quantile(minSizes, 0.3)
+              if (minSize < 2000)
+                warning("The fireSizeBufferDT has too many fires < 2000 burned + unburned pixels; needs larger buffers")
+            }
+            maxSizes <- fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
             # maxSizes <- annualFires$size * 2
             # if (any(cells[loci] == 0)) {
             cells[loci] <- 1
@@ -279,7 +288,7 @@ utils::globalVariables(c(
             spreadState <- lapply(seq_len(Nreps), function(i) {
               SpaDES.tools::spread(
                 landscape = r,
-                maxSize = maxSizes,
+                # maxSize = maxSizes,
                 loci = loci,
                 spreadProb = cells,
                 returnIndices = TRUE,
@@ -306,7 +315,8 @@ utils::globalVariables(c(
               emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
               emp <- emp[annualFires, on = c("initialLocus" = "cells")]
               if (plot.it) {
-                maxX <- log(max(c(annualFires$size, emp$N)))
+                emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL]
+                maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
                 emp <- setorderv(emp, c("size"), order = -1L)
                 numLargest <- 4
                 uniqueEmpIds <- unique(emp$ids)
@@ -330,14 +340,15 @@ utils::globalVariables(c(
                     seqq <- seq(0, ceiling(maxX), by = 1)
                     axis(1, at = seqq, labels = round(exp(seqq), 0))
                     abline(v = log(size[1]), col = "red")
+                    abline(v = log(unique(numAvailPixels)), col = "green")
                   },
                   by = "ids"
                 ]
                 mtext(
                   outer = TRUE,
                   paste(
-                    "Sample of up to 49 fires (including 4 largest) for fire year:",
-                    yr, "; Simulated fire sizes (# pixels); Actual Fire (red);",
+                    yr, "; sample of fires (incl. 4 largest)",
+                    "; Simulated fire sizes (# pixels); Actual Fire (red); Available pixels to burn (green - should be well right of hist bars) ; ",
                     "Sorted by actual fire size."
                   ),
                   line = 2, side = 1
@@ -358,7 +369,6 @@ utils::globalVariables(c(
             if (isTRUE(doSNLLTest)) {
               burnedProb <- spreadState[, .N, by = "indices"]
               setnames(burnedProb, "indices", "pixelID")
-              setDT(annualFireBufferedDT)
               out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
 
               # fix the out
