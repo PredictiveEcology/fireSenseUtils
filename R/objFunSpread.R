@@ -266,7 +266,7 @@ utils::globalVariables(c(
             # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
             setDT(annualFireBufferedDT)
             minSize <- 4000
-            if (doAssertions) {
+            if (doAssertions || plot.it) {
               tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
               minSizes <- tableOfBufferedMaps$numAvailPixels
               minSize <- quantile(minSizes, 0.3)
