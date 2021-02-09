@@ -67,9 +67,9 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
     ras <- rasterizeReduced(reduced = cohortDataub, fullRaster = pixelGroupMap,
                             newRasterCols = "LeaderValue",
                             mapcode = "pixelGroup")
-    #need to make sure fuel class is 0 and not NA if absent entirely
+    #fuel class is 0 and not NA if absent entirely
     #to prevent NAs following aggregation to 25 km pixels
-    ras[!is.na(flammableMap[]) & flammableMap[] == 1 & is.na(ras[])] <- 0
+    ras[!is.na(flammableMap[]) & is.na(ras[])] <- 0
     return(ras)
   })
 
