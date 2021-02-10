@@ -22,10 +22,9 @@ globalVariables(c(
 #'
 cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge) {
-
   cohortData <- copy(cohortData)
   joinCol <- c('FuelClass', eval(sppEquivCol))
-  sppEquivSubset <- sppEquiv[, .SD, .SDcols = joinCol]
+  sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
 
   cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
   #data.table needs an argument for which column names are kept during join
