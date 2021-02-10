@@ -61,6 +61,8 @@ utils::globalVariables(c(
 #'   number, then the .objFunSpredFit will bail because it is "too burny" a landscape.
 #'   Default = \code{0.265}, meaning if only 25% of the pixels on the landscape are below
 #'   this spreadProb, then it will bail.
+#' @param weighted Logical. Should empirical likelihood be weighted by log of the actual fire size? This
+#'   will give large fires more influence on the SNLL.
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return
@@ -98,6 +100,7 @@ utils::globalVariables(c(
                              objFunCoresInternal = 1,
                              lanscape1stQuantileThresh = 0.265,
                              thresh = 550,
+                             weighted = TRUE,
                              # bufferedRealHistoricalFiresList,
                              verbose = TRUE) { # fireSense_SpreadFitRaster
   # Optimization's objective function
@@ -164,20 +167,19 @@ utils::globalVariables(c(
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
-      results <- mapply(
-        #results <- parallel::mcmapply(                             # normal
+      # results <- parallel::mcmapply(                             # normal
         # mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
         #mc.preschedule = FALSE,                                  # normal
-        SIMPLIFY = FALSE,                                        # normal
-        # results <- purrr::pmap(                        # interactive debugging
-        #  .l = list(                                   # interactive debugging
+        #SIMPLIFY = FALSE,                                        # normal
+         results <- purrr::pmap(                        # interactive debugging
+          .l = list(                                   # interactive debugging
         annDTx1000 = annualDTx1000[yrs],
         yr = years[yrs],
         annualFires = historicalFiresAboveMin[yrs],
-        #annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
-        annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
-        #    ),                                         # interactive debugging
-        MoreArgs = list(                                         # normal
+        annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
+        # annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
+           ),                                         # interactive debugging
+        #MoreArgs = list(                                         # normal
           par = par, parsModel = parsModel,
           verbose = verbose,
           nonAnnualDTx1000 = nonAnnualDTx1000,
@@ -190,15 +192,15 @@ utils::globalVariables(c(
           lanscape1stQuantileThresh = lanscape1stQuantileThresh,
           Nreps = Nreps,
           plot.it = plot.it,
-          r = r,
+          r = r, weighted = weighted,
           doSNLL_FSTest = doSNLL_FSTest,
           doMADTest = doMADTest, doADTest = doADTest,
           cells = cells,
-          #    covMinMax = covMinMax,                     # interactive debugging
-          covMinMax = covMinMax                              # normal
-        ),                                                   # normal
-        #   .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
-        objFunInner#(yr, annDTx1000, par, parsModel,             # normal
+              covMinMax = covMinMax,                     # interactive debugging
+          #covMinMax = covMinMax                              # normal
+        #),                                                   # normal
+           .f = objFunInner                              # interactive debugging
+        #objFunInner#(yr, annDTx1000, par, parsModel,             # normal
                   #  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                   #  indexNonAnnual, colsToUse, covMinMax,
                   #  verbose = TRUE)
@@ -240,19 +242,27 @@ utils::globalVariables(c(
         }
       }
       if (isTRUE(doSNLL_FSTest)) {
-        SNLL_FSTest <- round(sum(unlist(results$SNLL)), 1)
+        thresh <- round(thresh, 0)
+        SNLL_FSTest <- round(sum(unlist(results$SNLL)), 0)
         failVal <- 1e5L
-        threshold <- thresh * length(results$SNLL_FS) ## lower is _more_ restrictive; too high takes too long
+        numYrsDone <- length(results$SNLL_FS)
+        threshold <- thresh * numYrsDone ## lower is _more_ restrictive; too high takes too long
+        mess <- character()
+        annualSNLL <- round(SNLL_FSTest/numYrsDone, 0)
         if (SNLL_FSTest > threshold && ii == 1) {
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal
-          mess <- paste("SNLL threshold:", threshold, "; ", "SNLL_FSTestOrig:", SNLL_FSTestOrig, "; ")
+          mess <- paste0(" Fail! Bailing after ",numYrsDone," yrs; SNLL threshold: ", thresh, "; ",
+                         "Avg annual SNLL: ", annualSNLL, "; ")
+        } else {
+          if (ii == 1)
+            mess <- paste0(" Decent in 1st ",numYrsDone," years -- continuing. ", mess, " SNLL threshold: ", thresh, ", Avg annual: ",
+                         annualSNLL, "; ")
         }
-        mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
         objFunRes <- objFunRes + SNLL_FSTest #+ SNLL_FSTest
         objFunResList[ii] <- list(list(objFunRes = objFunRes)) # , nFires = NROW(a)))
-        print(Sys.time())
-        print(paste0("  ", Sys.getpid(), mess))
+        if (length(mess) > 0)
+          print(paste0("  ", Sys.getpid(), mess))
         if (SNLL_FSTest == failVal && ii == 1) {
           break
         }
@@ -278,8 +288,9 @@ utils::globalVariables(c(
   }
   if (isTRUE(doSNLL_FSTest)) {
     objFunRes <- sum(unlist(bb$objFunRes))
-    mess <- paste(" SNLL_FSTest total:", objFunRes, "; ", mess)
   }
+  if (length(objFunResList) > 1)
+    print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; SNLL Final: ", round(objFunRes, 0)))
   ## Figure out what we want from these.
   ## This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
@@ -307,6 +318,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
                         annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                         indexNonAnnual, colsToUse, covMinMax, mutuallyExclusive,
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
+                        weighted,
                         r, Nreps,doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = TRUE) {
   # needed because data.table objects were recovered from disk
@@ -364,7 +376,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
   if (is.na(sdSP)) sdSP <- 0
 
   medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
-  spreadOutEnough <- sdSP/medSP > 0.03
+  spreadOutEnough <- sdSP/medSP > 0.025
   ret <- list()
   minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
   loci <- annualFires$cells
@@ -373,14 +385,14 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
 
   if (verbose) {
     if (isTRUE(!spreadOutEnough)) {
-      print(paste0(
-        Sys.getpid(), " not spread out enough; bailing: ",
+      print(paste0("  ",
+        Sys.getpid(), " FAIL! ",yr,"; Not spread out enough; bailing: ",
         paste(names(summ), round(summ, 3), collapse = ", ")
       ))
     }
     if (isTRUE(!lowSPLowEnough)) {
-      print(paste0(
-        Sys.getpid(), " too burny a landscape; bailing: ",
+      print(paste0("  ",
+        Sys.getpid(), " FAIL! ",yr,"; Too burny a landscape; bailing: ",
         paste(names(summ), round(summ, 3), collapse = ", ")
       ))
     }
@@ -390,8 +402,9 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
   #if (is(att, "try-error")) browser()
   if (medSPRight && spreadOutEnough && lowSPLowEnough) {
     if (verbose) {
-      print(paste0(
-        Sys.getpid(), "-- year: ", yr, ", spreadProb value dbn: ",
+      ww <- if (isTRUE(weighted)) "weighted" else "unweighted"
+      print(paste0("    ",
+        Sys.getpid(), ": ", yr, ", ",ww,", spreadProbs: ",
         paste(names(summ), round(summ, 3), collapse = ", ")
       ))
     }
@@ -494,10 +507,14 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
 
       # only use fires that escaped --> i.e., greater than 1 pixel
       #print(quantile(emp$size))
-      #browser()
-      emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N))), by = "ids"]
-      #emp3 <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
-      set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
+      emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = sqrt(N))), by = "ids"]
+      # emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
+      if (isTRUE(weighted)) {
+        set(emp, NULL, "lik", log(pmax(minLik, emp$lik * log(emp$size))))
+      } else {
+        set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
+      }
+
       #set(emp3, NULL, "lik", log(pmax(minLik, emp3$lik)))
       SNLL_FS <- -sum(emp$lik)
       #SNLL_FS3 <- -sum(emp3$lik)
@@ -545,7 +562,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
 
         thisFire <- annualFires[ids == keepFire]
 
-        r <- raster(landscape)
+        r <- raster(r)
         r[out$pixelID] <- out$prob
 
         predictedFireProb <- crop(r, ex)
