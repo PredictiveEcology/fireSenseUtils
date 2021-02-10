@@ -140,7 +140,8 @@ runDEoptim <- function(landscape,
         cl <- future::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
       })
       packageVersionFSU <- packageVersion("fireSenseUtils")
-      clusterExport(cl, list("logPath", "packageVersionFSU"), envir = environment())
+      packageVersionST <- packageVersion("SpaDES.tools")
+      clusterExport(cl, list("logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
 
       parallel::clusterEvalQ(
         cl, {
@@ -178,17 +179,21 @@ runDEoptim <- function(landscape,
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          if (packageVersion("SpaDES.tools") < "0.3.7") {
-            #source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
+          #if (packageVersion("SpaDES.tools") < "0.3.7.9001") {
+           # source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
             #installGitHubPackage("PredictiveEcology/Require@development")
-            #installGitHubPackage("PredictiveEcology/SpaDES.tools@development")
-          }
+#            installGitHubPackage("PredictiveEcology/SpaDES.tools@fasterSpread")
+ #         }
+          # Require::Require("dqrng")
           Require::checkPath(dirname(logPath), create = TRUE)
 
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
-          Require::Require(paste0("PredictiveEcology/fireSenseUtils@development (>=",
-                                  packageVersionFSU, ")"), upgrade = FALSE)
+          Require::Require(
+            c("dqrng",
+              paste0("PredictiveEcology/SpaDES.tools@fasterSpread (>=",packageVersionST,")"),
+              paste0("PredictiveEcology/fireSenseUtils@development (>=",packageVersionFSU, ")")),
+            upgrade = FALSE)
           # Use the devtools SHA hashing so it skips if unnecessary
           # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
