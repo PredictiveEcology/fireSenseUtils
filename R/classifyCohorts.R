@@ -11,6 +11,7 @@ globalVariables(c(
 #' @template sppEquivCol
 #' @param yearCohort the year the \code{cohortData} represents
 #' @param flammableMap  binary map of flammable pixels - see \code{LandR::defineFlammable}
+#' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #'
 #' @return a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
 #'
@@ -19,8 +20,8 @@ globalVariables(c(
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom raster getValues nlayers raster stack
 #'
-classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
-                                           sppEquiv, sppEquivCol) {
+cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
+                                 sppEquiv, sppEquivCol, cutoffForYoungAge) {
 
   cohortData <- copy(cohortData)
   joinCol <- c('FuelClass', eval(sppEquivCol))
@@ -29,7 +30,7 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
   cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
   #data.table needs an argument for which column names are kept during join
   setnames(cohortData, 'FuelClass', 'burnClass')
-  cohortData[age < 15, burnClass := "class1"]
+  cohortData[age <= cutoffForYoungAge, burnClass := "class1"]
   if (!"totalBiomass" %in% names(cohortData))
     cohortData[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
 
@@ -66,9 +67,9 @@ classifyCohortsFireSenseSpread <- function(cohortData, yearCohort, pixelGroupMap
     ras <- rasterizeReduced(reduced = cohortDataub, fullRaster = pixelGroupMap,
                             newRasterCols = "LeaderValue",
                             mapcode = "pixelGroup")
-    #need to make sure fuel class is 0 and not NA if absent entirely
+    #fuel class is 0 and not NA if absent entirely
     #to prevent NAs following aggregation to 25 km pixels
-    ras[!is.na(flammableMap[]) & flammableMap[] == 1 & is.na(ras[])] <- 0
+    ras[!is.na(flammableMap[]) & is.na(ras[])] <- 0
     return(ras)
   })
 

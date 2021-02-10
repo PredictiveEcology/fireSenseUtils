@@ -32,6 +32,7 @@ utils::globalVariables(c(
 #' @param logPath A character string indicating what file to write logs to. This
 #'   \code{dirname(logPath)} must exist on each machine, though the function will make sure it
 #'   does internally.
+#' @param doObjFunAssertions logical indicating whether to do assertions.
 #' @param cachePath The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}
 #' @param iterStep Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
 #'   the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
@@ -73,6 +74,7 @@ runDEoptim <- function(landscape,
                        strategy,
                        cores = NULL,
                        logPath,
+                       doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                        cachePath,
                        iterStep = 25,
                        lower,
@@ -117,8 +119,6 @@ runDEoptim <- function(landscape,
                      "historicalFires")
 
   if (!is.null(cores)) {
-    message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
-                               collapse = ", "), " clusters")
     logPath <- file.path(logPath,
                          paste0("fireSense_SpreadFit_", format(Sys.time(), "%Y-%m-%d_%H%M%S"),
                                 "_pid", Sys.getpid(), ".log"))
@@ -133,17 +133,20 @@ runDEoptim <- function(landscape,
     #     multiple times per machine, if not all 'localhost'
     revtunnel <- FALSE
     if (!identical("localhost", unique(cores))) {
+
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
       coresUnique <- setdiff(unique(cores), "localhost")
+      message("Making sure packages with sufficient versions installed and loaded on: ", paste(coresUnique, collapse = ", "))
       st <- system.time({
         cl <- future::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
       })
-      clusterExport(cl, list("logPath"), envir = environment())
+      packageVersionFSU <- packageVersion("fireSenseUtils")
+      packageVersionST <- packageVersion("SpaDES.tools")
+      clusterExport(cl, list("logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
 
       parallel::clusterEvalQ(
         cl, {
-
           # Use the binary packages for install if Ubuntu & Linux
           if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
             .os.version <- strsplit(system("lsb_release -c", intern = TRUE), ":\t")[[1]][[2]]
@@ -178,17 +181,21 @@ runDEoptim <- function(landscape,
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          if (packageVersion("SpaDES.tools") < "0.3.7") {
-            #source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
+          #if (packageVersion("SpaDES.tools") < "0.3.7.9001") {
+           # source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
             #installGitHubPackage("PredictiveEcology/Require@development")
-            #installGitHubPackage("PredictiveEcology/SpaDES.tools@development")
-          }
+#            installGitHubPackage("PredictiveEcology/SpaDES.tools@fasterSpread")
+ #         }
+          # Require::Require("dqrng")
           Require::checkPath(dirname(logPath), create = TRUE)
 
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
-          Require::Require(paste0("PredictiveEcology/fireSenseUtils@development (>=",
-                                  packageVersion("fireSenseUtils"), ")"), upgrade = FALSE)
+          Require::Require(
+            c("dqrng",
+              paste0("PredictiveEcology/SpaDES.tools@fasterSpread (>=",packageVersionST,")"),
+              paste0("PredictiveEcology/fireSenseUtils@development (>=",packageVersionFSU, ")")),
+            upgrade = FALSE)
           # Use the devtools SHA hashing so it skips if unnecessary
           # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
@@ -197,23 +204,60 @@ runDEoptim <- function(landscape,
     }
 
     ## Now make full cluster with one worker per core listed in "cores"
-    st <- system.time({
+    message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
+                               collapse = ", "), " clusters")
+    message("Starting main parallel cluster ...")
+    st <- system.time(
       cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
-    })
+    )
 
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
             paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads")
-    clusterExport(cl, objsNeeded, envir = environment())
-    list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
-    parallel::clusterEvalQ(
+    message("Moving objects to each node in cluster")
+
+    stMoveObjects <- try({
+      system.time({
+        objsToCopy <- mget(unlist(objsNeeded))
+        filenameForTransfer <- tempfile(fileext = ".qs")#"/tmp/objsToCopy.qs"
+        Require::checkPath(dirname(filenameForTransfer), create = TRUE) # during development, this was deleted accidentally
+        qs::qsave(objsToCopy, file = filenameForTransfer)
+        stExport <- system.time(outExp <- clusterExport(cl, varlist = "filenameForTransfer", envir = environment()))
+        out11 <- clusterEvalQ(cl, {
+          Require::checkPath(dirname(filenameForTransfer), create = TRUE)
+        })
+        out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
+          st1 <- system.time(system(paste0("rsync -a ",filenameForTransfer," ", ip, ":", filenameForTransfer)))
+        })
+        out <- clusterEvalQ(cl, {
+          out <- qs::qread(file = filenameForTransfer)
+          list2env(out, envir = .GlobalEnv)
+        })
+        # Delete the file
+        out <- clusterEvalQ(cl, {
+          if (dir.exists(dirname(filenameForTransfer)))
+            try(unlink(dirname(filenameForTransfer), recursive = TRUE), silent = TRUE)
+        })
+      })
+    })
+
+    if (is(stMoveObjects, "try-error")) {
+      message("The attempt to move objects to cluster using rsync and qs failed; trying clusterExport")
+      stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
+      list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
+    }
+    message("it took ", round(stMoveObjects[3],2), "s to move objects to nodes")
+    message("loading packages in cluster nodes")
+    stPackages <- system.time(parallel::clusterEvalQ(
       cl, {
         for (i in c("kSamples", "magrittr", "raster", "data.table",
                     "SpaDES.tools", "fireSenseUtils"))
           library(i, character.only = TRUE)
         message('loading ', i, ' at ', Sys.time())
       }
-    )
+    ))
+    message("it took ", round(stPackages[3],2), "s to load packages")
+
     control$cluster <- cl
   } else {
     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
@@ -229,11 +273,12 @@ runDEoptim <- function(landscape,
                      FS_formula = FS_formula,
                      covMinMax = covMinMax,
                      # tests = c("mad", "SNLL_FS"),
-                     tests = c("SNLL_FS"),
+                     tests = c("SNLL_FS", "adtest"),
                      maxFireSpread = maxFireSpread,
                      objFunCoresInternal = objFunCoresInternal,
                      Nreps = Nreps,
                      .verbose = .verbose,
+                     doObjFunAssertions = doObjFunAssertions,
                      visualizeDEoptim = visualizeDEoptim,
                      .plotSize = .plotSize,
                      #cachePath = cachePath,
@@ -300,6 +345,7 @@ DEoptimIterative <- function(itermax,
                              Nreps,
                              visualizeDEoptim,
                              cachePath,
+                             doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                              iterStep = 25,
                              thresh = 550,
                              .verbose,
@@ -326,10 +372,10 @@ DEoptimIterative <- function(itermax,
                              control = controlArgs,
                              FS_formula = FS_formula,
                              covMinMax = covMinMax,
-                             tests = c("SNLL_FS"), # c("mad", "SNLL_FS"),
+                             tests = tests,
                              maxFireSpread = maxFireSpread,
                              mutuallyExclusive = list("youngAge" = c("vegPC")),
-                             doAssertions = TRUE,
+                             doAssertions = doObjFunAssertions,
                              Nreps = Nreps,
                              controlForCache = controlForCache,
                              objFunCoresInternal = objFunCoresInternal,

@@ -9,19 +9,26 @@ globalVariables(c(
 #' @param lcc data.table of dummified landcover
 #' @param pixelGroupMap pixelGroupMap to join terrain with pixelGroup
 #' @param ageMap a stand age map to assign ages to non-forest LCC used during predict
-#' @param missingLCC Pixels on forested LCC but absent from cohortData will be assigned this LCC.
+#' @param missingLCC LCC class to assign forested pixels absent from cohortData
+#'   must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'
 #' @param year numeric representing the year represented by cohortData
-#' must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'
+#' @param cutoffForYoungAge Numeric. Default is 15. This is the age below which the pixel is considered
+#'   "young" --> youngAge column will be 1 if age <= 15
 #'
 #' @return a trimmed cohortData with wide-layout and rows for every pixel in lcc
 #'
 #' @export
 #' @importFrom data.table copy dcast set setnafill
 #' @rdname castCohortData
-castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, ageMap = NULL, missingLCC, year) {
+castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, ageMap = NULL,
+                           missingLCC, year = NULL,
+                           cutoffForYoungAge = 15) {
 
   #need stand age for predictions but it won't be included in PCAer
-  cohortData[, standAge := sum(B * age) / sum(B), .(pixelGroup)] # don't chain with magrittr
+  # cohortData[, standAge := sum(B * age) / sum(B), .(pixelGroup)] # don't chain with magrittr
+  #     Eliot removed the above line because it caused NAs to occur wherever there was sum(B) == 0
+  #           We also don't want biomass-weighted stand age here, I believe. This should be "time since disturbance"
+  cohortData[, standAge := max(age, na.rm = TRUE), .(pixelGroup)] # don't chain with magrittr
   cohortData <- dcast(cohortData, pixelGroup + standAge ~ speciesCode, value.var = c("B"), fill = 0)
 
   cohortDataLong <- data.table('pixelID' = 1:ncell(pixelGroupMap), 'pixelGroup' = getValues(pixelGroupMap))
@@ -46,11 +53,13 @@ castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, age
                                                                   c('pixelGroup', colnames(terrainDT))])
   }
 
-  cohortData[, youngAge := ifelse(standAge <= 15, 1, 0)]
+  set(cohortData, NULL, "youngAge", as.integer(cohortData$standAge <= cutoffForYoungAge))
+  # cohortData[, youngAge := ifelse(cohortData$standAge <= cutoffForYoungAge, 1, 0)]
   set(cohortData, NULL, 'standAge', NULL)
   #we only care if stand age is young
   #we don't care at all about this during fit as we will reclassify it anyway
-
-  set(cohortData, NULL, 'year', year)
+  if (!is.null(year)) {
+    set(cohortData, NULL, 'year', year)
+  }
   return(cohortData)
 }

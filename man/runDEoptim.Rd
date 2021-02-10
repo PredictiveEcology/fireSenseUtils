@@ -18,6 +18,7 @@ runDEoptim(
   strategy,
   cores = NULL,
   logPath,
+  doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
   cachePath,
   iterStep = 25,
   lower,
@@ -47,6 +48,7 @@ DEoptimIterative(
   Nreps,
   visualizeDEoptim,
   cachePath,
+  doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
   iterStep = 25,
   thresh = 550,
   .verbose,
@@ -90,6 +92,8 @@ the length of the vector indicates how many cores should be used on that machine
 \item{logPath}{A character string indicating what file to write logs to. This
 \code{dirname(logPath)} must exist on each machine, though the function will make sure it
 does internally.}
+
+\item{doObjFunAssertions}{logical indicating whether to do assertions.}
 
 \item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
 

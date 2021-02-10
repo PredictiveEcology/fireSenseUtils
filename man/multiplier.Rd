@@ -4,12 +4,14 @@
 \alias{multiplier}
 \title{multiplier}
 \usage{
-multiplier(size, minSize)
+multiplier(size, minSize = 1000, baseMultiplier = 5)
 }
 \arguments{
 \item{size}{DESCRIPTION NEEDED}
 
 \item{minSize}{DESCRIPTION NEEDED}
+
+\item{baseMultiplier}{DESCRIPTION NEEDED}
 }
 \description{
 DESCRIPTION NEEDED

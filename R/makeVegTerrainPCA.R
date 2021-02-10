@@ -20,7 +20,6 @@ globalVariables(c(
 makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
                               dontAlter = c("TPI", "HLI", "nonForest_highFlam", "nonForest_lowFlam"),
                               dontWant = c("pixelGroup", "pixelID", "year", "youngAge")) {
-
   # Log the species data
   doModify <- setdiff(colnames(dataForPCA), c(dontWant, dontAlter))
   dataForPCA[, (doModify) := lapply(.SD, function(x) log(x + 1)), .SDcols = doModify]
@@ -30,22 +29,25 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
     #year should be present in data
     vegTerrainPCA <- prcomp(dd, center = TRUE, scale. = TRUE, rank = 10)
   } else{
-    #To be tested
-    vegTerrainPCA <- prcomp(object = PCAmodel, newdata = dd)
+    vegTerrainPCA <- predict(object = PCAmodel, newdata = dd)
   }
   # store as Integer
-  vegComponents <- as.data.table(vegTerrainPCA$x)
-
-  #put age and pixelID back in
+  if (is.null(PCAmodel)) {
+    vegComponents <- as.data.table(vegTerrainPCA$x)
+  } else {
+    vegComponents <- as.data.table(vegTerrainPCA) #object is a matrix, not prcomp
+    vegTerrainPCA <- NULL # predict only needs the data.table
+  }
+    #put age and pixelID back in
   set(vegComponents, NULL, "pixelID" ,dataForPCA$pixelID)
   set(vegComponents, NULL, "youngAge", dataForPCA$youngAge)
 
-  #put year in if present (ie during fitting)
+  #put year in if present (i.e., during fitting)
   if (!is.null(dataForPCA$year)) {
     vegComponents[, year := dataForPCA$year]
   }
+  vegTerrainPCA$x <- NULL ## remove data from PCA object
 
   #put age back in
-
   return(list("vegComponents" = vegComponents, "vegTerrainPCA" = vegTerrainPCA))
 }

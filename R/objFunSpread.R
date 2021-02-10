@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N",
+  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N", "numAvailPixels",
   "pixelID", "prob", "simFireSize", "size", "spreadProb"
 ))
 
@@ -56,6 +56,11 @@ utils::globalVariables(c(
 #'   Lowering the threshold value will be more restrictive, but being too restrictive will result
 #'   in DEoptim rejecting more tests and using the "fail value" of 10000.
 #'   Too high a threshold, and more years will be run and it will take longer to find values.
+#' @param lanscape1stQuantileThresh A spreadProb value that represents a threshold for the
+#'   1st quantile of the spreadProbs on the landscape; if that quantile is above this
+#'   number, then the .objFunSpredFit will bail because it is "too burny" a landscape.
+#'   Default = \code{0.265}, meaning if only 25% of the pixels on the landscape are below
+#'   this spreadProb, then it will bail.
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return DESCRIPTION NEEDED
@@ -88,6 +93,7 @@ utils::globalVariables(c(
                              doAssertions = TRUE,
                              plot.it = FALSE,
                              objFunCoresInternal = 1,
+                             lanscape1stQuantileThresh = 0.265,
                              thresh = 550,
                              # bufferedRealHistoricalFiresList,
                              verbose = TRUE) { # fireSense_SpreadFitRaster
@@ -155,29 +161,29 @@ utils::globalVariables(c(
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
-      results <- parallel::mcmapply(                             # normal
-        mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
-        mc.preschedule = FALSE,                                  # normal
-        SIMPLIFY = FALSE,                                        # normal
-      # results <- purrr::pmap(                        # interactive debugging
-      #  .l = list(                                   # interactive debugging
+      # results <- parallel::mcmapply(                             # normal
+      #   mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
+      #   mc.preschedule = FALSE,                                  # normal
+      #   SIMPLIFY = FALSE,                                        # normal
+       results <- purrr::pmap(                        # interactive debugging
+        .l = list(                                   # interactive debugging
           annDTx1000 = annualDTx1000[yrs],
           yr = years[yrs],
           annualFires = historicalFiresAboveMin[yrs],
-      #annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
-      annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
-      #    ),                                         # interactive debugging
-        MoreArgs = list(                                         # normal
+      annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
+      #annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
+          ),                                         # interactive debugging
+      #  MoreArgs = list(                                         # normal
           par = par, parsModel = parsModel,
           verbose = verbose,
           nonAnnualDTx1000 = nonAnnualDTx1000,
           indexNonAnnual = indexNonAnnual,
           colsToUse = colsToUse,
-       #   covMinMax = covMinMax,                     # interactive debugging
-          covMinMax = covMinMax                              # normal
-        ),                                                   # normal
-        # .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
-        function(yr, annDTx1000, par, parsModel,             # normal
+          covMinMax = covMinMax,                     # interactive debugging
+      #    covMinMax = covMinMax                              # normal
+      #  ),                                                   # normal
+         .f = function(yr, annDTx1000, par, parsModel, # interactive debugging
+        #function(yr, annDTx1000, par, parsModel,             # normal
                  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                  indexNonAnnual, colsToUse, covMinMax,
                  verbose = TRUE) {
@@ -197,17 +203,8 @@ utils::globalVariables(c(
             }
           }
           if (!is.null(mutuallyExclusive)) {
-            for (cov1 in names(mutuallyExclusive)) {
-              for (grepVal in mutuallyExclusive[[cov1]]) {
-                cns <- grep(grepVal, colnames(shortAnnDTx1000), value = TRUE)
-                whToZero <- which(shortAnnDTx1000[[cov1]] != 0)
-                if (length(whToZero)) {
-                  for (cn in cns) {
-                    set(shortAnnDTx1000, whToZero, cn, 0)
-                  }
-                }
-              }
-            }
+            shortAnnDTx1000 <- makeMutuallyExclusive(dt = shortAnnDTx1000,
+                                                     mutuallyExclusiveCols = mutuallyExclusive)
           }
           mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
           if (doAssertions) {
@@ -226,6 +223,7 @@ utils::globalVariables(c(
             )
           }
           if (length(logisticPars) == 4) {
+            stop("logistic with 4 parameters not tested yet")
             set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
           } else if (length(logisticPars) == 3) {
             set(shortAnnDTx1000, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
@@ -236,31 +234,64 @@ utils::globalVariables(c(
           # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
           # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
           # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
-          medSP <- median(shortAnnDTx1000[, mean(spreadProb, na.rm = TRUE)], na.rm = TRUE)
-          out <- tryCatch(if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {}, error = function(x) "error")
-          if (identical(out, "error")) {
-            # browser()
-          }
+          medSP <- median(shortAnnDTx1000$spreadProb, na.rm = TRUE)
+          cells[as.integer(shortAnnDTx1000$pixelID)] <- shortAnnDTx1000$spreadProb
 
-          if (medSP <= maxFireSpread & medSP >= lowerSpreadProb) {
-            if (verbose) {
+          nonEdgeValues <- cells[cells > (lowerSpreadProb * 1.025) | cells > (logisticPars[1] * 0.99)]
+          sdSP <- diff(quantile(nonEdgeValues, c(0.1, 0.9)))
+          if (is.na(sdSP)) sdSP <- 0
+
+          medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
+          spreadOutEnough <- sdSP/medSP > 0.03
+          ret <- list()
+          minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
+          loci <- annualFires$cells
+          summ <- summary(nonEdgeValues)
+          lowSPLowEnough <- summ[2] < lanscape1stQuantileThresh
+
+          if (verbose) {
+            if (isTRUE(!spreadOutEnough)) {
               print(paste0(
-                Sys.getpid(), "-- year: ", yr, ", spreadProb raster: median in buffered pixels = ",
-                round(medSP, 3)
+                Sys.getpid(), " not spread out enough; bailing: ",
+                paste(names(summ), round(summ, 3), collapse = ", ")
               ))
             }
-            cells[as.integer(shortAnnDTx1000$pixelID)] <- shortAnnDTx1000$spreadProb
+            if (isTRUE(!lowSPLowEnough)) {
+              print(paste0(
+                Sys.getpid(), " too burny a landscape; bailing: ",
+                paste(names(summ), round(summ, 3), collapse = ", ")
+              ))
+            }
+          }
+
+          #att <- try(if (medSPRight && spreadOutEnough) { "hi" })
+          #if (is(att, "try-error")) browser()
+          if (medSPRight && spreadOutEnough && lowSPLowEnough) {
+            if (verbose) {
+              print(paste0(
+                Sys.getpid(), "-- year: ", yr, ", spreadProb value dbn: ",
+                paste(names(summ), round(summ, 3), collapse = ", ")
+              ))
+            }
             # maxSizes <- rep(annualFires$size, times = Nreps)
 
             # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
             # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
-
-            maxSizes <- multiplier(annualFires$size)
-            # maxSizes <- annualFires$size * 2
-            loci <- annualFires$cells
-            if (any(cells[loci] == 0)) {
-              cells[loci] <- 1
+            setDT(annualFireBufferedDT)
+            minSize <- 4000
+            if (doAssertions || plot.it) {
+              tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
+              minSizes <- tableOfBufferedMaps$numAvailPixels
+              minSize <- quantile(minSizes, 0.3)
+              if (minSize < 2000)
+                warning("The fireSizeBufferDT has too many fires < 2000 burned + unburned pixels;",
+                        " needs larger buffers.")
             }
+            maxSizes <- fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
+            # maxSizes <- annualFires$size * 2
+            # if (any(cells[loci] == 0)) {
+            cells[loci] <- 1
+            # }
             dups <- duplicated(annualFires$cells)
             if (any(dups)) {
               annualFires <- annualFires[which(!dups), ] #
@@ -271,7 +302,7 @@ utils::globalVariables(c(
             spreadState <- lapply(seq_len(Nreps), function(i) {
               SpaDES.tools::spread(
                 landscape = r,
-                maxSize = maxSizes,
+                # maxSize = maxSizes,
                 loci = loci,
                 spreadProb = cells,
                 returnIndices = TRUE,
@@ -279,37 +310,60 @@ utils::globalVariables(c(
                 quick = TRUE
               )
             })
+            if (isTRUE(plot.it)) {
+              par(
+                mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
+                mai = c(0.2, 0.3, 0.4, 0.1)
+              )
+
+              lapply(colnames(mat), function(cn) hist(mat[, cn], main = cn))
+              mtext(side = 3, "Histograms of distribution of rescaled variables", outer = T, line = -1)
+              hist(nonEdgeValues, main = "spreadProb")
+              sam <- sample(NROW(mat), NROW(mat) / 100)
+              val <- mat[sam, ] %*% covPars
+              plot(val, shortAnnDTx1000$spreadProb[sam], pch = ".",
+                   main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", ")))
+            }
             spreadState <- rbindlist(spreadState, idcol = "rep")
-            ret <- list()
             if (isTRUE(doSNLL_FSTest)) {
               emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
               emp <- emp[annualFires, on = c("initialLocus" = "cells")]
               if (plot.it) {
-                maxX <- log(max(emp$N))
-                par(
-                  mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
-                  mai = c(0.2, 0.3, 0.4, 0.1)
-                )
+                emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL]
+                maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
                 emp <- setorderv(emp, c("size"), order = -1L)
-                emp[,
-                  {
-                    dat <- round(log(N))
-                    h <- hist(dat,
-                      breaks = 30,
-                      main = paste(as.character(.BY)),
-                      # main = "",
-                      axes = FALSE, xlim = c(0, maxX)
-                    )
-                    seqq <- seq(0, ceiling(maxX), by = 1)
-                    axis(1, at = seqq, labels = round(exp(seqq), 0))
-                    abline(v = log(size[1]), col = "red")
-                  },
-                  by = "initialLocus"
+                numLargest <- 4
+                numHists <- 49 - numLargest - length(par) - 12 - 1 # 12 for rasters
+                uniqueEmpIds <- unique(emp$ids)
+                sam <- if (length(uniqueEmpIds) >= (numHists)) {
+                  try(c(unique(emp$ids)[1:numLargest],
+                        sample(unique(emp$ids)[-(1:numLargest)],
+                               size = min(length(unique(emp$ids)) - numLargest, numHists))))
+                } else {
+                  uniqueEmpIds
+                }
+                if (is(sam, "try-error")) browser()
+                emp[ids %in% sam,
+                    {
+                      dat <- round(log(N))
+                      h <- hist(dat,
+                                breaks = 30,
+                                main = paste(as.character(.BY)),
+                                # main = "",
+                                axes = FALSE, xlim = c(0, maxX)
+                      )
+                      seqq <- seq(0, ceiling(maxX), by = 1)
+                      axis(1, at = seqq, labels = round(exp(seqq), 0))
+                      abline(v = log(size[1]), col = "red")
+                      abline(v = log(unique(numAvailPixels)), col = "green")
+                    },
+                    by = "ids"
                 ]
                 mtext(
                   outer = TRUE,
                   paste(
-                    "Fire year:", yr, "; Simulated fire sizes (# pixels); Actual Fire (red);",
+                    yr, "; sample of fires (incl. 4 largest)",
+                    "; Simulated fire sizes (# pixels); Actual Fire (red); Available pixels to burn (green - should be well right of hist bars) ; ",
                     "Sorted by actual fire size."
                   ),
                   line = 2, side = 1
@@ -317,21 +371,26 @@ utils::globalVariables(c(
               }
 
               # only use fires that escaped --> i.e., greater than 1 pixel
-              emp <- emp[N > 1, list(lik = EnvStats::demp(x = size[1], obs = N)), by = "initialLocus"]
-              minLik <- 1e-7 # min(emp$lik[emp$lik > 0])
+              #print(quantile(emp$size))
+              #browser()
+              emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N))), by = "ids"]
+              #emp3 <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
               set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
+              #set(emp3, NULL, "lik", log(pmax(minLik, emp3$lik)))
               SNLL_FS <- -sum(emp$lik)
+              #SNLL_FS3 <- -sum(emp3$lik)
+              #print(paste0("Sqrt: ", round(SNLL_FS, 0), ", Normal: ", round(SNLL_FS3, 0)))
               ret <- append(ret, list(SNLL_FS = SNLL_FS))
             }
 
-            if (isTRUE(doMADTest)) {
+            if (isTRUE(doMADTest) || isTRUE(doADTest)) {
               fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0) # Here tabulate() is equivalent to table() but faster
               ret <- append(ret, list(fireSizes = fireSizes))
             }
-            if (isTRUE(doSNLLTest)) {
+            if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
+              # if (isTRUE(doSNLLTest)) {
               burnedProb <- spreadState[, .N, by = "indices"]
               setnames(burnedProb, "indices", "pixelID")
-              setDT(annualFireBufferedDT)
               out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
 
               # fix the out
@@ -346,87 +405,89 @@ utils::globalVariables(c(
               #   the polygon database
               out[, burnedClass := burned]
               out[pixelID %in% annualFires$cells, burnedClass := 2]
-              if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
-                bigFire1 <- raster(r)
-                bigFire1[out$pixelID] <- out$ids
-                keepFire <- tail(sort(table(out$ids)), 4)
-                theseFires <- annualFires[ids %in% names(keepFire)]
-                clearPlot()
-                firesToDo <- theseFires$ids
-                names(firesToDo) <- firesToDo
-                out2 <- lapply(firesToDo, function(id) {
-                  keepFire <- as.numeric(id)
-                  # keepFire <- 65
-                  bigFire <- bigFire1
-                  bigFire[bigFire != keepFire] <- NA
-                  bf <- trim(bigFire)
-                  ex <- extent(bf)
+              bigFire1 <- raster(r)
+              bigFire1[out$pixelID] <- out$ids
+              keepFire <- tail(sort(table(out$ids)), 4)
+              setDT(annualFires)
+              theseFires <- annualFires[ids %in% names(keepFire)]
+              # clearPlot()
+              firesToDo <- theseFires$ids
+              names(firesToDo) <- firesToDo
+              out2 <- lapply(firesToDo, function(id) {
+                keepFire <- as.numeric(id)
+                # keepFire <- 65
+                bigFire <- bigFire1
+                bigFire[bigFire != keepFire] <- NA
+                bf <- trim(bigFire)
+                ex <- extent(bf)
 
-                  thisFire <- annualFires[ids == keepFire]
+                thisFire <- annualFires[ids == keepFire]
 
-                  r <- raster(landscape)
-                  r[out$pixelID] <- out$prob
+                r <- raster(landscape)
+                r[out$pixelID] <- out$prob
 
-                  predictedFireProb <- crop(r, ex)
-                  # clearPlot();Plot(r)
-                  actualFire <- raster(r)
-                  actualFire[out$pixelID] <- out$burnedClass
-                  actualFire <- crop(actualFire, ex)
-                  levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
-                  predictedLiklihood <- dbinom(
-                    prob = out$prob,
-                    size = 1,
-                    x = out$burned,
-                    log = TRUE
-                  )
-                  spreadProbMap <- raster(r)
-                  spreadProbMap[out$pixelID] <- cells[out$pixelID]
-                  spreadProbMap <- crop(spreadProbMap, ex)
-                  spreadProbMap[spreadProbMap >= par[1]] <- par[1]
-                  ccc <- cells[out$pixelID]
-                  ccc <- ccc[ccc > 0]
-                  lowerLim <- quantile(ccc, 0.05)
-                  ccc <- ccc[ccc > lowerLim]
-                  spreadProbMap[spreadProbMap <= lowerLim] <- lowerLim
-                  predLiklihood <- raster(r)
-                  predLiklihood[out$pixelID] <- predictedLiklihood
-                  predLiklihood <- crop(predLiklihood, ex)
-                  spIgnits <- SpatialPoints(coords = xyFromCell(r, thisFire$cells))
-                  spIgnits <- buffer(spIgnits, width = 5000)
-                  spIgnits <- crop(spIgnits, ex)
-                  list(
-                    spIgnits = spIgnits, predictedFireProb = predictedFireProb,
-                    predLiklihood = predLiklihood,
-                    spreadProbMap = spreadProbMap
-                  )
-                })
-                out3 <- purrr::transpose(out2)
-                notSp <- grep("spIgnits", names(out3), value = TRUE, invert = TRUE)
+                predictedFireProb <- crop(r, ex)
+                # clearPlot();Plot(r)
+                actualFire <- raster(r)
+                actualFire[out$pixelID] <- out$burnedClass
+                actualFire <- crop(actualFire, ex)
+                levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
 
-                out4 <- unlist(out3[notSp], recursive = FALSE)
-                a <- Plot(out4)
-                nn <- lapply(names(out3$spIgnits), function(id) {
-                  spDat <- out3$spIgnits[[id]]
-                  Plot(spDat,
-                    addTo = grep(id, names(out4), value = TRUE)[2],
-                    gp = gpar(fill = rep("transparent", 10), col = "black"), title = ""
-                  )
-                })
-                # grid::grid.newpage()
+                predictedLiklihood <- dbinom(
+                  prob = out$prob,
+                  size = 1,
+                  x = out$burned,
+                  log = TRUE
+                )
+                spreadProbMap <- raster(r)
+                spreadProbMap[out$pixelID] <- cells[out$pixelID]
+                spreadProbMap <- crop(spreadProbMap, ex)
+                spreadProbMap[spreadProbMap >= par[1]] <- par[1]
+                ccc <- cells[out$pixelID]
+                ccc <- ccc[ccc > 0]
+                lowerLim <- quantile(ccc, 0.05)
+                ccc <- ccc[ccc > lowerLim]
+                spreadProbMap[spreadProbMap <= lowerLim] <- lowerLim
+                predLiklihood <- raster(r)
+                predLiklihood[out$pixelID] <- predictedLiklihood
+                predLiklihood <- crop(predLiklihood, ex)
+                spIgnits <- SpatialPoints(coords = xyFromCell(r, thisFire$cells))
+                spIgnits <- buffer(spIgnits, width = 5000)
+                spIgnits <- crop(spIgnits, ex)
+                list(
+                  spIgnits = spIgnits, predictedFireProb = predictedFireProb,
+                  predLiklihood = predLiklihood,
+                  spreadProbMap = spreadProbMap
+                )
+              })
+              out3 <- purrr::transpose(out2)
+              notSp <- grep("spIgnits", names(out3), value = TRUE, invert = TRUE)
 
-                # Plot(predictedFireProb, predLiklihood, spreadProbMap, title = "")
-                # Plot(predictedFireProb, title = paste0("fire prob, date: ",yr, ", id: ", thisFire$cells), new = TRUE)
-                # # Plot(predLiklihood, title = paste0("likelihood, date: ",yr, ", id: ", thisFire$cells), new = TRUE)
-                # Plot(spreadProbMap, title = paste0("spreadProb, date: ",yr, ", id: ", thisFire$cells), new = TRUE)
-                # # clearPlot(); Plot(actualFire, predictedFireProb, predLiklihood, spreadProbMap)
-                # Plot(spIgnits, addTo = "spreadProbMap", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
-                # # Plot(spIgnits, addTo = "actualFire", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
-                # Plot(spIgnits, addTo = "predictedFireProb", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
-                # Plot(spIgnits, addTo = "predLiklihood", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
-                # Plot(predLiklihood, cols = "RdYlGn", new = TRUE,
-                #      title = paste0("likelihood, date: ",yr, ", id: ", thisFire$cells),
-                #      legendRange = range(round(predLiklihood[], 0), na.rm = TRUE))
-              }
+              out4 <- unlist(out3[notSp], recursive = FALSE)
+              # clearPlot()
+              clearPlot(); a <- Plot(out4, cols = "Paired", new = TRUE, visualSqueeze = 0.85)
+              # nn <- lapply(names(out3$spIgnits), function(id) {
+              #   spDat <- out3$spIgnits[[id]]
+              #   Plot(spDat,
+              #        addTo = grep(id, names(out4), value = TRUE)[2],
+              #        gp = gpar(fill = rep("transparent", 10), col = "black"), title = ""
+              #   )
+              # })
+              # grid::grid.newpage()
+
+              # Plot(predictedFireProb, predLiklihood, spreadProbMap, title = "")
+              # Plot(predictedFireProb, title = paste0("fire prob, date: ",yr, ", id: ", thisFire$cells), new = TRUE)
+              # # Plot(predLiklihood, title = paste0("likelihood, date: ",yr, ", id: ", thisFire$cells), new = TRUE)
+              # Plot(spreadProbMap, title = paste0("spreadProb, date: ",yr, ", id: ", thisFire$cells), new = TRUE)
+              # # clearPlot(); Plot(actualFire, predictedFireProb, predLiklihood, spreadProbMap)
+              # Plot(spIgnits, addTo = "spreadProbMap", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
+              # # Plot(spIgnits, addTo = "actualFire", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
+              # Plot(spIgnits, addTo = "predictedFireProb", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
+              # Plot(spIgnits, addTo = "predLiklihood", gp = gpar(fill = rep("transparent", 10), col = "black"), title = "")
+              # Plot(predLiklihood, cols = "RdYlGn", new = TRUE,
+              #      title = paste0("likelihood, date: ",yr, ", id: ", thisFire$cells),
+              #      legendRange = range(round(predLiklihood[], 0), na.rm = TRUE))
+              #}
               # Add a very small number so that no pixel has exactly zero probability -- creating Inf
               # SNLL <- -sum(dbinom(prob = out$prob,
               #                     size = 1,
@@ -435,45 +496,53 @@ utils::globalVariables(c(
               # ), na.rm = TRUE) # Sum of the negative log likelihood
             }
           } else {
-            stop("encountered error with spreadProb in fireSenseUtils:::.objFunSpreadFit",
-                 " - Most likely that `maxFireSpread` needs to be raised to accommodate logistic parameter")
+            llik <- rep(log(minLik), length(loci))
+            SNLL_FS <- -sum(llik)
+            ret <- append(ret, list(SNLL_FS = SNLL_FS))
+            #stop("encountered error with spreadProb - contact module developers")
             # Ian added this stop. Unclear what is supposed to happen. Object ret doesn't exist
-            SNLL <- 1e7
-            fireSizes <- sample(1:3, 1)
+            #SNLL <- 1e7
+            #fireSizes <- sample(1:3, 1)
           }
 
           return(ret)
+         }
+       )
+       results <- purrr::transpose(results)
+
+       mess <- character()
+       objFunRes <- 0
+
+       if (isTRUE(doMADTest)) {
+         a <- purrr::map2(historicalFiresAboveMin[yrs], results$fireSizes, function(x, y) {
+           data.table(x, simFireSize = y)
+         })
+
+         a <- rbindlist(a)
+         a[, dev := abs(size - simFireSize)]
+         # a[, devLog := sqrt(abs(size - simFireSize))]
+         mad <- round(mean(a$dev), 1)
+         # mad <- round(mean(a$devLog), 1)
+         objFunRes <- objFunRes + mad #+ SNLLTest
+         mess <- paste(" mad:", mad, "; ")
+         objFunResList[ii] <- list(list(objFunRes = objFunRes, nFires = NROW(a)))
+         # if (mad > 2700) {
+         #   print(paste0("  ", Sys.getpid(), mess))
+         #   break
+         # }
+       }
+       if (isTRUE(doADTest)) {
+         if (ii == 2) {
+           historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
+           simulatedFires <- unlist(results$fireSizes)
+           adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
+          if (is(adTest, "try-error")) {
+            adTest <- 1e5L
+          }
+          adTest <- adTest * 50
+          objFunRes <- objFunRes + adTest #+ SNLLTest
+          mess <- paste(mess, " adTest:", adTest, "; ")
         }
-      )
-      results <- purrr::transpose(results)
-
-      mess <- character()
-      objFunRes <- 0
-
-      if (isTRUE(doMADTest)) {
-        a <- purrr::map2(historicalFiresAboveMin[yrs], results$fireSizes, function(x, y) {
-          data.table(x, simFireSize = y)
-        })
-
-        a <- rbindlist(a)
-        a[, dev := abs(size - simFireSize)]
-        # a[, devLog := sqrt(abs(size - simFireSize))]
-        mad <- round(mean(a$dev), 1)
-        # mad <- round(mean(a$devLog), 1)
-        objFunRes <- objFunRes + mad #+ SNLLTest
-        mess <- paste(" mad:", mad, "; ")
-        objFunResList[ii] <- list(list(objFunRes = objFunRes, nFires = NROW(a)))
-        # if (mad > 2700) {
-        #   print(paste0("  ", Sys.getpid(), mess))
-        #   break
-        # }
-      }
-      if (isTRUE(doADTest)) {
-        historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
-        simulatedFires <- unlist(results$fireSizes)
-        adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
-        objFunRes <- objFunRes + adTest #+ SNLLTest
-        mess <- paste(mess, " adTest:", adTest, "; ")
       }
       if (isTRUE(doSNLL_FSTest)) {
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 1)
@@ -485,7 +554,7 @@ utils::globalVariables(c(
           mess <- paste("SNLL threshold:", threshold, "; ", "SNLL_FSTestOrig:", SNLL_FSTestOrig, "; ")
         }
         mess <- paste(mess, " SNLL_FSTest:", SNLL_FSTest, "; ")
-        objFunRes <- SNLL_FSTest #+ SNLL_FSTest
+        objFunRes <- objFunRes + SNLL_FSTest #+ SNLL_FSTest
         objFunResList[ii] <- list(list(objFunRes = objFunRes)) # , nFires = NROW(a)))
         print(Sys.time())
         print(paste0("  ", Sys.getpid(), mess))

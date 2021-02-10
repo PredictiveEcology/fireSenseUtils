@@ -37,7 +37,7 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 #' @export
 #' @importFrom purrr pmap
 #' @rdname bufferToArea
-bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
+bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
                               verb = FALSE, polyName = NULL, field = NULL,
                               minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- names(poly)
@@ -71,7 +71,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 1,
 #' @importFrom fasterize fasterize
 #' @importFrom sf st_as_sf st_crs st_transform
 #' @rdname bufferToArea
-bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1,
+bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 10,
                                          verb = FALSE, polyName = NULL, field = NULL,
                                          minSize = 500, cores = 1, ...) {
 
@@ -82,10 +82,10 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
     raster = rasterToMatch, field = field, ...)
 
   if (all(is.na(r[]))) {
-    return(data.table(pixelID = numeric(), buffer = numeric(), ids = numeric()))
+    return(data.table(pixelID = integer(), buffer = integer(), ids = integer()))
   }
   loci <- which(!is.na(r[]))
-  ids <- r[loci]
+  ids <- as.integer(r[loci])
 
   initialDf <- data.table(loci, ids, id = seq(ids))
   am <- if (is(areaMultiplier, "function")) {
@@ -95,7 +95,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   }
   fireSize <- initialDf[, list(actualSize = .N,
                                # simSize = .N,# needed for numIters
-                               goalSize = pmax(minSize, am(.N))), by = "ids"]
+                               goalSize = asInteger(pmax(minSize, am(.N)))), by = "ids"]
 
   out <- list()
   simSizes <- initialDf[, list(simSize = .N), by = "ids"]
@@ -135,9 +135,9 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
           dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
         }
         if (is(dt, "try-error")) browser()#stop("try error here")
-        dtOut <- dt[, list(buffer = 0, pixelID = indices, ids)]
+        dtOut <- dt[, list(buffer = 0L, pixelID = indices, ids)]
 
-        dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1]
+        dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1L]
         dtOut
       })
       out <- append(out, out1)
@@ -164,8 +164,9 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 #'
 #' @param size DESCRIPTION NEEDED
 #' @param minSize DESCRIPTION NEEDED
+#' @param baseMultiplier DESCRIPTION NEEDED
 #'
 #' @export
-multiplier <- function(size, minSize) {
-  round(pmax(3, 14 - log(size)) * size, 0)
+multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
+  pmax(minSize, round(pmax(baseMultiplier, 14 - log(size)) * size, 0))
 }

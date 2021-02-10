@@ -11,7 +11,8 @@ castCohortData(
   lcc,
   ageMap = NULL,
   missingLCC,
-  year
+  year = NULL,
+  cutoffForYoungAge = 15
 )
 }
 \arguments{
@@ -27,10 +28,13 @@ and \code{sumB}.}
 
 \item{ageMap}{a stand age map to assign ages to non-forest LCC used during predict}
 
-\item{missingLCC}{Pixels on forested LCC but absent from cohortData will be assigned this LCC.}
-
-\item{year}{numeric representing the year represented by cohortData
+\item{missingLCC}{LCC class to assign forested pixels absent from cohortData
 must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'}
+
+\item{year}{numeric representing the year represented by cohortData}
+
+\item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
+"young" --> youngAge column will be 1 if age <= 15}
 }
 \value{
 a trimmed cohortData with wide-layout and rows for every pixel in lcc
