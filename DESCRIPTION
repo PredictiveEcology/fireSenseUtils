@@ -28,6 +28,7 @@ Imports:
     magrittr,
     mclust,
     methods,
+    qs,
     quickPlot,
     pemisc,
     pROC,
