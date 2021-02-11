@@ -187,7 +187,7 @@ runDEoptim <- function(landscape,
           # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
             c("dqrng",
-              paste0("PredictiveEcology/SpaDES.tools@fasterSpread (>=",packageVersionST,")"),
+              paste0("PredictiveEcology/SpaDES.tools@development (>=",packageVersionST,")"),
               paste0("PredictiveEcology/fireSenseUtils@development (>=",packageVersionFSU, ")")),
             upgrade = FALSE)
         }
