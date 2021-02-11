@@ -179,23 +179,16 @@ runDEoptim <- function(landscape,
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          #if (packageVersion("SpaDES.tools") < "0.3.7.9001") {
-           # source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
-            #installGitHubPackage("PredictiveEcology/Require@development")
-#            installGitHubPackage("PredictiveEcology/SpaDES.tools@fasterSpread")
- #         }
-          # Require::Require("dqrng")
           Require::checkPath(dirname(logPath), create = TRUE)
 
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
+          # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
             c("dqrng",
               paste0("PredictiveEcology/SpaDES.tools@fasterSpread (>=",packageVersionST,")"),
               paste0("PredictiveEcology/fireSenseUtils@development (>=",packageVersionFSU, ")")),
             upgrade = FALSE)
-          # Use the devtools SHA hashing so it skips if unnecessary
-          # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
       )
       parallel::stopCluster(cl)
