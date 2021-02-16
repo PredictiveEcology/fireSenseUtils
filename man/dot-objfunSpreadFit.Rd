@@ -23,6 +23,7 @@
   objFunCoresInternal = 1,
   lanscape1stQuantileThresh = 0.265,
   thresh = 550,
+  weighted = TRUE,
   verbose = TRUE
 )
 }
@@ -100,6 +101,9 @@ this spreadProb, then it will bail.}
 Lowering the threshold value will be more restrictive, but being too restrictive will result
 in DEoptim rejecting more tests and using the "fail value" of 10000.
 Too high a threshold, and more years will be run and it will take longer to find values.}
+
+\item{weighted}{Logical. Should empirical likelihood be weighted by log of the actual fire size? This
+will give large fires more influence on the SNLL.}
 
 \item{verbose}{DESCRIPTION NEEDED}
 }

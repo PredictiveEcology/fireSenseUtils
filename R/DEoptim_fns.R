@@ -57,6 +57,7 @@ utils::globalVariables(c(
 #' @importFrom data.table rbindlist as.data.table set
 #' @importFrom future makeClusterPSOCK
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
+#' @importFrom qs qread qsave
 #' @importFrom reproducible Cache checkPath
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
 #' @importFrom utils install.packages packageVersion
@@ -80,7 +81,7 @@ runDEoptim <- function(landscape,
                        FS_formula,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
-                       tests,
+                       tests = c("SNLL", "adTest"),
                        maxFireSpread,
                        Nreps,
                        thresh = 550,
@@ -179,23 +180,16 @@ runDEoptim <- function(landscape,
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          #if (packageVersion("SpaDES.tools") < "0.3.7.9001") {
-           # source("https://raw.githubusercontent.com/PredictiveEcology/SpaDES-modules/master/R/SpaDES_Helpers.R")
-            #installGitHubPackage("PredictiveEcology/Require@development")
-#            installGitHubPackage("PredictiveEcology/SpaDES.tools@fasterSpread")
- #         }
-          # Require::Require("dqrng")
           Require::checkPath(dirname(logPath), create = TRUE)
 
           if (!require("igraph"))
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
+          # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
             c("dqrng",
-              paste0("PredictiveEcology/SpaDES.tools@fasterSpread (>=",packageVersionST,")"),
+              paste0("PredictiveEcology/SpaDES.tools@development (>=",packageVersionST,")"),
               paste0("PredictiveEcology/fireSenseUtils@development (>=",packageVersionFSU, ")")),
             upgrade = FALSE)
-          # Use the devtools SHA hashing so it skips if unnecessary
-          # remotes::install_github("PredictiveEcology/fireSenseUtils@development", dependencies = FALSE, upgrade = FALSE)
         }
       )
       parallel::stopCluster(cl)
@@ -271,7 +265,7 @@ runDEoptim <- function(landscape,
                      FS_formula = FS_formula,
                      covMinMax = covMinMax,
                      # tests = c("mad", "SNLL_FS"),
-                     tests = c("SNLL_FS", "adtest"),
+                     tests = tests,
                      maxFireSpread = maxFireSpread,
                      objFunCoresInternal = objFunCoresInternal,
                      Nreps = Nreps,
@@ -337,7 +331,7 @@ DEoptimIterative <- function(itermax,
                              control,
                              FS_formula,
                              covMinMax,
-                             tests,
+                             tests = c("SNLL", "adTest"),
                              objFunCoresInternal,
                              maxFireSpread,
                              Nreps,
