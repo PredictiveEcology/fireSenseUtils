@@ -13,18 +13,13 @@ climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
                             annualVars <- lapply(1:nlayers(annualStack), FUN = function(layer){
                               layer <- annualStack[[layer]]
                               rasterDat <- data.table(pixelID = 1:ncell(layer),
-                                                      value = getValues(layer),
+                                                      value = asInteger(getValues(layer)),
                                                       year = names(layer))
 
                             })
                             annualVars <- rbindlist(annualVars)
-                                                        #most climate variables can be integer if coming from climateNA
-                            if (!class(annualVars$value) == 'integer') {
-                              warning(paste(var, "is not in integer form. It will be converted to integer.",
-                                            "Please supply climate data with integer type if this is problematic"))
-                              set(annualVars, NULL, 'value', as.integer(annualVars$value))
-                            }
-                            #Index will be flammable cells only - should always be passed
+
+                            ## Index will be flammable cells only - should always be passed
                             if (!is.null(Index)) {
                               annualVars <- annualVars[pixelID %in% Index,]
                             }
