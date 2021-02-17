@@ -18,6 +18,7 @@ climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
 
                             })
                             annualVars <- rbindlist(annualVars)
+                            annualVars <- na.omit(annualVars)
 
                             ## Index will be flammable cells only - should always be passed
                             if (!is.null(Index)) {
