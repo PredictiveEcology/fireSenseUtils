@@ -2,18 +2,18 @@
 % Please edit documentation in R/climateRasterToDataTable.R
 \name{climateRasterToDataTable}
 \alias{climateRasterToDataTable}
-\title{converts stacks of climate rasters to data.table and optionally subsets to index}
+\title{Converts stacks of climate rasters to data.table and optionally subsets to index}
 \usage{
 climateRasterToDataTable(historicalClimateRasters, Index = NULL)
 }
 \arguments{
 \item{historicalClimateRasters}{named list of raster stack(s)}
 
-\item{Index}{optional list of data.tables named by fireYear containing fire buffer indices}
+\item{Index}{optional list of `data.table`s named by `fireYear` containing fire buffer indices}
 }
 \value{
-a data.table of variables for fireSense PCA
+a `data.table` of variables for fireSense PCA
 }
 \description{
-converts stacks of climate rasters to data.table and optionally subsets to index
+Converts stacks of climate rasters to data.table and optionally subsets to index
 }
