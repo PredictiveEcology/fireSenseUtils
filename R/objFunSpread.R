@@ -452,7 +452,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
       )
 
       lapply(colnames(mat), function(cn) hist(mat[, cn], main = cn))
-      mtext(side = 3, "Histograms of distribution of rescaled variables", outer = T, line = -1)
+      mtext(side = 3, "Histograms of distribution of rescaled variables", outer = TRUE, line = -1)
       hist(nonEdgeValues, main = "spreadProb")
       sam <- sample(NROW(mat), NROW(mat) / 100)
       val <- mat[sam, ] %*% covPars
