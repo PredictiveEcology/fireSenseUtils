@@ -170,3 +170,49 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
   pmax(minSize, round(pmax(baseMultiplier, 14 - log(size)) * size, 0))
 }
+
+#'buffer ignition points to create non-ignitions for model
+#'
+#'
+#' @param ignitionPoints SpatialPolygonsDataFrame with year of ignition
+#' @param rtm a template raster
+#' @param bufferSize the size of the buffers
+#'
+#' @return a list of data.tables containing indices inside buffered area of each year's ignitions
+#'
+#' @importFrom fasterize fasterize
+#' @importFrom raster buffer raster setValues extract
+#' @importFrom sf st_as_sf
+#' @export
+#' @rdname bufferIgnitionPoints
+bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
+
+  years <- sort(unique(ignitionPoints$YEAR))
+  rtm <- setValues(rtm, 1:ncell(rtm))
+  ignitionDT <- lapply(years, FUN = function(year, rtmIndices = rtm,
+                                             ignitions = ignitionPoints) {
+    #subset ignitions to year
+    annIg <- ignitions[ignitions$YEAR == year,]
+
+    #buffer them
+    buffed <- buffer(annIg, bufferSize)
+
+    #get rtm indices of ignitions
+    ignitionPix <- raster::extract(rtmIndices, annIg)
+
+    #get rtm indices of buffer
+    buffed <- sf::st_as_sf(buffed)
+    buffed <- fasterize(buffed, raster = rtmIndices)
+    annIndices <- rtmIndices[!is.na(buffed[])]
+
+    #make data.table
+    indices <- data.table(pixelID = annIndices, ignited = annIndices %in% ignitionPix)
+    indices <- indices[!duplicated(pixelID),]
+
+    return(indices)
+  })
+  #this does not list which cell ignited
+  names(ignitionDT) <- paste0('year', years)
+  return(ignitionDT)
+
+}

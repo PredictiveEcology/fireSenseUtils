@@ -9,35 +9,29 @@ utils::globalVariables(c(
 #' @param years character vector of fire years with FS notation e.g. year2002
 #' @param fuel raster brick of aggregated fuel classes
 #' @param LCC raster brick of aggregated LCC classes
-#' @param fires list of spatial points representing annual ignitions
+#' @param indices a list of data.tables output by \code{bufferIgnitionPoints}
 #' @param climate raster stack of climate layers with names matching \code{years}
-#' @param climVar the name of the variables in \code{climate}
-#'
+#' @param climVar the name of the climate variable
 #' @return a data.frame with cell numbers, ignitions, and covariates for each year
 #'
 #' @export
-#' @importFrom magrittr %>%
-#' @importFrom data.table rbindlist data.table
-#' @importFrom raster extract brick
+#' @importFrom data.table rbindlist data.table setnames
+#' @importFrom raster stack
 #' @importFrom stats na.omit
-stackAndExtract <- function(years, climate, fuel, LCC, fires, climVar) {
-  ignitionYears <- lapply(years, FUN = function(year) {
-    fires <- fires[paste0("year", fires$YEAR) %in% year,]
+stackAndExtract <- function(years, climate, fuel, LCC, indices, climVar) {
+  ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, climvar = climVar,
+                                                LCCras = LCC, fuelRas = fuel, igIndex = indices) {
     climate <- climate[[year]]
-    names(climate) <- climVar
-    dtNames <- c(names(climate), names(fuel), names(LCC))
-    yearCovariates <- raster::brick(climate, fuel, LCC)
-    fireDT <- raster::extract(x = yearCovariates, y = fires, cellnumbers = TRUE) %>%
-      as.data.table(.)
-    fireDT <- fireDT[, nFires := .N, .(cells)]
-    fireDT <- unique(fireDT)
-    noFireDT <- raster::getValues(yearCovariates) %>%
-      as.data.table(.) %>%
-      .[, cells := 1:ncell(yearCovariates)] %>%
-      na.omit(.)
-    ignitionYear <- fireDT[noFireDT, on = c('cells', dtNames)]
-    ignitionYear[is.na(nFires), nFires := 0]
-    return(ignitionYear)
+    igIndex <- igIndex[[year]]
+    dtNames <- c(climvar, names(LCCras), names(fuelRas))
+    yearCovariates <- raster::stack(climateRas, LCCras, fuelRas)
+    annDT <- raster::getValues(yearCovariates)
+    annDT <- as.data.table(annDT)
+    setnames(annDT, dtNames)
+    annDT[, pixelID := 1:ncell(yearCovariates)]
+    annDT <- annDT[igIndex, on = c("pixelID")]
+    annDT <- na.omit(annDT)
+    return(annDT)
   })
   ignitionYears <- rbindlist(ignitionYears)
   return(ignitionYears)

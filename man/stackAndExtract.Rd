@@ -4,7 +4,7 @@
 \alias{stackAndExtract}
 \title{prepare covariate table with ignition year, fuel class, climate value, and land cover}
 \usage{
-stackAndExtract(years, climate, fuel, LCC, fires, climVar)
+stackAndExtract(years, climate, fuel, LCC, indices, climVar)
 }
 \arguments{
 \item{years}{character vector of fire years with FS notation e.g. year2002}
@@ -15,9 +15,9 @@ stackAndExtract(years, climate, fuel, LCC, fires, climVar)
 
 \item{LCC}{raster brick of aggregated LCC classes}
 
-\item{fires}{list of spatial points representing annual ignitions}
+\item{indices}{a list of data.tables output by \code{bufferIgnitionPoints}}
 
-\item{climVar}{the name of the variables in \code{climate}}
+\item{climVar}{the name of the climate variable}
 }
 \value{
 a data.frame with cell numbers, ignitions, and covariates for each year
