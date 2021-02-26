@@ -1,5 +1,5 @@
 globalVariables(c(
-  "age", "B", "BperClass", "burnClass", "foo", "Leading", "LeaderValue", "propBurnClassFire",
+  "age", "B", "BperClass", "FuelClass", "foo", "Leading", "LeaderValue",
   "totalBiomass"
 ))
 
@@ -22,30 +22,23 @@ globalVariables(c(
 #'
 cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableMap,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge) {
-
   cohortData <- copy(cohortData)
   joinCol <- c('FuelClass', eval(sppEquivCol))
-  sppEquivSubset <- sppEquiv[, .SD, .SDcols = joinCol]
+  sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
 
   cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
   #data.table needs an argument for which column names are kept during join
-  setnames(cohortData, 'FuelClass', 'burnClass')
-  cohortData[age <= cutoffForYoungAge, burnClass := "class1"]
+
+  cohortData[age <= cutoffForYoungAge, FuelClass := "youngAge"]
   if (!"totalBiomass" %in% names(cohortData))
     cohortData[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
 
-  #Assertion - no longer accurate with no class 5
-  # if (!((NROW(cohortData[is.na(totalBiomass) & burnClass != "class5", ]) == 0) &
-  #       (NROW(cohortData[!is.na(totalBiomass) & burnClass == "class5", ]) == 0))) {
-  #   stop('there is a problem setting the burn class. contact module developers')
-  # }
-
-  cohortData[, BperClass := sum(B), by = c("burnClass", "pixelGroup")]
+  cohortData[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
 
   # Fix zero age, zero biomass
   # testthat::expect_true(NROW(cohortData) == NROW(na.omit(cohortData)))
   cohortData[, Leading := BperClass == max(BperClass), .(pixelGroup)]
-  cohortData <- unique(cohortData[Leading == TRUE, .(burnClass, pixelGroup)]) #unique due to species
+  cohortData <- unique(cohortData[Leading == TRUE, .(FuelClass, pixelGroup)]) #unique due to species
   cohortData[, N := .N, .(pixelGroup)]
 
   #In the event of a tie, we randomly pick a fuel class
@@ -60,20 +53,35 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   } else {
     cohortData <- noTies
   }
-  classes <-sort(unique(cohortData$burnClass))
-  classList <- lapply(classes, function(cls){
-    cohortDataub <- cohortData[burnClass == cls, ]
-    cohortDataub[,  LeaderValue := 1]
-    ras <- rasterizeReduced(reduced = cohortDataub, fullRaster = pixelGroupMap,
-                            newRasterCols = "LeaderValue",
-                            mapcode = "pixelGroup")
-    #fuel class is 0 and not NA if absent entirely
-    #to prevent NAs following aggregation to 25 km pixels
-    ras[!is.na(flammableMap[]) & is.na(ras[])] <- 0
-    return(ras)
-  })
+  classes <-sort(unique(cohortData$FuelClass))
+  classList <- lapply(classes, makeRastersFromCD,
+                      flammableMap =  flammableMap,
+                      pixelGroupMap = pixelGroupMap,
+                      cohortData = cohortData)
 
   classList <- stack(classList)
   names(classList) <- classes
   return(classList)
+}
+
+#' put cohortData back into raster with some extra details
+#' @param class fuelClass from  \code{sppEquiv}
+#' @param flammableMap  a raster with flammable cells
+#' @template pixelGroupMap
+#' @template cohortData
+#' @return a raster
+#' @importFrom SpaDES.tools rasterizeReduced
+#' @importFrom data.table data.table
+makeRastersFromCD <- function(class, cohortData, flammableMap, pixelGroupMap) {
+
+  cohortDataub <- cohortData[FuelClass == class, ]
+  cohortDataub[,  LeaderValue := 1]
+  ras <- rasterizeReduced(reduced = cohortDataub, fullRaster = pixelGroupMap,
+                          newRasterCols = "LeaderValue",
+                          mapcode = "pixelGroup")
+  #fuel class is 0 and not NA if absent entirely
+  #to prevent NAs following aggregation to 25 km pixels
+  ras[!is.na(flammableMap[]) & is.na(ras[])] <- 0
+  return(ras)
+
 }
