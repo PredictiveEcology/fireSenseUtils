@@ -4,7 +4,7 @@
 \alias{objNlminb}
 \title{\code{objNlminb}}
 \usage{
-objNlminb(start, objective, lower, upper, control, ...)
+objNlminb(start, objective, lower, upper, control, hvPW, ...)
 }
 \arguments{
 \item{start}{DESCRIPTION NEEDED}
@@ -16,6 +16,8 @@ objNlminb(start, objective, lower, upper, control, ...)
 \item{upper}{upper bounds on coefficients}
 
 \item{control}{DESCRIPTION NEEDED}
+
+\item{hvPW}{logical indicating whether the formula is piece-wise #IE added}
 
 \item{...}{additional arguments passed to objective function}
 }
