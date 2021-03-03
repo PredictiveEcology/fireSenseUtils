@@ -118,15 +118,16 @@ extractSpecial <- function(v, k) {
 #'
 #' @export
 #' @importFrom stats nlminb
-objNlminb <- function(start, objective, lower, upper, control, hvPW, ...) {
+objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
   dots <- list(...)
-  nlminb.call <- quote(nlminb(start = start, objective = objective, lower = lower, upper = upper, control = control,
+  nlminb.call <- quote(nlminb(start = x, objective = objective, lower = lower, upper = upper, control = control,
                               linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
                               mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
-                              mod_env = dots$mod_env, offset = dots$offset, formula = dots$formula))
+                              mod_env = dots$mod_env,
+                              offset = dots$offset))#, formula = dots$formula))
 
   if (hvPW){
-    nlminb.call$mm <- NULL
+  #  nlminb.call$mm <- NULL
   } else {
     nlminb.call$updateKnotExpr <- NULL
   }
