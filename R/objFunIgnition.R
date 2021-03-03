@@ -79,18 +79,23 @@ extractSpecial <- function(v, k) {
 #' @export
 #' @importFrom stats model.matrix as.formula
 #' @rdname objFunIgnitionPW
-.objFunIgnitionPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
+.objFunIgnitionPW <- function(params, mm, # formula,
+                              linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
   ## Parameters scaling
+  if (missing(mod_env)) mod_env <- get("mod_env", envir = .GlobalEnv)
+  if (missing(mm)) mm <- get("mm", envir = .GlobalEnv)
+
   params <- drop(params %*% sm)
-  formula <- as.formula(formula)
+  # formula <- as.formula(formula)
   eval(updateKnotExpr, envir = mod_env) ## update knot's values
 
-  mu <- drop(model.matrix(formula, mod_env) %*% params[1:nx]) + offset
+  # mm <- model.matrix(formula, mod_env)
+  mu <- drop(mm %*% params[1:nx]) + offset
 
   ## link implementation
   mu <- linkinv(mu)
 
-  if (any(mu <= 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
+  if (any(mu < 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
     return(1e20)
   } else {
     return(eval(nll, envir = mod_env))
