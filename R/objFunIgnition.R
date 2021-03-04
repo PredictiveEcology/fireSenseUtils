@@ -79,18 +79,23 @@ extractSpecial <- function(v, k) {
 #' @export
 #' @importFrom stats model.matrix as.formula
 #' @rdname objFunIgnitionPW
-.objFunIgnitionPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
+.objFunIgnitionPW <- function(params, mm, # formula,
+                              linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
   ## Parameters scaling
+  if (missing(mod_env)) mod_env <- get("mod_env", envir = .GlobalEnv)
+  if (missing(mm)) mm <- get("mm", envir = .GlobalEnv)
+
   params <- drop(params %*% sm)
-  formula <- as.formula(formula)
+  # formula <- as.formula(formula)
   eval(updateKnotExpr, envir = mod_env) ## update knot's values
 
-  mu <- drop(model.matrix(formula, mod_env) %*% params[1:nx]) + offset
+  # mm <- model.matrix(formula, mod_env)
+  mu <- drop(mm %*% params[1:nx]) + offset
 
   ## link implementation
   mu <- linkinv(mu)
 
-  if (any(mu <= 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
+  if (any(mu < 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
     return(1e20)
   } else {
     return(eval(nll, envir = mod_env))
@@ -106,18 +111,26 @@ extractSpecial <- function(v, k) {
 #' @param lower lower bounds on coefficients
 #' @param upper upper bounds on coefficients
 #' @param control DESCRIPTION NEEDED
+#' @param hvPW logical indicating whether the formula is piece-wise #IE added
 #' @param ... additional arguments passed to objective function
 #'
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
 #' @importFrom stats nlminb
-objNlminb <- function(start, objective, lower, upper, control, ...) {
+objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
   dots <- list(...)
-  nlminb.call <- quote(nlminb(start = start, objective = objective, lower = lower, upper = upper, control = control,
-                              linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx, mm = dots$mm,
-                              mod_env = dots$mod_env, offset = dots$offset))
-  #passes linkinv, nll, sm, nx, mm, mod_env, and offset
+  nlminb.call <- quote(nlminb(start = x, objective = objective, lower = lower, upper = upper, control = control,
+                              linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
+                              mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
+                              mod_env = dots$mod_env,
+                              offset = dots$offset))#, formula = dots$formula))
+
+  if (hvPW){
+  #  nlminb.call$mm <- NULL
+  } else {
+    nlminb.call$updateKnotExpr <- NULL
+  }
   o <- eval(nlminb.call)
 
   i <- 1L
