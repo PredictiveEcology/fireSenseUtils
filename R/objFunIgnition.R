@@ -83,14 +83,17 @@ extractSpecial <- function(v, k) {
   ## Parameters scaling
   params <- drop(params %*% sm)
   formula <- as.formula(formula)
-  eval(updateKnotExpr, envir = mod_env) ## update knot's values
+
+  if (missing(mod_env)) mod_env <- get("mod_env", envir = .GlobalEnv)
+
+  eval(updateKnotExpr) ## update knot's values
 
   mu <- drop(model.matrix(formula, mod_env) %*% params[1:nx]) + offset
 
   ## link implementation
   mu <- linkinv(mu)
 
-  if (any(mu <= 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
+  if (any(mu < 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
     return(1e20)
   } else {
     return(eval(nll, envir = mod_env))
@@ -130,7 +133,8 @@ objNlminb <- function(start, objective, lower, upper, control, hvPW, ...) {
   i <- 1L
 
   ## When there is no convergence and restart is possible, run nlminb() again
-  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 & i < 3L) {
+  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 &&
+         i < 3L) {
     i <- i + 1L
     o <- eval(nlminb.call)
   }
