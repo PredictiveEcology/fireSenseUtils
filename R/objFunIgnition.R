@@ -134,11 +134,13 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
 
   i <- 1L
 
-  ## When there is no convergence and restart is possible, run nlminb() again
-  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 &&
-         i < 3L) {
-    i <- i + 1L
-    o <- eval(nlminb.call)
-  }
+  ## When there is no convergence and restart is possible, run nlminb() again (Jean)
+  ## Eliot commented this out, because fitting seems to be fairly deterministic, so restarting
+  ##   with same starts gives exactly same answer
+#  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 &&
+#         i < 3L) {
+#    i <- i + 1L
+  o <- eval(nlminb.call)
+#  }
   o
 }
