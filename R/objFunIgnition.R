@@ -86,8 +86,11 @@ extractSpecial <- function(v, k) {
   if (missing(mm)) mm <- get("mm", envir = .GlobalEnv)
 
   params <- drop(params %*% sm)
-  # formula <- as.formula(formula)
-  eval(updateKnotExpr, envir = mod_env) ## update knot's values
+  formula <- as.formula(formula)
+
+  if (missing(mod_env)) mod_env <- get("mod_env", envir = .GlobalEnv)
+
+  eval(updateKnotExpr) ## update knot's values
 
   # mm <- model.matrix(formula, mod_env)
   mu <- drop(mm %*% params[1:nx]) + offset
@@ -136,7 +139,8 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
   i <- 1L
 
   ## When there is no convergence and restart is possible, run nlminb() again
-  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 & i < 3L) {
+  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 &&
+         i < 3L) {
     i <- i + 1L
     o <- eval(nlminb.call)
   }
