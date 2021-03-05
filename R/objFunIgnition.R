@@ -123,10 +123,10 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
                               linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
                               mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
                               mod_env = dots$mod_env,
-                              offset = dots$offset))#, formula = dots$formula))
+                              offset = dots$offset, formula = dots$formula))
 
   if (hvPW){
-  #  nlminb.call$mm <- NULL
+    nlminb.call$mm <- NULL
   } else {
     nlminb.call$updateKnotExpr <- NULL
   }
