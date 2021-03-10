@@ -77,20 +77,24 @@ extractSpecial <- function(v, k) {
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
-#' @importFrom stats model.matrix
+#' @importFrom stats model.matrix as.formula
 #' @rdname objFunIgnitionPW
-.objFunIgnitionPW <- function(params, formula, linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
+.objFunIgnitionPW <- function(params, mm, formula,
+                              linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
   ## Parameters scaling
+
   params <- drop(params %*% sm)
+  formula <- as.formula(formula)
 
-  eval(updateKnotExpr, envir = mod_env) ## update knot's values
+  eval(updateKnotExpr) ## update knot's values
 
-  mu <- drop(model.matrix(formula, mod_env) %*% params[1:nx]) + offset
+  mm <- model.matrix(formula, mod_env)
+  mu <- drop(mm %*% params[1:nx]) + offset
 
   ## link implementation
   mu <- linkinv(mu)
 
-  if (any(mu <= 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
+  if (any(mu < 0) || anyNA(mu) || any(is.infinite(mu)) || length(mu) == 0) {
     return(1e20)
   } else {
     return(eval(nll, envir = mod_env))
@@ -106,26 +110,37 @@ extractSpecial <- function(v, k) {
 #' @param lower lower bounds on coefficients
 #' @param upper upper bounds on coefficients
 #' @param control DESCRIPTION NEEDED
+#' @param hvPW logical indicating whether the formula is piece-wise #IE added
 #' @param ... additional arguments passed to objective function
 #'
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
 #' @importFrom stats nlminb
-objNlminb <- function(start, objective, lower, upper, control, ...) {
+objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
   dots <- list(...)
-  nlminb.call <- quote(nlminb(start = start, objective = objective, lower = lower, upper = upper, control = control,
-                              linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx, mm = dots$mm,
-                              mod_env = dots$mod_env, offset = dots$offset))
-  #passes linkinv, nll, sm, nx, mm, mod_env, and offset
+  nlminb.call <- quote(nlminb(start = x, objective = objective, lower = lower, upper = upper, control = control,
+                              linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
+                              mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
+                              mod_env = dots$mod_env,
+                              offset = dots$offset, formula = dots$formula))
+
+  if (hvPW){
+    nlminb.call$mm <- NULL
+  } else {
+    nlminb.call$updateKnotExpr <- NULL
+  }
   o <- eval(nlminb.call)
 
   i <- 1L
 
-  ## When there is no convergence and restart is possible, run nlminb() again
-  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 & i < 3L) {
-    i <- i + 1L
-    o <- eval(nlminb.call)
-  }
+  ## When there is no convergence and restart is possible, run nlminb() again (Jean)
+  ## Eliot commented this out, because fitting seems to be fairly deterministic, so restarting
+  ##   with same starts gives exactly same answer
+#  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 &&
+#         i < 3L) {
+#    i <- i + 1L
+  o <- eval(nlminb.call)
+#  }
   o
 }

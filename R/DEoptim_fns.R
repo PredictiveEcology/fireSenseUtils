@@ -10,11 +10,13 @@ utils::globalVariables(c(
 #' @param landscape A \code{RasterLayer} which has the correct metadata associated with
 #'   the \code{pixelID} and cells of other objects in this function call
 #' @param annualDTx1000 A list of data.table objects. Each list element will be from 1
-#'   year, and it must be the same length as \code{fireBufferedListDT} and \code{historicalFires}
+#'   year, and it must be the same length as \code{fireBufferedListDT} and \code{historicalFires}.
+#'   All covariates must be integers, and must be 1000x their actual values.
 #' @param nonAnnualDTx1000 A list of data.table objects. Each list element must be named
 #'   with a concatenated sequence of names from \code{names(annualDTx1000)},
 #'   e.g., \code{1991_1992_1993}.
 #'   It should contain all the years in \code{names(annualDTx1000)}.
+#'   All covariates must be integers, and must be 1000x their actual values.
 #' @param fireBufferedListDT A list of data.table objects. It must be same length as
 #'   \code{annualDTx1000}, with same names. Each element is a \code{data.table} with columns:
 #'   \code{buff}...TODO: INCOMPLETE
