@@ -44,6 +44,8 @@ stackAndExtract <- function(years, fuel, LCC, climate, climVar, fires) {
     ignitionYear <- ignitionDT[noIgnitionsDT, on = c('cells')]
     ignitionYear[is.na(ignitions), ignitions := 0]
 
+    ignitionYear[, year := gsub("year", "", year)]
+
     return(ignitionYear)
   })
   ignitionYears <- rbindlist(ignitionYears)

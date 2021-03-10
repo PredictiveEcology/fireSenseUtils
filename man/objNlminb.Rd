@@ -4,10 +4,10 @@
 \alias{objNlminb}
 \title{\code{objNlminb}}
 \usage{
-objNlminb(start, objective, lower, upper, control, hvPW, ...)
+objNlminb(x, objective, lower, upper, control, hvPW, ...)
 }
 \arguments{
-\item{start}{DESCRIPTION NEEDED}
+\item{x}{DESCRIPTION NEEDED}
 
 \item{objective}{objective function}
 
