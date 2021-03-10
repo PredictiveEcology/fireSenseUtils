@@ -228,6 +228,7 @@ utils::globalVariables(c(
          #   break
          # }
        }
+
        if (isTRUE(doADTest)) {
          if (ii == 2) {
            historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)

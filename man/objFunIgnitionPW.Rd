@@ -6,6 +6,7 @@
 \usage{
 .objFunIgnitionPW(
   params,
+  mm,
   formula,
   linkinv,
   nll,
