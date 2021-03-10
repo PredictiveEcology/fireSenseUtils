@@ -4,11 +4,9 @@
 \alias{objNlminb}
 \title{\code{objNlminb}}
 \usage{
-objNlminb(start, objective, lower, upper, control, hvPW, ...)
+objNlminb(x, objective, lower, upper, control, hvPW, ...)
 }
 \arguments{
-\item{start}{DESCRIPTION NEEDED}
-
 \item{objective}{objective function}
 
 \item{lower}{lower bounds on coefficients}
@@ -20,6 +18,8 @@ objNlminb(start, objective, lower, upper, control, hvPW, ...)
 \item{hvPW}{logical indicating whether the formula is piece-wise #IE added}
 
 \item{...}{additional arguments passed to objective function}
+
+\item{start}{DESCRIPTION NEEDED}
 }
 \value{
 DESCRIPTION NEEDED
