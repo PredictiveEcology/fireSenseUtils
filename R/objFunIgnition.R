@@ -119,6 +119,14 @@ extractSpecial <- function(v, k) {
 #' @importFrom stats nlminb
 objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
   dots <- list(...)
+
+  controlOptim <- control[setdiff(names(control), c("iter.max", "eval.max"))]
+  optim.call <- quote(optim(par = x, fn = objective, lower = lower, upper = upper, control = controlOptim,
+                            linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
+                            mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
+                            mod_env = dots$mod_env, method = "L-BFGS-B",
+                            offset = dots$offset, formula = dots$formula))
+
   nlminb.call <- quote(nlminb(start = x, objective = objective, lower = lower, upper = upper, control = control,
                               linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
                               mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
@@ -127,20 +135,29 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
 
   if (hvPW){
     nlminb.call$mm <- NULL
+    optim.call$mm <- NULL
   } else {
     nlminb.call$updateKnotExpr <- NULL
+    optim.call$updateKnotExpr <- NULL
   }
+
   o <- eval(nlminb.call)
 
-  i <- 1L
+  # i <- 1L
 
   ## When there is no convergence and restart is possible, run nlminb() again (Jean)
   ## Eliot commented this out, because fitting seems to be fairly deterministic, so restarting
   ##   with same starts gives exactly same answer
-#  while (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14 &&
-#         i < 3L) {
-#    i <- i + 1L
-  o <- eval(nlminb.call)
-#  }
+  if (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14) {
+  #   i <- i + 1L
+    message("nlminb did not converge; trying optim")
+    o2 <- try(eval(optim.call))
+    if (!is(o2, "try-error")) {
+      o <- o2
+      o$objective <- o$value
+      o$value <- NULL
+    }
+    #break
+  }
   o
 }
