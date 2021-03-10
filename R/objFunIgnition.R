@@ -79,7 +79,7 @@ extractSpecial <- function(v, k) {
 #' @export
 #' @importFrom stats model.matrix as.formula
 #' @rdname objFunIgnitionPW
-.objFunIgnitionPW <- function(params, mm, formula,
+.objFunIgnitionPW <- function(params, formula,
                               linkinv, nll, sm, updateKnotExpr, nx, mod_env, offset) {
   ## Parameters scaling
 
@@ -105,7 +105,7 @@ extractSpecial <- function(v, k) {
 #'
 #' Wrapper around \code{stats::nlminb}
 #'
-#' @param start DESCRIPTION NEEDED
+#' @param x DESCRIPTION NEEDED
 #' @param objective objective function
 #' @param lower lower bounds on coefficients
 #' @param upper upper bounds on coefficients
