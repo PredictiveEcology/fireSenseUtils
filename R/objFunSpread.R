@@ -307,6 +307,17 @@ rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
   a2
 }
 
+
+#' rescale function no.2
+#'
+#' @param x a vector to be rescaled
+#' @param minNew the minimum of the new range
+#' @param maxNew the max of the new range
+#' @param minOrig the minimum of the original data
+#' @param maxOrig the maximum of the original data
+#' @return the rescaled vector
+#'
+#' @export
 rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   A <- maxOrig - minOrig # range of original
   b <- maxNew - minNew # range of new
