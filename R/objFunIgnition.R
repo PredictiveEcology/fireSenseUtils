@@ -133,7 +133,7 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
                               mod_env = dots$mod_env,
                               offset = dots$offset, formula = dots$formula))
 
-  if (hvPW){
+  if (hvPW) {
     nlminb.call$mm <- NULL
     optim.call$mm <- NULL
   } else {

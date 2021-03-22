@@ -92,11 +92,12 @@ getFirePoints_NFDB <- function(url = NULL,
 #' @param years Numeric vector of consecutive years to fetch.
 #' @param fireSizeColName Character describing the name of the column containing fire size information.
 #' @param NFDB_pointPath Passed to \code{destinationPath} in \code{prepInputs}
+#' @param plot logical indicating whether to produce plot of fire points. Default FALSE.
 #'
 #' @return A \code{SpatialPointsDataFrame}.
 #'
 #' @export
-#' @importFrom raster crs crs<- res
+#' @importFrom raster crs crs<- plot res shapefile
 #' @importFrom reproducible Cache Checksums prepInputs projectInputs
 #' @importFrom sp coordinates<-
 #' @importFrom SpaDES.core dyear
@@ -106,7 +107,8 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
                                   redownloadIn = 1,
                                   years = 1991:2017,
                                   fireSizeColName = "SIZE_HA",
-                                  NFDB_pointPath = NULL) {
+                                  NFDB_pointPath = NULL,
+                                  plot = FALSE) {
   if (is.null(NFDB_pointPath))
     stop("NFDB_pointPath must be specified and non-NULL.")
   if (is.null(url))
@@ -134,42 +136,30 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
                         destinationPath = NFDB_pointPath,
                         useSAcrs = TRUE,
                         omitArgs = c("NFDB_pointPath", "overwrite"))
-    # Fix for messed up bbox
-    message("Correcting original data problem...")
-    DT <- as.data.frame(firePoints@data)
-    coordinates(DT) <- cbind(firePoints$LONGITUDE, firePoints$LATITUDE)
-    correctCRS <- "+init=epsg:4269 +proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs +towgs84=0,0,0"
-    crs(DT) <- correctCRS
-    firePointsReady <- projectInputs(DT,
-                                     destinationPath = NFDB_pointPath,
-                                     filename2 = "NFDBpointsProjected",
-                                     targetCRS = crs(rasterToMatch))
-    firePoints <- crop(firePointsReady, studyArea)
-    message("Fire points corrected")
-    raster::plot(firePoints, col = "red"); raster::plot(studyArea, add = TRUE)
   } else {
     print("NFDB present. Loading...")# put prepInputs here
     NFDBs <- grep(list.files(NFDB_pointPath), pattern = "^NFDB", value = TRUE)
     shps <- grep(list.files(NFDB_pointPath), pattern = ".shp$", value = TRUE)
     aFile <- NFDBs[NFDBs %in% shps][1] #in case there are multiple files
     firePoints <- raster::shapefile(file.path(NFDB_pointPath, aFile))
-    # Fix for messed up bbox
-    message(crayon::yellow("Correcting original data problem..."))
-    DT <- as.data.frame(firePoints@data)
-    coordinates(DT) <- cbind(firePoints$LONGITUDE, firePoints$LATITUDE)
-    correctCRS <- "+init=epsg:4269 +proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs +towgs84=0,0,0"
-    crs(DT) <- correctCRS
-    firePointsReady <- projectInputs(DT,
-                                     destinationPath = NFDB_pointPath,
-                                     filename2 = "NFDBpointsProjected",
-                                     targetCRS = crs(rasterToMatch))
-    firePoints <- crop(firePointsReady, studyArea)
-    message(crayon::green("Fire points corrected"))
+  }
+
+  # Fix for messed up bbox
+  message(crayon::yellow("Correcting original data problem..."))
+  DT <- as.data.frame(firePoints@data)
+  coordinates(DT) <- cbind(firePoints$LONGITUDE, firePoints$LATITUDE)
+  correctCRS <- "+init=epsg:4269 +proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs +towgs84=0,0,0"
+  crs(DT) <- correctCRS
+  firePointsReady <- projectInputs(DT,
+                                   destinationPath = NFDB_pointPath,
+                                   filename2 = "NFDBpointsProjected",
+                                   targetCRS = crs(rasterToMatch))
+  firePoints <- crop(firePointsReady, studyArea)
+  message(crayon::green("Fire points corrected"))
+  if (isTRUE(plot)) {
     raster::plot(firePoints, col = "red"); raster::plot(studyArea, add = TRUE)
   }
-  firePoints <- firePoints[firePoints$YEAR <= max(years) &
-                             firePoints$YEAR >= min(years),]
-  firePoints$fireSize <- asInteger(firePoints[[fireSizeColName]] /
-                                     prod(res(rasterToMatch)) * 1e4)
+  firePoints <- firePoints[firePoints$YEAR <= max(years) & firePoints$YEAR >= min(years), ]
+  firePoints$fireSize <- asInteger(firePoints[[fireSizeColName]] / prod(res(rasterToMatch)) * 1e4)
   return(firePoints)
 }

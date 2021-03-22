@@ -11,7 +11,8 @@ getFirePoints_NFDB_V2(
   redownloadIn = 1,
   years = 1991:2017,
   fireSizeColName = "SIZE_HA",
-  NFDB_pointPath = NULL
+  NFDB_pointPath = NULL,
+  plot = FALSE
 )
 }
 \arguments{
@@ -29,6 +30,8 @@ getFirePoints_NFDB_V2(
 \item{fireSizeColName}{Character describing the name of the column containing fire size information.}
 
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}
+
+\item{plot}{logical indicating whether to produce plot of fire points. Default FALSE.}
 }
 \value{
 A \code{SpatialPointsDataFrame}.
