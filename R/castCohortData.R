@@ -29,7 +29,8 @@ castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, age
   #     Eliot removed the above line because it caused NAs to occur wherever there was sum(B) == 0
   #           We also don't want biomass-weighted stand age here, I believe. This should be "time since disturbance"
   cohortData[, standAge := max(age, na.rm = TRUE), .(pixelGroup)] # don't chain with magrittr
-  cohortData <- dcast(cohortData, pixelGroup + standAge ~ speciesCode, value.var = c("B"), fill = 0)
+  cohortData <- dcast(cohortData, pixelGroup + standAge ~ speciesCode,
+                      value.var = c("B"), fun.aggregate = sum, fill = 0)
 
   cohortDataLong <- data.table('pixelID' = 1:ncell(pixelGroupMap), 'pixelGroup' = getValues(pixelGroupMap))
   cohortData <- cohortData[cohortDataLong, on = c("pixelGroup")]
