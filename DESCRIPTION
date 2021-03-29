@@ -22,6 +22,7 @@ Imports:
     DEoptim,
     EnvStats,
     fasterize,
+    fpCompare,
     future,
     kSamples,
     LandR,
