@@ -25,7 +25,7 @@ Imports:
     fpCompare,
     future,
     kSamples,
-    LandR,
+    LandR (>= 1.0.1.9001),
     magrittr,
     mclust,
     methods,

@@ -326,22 +326,9 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   D <- C * z
 }
 
-#' Rescale function (as in \code{scales::rescale} and \code{LandR:::rescale})
-#'
-#' This is a simple function copied from the scales package. Too heavy
-#   to use one simple function
-#'
-#' @param x a \code{numeric} vector
-#' @param to a \code{numeric} vector of length 2. The new range of values.
-#' @importFrom fpCompare %==%
+#' @importFrom LandR rescale
 #' @export
-
-rescale <- function(x, to) {
-  from <- range(x, na.rm = TRUE, finite = TRUE)
-
-  if (diff(range(to)) %==% 0 || diff(range(from)) %==% 0) return(mean(to))
-  (x - from[1])/diff(from) * diff(to) + to[1]
-}
+LandR::rescale
 
 objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
                         annualFires, nonAnnualDTx1000, annualFireBufferedDT,
