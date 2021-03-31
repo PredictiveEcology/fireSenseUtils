@@ -41,13 +41,12 @@ extractSpecial <- function(v, k) {
 #' @param mm model matrix containing data
 #' @param mod_env the environment containing params - can be a data.frame
 #' @param offset DESCRIPTION NEEDED
-#' @formula not used. Present for compatibility with optimisation functions (e.g. \code{objNlminb})
 #'
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
 #' @rdname objFunIgnition
-.objFunIgnition <- function(params, linkinv, nll, sm, nx, mm, mod_env, offset, formula = NULL) {
+.objFunIgnition <- function(params, linkinv, nll, sm, nx, mm, mod_env, offset) {
   ## Parameters scaling
   params <- drop(params %*% sm)
 
@@ -138,6 +137,8 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
     nlminb.call$mm <- NULL
     optim.call$mm <- NULL
   } else {
+    nlminb.call$formula <- NULL
+    optim.call$formula <- NULL
     nlminb.call$updateKnotExpr <- NULL
     optim.call$updateKnotExpr <- NULL
   }
