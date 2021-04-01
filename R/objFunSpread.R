@@ -324,6 +324,7 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   z <- b/A # ratio of range size
   C <- x - minOrig # make it have a new minimum above the minOrig
   D <- C * z
+  return(D)
 }
 
 objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
