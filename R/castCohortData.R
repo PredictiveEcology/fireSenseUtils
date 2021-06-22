@@ -23,6 +23,7 @@ globalVariables(c(
 castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, ageMap = NULL,
                            missingLCC, year = NULL,
                            cutoffForYoungAge = 15) {
+  cohortData <- copy(cohortData)
 
   #need stand age for predictions but it won't be included in PCAer
   # cohortData[, standAge := sum(B * age) / sum(B), .(pixelGroup)] # don't chain with magrittr
