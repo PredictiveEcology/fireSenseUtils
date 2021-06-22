@@ -1,6 +1,6 @@
 #' \code{fireSenseUtils} package
 #'
-#' DESCRIPTION NEEDED
+#' Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 #'
 #' @import methods
 "_PACKAGE"

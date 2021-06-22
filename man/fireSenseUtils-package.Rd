@@ -6,7 +6,7 @@
 \alias{fireSenseUtils-package}
 \title{\code{fireSenseUtils} package}
 \description{
-DESCRIPTION NEEDED
+Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 }
 \seealso{
 Useful links:
