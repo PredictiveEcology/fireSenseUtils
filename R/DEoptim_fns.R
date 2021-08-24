@@ -57,8 +57,8 @@ utils::globalVariables(c(
 #' @export
 #' @importFrom crayon blurred
 #' @importFrom data.table rbindlist as.data.table set
-#' @importFrom future makeClusterPSOCK
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
+#' @importFrom parallelly makeClusterPSOCK
 #' @importFrom qs qread qsave
 #' @importFrom reproducible Cache checkPath
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
@@ -140,7 +140,7 @@ runDEoptim <- function(landscape,
       coresUnique <- setdiff(unique(cores), "localhost")
       message("Making sure packages with sufficient versions installed and loaded on: ", paste(coresUnique, collapse = ", "))
       st <- system.time({
-        cl <- future::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
+        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
       })
       packageVersionFSU <- packageVersion("fireSenseUtils")
       packageVersionST <- packageVersion("SpaDES.tools")
@@ -201,9 +201,9 @@ runDEoptim <- function(landscape,
     message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
                                collapse = ", "), " clusters")
     message("Starting main parallel cluster ...")
-    st <- system.time(
-      cl <- future::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
-    )
+    st <- system.time({
+      cl <- parallelly::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
+    })
 
     on.exit(stopCluster(cl))
     message("it took ", round(st[3],2), "s to start ",
@@ -216,7 +216,9 @@ runDEoptim <- function(landscape,
         filenameForTransfer <- tempfile(fileext = ".qs")#"/tmp/objsToCopy.qs"
         Require::checkPath(dirname(filenameForTransfer), create = TRUE) # during development, this was deleted accidentally
         qs::qsave(objsToCopy, file = filenameForTransfer)
-        stExport <- system.time(outExp <- clusterExport(cl, varlist = "filenameForTransfer", envir = environment()))
+        stExport <- system.time({
+          outExp <- clusterExport(cl, varlist = "filenameForTransfer", envir = environment())
+        })
         out11 <- clusterEvalQ(cl, {
           Require::checkPath(dirname(filenameForTransfer), create = TRUE)
         })
