@@ -1,8 +1,8 @@
 #' Get Fire SpatialPoints from Canadian Fire Database
 #'
 #' @param url Passed to \code{prepInputs}
-#' @param studyArea Passed to \code{prepInputs}
-#' @param rasterToMatch Passed to \code{prepInputs}
+#' @template studyArea
+#' @template rasterToMatch
 #' @param redownloadIn Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 #'   0.5 would mean "redownload data older than 6 months"
 #' @param years Numeric vector of consecutive years to fetch.
@@ -85,8 +85,8 @@ getFirePoints_NFDB <- function(url = NULL,
 #' Get Fire \code{SpatialPoints} from Canadian Fire Database
 #'
 #' @param url Passed to \code{prepInputs}
-#' @param studyArea Passed to \code{prepInputs}
-#' @param rasterToMatch Passed to \code{prepInputs}
+#' @template studyArea
+#' @template rasterToMatch
 #' @param redownloadIn Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 #'   0.5 would mean "re-download data older than 6 months"
 #' @param years Numeric vector of consecutive years to fetch.

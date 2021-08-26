@@ -1,7 +1,7 @@
 #' preparing terrain covariates for fireSense modules
 #'
-#' @param rasterToMatch template raster
-#' @param studyArea \code{SpatialPolygonsDataFrame} file of \code{studyArea}
+#' @template rasterToMatch
+#' @template studyArea
 #' @param destinationPath directory where data is downloaded
 #'
 #' @return a raster stack of terrain indices
@@ -27,4 +27,32 @@ prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
   terrainCovariates <- stack(otherIndices, hli)
   names(terrainCovariates) <- c("TPI", "HLI")
   return(terrainCovariates)
+}
+
+#' converting terrain raster into data.table
+#'
+#' @param terrainCovariates raster stack with terrain values for PCA
+#' @template flammableRTM
+#'
+#' @return a data.table with terrain values for each flammable pixel
+#'
+#' @export
+#' @importFrom data.table set setDT
+#' @importFrom raster getValues nlayers
+#' @rdname buildTerrainDT
+buildTerrainDT <- function(terrainCovariates, flammableRTM){
+  layers <- seq(nlayers(sim$terrainCovariates))
+  names(layers) <- names(sim$terrainCovariates)
+  # Seems to be the fastest way to get data out of a RasterStack
+  terrainDT <- setDT(lapply(layers, FUN = function(x)
+    getValues(sim$terrainCovariates[[x]])
+  ))
+
+  set(terrainDT, j = "pixelID", value = 1:ncell(flammableRTM))
+  set(terrainDT, j = "flammable", value = getValues(flammableRTM))
+  terrainDT <- terrainDT[flammable == 1,] %>%
+    set(., NULL, "flammable", NULL) %>%
+    na.omit(.)
+
+  return(terrainDT)
 }

@@ -7,9 +7,11 @@
 prepTerrainCovariates(rasterToMatch, studyArea, destinationPath)
 }
 \arguments{
-\item{rasterToMatch}{template raster}
+\item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
+raster operations (i.e., the one used throughout the simulation).}
 
-\item{studyArea}{\code{SpatialPolygonsDataFrame} file of \code{studyArea}}
+\item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
+passed to \code{\link[reproducible]{prepInputs}}.}
 
 \item{destinationPath}{directory where data is downloaded}
 }

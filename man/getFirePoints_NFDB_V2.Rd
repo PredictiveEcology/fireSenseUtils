@@ -18,9 +18,11 @@ getFirePoints_NFDB_V2(
 \arguments{
 \item{url}{Passed to \code{prepInputs}}
 
-\item{studyArea}{Passed to \code{prepInputs}}
+\item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
+passed to \code{\link[reproducible]{prepInputs}}.}
 
-\item{rasterToMatch}{Passed to \code{prepInputs}}
+\item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
+raster operations (i.e., the one used throughout the simulation).}
 
 \item{redownloadIn}{Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 0.5 would mean "re-download data older than 6 months"}

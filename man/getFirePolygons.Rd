@@ -9,7 +9,8 @@ getFirePolygons(years, studyArea, destinationPath, useInnerCache = FALSE)
 \arguments{
 \item{years}{years to filter fire polygons by}
 
-\item{studyArea}{study area to subset fire polygons to}
+\item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
+passed to \code{\link[reproducible]{prepInputs}}.}
 
 \item{destinationPath}{the directory where the fire polys will be stored}
 

@@ -4,7 +4,7 @@
 \alias{makeRastersFromCD}
 \title{put cohortData back into raster with some extra details}
 \usage{
-makeRastersFromCD(class, cohortData, flammableMap, pixelGroupMap)
+makeRastersFromCD(class, cohortData, flammableRTM, pixelGroupMap)
 }
 \arguments{
 \item{class}{fuelClass from  \code{sppEquiv}}
@@ -13,7 +13,7 @@ makeRastersFromCD(class, cohortData, flammableMap, pixelGroupMap)
 \code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
 and \code{sumB}.}
 
-\item{flammableMap}{a raster with flammable cells}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
 
 \item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
