@@ -21,6 +21,7 @@ Imports:
     data.table,
     DEoptim,
     EnvStats,
+    fastDummies,
     fasterize,
     fpCompare,
     kSamples,
@@ -46,7 +47,6 @@ Imports:
 Suggests:
     dplyr,
     ggplot2,
-    fastDummies,
     knitr,
     lintr,
     parallel,

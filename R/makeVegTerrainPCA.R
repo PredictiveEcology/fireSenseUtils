@@ -1,5 +1,5 @@
 globalVariables(c(
-  ".SD", ".SDcols", "..dontWant", "year"
+  ".SD", ".SDcols", "..dontWant", "year", "flammable"
 ))
 
 #' Create PCA data for glm - for fitting and predicting
@@ -91,7 +91,7 @@ makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGro
   lccColsPreGroup <- colnames(lcc)[!colnames(lcc) %in% c("pixelID")]
   setDT(lcc) #pre-allocate space for new columns
 
-  for (i in names(sim$nonForestedLCCGroups)) {
+  for (i in names(nonForestedLCCGroups)) {
     classes <- paste0("lcc_", nonForestedLCCGroups[[i]])
     classes <- classes[classes %in% colnames(lcc)]
     set(lcc, NULL,  eval(i), rowSums(lcc[, .SD, .SDcols = classes]))

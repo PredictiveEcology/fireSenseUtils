@@ -1,3 +1,7 @@
+globalVariables(c(
+ "flammable"
+))
+
 #' preparing terrain covariates for fireSense modules
 #'
 #' @template rasterToMatch
@@ -41,11 +45,11 @@ prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
 #' @importFrom raster getValues nlayers
 #' @rdname buildTerrainDT
 buildTerrainDT <- function(terrainCovariates, flammableRTM){
-  layers <- seq(nlayers(sim$terrainCovariates))
-  names(layers) <- names(sim$terrainCovariates)
+  layers <- seq(nlayers(terrainCovariates))
+  names(layers) <- names(terrainCovariates)
   # Seems to be the fastest way to get data out of a RasterStack
   terrainDT <- setDT(lapply(layers, FUN = function(x)
-    getValues(sim$terrainCovariates[[x]])
+    getValues(terrainCovariates[[x]])
   ))
 
   set(terrainDT, j = "pixelID", value = 1:ncell(flammableRTM))
