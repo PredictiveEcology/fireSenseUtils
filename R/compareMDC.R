@@ -50,6 +50,6 @@ compareMDC <- function(historicalMDC, projectedMDC, flammableRTM = NULL) {
     ggplot2::ggplot(data = MDC, ggplot2::aes(y = MDC, x = year, color = stat)) +
       ggplot2::geom_line() +
       ggplot2::geom_smooth() +
-      ggplot2::coord_cartesian(ylim = c(80, 200))
+      ggplot2::coord_cartesian(ylim = c(80, 220))
   }
 }
