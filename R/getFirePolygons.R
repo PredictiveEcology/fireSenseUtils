@@ -1,7 +1,7 @@
 #' Download and prepare fire data from National Fire Database
 #'
 #' @param years years to filter fire polygons by
-#' @param studyArea study area to subset fire polygons to
+#' @template studyArea
 #' @param destinationPath the directory where the fire polys will be stored
 #' @param useInnerCache cache the prepInputs call
 #'

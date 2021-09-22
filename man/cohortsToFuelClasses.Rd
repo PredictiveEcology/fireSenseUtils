@@ -8,7 +8,7 @@ cohortsToFuelClasses(
   cohortData,
   yearCohort,
   pixelGroupMap,
-  flammableMap,
+  flammableRTM,
   sppEquiv,
   sppEquivCol,
   cutoffForYoungAge
@@ -24,7 +24,7 @@ and \code{sumB}.}
 \item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
 
-\item{flammableMap}{binary map of flammable pixels - see \code{LandR::defineFlammable}}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
 
 \item{sppEquiv}{table with species name equivalencies between the kNN and final naming formats.
 See \code{data("sppEquivalencies_CA", "LandR")}.

@@ -2,8 +2,8 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2021-08-29
-Version: 0.0.4.9082
+Date: 2021-09-22
+Version: 0.0.5
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
     role = c("aut")),
@@ -21,6 +21,7 @@ Imports:
     data.table,
     DEoptim,
     EnvStats,
+    fastDummies,
     fasterize,
     fpCompare,
     kSamples,
@@ -70,4 +71,4 @@ Language: en-CA
 LazyData: true
 License: GPL-3
 BugReports: https://github.com/PredictiveEcology/fireSenseUtils/issues
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

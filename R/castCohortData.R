@@ -7,7 +7,7 @@ globalVariables(c(
 #' @template cohortData
 #' @param terrainDT optional data table of terrain covariates with pixelIndex
 #' @param lcc data.table of dummified landcover
-#' @param pixelGroupMap pixelGroupMap to join terrain with pixelGroup
+#' @template pixelGroupMap
 #' @param ageMap a stand age map to assign ages to non-forest LCC used during predict
 #' @param missingLCC LCC class to assign forested pixels absent from cohortData
 #'   must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'

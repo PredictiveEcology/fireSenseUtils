@@ -22,7 +22,8 @@ and \code{sumB}.}
 
 \item{terrainDT}{optional data table of terrain covariates with pixelIndex}
 
-\item{pixelGroupMap}{pixelGroupMap to join terrain with pixelGroup}
+\item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
+number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
 
 \item{lcc}{data.table of dummified landcover}
 
