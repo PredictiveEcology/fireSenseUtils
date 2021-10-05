@@ -13,7 +13,6 @@ globalVariables(c(
 #' @export
 #' @importFrom raster raster stack terrain
 #' @importFrom reproducible prepInputs
-#' @importFrom spatialEco hli
 #' @rdname prepTerrainCovariates
 prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
   DEM <- prepInputs(url = 'https://drive.google.com/file/d/121x_CfWy2XP_-1av0cYE7sxUfb4pmsup/view?usp=sharing',
@@ -24,8 +23,9 @@ prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
   otherIndices <- raster::terrain(x = DEM,
                                   opt = c("TPI"),
                                   unit = "degrees")
-  hli <- spatialEco::hli(DEM)
-
+  if (!requireNamespace("spatialEco", quietly = TRUE)) {stop("Please install.packages('spatialEco')")} else {
+    hli <- spatialEco::hli(DEM)
+  }
   #if we add saga wetness index or dynatop's TWI or catchment area, here is the place
 
   terrainCovariates <- stack(otherIndices, hli)
