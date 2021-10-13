@@ -202,7 +202,8 @@ runDEoptim <- function(landscape,
                                collapse = ", "), " clusters")
     message("Starting main parallel cluster ...")
     st <- system.time({
-      cl <- parallelly::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
+      cl <- parallelly::makeClusterPSOCK(cores, revtunnel = revtunnel,
+                                         outfile = logPath, rscript_libs = .libPaths())
     })
 
     on.exit(stopCluster(cl))
