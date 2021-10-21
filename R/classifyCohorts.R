@@ -26,20 +26,19 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   cohortData <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
-
   cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
+  setnames(cohortData, old = fuelClassCol, new = "FuelClass") #so we don't have to use eval, which trips up some dt
   #data.table needs an argument for which column names are kept during join
 
-  cohortData[age <= cutoffForYoungAge, eval(fuelClassCol) := "youngAge"]
+  cohortData[age <= cutoffForYoungAge, FuelClass := "youngAge"]
   if (!"totalBiomass" %in% names(cohortData))
     cohortData[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
 
-  cohortData[, BperClass := sum(B), by = c(fuelClassCol, "pixelGroup")]
+  cohortData[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
 
   # Fix zero age, zero biomass
-  # testthat::expect_true(NROW(cohortData) == NROW(na.omit(cohortData)))
   cohortData[, Leading := BperClass == max(BperClass), .(pixelGroup)]
-  cohortData <- unique(cohortData[Leading == TRUE, .(eval(fuelClassCol), pixelGroup)]) #unique due to species
+  cohortData <- unique(cohortData[Leading == TRUE, .(FuelClass, pixelGroup)]) #unique due to species
   cohortData[, N := .N, .(pixelGroup)]
 
   #In the event of a tie, we randomly pick a fuel class
@@ -54,7 +53,7 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   } else {
     cohortData <- noTies
   }
-  classes <-sort(unique(cohortData[[fuelClassCol]]))
+  classes <-sort(unique(cohortData$FuelClass))
   classList <- lapply(classes, makeRastersFromCD,
                       flammableRTM =  flammableRTM,
                       pixelGroupMap = pixelGroupMap,

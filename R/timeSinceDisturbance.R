@@ -1,7 +1,3 @@
-globalVariables(c(
-  "nonForest_highFlam", "nonForest_lowFlam"
-))
-
 #' preparing a time since disturbance map from stand age and fire data
 #'
 #' @param standAgeMap initial stand age map
@@ -35,7 +31,11 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
               field = "YEAR", fun = "max") %>%
     setValues(., values = year - getValues(.))
 
-  pixToUpdate <- lcc[nonForest_highFlam > 0 | nonForest_lowFlam > 0, ]$pixelID
+  nfLCC <- names(lcc)[!names(lcc) %in% "pixelID"]
+  lcc[, fooCol := rowSums(.SD), .SDcol = nfLCC]
+  pixToUpdate <- lcc[fooCol > 0]$pixelID
+  lcc[, fooCol := NULL]
+
 
   falseYoungs <- standAgeMap[pixToUpdate] <= cutoffForYoungAge | is.na(standAgeMap[pixToUpdate])
   trueYoungs <- initialTSD[pixToUpdate] <= cutoffForYoungAge
