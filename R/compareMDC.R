@@ -15,10 +15,11 @@ utils::globalVariables(c(
 #' @importFrom raster ncell nlayers getValues
 #'
 #' @examples
+#' \dontrun{
 #' compareMDC(historicalMDC = simOutPreamble$historicalClimateRasters$MDC,
 #'            projectedMDC = simOutPreamble$projectedClimateRasters$MDC,
 #'            flammableRTM = fSsimDataPrep$flammableRTM)
-#'
+#' }
 compareMDC <- function(historicalMDC, projectedMDC, flammableRTM = NULL) {
   if (requireNamespace("ggplot2", quietly = TRUE)) {
     valfun <- function(x, flamMap = NULL) {
