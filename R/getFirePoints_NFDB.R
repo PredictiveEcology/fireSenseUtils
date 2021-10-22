@@ -1,4 +1,4 @@
-#' Get Fire SpatialPoints from Canadian Fire Database
+#' Get Fire \code{SpatialPoints} from Canadian Fire Database
 #'
 #' @param url Passed to \code{prepInputs}
 #' @template studyArea

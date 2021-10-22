@@ -28,7 +28,7 @@ knitr::opts_chunk$set(
 #  
 #  #rasterize firePolygons
 #  firePolygons$dummyVar <- 1
-#  firePolygons <- firePolygons[firePolygons$YEAR > 2004,]
+#  firePolygons <- firePolygons[firePolygons$YEAR > 2004, ]
 #  fireRaster <- fasterize(sf = firePolygons, raster = lcc, field = "dummyVar")
 #  fireLoc <- 1:ncell(lcc)
 #  fireLoc <- fireLoc[!is.na(getValues(fireRaster))]
@@ -48,4 +48,8 @@ knitr::opts_chunk$set(
 #    ylab("percent burned (%)") +
 #    scale_x_continuous("LCC", labels = as.character(burnCalc$lcc), breaks = burnCalc$lcc) +
 #    theme_bw()
+
+## ----eval = FALSE-------------------------------------------------------------
+#  ## original fireSense_dataPrepFit defaults
+#  LCC2005_nonFlam <- c(0, 25, 30, 33, 36, 37, 38, 39)
 
