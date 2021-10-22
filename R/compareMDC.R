@@ -14,7 +14,7 @@ utils::globalVariables(c(
 #' @importFrom stats median
 #' @importFrom raster ncell nlayers getValues
 #'
-#' @example
+#' @examples
 #' compareMDC(historicalMDC = simOutPreamble$historicalClimateRasters$MDC
 #'            projectedMDC = simOutPreamble$projectedClimateRasters$MDC,
 #'            flammableRTM = fSsimDataPrep$flammableRTM)

@@ -45,7 +45,7 @@ firePolygons <- sf::st_transform(firePolygons, crs = crs(lcc))
 
 #rasterize firePolygons
 firePolygons$dummyVar <- 1
-firePolygons <- firePolygons[firePolygons$YEAR > 2004,]
+firePolygons <- firePolygons[firePolygons$YEAR > 2004, ]
 fireRaster <- fasterize(sf = firePolygons, raster = lcc, field = "dummyVar")
 fireLoc <- 1:ncell(lcc)
 fireLoc <- fireLoc[!is.na(getValues(fireRaster))]
@@ -69,3 +69,16 @@ ggplot(data = burnCalc, aes(x = lcc, y = percentBurned)) +
   scale_x_continuous("LCC", labels = as.character(burnCalc$lcc), breaks = burnCalc$lcc) + 
   theme_bw()
 ```
+
+From the plot above (and based on descripitons of each class) we determine the following non-flammable classes:
+
+```{r eval = FALSE}
+## original fireSense_dataPrepFit defaults
+LCC2005_nonFlam <- c(0, 25, 30, 33, 36, 37, 38, 39)
+```
+
+And for fireSense categories:
+
+- **non-forest high-flammability:**
+- **non-forest low-flammability:**
+
