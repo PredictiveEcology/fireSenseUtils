@@ -36,7 +36,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     if (!nrow(buff) > 0) { #cent can be >1 row while buff = 0, if poly is small
       return(NULL)
     }
-    if (!compareCRS(crs(ras), crs(cent))) {
+    if (!identicalCRS(ras, cent)) {
       cent <- sp::spTransform(cent, crs(ras))
     }
 
