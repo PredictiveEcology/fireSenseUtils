@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #' @importFrom raster ncell nlayers getValues
 #'
 #' @examples
-#' compareMDC(historicalMDC = simOutPreamble$historicalClimateRasters$MDC
+#' compareMDC(historicalMDC = simOutPreamble$historicalClimateRasters$MDC,
 #'            projectedMDC = simOutPreamble$projectedClimateRasters$MDC,
 #'            flammableRTM = fSsimDataPrep$flammableRTM)
 #'
