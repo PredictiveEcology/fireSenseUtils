@@ -20,8 +20,9 @@ a ggplot object
 Download and prepare fire data from National Fire Database
 }
 \examples{
+\dontrun{
 compareMDC(historicalMDC = simOutPreamble$historicalClimateRasters$MDC,
            projectedMDC = simOutPreamble$projectedClimateRasters$MDC,
            flammableRTM = fSsimDataPrep$flammableRTM)
-
+}
 }
