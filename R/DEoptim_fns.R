@@ -40,6 +40,7 @@ utils::globalVariables(c(
 #'   \code{visualizeDEoptim} is \code{TRUE})
 #' @param lower Passed to \code{DEoptim}
 #' @param upper Passed to \code{DEoptim}
+#' @template mutuallyExclusive
 #' @param FS_formula Passed to \code{DEoptim}
 #' @param objFunCoresInternal DESCRIPTION NEEDED
 #' @param covMinMax Passed to \code{fireSenseUtils::.objfunSpreadFit}
@@ -80,6 +81,7 @@ runDEoptim <- function(landscape,
                        iterStep = 25,
                        lower,
                        upper,
+                       mutuallyExclusive,
                        FS_formula,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
@@ -319,6 +321,7 @@ visualizeDE <- function(DE, cachePath) {
 }
 
 #' @param control DESCRIPTION NEEDED
+#' @template mutuallyExclusive
 #'
 #' @export
 #' @importFrom data.table rbindlist setDTthreads
@@ -341,6 +344,7 @@ DEoptimIterative <- function(itermax,
                              Nreps,
                              visualizeDEoptim,
                              cachePath,
+                             mutuallyExclusive,
                              doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                              iterStep = 25,
                              thresh = 550,
@@ -370,7 +374,7 @@ DEoptimIterative <- function(itermax,
                              covMinMax = covMinMax,
                              tests = tests,
                              maxFireSpread = maxFireSpread,
-                             mutuallyExclusive = list("youngAge" = c("vegPC")),
+                             mutuallyExclusive = mutuallyExclusive,
                              doAssertions = doObjFunAssertions,
                              Nreps = Nreps,
                              controlForCache = controlForCache,
