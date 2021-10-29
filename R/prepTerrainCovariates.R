@@ -54,7 +54,7 @@ buildTerrainDT <- function(terrainCovariates, flammableRTM){
 
   set(terrainDT, j = "pixelID", value = 1:ncell(flammableRTM))
   set(terrainDT, j = "flammable", value = getValues(flammableRTM))
-  terrainDT <- terrainDT[flammable == 1,] %>%
+  terrainDT <- terrainDT[flammable == 1, ] %>%
     set(., NULL, "flammable", NULL) %>%
     na.omit(.)
 
