@@ -119,7 +119,8 @@ runDEoptim <- function(landscape,
                      "annualDTx1000",
                      "nonAnnualDTx1000",
                      "fireBufferedListDT",
-                     "historicalFires")
+                     "historicalFires",
+                     "mutuallyExclusive")
 
   if (!is.null(cores)) {
     logPath <- file.path(logPath,
@@ -394,6 +395,7 @@ DEoptimIterative <- function(itermax,
                                              fn,
                                              lower = lower,
                                              upper = upper,
+                                             mutuallyExclusive = mutuallyExclusive,
                                              controlForCache = controlForCache,
                                              control = control,
                                              omitArgs = c("verbose", "control"),
