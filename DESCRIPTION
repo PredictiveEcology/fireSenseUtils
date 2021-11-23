@@ -42,7 +42,6 @@ Imports:
     sp,
     SpaDES.core,
     SpaDES.tools (>= 0.3.7),
-    spatialEco,
     stats
 Suggests:
     dplyr,
@@ -54,6 +53,7 @@ Suggests:
     Require,
     rgeos,
     rmarkdown,
+    spatialEco,
     spatstat,
     spelling,
     testthat
