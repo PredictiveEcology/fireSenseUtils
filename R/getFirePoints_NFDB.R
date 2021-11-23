@@ -15,13 +15,16 @@
 #' @importFrom raster crs crs<- res
 #' @importFrom reproducible Cache Checksums prepInputs
 #' @importFrom utils getFromNamespace
-#' @importFrom SpaDES.core dyear
 getFirePoints_NFDB <- function(url = NULL,
                                studyArea = NULL, rasterToMatch = NULL,
                                redownloadIn = 1,
                                years = 1991:2017,
                                fireSizeColName = "SIZE_HA",
                                NFDB_pointPath = NULL) {
+  if (!requireNamespace("SpaDES.core", quietly = TRUE)) {
+    stop("Please install.packaes('SpaDES.core').")
+  }
+
   if (is.null(NFDB_pointPath))
     stop("NFDB_pointPath must be specified and non-NULL.")
   if (is.null(url))
@@ -37,7 +40,7 @@ getFirePoints_NFDB <- function(url = NULL,
       check[whRowIsShp[whIsOK], "expectedFile"], as.character)))
     dateOfFile <- substr(x = filesToCheck,
                          start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck))
-    if ((as.Date(dateOfFile, format = "%Y%m%d") + dyear(redownloadIn)) > Sys.Date()) {
+    if ((as.Date(dateOfFile, format = "%Y%m%d") + SpaDES.core::dyear(redownloadIn)) > Sys.Date()) {
       # can change dyear(...) to whatever... e.g., dyear(0.5) would be 6 months
       needNewDownload <- FALSE
     }
@@ -100,7 +103,6 @@ getFirePoints_NFDB <- function(url = NULL,
 #' @importFrom raster crs crs<- plot res shapefile
 #' @importFrom reproducible Cache Checksums prepInputs projectInputs
 #' @importFrom sp coordinates<-
-#' @importFrom SpaDES.core dyear
 getFirePoints_NFDB_V2 <- function(url = NULL,
                                   studyArea = NULL,
                                   rasterToMatch = NULL,
@@ -109,6 +111,10 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
                                   fireSizeColName = "SIZE_HA",
                                   NFDB_pointPath = NULL,
                                   plot = FALSE) {
+  if (!requireNamespace("SpaDES.core", quietly = TRUE)) {
+    stop("Please install.packaes('SpaDES.core').")
+  }
+
   if (is.null(NFDB_pointPath))
     stop("NFDB_pointPath must be specified and non-NULL.")
   if (is.null(url))
@@ -124,7 +130,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
       check[whRowIsShp[whIsOK], "expectedFile"], as.character)))
     dateOfFile <- substr(x = filesToCheck,
                          start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck))
-    if ((as.Date(dateOfFile, format = "%Y%m%d") + dyear(redownloadIn)) > Sys.Date()) {
+    if ((as.Date(dateOfFile, format = "%Y%m%d") + SpaDES.core::dyear(redownloadIn)) > Sys.Date()) {
       # can change dyear(...) to whatever... e.g., dyear(0.5) would be 6 months
       needNewDownload <- FALSE
     }

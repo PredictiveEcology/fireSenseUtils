@@ -40,7 +40,6 @@ Imports:
     RhpcBLASctl,
     sf,
     sp,
-    SpaDES.core,
     SpaDES.tools (>= 0.3.7),
     stats
 Suggests:
@@ -53,6 +52,7 @@ Suggests:
     Require,
     rgeos,
     rmarkdown,
+    SpaDES.core,
     spatialEco,
     spatstat,
     spelling,
