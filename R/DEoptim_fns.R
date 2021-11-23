@@ -140,7 +140,7 @@ runDEoptim <- function(landscape,
       coresUnique <- setdiff(unique(cores), "localhost")
       message("Making sure packages with sufficient versions installed and loaded on: ", paste(coresUnique, collapse = ", "))
       st <- system.time({
-        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel)
+        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = .libPaths())
       })
       packageVersionFSU <- packageVersion("fireSenseUtils")
       packageVersionST <- packageVersion("SpaDES.tools")
@@ -169,8 +169,7 @@ runDEoptim <- function(landscape,
           #   there won't be a folder present that is writeable
           if (file.access(.libPaths()[1], mode = 2) < 0) {
             message("The .libPaths()[1] is not writable; trying normal alternatives")
-            RLibPath <- file.path("~", "R", paste0(R.version$platform, "-library"),
-                                  paste0(R.version$major, ".", gsub("\\..+", "", R.version$minor)))
+            RLibPath <- .libPaths()[1]
 
             if (!dir.exists(RLibPath)) {
               dir.create(RLibPath, recursive = TRUE)
@@ -202,7 +201,8 @@ runDEoptim <- function(landscape,
                                collapse = ", "), " clusters")
     message("Starting main parallel cluster ...")
     st <- system.time({
-      cl <- parallelly::makeClusterPSOCK(cores, revtunnel = revtunnel, outfile = logPath)
+      cl <- parallelly::makeClusterPSOCK(cores, revtunnel = revtunnel,
+                                         outfile = logPath, rscript_libs = .libPaths())
     })
 
     on.exit(stopCluster(cl))
