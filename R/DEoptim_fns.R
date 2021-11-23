@@ -213,7 +213,7 @@ runDEoptim <- function(landscape,
     stMoveObjects <- try({
       system.time({
         objsToCopy <- mget(unlist(objsNeeded))
-        filenameForTransfer <- tempfile(fileext = ".qs")#"/tmp/objsToCopy.qs"
+        filenameForTransfer <- tempfile(fileext = ".qs")
         Require::checkPath(dirname(filenameForTransfer), create = TRUE) # during development, this was deleted accidentally
         qs::qsave(objsToCopy, file = filenameForTransfer)
         stExport <- system.time({

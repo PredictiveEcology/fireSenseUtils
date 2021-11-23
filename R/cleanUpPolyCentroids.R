@@ -6,29 +6,28 @@ utils::globalVariables(c(
 #'
 #' Mostly this is about 2 things: 1) remove fires that were so small that they take less
 #' than 1 pixel so they are not in the \code{buff} object but are in the \code{cent}
-#' object. 2) the centroid cell is in a buffer or otherwise unburnable cell (e.g., water).
+#' object. 2) the centroid cell is in a buffer or otherwise nonburnable cell (e.g., water).
 #' For 1) remove these from the centroid data. For 2) this function will search
 #' in the neighbourhood for the next closest pixel that
 #' has at least 7 available neighbours that can burn
 #'
 #' @param cent List of points as \code{SpatialPointsDataFrame}
-#' @param idCol The column name as a character string with the fire ids. Defaults to
-#'   \code{"NFIREID"}
+#' @param idCol The column name as a character string with the fire ids.
+#'   Defaults to \code{"NFIREID"}.
 #' @param buff List of \code{data.table} objects with 3 columns, "buffer" which is 1 (in the fire)
 #'   or 0 (in a buffer), \code{ids} which are the fire ids which MUST match the ids
-#'   in the \code{cent}
-#' @param ras The raster that created the \code{pixelIDs} in the \code{buff}
+#'   in the \code{cent}.
+#' @param ras The raster that created the \code{pixelIDs} in the \code{buff}.
 #'
 #' @export
 #' @importFrom data.table as.data.table data.table setkeyv
 #' @importFrom pemisc rasterToMatch
 #' @importFrom purrr pmap
-#' @importFrom sp SpatialPointsDataFrame spTransform
+#' @importFrom sp identicalCRS SpatialPointsDataFrame spTransform
 #' @importFrom SpaDES.tools distanceFromEachPoint spread
 #' @importFrom raster cellFromXY compareCRS crs xyFromCell
 #' @importFrom utils head tail
 harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
-
   purrr::pmap(list(
     cent = cent,
     buff = buff
@@ -37,7 +36,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     if (!nrow(buff) > 0) { #cent can be >1 row while buff = 0, if poly is small
       return(NULL)
     }
-    if (!compareCRS(crs(ras), crs(cent))) {
+    if (!identicalCRS(ras, cent)) {
       cent <- sp::spTransform(cent, crs(ras))
     }
 
@@ -63,7 +62,6 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       dfep <- distanceFromEachPoint(from, fr)
       dfep <- as.data.table(dfep)
       # Make sure it is not surrounded by NAs
-
 
       setkeyv(dfep, c("id", "dists"))
       i <- 1
@@ -119,7 +117,8 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       )
 
       suppressWarnings({
-        polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id,polyCentroids[[idCol]]), ], sp)
+        browser()
+        polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id, polyCentroids[[idCol]]), ], sp)
       })
     }
     centDT2 <- data.table(

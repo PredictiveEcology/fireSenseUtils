@@ -8,7 +8,7 @@
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
-#' @importFrom raster crs isLonLat
+#' @importFrom raster compareCRS isLonLat
 #' @importFrom reproducible prepInputs
 getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
   ## TODO: remove this workaround once polygonShortcut working correctly
@@ -24,7 +24,7 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
                           destinationPath = destinationPath,
                           useCache = useInnerCache) #this object will cache several gigabytes of cached for a small object
 
-  stopifnot(identical(crs(firePolys), crs(studyArea)))
+  stopifnot(compareCRS(firePolys, studyArea))
 
   firePolys$YEAR <- as.numeric(firePolys$YEAR) #why is it character?
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys){
