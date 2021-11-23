@@ -35,7 +35,7 @@ prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
   return(terrainCovariates)
 }
 
-#' converting terrain raster into data.table
+#' Convert terrain raster into \code{data.table}
 #'
 #' @param terrainCovariates raster stack with terrain values for PCA
 #' @template flammableRTM
