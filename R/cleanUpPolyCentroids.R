@@ -12,18 +12,18 @@ utils::globalVariables(c(
 #' has at least 7 available neighbours that can burn
 #'
 #' @param cent List of points as \code{SpatialPointsDataFrame}
-#' @param idCol The column name as a character string with the fire ids. Defaults to
-#'   \code{"NFIREID"}
+#' @param idCol The column name as a character string with the fire ids.
+#'   Defaults to \code{"NFIREID"}.
 #' @param buff List of \code{data.table} objects with 3 columns, "buffer" which is 1 (in the fire)
 #'   or 0 (in a buffer), \code{ids} which are the fire ids which MUST match the ids
-#'   in the \code{cent}
-#' @param ras The raster that created the \code{pixelIDs} in the \code{buff}
+#'   in the \code{cent}.
+#' @param ras The raster that created the \code{pixelIDs} in the \code{buff}.
 #'
 #' @export
 #' @importFrom data.table as.data.table data.table setkeyv
 #' @importFrom pemisc rasterToMatch
 #' @importFrom purrr pmap
-#' @importFrom sp SpatialPointsDataFrame spTransform
+#' @importFrom sp identicalCRS SpatialPointsDataFrame spTransform
 #' @importFrom SpaDES.tools distanceFromEachPoint spread
 #' @importFrom raster cellFromXY compareCRS crs xyFromCell
 #' @importFrom utils head tail

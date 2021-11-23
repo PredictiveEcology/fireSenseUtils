@@ -11,12 +11,12 @@ harmonizeBufferAndPoints(cent, buff, ras, idCol = "FIRE_ID")
 
 \item{buff}{List of \code{data.table} objects with 3 columns, "buffer" which is 1 (in the fire)
 or 0 (in a buffer), \code{ids} which are the fire ids which MUST match the ids
-in the \code{cent}}
+in the \code{cent}.}
 
-\item{ras}{The raster that created the \code{pixelIDs} in the \code{buff}}
+\item{ras}{The raster that created the \code{pixelIDs} in the \code{buff}.}
 
-\item{idCol}{The column name as a character string with the fire ids. Defaults to
-\code{"NFIREID"}}
+\item{idCol}{The column name as a character string with the fire ids.
+Defaults to \code{"NFIREID"}.}
 }
 \description{
 Mostly this is about 2 things: 1) remove fires that were so small that they take less
