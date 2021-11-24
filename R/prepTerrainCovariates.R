@@ -13,7 +13,6 @@ globalVariables(c(
 #' @export
 #' @importFrom raster raster stack terrain
 #' @importFrom reproducible prepInputs
-#' @importFrom spatialEco hli
 #' @rdname prepTerrainCovariates
 prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
   DEM <- prepInputs(url = 'https://drive.google.com/file/d/121x_CfWy2XP_-1av0cYE7sxUfb4pmsup/view?usp=sharing',
@@ -24,8 +23,11 @@ prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
   otherIndices <- raster::terrain(x = DEM,
                                   opt = c("TPI"),
                                   unit = "degrees")
-  hli <- spatialEco::hli(DEM)
-
+  if (requireNamespace("spatialEco", quietly = TRUE)) {
+    hli <- spatialEco::hli(DEM)
+  } else {
+    stop("Please install.packages('spatialEco')")
+  }
   #if we add saga wetness index or dynatop's TWI or catchment area, here is the place
 
   terrainCovariates <- stack(otherIndices, hli)
@@ -33,7 +35,7 @@ prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
   return(terrainCovariates)
 }
 
-#' converting terrain raster into data.table
+#' Convert terrain raster into \code{data.table}
 #'
 #' @param terrainCovariates raster stack with terrain values for PCA
 #' @template flammableRTM
@@ -54,7 +56,7 @@ buildTerrainDT <- function(terrainCovariates, flammableRTM){
 
   set(terrainDT, j = "pixelID", value = 1:ncell(flammableRTM))
   set(terrainDT, j = "flammable", value = getValues(flammableRTM))
-  terrainDT <- terrainDT[flammable == 1,] %>%
+  terrainDT <- terrainDT[flammable == 1, ] %>%
     set(., NULL, "flammable", NULL) %>%
     na.omit(.)
 

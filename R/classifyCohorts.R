@@ -53,7 +53,7 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   } else {
     cohortData <- noTies
   }
-  classes <-sort(unique(cohortData$FuelClass))
+  classes <- sort(unique(cohortData$FuelClass))
   classList <- lapply(classes, makeRastersFromCD,
                       flammableRTM =  flammableRTM,
                       pixelGroupMap = pixelGroupMap,

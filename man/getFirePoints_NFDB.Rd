@@ -2,7 +2,7 @@
 % Please edit documentation in R/getFirePoints_NFDB.R
 \name{getFirePoints_NFDB}
 \alias{getFirePoints_NFDB}
-\title{Get Fire SpatialPoints from Canadian Fire Database}
+\title{Get Fire \code{SpatialPoints} from Canadian Fire Database}
 \usage{
 getFirePoints_NFDB(
   url = NULL,
@@ -36,5 +36,5 @@ raster operations (i.e., the one used throughout the simulation).}
 A \code{SpatialPointsDataFrame}.
 }
 \description{
-Get Fire SpatialPoints from Canadian Fire Database
+Get Fire \code{SpatialPoints} from Canadian Fire Database
 }

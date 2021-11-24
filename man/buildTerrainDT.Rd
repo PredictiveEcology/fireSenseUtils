@@ -2,7 +2,7 @@
 % Please edit documentation in R/prepTerrainCovariates.R
 \name{buildTerrainDT}
 \alias{buildTerrainDT}
-\title{converting terrain raster into data.table}
+\title{Convert terrain raster into \code{data.table}}
 \usage{
 buildTerrainDT(terrainCovariates, flammableRTM)
 }
@@ -15,5 +15,5 @@ buildTerrainDT(terrainCovariates, flammableRTM)
 a data.table with terrain values for each flammable pixel
 }
 \description{
-converting terrain raster into data.table
+Convert terrain raster into \code{data.table}
 }

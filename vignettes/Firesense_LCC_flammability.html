@@ -12,7 +12,7 @@
 
 <meta name="author" content="Ian Eddy, Eliot McIntire, Steve Cumming, Alex Chubaty" />
 
-<meta name="date" content="2021-02-05" />
+<meta name="date" content="2021-10-21" />
 
 <title>fireSense LCC flammability analysis</title>
 
@@ -28,11 +28,19 @@
     </style>
 
 
-<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
 pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
@@ -133,7 +141,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 <h1 class="title toc-ignore">fireSense LCC flammability analysis</h1>
 <h4 class="author">Ian Eddy, Eliot McIntire, Steve Cumming, Alex Chubaty</h4>
-<h4 class="date">2021-02-05</h4>
+<h4 class="date">2021-10-21</h4>
 
 
 
@@ -157,7 +165,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">#rasterize firePolygons</span></span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>firePolygons<span class="sc">$</span>dummyVar <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> firePolygons[firePolygons<span class="sc">$</span>YEAR <span class="sc">&gt;</span> <span class="dv">2004</span>,]</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> firePolygons[firePolygons<span class="sc">$</span>YEAR <span class="sc">&gt;</span> <span class="dv">2004</span>, ]</span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>fireRaster <span class="ot">&lt;-</span> <span class="fu">fasterize</span>(<span class="at">sf =</span> firePolygons, <span class="at">raster =</span> lcc, <span class="at">field =</span> <span class="st">&quot;dummyVar&quot;</span>)</span>
 <span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>fireLoc <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncell</span>(lcc)</span>
 <span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>fireLoc <span class="ot">&lt;-</span> fireLoc[<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">getValues</span>(fireRaster))]</span>
@@ -172,6 +180,14 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 </div>
 <div id="plot" class="section level2">
 <h2>Plot</h2>
+<p>From the plot above (and based on descripitons of each class) we determine the following non-flammable classes:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">## original fireSense_dataPrepFit defaults</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>LCC2005_nonFlam <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">25</span>, <span class="dv">30</span>, <span class="dv">33</span>, <span class="dv">36</span>, <span class="dv">37</span>, <span class="dv">38</span>, <span class="dv">39</span>)</span></code></pre></div>
+<p>And for fireSense categories:</p>
+<ul>
+<li><strong>non-forest high-flammability:</strong></li>
+<li><strong>non-forest low-flammability:</strong></li>
+</ul>
 </div>
 
 

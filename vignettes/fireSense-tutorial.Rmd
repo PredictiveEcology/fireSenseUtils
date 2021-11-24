@@ -756,7 +756,7 @@ Note that all the steps above could be done in one simulation / SpaDES call.
 
 # Additional resources
 
-Read modules metadata, all module parameters are documented in Rmd files.
+Read modules metadata, all module parameters are documented in `.Rmd` files.
 
 # References
 
