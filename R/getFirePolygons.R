@@ -10,6 +10,7 @@
 #' @export
 #' @importFrom raster compareCRS isLonLat
 #' @importFrom reproducible prepInputs
+#' @importFrom sf as_Spatial st_area
 getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
   ## TODO: remove this workaround once polygonShortcut working correctly
   RPS <- getOption("reproducible.polygonShortcut")
@@ -26,16 +27,16 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
 
   stopifnot(compareCRS(firePolys, studyArea))
 
-  firePolys$YEAR <- as.numeric(firePolys$YEAR) #why is it character?
+  firePolys$YEAR <- as.numeric(firePolys$YEAR) # why is it character?
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys){
     firePoly <- polys[polys$YEAR == x,]
     if (nrow(firePoly) > 0) {
       if (isLonLat(firePoly)) {
         stop("please use a study area that is projected in metres")
       }
-    firePoly$POLY_HA <- round(rgeos::gArea(firePoly, byid = TRUE) / 1e4, digits = 2)
-    firePoly <- firePoly[!duplicated(firePoly$FIRE_ID),]
-    return(firePoly)
+    firePoly$POLY_HA <- round(sf::st_area(firePoly, by_element = TRUE) / 1e4, digits = 2)
+    firePoly <- firePoly[!duplicated(firePoly$FIRE_ID), ]
+    return(as_Spatial(firePoly))
     } else {
       return(NULL)
     }
