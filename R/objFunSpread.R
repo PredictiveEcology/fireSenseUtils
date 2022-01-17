@@ -28,15 +28,7 @@ utils::globalVariables(c(
 #' @param maxFireSpread A value for \code{spreadProb} that is considered impossible to go above.
 #'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
 #' @param minFireSize DESCRIPTION NEEDED
-#' @param mutuallyExclusive If there are any covariates, e.g,. youngAge, that should be
-#'   considered mutually exclusive, i.e., "if youngAge is non-zero, should vegPC2 be set to zero", then
-#'   this can be done here. A named list, where the name of the list element must be a single
-#'   covariate column name in either \code{annualDTx1000} or \code{nonAnnualDTx1000}. The list
-#'   content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
-#'   The values of all column names that match the grep value will be set to \code{0}, whenever
-#'   the name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
-#'   meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
-#'   is non-zero.
+#' @template mutuallyExclusive
 #' @param doAssertions Logical. If \code{TRUE}, the default, the function will test a few minor things
 #'   for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
 #'   take some small amount of time.

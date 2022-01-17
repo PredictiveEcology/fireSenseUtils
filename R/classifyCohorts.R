@@ -12,6 +12,7 @@ globalVariables(c(
 #' @param yearCohort the year the \code{cohortData} represents
 #' @template flammableRTM
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
+#' @param fuelClassCol the column in sppEquiv that describes unique fuel classes
 #'
 #' @return a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
 #'
@@ -21,12 +22,12 @@ globalVariables(c(
 #' @importFrom raster getValues nlayers raster stack
 #'
 cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM,
-                                 sppEquiv, sppEquivCol, cutoffForYoungAge) {
+                                 sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
   cohortData <- copy(cohortData)
-  joinCol <- c('FuelClass', eval(sppEquivCol))
+  joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
-
   cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
+  setnames(cohortData, old = fuelClassCol, new = "FuelClass") #so we don't have to use eval, which trips up some dt
   #data.table needs an argument for which column names are kept during join
 
   cohortData[age <= cutoffForYoungAge, FuelClass := "youngAge"]
@@ -36,7 +37,6 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   cohortData[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
 
   # Fix zero age, zero biomass
-  # testthat::expect_true(NROW(cohortData) == NROW(na.omit(cohortData)))
   cohortData[, Leading := BperClass == max(BperClass), .(pixelGroup)]
   cohortData <- unique(cohortData[Leading == TRUE, .(FuelClass, pixelGroup)]) #unique due to species
   cohortData[, N := .N, .(pixelGroup)]
