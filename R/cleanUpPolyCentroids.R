@@ -117,7 +117,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       )
 
       suppressWarnings({
-        browser()
+        #browser()
         polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id, polyCentroids[[idCol]]), ], sp)
       })
     }
