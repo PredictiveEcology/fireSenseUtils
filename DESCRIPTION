@@ -41,7 +41,8 @@ Imports:
     sf,
     sp,
     SpaDES.tools (>= 0.3.7),
-    stats
+    stats,
+    utils
 Suggests:
     dplyr,
     ggplot2,
