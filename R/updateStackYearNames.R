@@ -7,7 +7,7 @@
 updateStackYearNames <- function(annualDataStack, desiredYears) {
   objectName <- as.character(substitute(annualDataStack))
 
-  grepTest4DigitYear <- "[[:digit:]]{4,4}"
+  grepTest4DigitYear <- "[[:digit:]]{4,4}$"
   namingConventionTxt <- paste("does not have names that include the 4 digit year.",
                                "Please use that naming convention.")
 
