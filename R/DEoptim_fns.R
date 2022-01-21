@@ -137,11 +137,11 @@ runDEoptim <- function(landscape,
     #     multiple times per machine, if not all 'localhost'
     revtunnel <- FALSE
     if (!identical("localhost", unique(cores))) {
-
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
       coresUnique <- setdiff(unique(cores), "localhost")
-      message("Making sure packages with sufficient versions installed and loaded on: ", paste(coresUnique, collapse = ", "))
+      message("Making sure packages with sufficient versions installed and loaded on: ",
+              paste(coresUnique, collapse = ", "))
       st <- system.time({
         cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = .libPaths())
       })
@@ -191,8 +191,8 @@ runDEoptim <- function(landscape,
           # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
             c("dqrng",
-              paste0("PredictiveEcology/SpaDES.tools@development (>=",packageVersionST,")"),
-              paste0("PredictiveEcology/fireSenseUtils@development (>=",packageVersionFSU, ")")),
+              paste0("PredictiveEcology/SpaDES.tools@development (>=", packageVersionST, ")"),
+              paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")),
             upgrade = FALSE)
         }
       )
