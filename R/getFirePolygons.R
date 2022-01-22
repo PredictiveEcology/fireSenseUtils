@@ -28,6 +28,10 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
   stopifnot(compareCRS(firePolys, studyArea))
 
   firePolys$YEAR <- as.numeric(firePolys$YEAR) # why is it character?
+
+  if (!is(firePolys, "sf")) {
+    firePolys <- sf::st_as_sf(firePolys)
+  }
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys){
     firePoly <- polys[polys$YEAR == x,]
     if (nrow(firePoly) > 0) {
