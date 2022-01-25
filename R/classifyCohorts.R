@@ -23,41 +23,41 @@ globalVariables(c(
 #'
 cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
-  cohortData <- copy(cohortData)
+  cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
-  cohortData <- cohortData[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
-  setnames(cohortData, old = fuelClassCol, new = "FuelClass") #so we don't have to use eval, which trips up some dt
+  cD <- cD[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
+  setnames(cD, old = fuelClassCol, new = "FuelClass") #so we don't have to use eval, which trips up some dt
   #data.table needs an argument for which column names are kept during join
 
-  cohortData[age <= cutoffForYoungAge, FuelClass := "youngAge"]
-  if (!"totalBiomass" %in% names(cohortData))
-    cohortData[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
+  cD[age <= cutoffForYoungAge, FuelClass := "youngAge"]
+  if (!"totalBiomass" %in% names(cD))
+    cD[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
 
-  cohortData[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
+  cD[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
 
   # Fix zero age, zero biomass
-  cohortData[, Leading := BperClass == max(BperClass), .(pixelGroup)]
-  cohortData <- unique(cohortData[Leading == TRUE, .(FuelClass, pixelGroup)]) #unique due to species
-  cohortData[, N := .N, .(pixelGroup)]
+  cD[, Leading := BperClass == max(BperClass), .(pixelGroup)]
+  cD <- unique(cD[Leading == TRUE, .(FuelClass, pixelGroup)]) # unique due to species
+  cD[, N := .N, .(pixelGroup)]
 
   #In the event of a tie, we randomly pick a fuel class
-  ties <- cohortData[N > 1]
-  noTies <- cohortData[N == 1]
+  ties <- cD[N > 1]
+  noTies <- cD[N == 1]
   if (nrow(ties) > 1) {
     ties$foo <- sample(x = 1:nrow(ties), size = nrow(ties))
     setkey(ties, foo)
     ties <- ties[!duplicated(ties[, .(pixelGroup)])]
     ties[, foo := NULL]
-    cohortData <- rbind(ties, noTies)
+    cD <- rbind(ties, noTies)
   } else {
-    cohortData <- noTies
+    cD <- noTies
   }
-  classes <- sort(unique(cohortData$FuelClass))
+  classes <- sort(unique(cD$FuelClass))
   classList <- lapply(classes, makeRastersFromCD,
                       flammableRTM =  flammableRTM,
                       pixelGroupMap = pixelGroupMap,
-                      cohortData = cohortData)
+                      cohortData = cD)
 
   classList <- stack(classList)
   names(classList) <- classes
