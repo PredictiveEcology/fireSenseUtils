@@ -26,13 +26,14 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
-  cD <- cD[sppEquivSubset, on = c('speciesCode' = sppEquivCol)]
-  setnames(cD, old = fuelClassCol, new = "FuelClass") #so we don't have to use eval, which trips up some dt
-  #data.table needs an argument for which column names are kept during join
+  cD <- cD[sppEquivSubset, on = c("speciesCode" = sppEquivCol)]
+  setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
+  # data.table needs an argument for which column names are kept during join
 
   cD[age <= cutoffForYoungAge, FuelClass := "youngAge"]
-  if (!"totalBiomass" %in% names(cD))
+  if (!"totalBiomass" %in% names(cD)) {
     cD[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
+  }
 
   cD[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
 
@@ -55,9 +56,10 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   }
   classes <- sort(unique(cD$FuelClass))
   classList <- lapply(classes, makeRastersFromCD,
-                      flammableRTM =  flammableRTM,
-                      pixelGroupMap = pixelGroupMap,
-                      cohortData = cD)
+    flammableRTM = flammableRTM,
+    pixelGroupMap = pixelGroupMap,
+    cohortData = cD
+  )
 
   classList <- stack(classList)
   names(classList) <- classes
@@ -74,13 +76,15 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom data.table data.table
 makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
-
-  cohortDataub <- cohortData[FuelClass == class, ]
-  cohortDataub[,  LeaderValue := 1]
-  ras <- rasterizeReduced(reduced = cohortDataub, fullRaster = pixelGroupMap,
-                          newRasterCols = "LeaderValue",
-                          mapcode = "pixelGroup")
-  #fuel class is 0 and not NA if absent entirely
+  cohortDataub <- copy(cohortData)
+  cohortDataub <- cohortDataub[FuelClass == class, ]
+  cohortDataub[, LeaderValue := 1]
+  ras <- rasterizeReduced(
+    reduced = cohortDataub,
+    fullRaster = pixelGroupMap,
+    newRasterCols = "LeaderValue",
+    mapcode = "pixelGroup"
+  )
   # fuel class is 0 and not NA if absent entirely
   # to prevent NAs following aggregation to 25 km pixels
   ras[!is.na(flammableRTM[]) & is.na(ras[])] <- 0
