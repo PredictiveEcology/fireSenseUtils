@@ -14,7 +14,7 @@
 #' @export
 #' @importFrom data.table set
 #'
-makeMutuallyExclusive <- function(dt, mutuallyExclusiveCols = list("youngAge" = c("vegPC"))){
+makeMutuallyExclusive <- function(dt, mutuallyExclusiveCols = list("youngAge" = c("vegPC"))) {
   for (cov1 in names(mutuallyExclusiveCols)) {
     for (grepVal in mutuallyExclusiveCols[[cov1]]) {
       cns <- grep(grepVal, colnames(dt), value = TRUE)

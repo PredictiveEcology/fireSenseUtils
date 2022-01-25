@@ -31,10 +31,10 @@ Convert list of annual raster stack to \code{data.table}
 }
 \examples{
 library(raster)
-r1 <- raster(extent(0,10,0,10), vals = 1:100)
-r2 <- raster(extent(0,10,0,10), vals = 100:1)
-r3 <- raster(extent(0,10,0,10), vals = 200:101)
-r4 <- raster(extent(0,10,0,10), vals = 300:201)
+r1 <- raster(extent(0, 10, 0, 10), vals = 1:100)
+r2 <- raster(extent(0, 10, 0, 10), vals = 100:1)
+r3 <- raster(extent(0, 10, 0, 10), vals = 200:101)
+r4 <- raster(extent(0, 10, 0, 10), vals = 300:201)
 
 # list of Rasters
 lRast <- list(r1, r2, r3)
@@ -62,5 +62,4 @@ out3 <- annualStackToDTx1000(list(s1 = s1, s2 = s2), whNotNA) ## named list requ
 #  actually, this doesn't make sense: RasterStack can't have duplicated names
 names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
 out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
-
 }

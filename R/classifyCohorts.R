@@ -41,7 +41,7 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   cD <- unique(cD[Leading == TRUE, .(FuelClass, pixelGroup)]) # unique due to species
   cD[, N := .N, .(pixelGroup)]
 
-  #In the event of a tie, we randomly pick a fuel class
+  # In the event of a tie, we randomly pick a fuel class
   ties <- cD[N > 1]
   noTies <- cD[N == 1]
   if (nrow(ties) > 1) {
@@ -64,7 +64,8 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   return(classList)
 }
 
-#' put cohortData back into raster with some extra details
+#' Put \code{cohortData} back into raster with some extra details
+#'
 #' @param class fuelClass from  \code{sppEquiv}
 #' @template flammableRTM
 #' @template pixelGroupMap
@@ -80,8 +81,8 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
                           newRasterCols = "LeaderValue",
                           mapcode = "pixelGroup")
   #fuel class is 0 and not NA if absent entirely
-  #to prevent NAs following aggregation to 25 km pixels
+  # fuel class is 0 and not NA if absent entirely
+  # to prevent NAs following aggregation to 25 km pixels
   ras[!is.na(flammableRTM[]) & is.na(ras[])] <- 0
   return(ras)
-
 }

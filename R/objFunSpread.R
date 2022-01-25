@@ -160,72 +160,72 @@ utils::globalVariables(c(
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
       # results <- parallel::mcmapply(                             # normal
-        # mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
-        #mc.preschedule = FALSE,                                  # normal
-        #SIMPLIFY = FALSE,                                        # normal
-         results <- purrr::pmap(                        # interactive debugging
-          .l = list(                                   # interactive debugging
-        annDTx1000 = annualDTx1000[yrs],
-        yr = years[yrs],
-        annualFires = historicalFiresAboveMin[yrs],
-        annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
-        # annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
-           ),                                         # interactive debugging
-        #MoreArgs = list(                                         # normal
-          par = par, parsModel = parsModel,
-          verbose = verbose,
-          nonAnnualDTx1000 = nonAnnualDTx1000,
-          indexNonAnnual = indexNonAnnual,
-          colsToUse = colsToUse,
-          mutuallyExclusive = mutuallyExclusive,
-          doAssertions = doAssertions,
-          maxFireSpread = maxFireSpread,
-          lowerSpreadProb = lowerSpreadProb,
-          lanscape1stQuantileThresh = lanscape1stQuantileThresh,
-          Nreps = Nreps,
-          plot.it = plot.it,
-          r = r, weighted = weighted,
-          doSNLL_FSTest = doSNLL_FSTest,
-          doMADTest = doMADTest, doADTest = doADTest,
-          cells = cells,
-              covMinMax = covMinMax,                     # interactive debugging
-          #covMinMax = covMinMax                              # normal
-        #),                                                   # normal
-           .f = objFunInner                              # interactive debugging
-        #objFunInner#(yr, annDTx1000, par, parsModel,             # normal
-                  #  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
-                  #  indexNonAnnual, colsToUse, covMinMax,
-                  #  verbose = TRUE)
+      # mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
+      # mc.preschedule = FALSE,                                  # normal
+      # SIMPLIFY = FALSE,                                        # normal
+      results <- purrr::pmap( # interactive debugging
+        .l = list( # interactive debugging
+          annDTx1000 = annualDTx1000[yrs],
+          yr = years[yrs],
+          annualFires = historicalFiresAboveMin[yrs],
+          annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
+          # annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
+        ), # interactive debugging
+        # MoreArgs = list(                                         # normal
+        par = par, parsModel = parsModel,
+        verbose = verbose,
+        nonAnnualDTx1000 = nonAnnualDTx1000,
+        indexNonAnnual = indexNonAnnual,
+        colsToUse = colsToUse,
+        mutuallyExclusive = mutuallyExclusive,
+        doAssertions = doAssertions,
+        maxFireSpread = maxFireSpread,
+        lowerSpreadProb = lowerSpreadProb,
+        lanscape1stQuantileThresh = lanscape1stQuantileThresh,
+        Nreps = Nreps,
+        plot.it = plot.it,
+        r = r, weighted = weighted,
+        doSNLL_FSTest = doSNLL_FSTest,
+        doMADTest = doMADTest, doADTest = doADTest,
+        cells = cells,
+        covMinMax = covMinMax, # interactive debugging
+        # covMinMax = covMinMax                              # normal
+        # ),                                                   # normal
+        .f = objFunInner # interactive debugging
+        # objFunInner#(yr, annDTx1000, par, parsModel,             # normal
+        #  annualFires, nonAnnualDTx1000, annualFireBufferedDT,
+        #  indexNonAnnual, colsToUse, covMinMax,
+        #  verbose = TRUE)
       )
       results <- purrr::transpose(results)
 
-       mess <- character()
-       objFunRes <- 0
+      mess <- character()
+      objFunRes <- 0
 
-       if (isTRUE(doMADTest)) {
-         a <- purrr::map2(historicalFiresAboveMin[yrs], results$fireSizes, function(x, y) {
-           data.table(x, simFireSize = y)
-         })
+      if (isTRUE(doMADTest)) {
+        a <- purrr::map2(historicalFiresAboveMin[yrs], results$fireSizes, function(x, y) {
+          data.table(x, simFireSize = y)
+        })
 
-         a <- rbindlist(a)
-         a[, dev := abs(size - simFireSize)]
-         # a[, devLog := sqrt(abs(size - simFireSize))]
-         mad <- round(mean(a$dev), 1)
-         # mad <- round(mean(a$devLog), 1)
-         objFunRes <- objFunRes + mad #+ SNLLTest
-         mess <- paste(" mad:", mad, "; ")
-         objFunResList[ii] <- list(list(objFunRes = objFunRes, nFires = NROW(a)))
-         # if (mad > 2700) {
-         #   print(paste0("  ", Sys.getpid(), mess))
-         #   break
-         # }
-       }
+        a <- rbindlist(a)
+        a[, dev := abs(size - simFireSize)]
+        # a[, devLog := sqrt(abs(size - simFireSize))]
+        mad <- round(mean(a$dev), 1)
+        # mad <- round(mean(a$devLog), 1)
+        objFunRes <- objFunRes + mad #+ SNLLTest
+        mess <- paste(" mad:", mad, "; ")
+        objFunResList[ii] <- list(list(objFunRes = objFunRes, nFires = NROW(a)))
+        # if (mad > 2700) {
+        #   print(paste0("  ", Sys.getpid(), mess))
+        #   break
+        # }
+      }
 
-       if (isTRUE(doADTest)) {
-         if (ii == 2) {
-           historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
-           simulatedFires <- unlist(results$fireSizes)
-           adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
+      if (isTRUE(doADTest)) {
+        if (ii == 2) {
+          historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
+          simulatedFires <- unlist(results$fireSizes)
+          adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
           if (is(adTest, "try-error")) {
             adTest <- 1e5L
           }
@@ -241,21 +241,27 @@ utils::globalVariables(c(
         numYrsDone <- length(results$SNLL_FS)
         threshold <- thresh * numYrsDone ## lower is _more_ restrictive; too high takes too long
         mess <- character()
-        annualSNLL <- round(SNLL_FSTest/numYrsDone, 0)
+        annualSNLL <- round(SNLL_FSTest / numYrsDone, 0)
         if (SNLL_FSTest > threshold && ii == 1) {
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal
-          mess <- paste0(" Fail! Bailing after ",numYrsDone," yrs; SNLL threshold: ", thresh, "; ",
-                         "Avg annual SNLL: ", annualSNLL, "; ")
+          mess <- paste0(
+            " Fail! Bailing after ", numYrsDone, " yrs; SNLL threshold: ", thresh, "; ",
+            "Avg annual SNLL: ", annualSNLL, "; "
+          )
         } else {
-          if (ii == 1)
-            mess <- paste0(" Decent in 1st ",numYrsDone," years -- continuing. ", mess, " SNLL threshold: ", thresh, ", Avg annual: ",
-                         annualSNLL, "; ")
+          if (ii == 1) {
+            mess <- paste0(
+              " Decent in 1st ", numYrsDone, " years -- continuing. ", mess, " SNLL threshold: ", thresh, ", Avg annual: ",
+              annualSNLL, "; "
+            )
+          }
         }
         objFunRes <- objFunRes + SNLL_FSTest #+ SNLL_FSTest
         objFunResList[ii] <- list(list(objFunRes = objFunRes)) # , nFires = NROW(a)))
-        if (length(mess) > 0)
+        if (length(mess) > 0) {
           print(paste0("  ", Sys.getpid(), mess))
+        }
         if (SNLL_FSTest == failVal && ii == 1) {
           break
         }
@@ -282,8 +288,9 @@ utils::globalVariables(c(
   if (isTRUE(doSNLL_FSTest)) {
     objFunRes <- sum(unlist(bb$objFunRes))
   }
-  if (length(objFunResList) > 1)
+  if (length(objFunResList) > 1) {
     print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; SNLL Final: ", round(objFunRes, 0)))
+  }
   ## Figure out what we want from these.
   ## This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
@@ -313,7 +320,7 @@ rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
 rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   A <- maxOrig - minOrig # range of original
   b <- maxNew - minNew # range of new
-  z <- b/A # ratio of range size
+  z <- b / A # ratio of range size
   C <- x - minOrig # make it have a new minimum above the minOrig
   D <- C * z
   return(D)
@@ -323,12 +330,12 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
 #' @export
 LandR::rescale
 
-objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
+objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                         indexNonAnnual, colsToUse, covMinMax, mutuallyExclusive,
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
                         weighted,
-                        r, Nreps,doSNLL_FSTest, doMADTest, doADTest,
+                        r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = TRUE) {
   # needed because data.table objects were recovered from disk
   # Rescale to numerics and /1000
@@ -339,22 +346,27 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
     for (cn in colnames(covMinMax)) {
       set(
         shortAnnDTx1000, NULL, cn,
-        rescaleKnown2(shortAnnDTx1000[[cn]], 0, 1000,
-                      covMinMax[[cn]][1] * 1000,
-                      covMinMax[[cn]][2] * 1000)
+        rescaleKnown2(
+          shortAnnDTx1000[[cn]], 0, 1000,
+          covMinMax[[cn]][1] * 1000,
+          covMinMax[[cn]][2] * 1000
+        )
       )
     }
   }
   if (!is.null(mutuallyExclusive)) {
-    shortAnnDTx1000 <- makeMutuallyExclusive(dt = shortAnnDTx1000,
-                                             mutuallyExclusiveCols = mutuallyExclusive)
+    shortAnnDTx1000 <- makeMutuallyExclusive(
+      dt = shortAnnDTx1000,
+      mutuallyExclusiveCols = mutuallyExclusive
+    )
   }
   mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
   if (doAssertions) {
     test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
     test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
-    if (!all(test1, test2))
+    if (!all(test1, test2)) {
       stop("Covariates are not all between 0 and 1, which they should be")
+    }
   }
   # matrix multiplication
   covPars <- tail(x = par, n = parsModel)
@@ -385,7 +397,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
   if (is.na(sdSP)) sdSP <- 0
 
   medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
-  spreadOutEnough <- sdSP/medSP > 0.025
+  spreadOutEnough <- sdSP / medSP > 0.025
   ret <- list()
   minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
   loci <- annualFires$cells
@@ -394,26 +406,29 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
 
   if (verbose) {
     if (isTRUE(!spreadOutEnough)) {
-      print(paste0("  ",
-        Sys.getpid(), " FAIL! ",yr,"; Not spread out enough; bailing: ",
+      print(paste0(
+        "  ",
+        Sys.getpid(), " FAIL! ", yr, "; Not spread out enough; bailing: ",
         paste(names(summ), round(summ, 3), collapse = ", ")
       ))
     }
     if (isTRUE(!lowSPLowEnough)) {
-      print(paste0("  ",
-        Sys.getpid(), " FAIL! ",yr,"; Too burny a landscape; bailing: ",
+      print(paste0(
+        "  ",
+        Sys.getpid(), " FAIL! ", yr, "; Too burny a landscape; bailing: ",
         paste(names(summ), round(summ, 3), collapse = ", ")
       ))
     }
   }
 
-  #att <- try(if (medSPRight && spreadOutEnough) { "hi" })
-  #if (is(att, "try-error")) browser()
+  # att <- try(if (medSPRight && spreadOutEnough) { "hi" })
+  # if (is(att, "try-error")) browser()
   if (medSPRight && spreadOutEnough && lowSPLowEnough) {
     if (verbose) {
       ww <- if (isTRUE(weighted)) "weighted" else "unweighted"
-      print(paste0("    ",
-        Sys.getpid(), ": ", yr, ", ",ww,", spreadProbs: ",
+      print(paste0(
+        "    ",
+        Sys.getpid(), ": ", yr, ", ", ww, ", spreadProbs: ",
         paste(names(summ), round(summ, 3), collapse = ", ")
       ))
     }
@@ -427,9 +442,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
       tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
       minSizes <- tableOfBufferedMaps$numAvailPixels
       minSize <- quantile(minSizes, 0.3)
-      if (minSize < 2000)
-        warning("The fireSizeBufferDT has too many fires < 2000 burned + unburned pixels;",
-                " needs larger buffers.")
+      if (minSize < 2000) {
+        warning(
+          "The fireSizeBufferDT has too many fires < 2000 burned + unburned pixels;",
+          " needs larger buffers."
+        )
+      }
     }
     maxSizes <- fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
     # maxSizes <- annualFires$size * 2
@@ -465,8 +483,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
       hist(nonEdgeValues, main = "spreadProb")
       sam <- sample(NROW(mat), NROW(mat) / 100)
       val <- mat[sam, ] %*% covPars
-      plot(val, shortAnnDTx1000$spreadProb[sam], pch = ".",
-           main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", ")))
+      plot(val, shortAnnDTx1000$spreadProb[sam],
+        pch = ".",
+        main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", "))
+      )
     }
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
@@ -480,28 +500,31 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
         numHists <- 49 - numLargest - length(par) - 12 - 1 # 12 for rasters
         uniqueEmpIds <- unique(emp$ids)
         sam <- if (length(uniqueEmpIds) >= (numHists)) {
-          try(c(unique(emp$ids)[1:numLargest],
-                sample(unique(emp$ids)[-(1:numLargest)],
-                       size = min(length(unique(emp$ids)) - numLargest, numHists))))
+          try(c(
+            unique(emp$ids)[1:numLargest],
+            sample(unique(emp$ids)[-(1:numLargest)],
+              size = min(length(unique(emp$ids)) - numLargest, numHists)
+            )
+          ))
         } else {
           uniqueEmpIds
         }
         if (is(sam, "try-error")) browser()
         emp[ids %in% sam,
-            {
-              dat <- round(log(N))
-              h <- hist(dat,
-                        breaks = 30,
-                        main = paste(as.character(.BY)),
-                        # main = "",
-                        axes = FALSE, xlim = c(0, maxX)
-              )
-              seqq <- seq(0, ceiling(maxX), by = 1)
-              axis(1, at = seqq, labels = round(exp(seqq), 0))
-              abline(v = log(size[1]), col = "red")
-              abline(v = log(unique(numAvailPixels)), col = "green")
-            },
-            by = "ids"
+          {
+            dat <- round(log(N))
+            h <- hist(dat,
+              breaks = 30,
+              main = paste(as.character(.BY)),
+              # main = "",
+              axes = FALSE, xlim = c(0, maxX)
+            )
+            seqq <- seq(0, ceiling(maxX), by = 1)
+            axis(1, at = seqq, labels = round(exp(seqq), 0))
+            abline(v = log(size[1]), col = "red")
+            abline(v = log(unique(numAvailPixels)), col = "green")
+          },
+          by = "ids"
         ]
         mtext(
           outer = TRUE,
@@ -517,7 +540,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
       }
 
       # only use fires that escaped --> i.e., greater than 1 pixel
-      #print(quantile(emp$size))
+      # print(quantile(emp$size))
       emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = sqrt(N))), by = "ids"]
       # emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
       if (isTRUE(weighted)) {
@@ -526,10 +549,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
         set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
       }
 
-      #set(emp3, NULL, "lik", log(pmax(minLik, emp3$lik)))
+      # set(emp3, NULL, "lik", log(pmax(minLik, emp3$lik)))
       SNLL_FS <- -sum(emp$lik)
-      #SNLL_FS3 <- -sum(emp3$lik)
-      #print(paste0("Sqrt: ", round(SNLL_FS, 0), ", Normal: ", round(SNLL_FS3, 0)))
+      # SNLL_FS3 <- -sum(emp3$lik)
+      # print(paste0("Sqrt: ", round(SNLL_FS, 0), ", Normal: ", round(SNLL_FS3, 0)))
       ret <- append(ret, list(SNLL_FS = SNLL_FS))
     }
 
@@ -615,7 +638,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
 
       out4 <- unlist(out3[notSp], recursive = FALSE)
       # clearPlot()
-      clearPlot(); a <- Plot(out4, cols = "Paired", new = TRUE, visualSqueeze = 0.85)
+      clearPlot()
+      a <- Plot(out4, cols = "Paired", new = TRUE, visualSqueeze = 0.85)
       # nn <- lapply(names(out3$spIgnits), function(id) {
       #   spDat <- out3$spIgnits[[id]]
       #   Plot(spDat,
@@ -637,7 +661,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
       # Plot(predLiklihood, cols = "RdYlGn", new = TRUE,
       #      title = paste0("likelihood, date: ",yr, ", id: ", thisFire$cells),
       #      legendRange = range(round(predLiklihood[], 0), na.rm = TRUE))
-      #}
+      # }
       # Add a very small number so that no pixel has exactly zero probability -- creating Inf
       # SNLL <- -sum(dbinom(prob = out$prob,
       #                     size = 1,
@@ -649,12 +673,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel,             # normal
     llik <- rep(log(minLik), length(loci))
     SNLL_FS <- -sum(llik)
     ret <- append(ret, list(SNLL_FS = SNLL_FS))
-    #stop("encountered error with spreadProb - contact module developers")
+    # stop("encountered error with spreadProb - contact module developers")
     # Ian added this stop. Unclear what is supposed to happen. Object ret doesn't exist
-    #SNLL <- 1e7
-    #fireSizes <- sample(1:3, 1)
+    # SNLL <- 1e7
+    # fireSizes <- sample(1:3, 1)
   }
 
   return(ret)
 }
-

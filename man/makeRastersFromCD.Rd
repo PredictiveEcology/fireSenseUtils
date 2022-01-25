@@ -2,7 +2,7 @@
 % Please edit documentation in R/classifyCohorts.R
 \name{makeRastersFromCD}
 \alias{makeRastersFromCD}
-\title{put cohortData back into raster with some extra details}
+\title{Put \code{cohortData} back into raster with some extra details}
 \usage{
 makeRastersFromCD(class, cohortData, flammableRTM, pixelGroupMap)
 }
@@ -22,5 +22,5 @@ number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}
 a raster
 }
 \description{
-put cohortData back into raster with some extra details
+Put \code{cohortData} back into raster with some extra details
 }

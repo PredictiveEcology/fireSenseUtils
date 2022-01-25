@@ -14,7 +14,7 @@ logistic4p <- function(x, par) {
 #' @export
 #' @rdname logistic
 logistic5p <- function(x, par) {
-  par[1L] + (par[2L] - par[1L]) / (1 + (exp(x)/par[3L])^(-par[4L])) ^ par[5L]
+  par[1L] + (par[2L] - par[1L]) / (1 + (exp(x) / par[3L])^(-par[4L]))^par[5L]
 }
 
 #' @param par1 DESCRIPTION NEEDED
@@ -66,10 +66,10 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 #'
 #' @examples
 #' library(raster)
-#' r1 <- raster(extent(0,10,0,10), vals = 1:100)
-#' r2 <- raster(extent(0,10,0,10), vals = 100:1)
-#' r3 <- raster(extent(0,10,0,10), vals = 200:101)
-#' r4 <- raster(extent(0,10,0,10), vals = 300:201)
+#' r1 <- raster(extent(0, 10, 0, 10), vals = 1:100)
+#' r2 <- raster(extent(0, 10, 0, 10), vals = 100:1)
+#' r3 <- raster(extent(0, 10, 0, 10), vals = 200:101)
+#' r4 <- raster(extent(0, 10, 0, 10), vals = 300:201)
 #'
 #' # list of Rasters
 #' lRast <- list(r1, r2, r3)
@@ -97,7 +97,6 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 #' #  actually, this doesn't make sense: RasterStack can't have duplicated names
 #' names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
 #' out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
-#'
 annualStackToDTx1000 <- function(x, whNotNA, ...) {
   UseMethod("annualStackToDTx1000")
 }
@@ -108,7 +107,7 @@ annualStackToDTx1000 <- function(x, whNotNA, ...) {
 annualStackToDTx1000.RasterLayer <- function(x, whNotNA, ...) {
   layDT <- as.data.table(x[])[whNotNA]
   layDT <- dtReplaceNAwith0(layDT)
-  set(layDT, NULL, 1L, asInteger(layDT[[1L]]*1000))
+  set(layDT, NULL, 1L, asInteger(layDT[[1L]] * 1000))
   names(layDT) <- names(x)
   message("Layer ", names(layDT), " converted to data.table")
   layDT
@@ -120,8 +119,9 @@ annualStackToDTx1000.RasterLayer <- function(x, whNotNA, ...) {
 annualStackToDTx1000.list <- function(x, whNotNA, ...) {
   # check for names
   # check for rasters
-  if (is.null(names(x)))
+  if (is.null(names(x))) {
     stop("x must be a named list (or stack)")
+  }
   out <- lapply(x, whNotNA = whNotNA, annualStackToDTx1000, ...)
   rastersDT <- as.data.table(out)
   # rastersDT <- lapply(names(x), whNotNA = whNotNA, function(x, whNotNA) {
@@ -203,11 +203,11 @@ annualStackToDTx1000.RasterStack <- function(x, whNotNA, ...) {
 #' @importFrom stats rbeta
 rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
   if (is.null(shape2)) {
-    m1 <- ((1)/(u - l) * (m - l))
-    shape2 <- (shape1 - shape1*m1)/m1
+    m1 <- ((1) / (u - l) * (m - l))
+    shape2 <- (shape1 - shape1 * m1) / m1
   }
   out <- rbeta(n, shape1, shape2)
   out * (u - l) + (l)
 }
 
-asInteger <- function (x) as.integer(floor(x + 0.5))
+asInteger <- function(x) as.integer(floor(x + 0.5))

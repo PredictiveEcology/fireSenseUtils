@@ -121,17 +121,21 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
   dots <- list(...)
 
   controlOptim <- control[setdiff(names(control), c("iter.max", "eval.max"))]
-  optim.call <- quote(optim(par = x, fn = objective, lower = lower, upper = upper, control = controlOptim,
-                            linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
-                            mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
-                            mod_env = dots$mod_env, method = "L-BFGS-B",
-                            offset = dots$offset, formula = dots$formula))
+  optim.call <- quote(optim(
+    par = x, fn = objective, lower = lower, upper = upper, control = controlOptim,
+    linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
+    mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, # only one of these needed depending on hvPW
+    mod_env = dots$mod_env, method = "L-BFGS-B",
+    offset = dots$offset, formula = dots$formula
+  ))
 
-  nlminb.call <- quote(nlminb(start = x, objective = objective, lower = lower, upper = upper, control = control,
-                              linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
-                              mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, #only one of these needed depending on hvPW
-                              mod_env = dots$mod_env,
-                              offset = dots$offset, formula = dots$formula))
+  nlminb.call <- quote(nlminb(
+    start = x, objective = objective, lower = lower, upper = upper, control = control,
+    linkinv = dots$linkinv, nll = dots$nll, sm = dots$sm, nx = dots$nx,
+    mm = dots$mm, updateKnotExpr = dots$updateKnotExpr, # only one of these needed depending on hvPW
+    mod_env = dots$mod_env,
+    offset = dots$offset, formula = dots$formula
+  ))
 
   if (hvPW) {
     nlminb.call$mm <- NULL
@@ -151,7 +155,7 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
   ## Eliot commented this out, because fitting seems to be fairly deterministic, so restarting
   ##   with same starts gives exactly same answer
   if (as.integer(gsub("[\\(\\)]", "", regmatches(o$message, gregexpr("\\(.*?\\)", o$message))[[1L]])) %in% 7:14) {
-  #   i <- i + 1L
+    #   i <- i + 1L
     message("nlminb did not converge; trying optim")
     o2 <- try(eval(optim.call))
     if (!is(o2, "try-error")) {
@@ -159,7 +163,7 @@ objNlminb <- function(x, objective, lower, upper, control, hvPW, ...) {
       o$objective <- o$value
       o$value <- NULL
     }
-    #break
+    # break
   }
   o
 }

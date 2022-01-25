@@ -25,21 +25,28 @@ getFirePoints_NFDB <- function(url = NULL,
     stop("Please install.packaes('SpaDES.core').")
   }
 
-  if (is.null(NFDB_pointPath))
+  if (is.null(NFDB_pointPath)) {
     stop("NFDB_pointPath must be specified and non-NULL.")
-  if (is.null(url))
+  }
+  if (is.null(url)) {
     url <- "http://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point.zip"
+  }
 
-  check <- Checksums(NFDB_pointPath, checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
-                     write = TRUE)
+  check <- Checksums(NFDB_pointPath,
+    checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
+    write = TRUE
+  )
   whRowIsShp <- grep("NFDB_point.*shp$", check$expectedFile)
   whIsOK <- which(check$result[whRowIsShp] == "OK")
   needNewDownload <- TRUE
   if (any(whIsOK)) {
     filesToCheck <- getFromNamespace("filePathSansExt", "reproducible")(unlist(lapply( # don't use tools::file_path_sans_ext to keep package number down
-      check[whRowIsShp[whIsOK], "expectedFile"], as.character)))
-    dateOfFile <- substr(x = filesToCheck,
-                         start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck))
+      check[whRowIsShp[whIsOK], "expectedFile"], as.character
+    )))
+    dateOfFile <- substr(
+      x = filesToCheck,
+      start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck)
+    )
     if ((as.Date(dateOfFile, format = "%Y%m%d") + SpaDES.core::dyear(redownloadIn)) > Sys.Date()) {
       # can change dyear(...) to whatever... e.g., dyear(0.5) would be 6 months
       needNewDownload <- FALSE
@@ -48,34 +55,37 @@ getFirePoints_NFDB <- function(url = NULL,
   if (needNewDownload) {
     print("downloading NFDB")
     firePoints <- Cache(prepInputs,
-                        url = url,
-                        studyArea = studyArea,
-                        fun = "shapefile",
-                        destinationPath = NFDB_pointPath,
-                        useCache = "overwrite",
-                        useSAcrs = TRUE,
-                        omitArgs = c("NFDB_pointPath", "overwrite"))
+      url = url,
+      studyArea = studyArea,
+      fun = "shapefile",
+      destinationPath = NFDB_pointPath,
+      useCache = "overwrite",
+      useSAcrs = TRUE,
+      omitArgs = c("NFDB_pointPath", "overwrite")
+    )
   } else {
     NFDBs <- grep(list.files(NFDB_pointPath), pattern = "^NFDB", value = TRUE)
     shps <- grep(list.files(NFDB_pointPath), pattern = ".shp$", value = TRUE)
-    aFile <- NFDBs[NFDBs %in% shps][1] #in case there are multiple files
-    #firePoints <- Cache(shapefile, file.path(NFDB_pointPath, aFile))
+    aFile <- NFDBs[NFDBs %in% shps][1] # in case there are multiple files
+    # firePoints <- Cache(shapefile, file.path(NFDB_pointPath, aFile))
     firePoints <- Cache(sf::read_sf, file.path(NFDB_pointPath, aFile))
-    #firePoints1 <- as(firePoints, "Spatial")
-    options('reproducible.cacheSaveFormat' = 'rds')
+    # firePoints1 <- as(firePoints, "Spatial")
+    options("reproducible.cacheSaveFormat" = "rds")
     on.exit({
-      options('reproducible.cacheSaveFormat' = 'rds')
+      options("reproducible.cacheSaveFormat" = "rds")
     })
     a <- Sys.time()
-    firePoints <- Cache(prepInputs, targetFile = file.path(NFDB_pointPath, aFile),
-                         destinationPath = NFDB_pointPath,
-                         #x = firePoints, fun = sf::read_sf,
-                         studyArea = studyArea, filename2 = NULL,
-                         rasterToMatch = rasterToMatch,
-                         userTags = c("cacheTags", "NFDB"))
+    firePoints <- Cache(prepInputs,
+      targetFile = file.path(NFDB_pointPath, aFile),
+      destinationPath = NFDB_pointPath,
+      # x = firePoints, fun = sf::read_sf,
+      studyArea = studyArea, filename2 = NULL,
+      rasterToMatch = rasterToMatch,
+      userTags = c("cacheTags", "NFDB")
+    )
   }
   firePoints <- firePoints[firePoints$YEAR <= max(years) &
-                                               firePoints$YEAR >= min(years),]
+    firePoints$YEAR >= min(years), ]
   firePoints <- firePoints[, c("YEAR", fireSizeColName)]
   firePoints$fireSize <- asInteger(firePoints[[fireSizeColName]] / prod(res(rasterToMatch)) * 1e4)
   names(firePoints) <- c("date", "size_ha", "size")
@@ -115,38 +125,46 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
     stop("Please install.packaes('SpaDES.core').")
   }
 
-  if (is.null(NFDB_pointPath))
+  if (is.null(NFDB_pointPath)) {
     stop("NFDB_pointPath must be specified and non-NULL.")
-  if (is.null(url))
+  }
+  if (is.null(url)) {
     url <- "http://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point.zip"
+  }
   check <- Checksums(NFDB_pointPath,
-                     checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
-                     write = TRUE)
+    checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
+    write = TRUE
+  )
   whRowIsShp <- grep("NFDB_point.*shp$", check$expectedFile)
   whIsOK <- which(check$result[whRowIsShp] == "OK")
   needNewDownload <- TRUE
   if (any(whIsOK)) {
     filesToCheck <- getFromNamespace("filePathSansExt", "reproducible")(unlist(lapply( # don't use tools::file_path_sans_ext to keep package number down
-      check[whRowIsShp[whIsOK], "expectedFile"], as.character)))
-    dateOfFile <- substr(x = filesToCheck,
-                         start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck))
+      check[whRowIsShp[whIsOK], "expectedFile"], as.character
+    )))
+    dateOfFile <- substr(
+      x = filesToCheck,
+      start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck)
+    )
     if ((as.Date(dateOfFile, format = "%Y%m%d") + SpaDES.core::dyear(redownloadIn)) > Sys.Date()) {
       # can change dyear(...) to whatever... e.g., dyear(0.5) would be 6 months
       needNewDownload <- FALSE
     }
   }
   if (needNewDownload) {
-    print("downloading NFDB...")# put prepInputs here
-    firePoints <- Cache(prepInputs, url = url,
-                        fun = "shapefile",
-                        destinationPath = NFDB_pointPath,
-                        useSAcrs = TRUE,
-                        omitArgs = c("NFDB_pointPath", "overwrite"))
+    print("downloading NFDB...") # put prepInputs here
+    firePoints <- Cache(prepInputs,
+      url = url,
+      fun = "shapefile",
+      destinationPath = NFDB_pointPath,
+      useSAcrs = TRUE,
+      omitArgs = c("NFDB_pointPath", "overwrite")
+    )
   } else {
-    print("NFDB present. Loading...")# put prepInputs here
+    print("NFDB present. Loading...") # put prepInputs here
     NFDBs <- grep(list.files(NFDB_pointPath), pattern = "^NFDB", value = TRUE)
     shps <- grep(list.files(NFDB_pointPath), pattern = ".shp$", value = TRUE)
-    aFile <- NFDBs[NFDBs %in% shps][1] #in case there are multiple files
+    aFile <- NFDBs[NFDBs %in% shps][1] # in case there are multiple files
     firePoints <- raster::shapefile(file.path(NFDB_pointPath, aFile))
   }
 
@@ -157,13 +175,15 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
   correctCRS <- "+init=epsg:4269 +proj=longlat +ellps=GRS80 +datum=NAD83 +no_defs +towgs84=0,0,0"
   crs(DT) <- correctCRS
   firePointsReady <- projectInputs(DT,
-                                   destinationPath = NFDB_pointPath,
-                                   filename2 = "NFDBpointsProjected",
-                                   targetCRS = crs(rasterToMatch))
+    destinationPath = NFDB_pointPath,
+    filename2 = "NFDBpointsProjected",
+    targetCRS = crs(rasterToMatch)
+  )
   firePoints <- crop(firePointsReady, studyArea)
   message(crayon::green("Fire points corrected"))
   if (isTRUE(plot)) {
-    raster::plot(firePoints, col = "red"); raster::plot(studyArea, add = TRUE)
+    raster::plot(firePoints, col = "red")
+    raster::plot(studyArea, add = TRUE)
   }
   firePoints <- firePoints[firePoints$YEAR <= max(years) & firePoints$YEAR >= min(years), ]
   firePoints$fireSize <- asInteger(firePoints[[fireSizeColName]] / prod(res(rasterToMatch)) * 1e4)

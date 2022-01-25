@@ -33,7 +33,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     buff = buff
   ),
   .f = function(cent, buff) {
-    if (!nrow(buff) > 0) { #cent can be >1 row while buff = 0, if poly is small
+    if (!nrow(buff) > 0) { # cent can be >1 row while buff = 0, if poly is small
       return(NULL)
     }
     if (!identicalCRS(ras, cent)) {
@@ -117,7 +117,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       )
 
       suppressWarnings({
-        #browser()
+        # browser()
         polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id, polyCentroids[[idCol]]), ], sp)
       })
     }
@@ -128,8 +128,9 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     notInAFire <- centDT2[!inOrigFire, on = c("pixelID")]
 
     # if (NROW(notInAFire) > 0) browser()
-    #fires will be rejected if centroid is outside
+    # fires will be rejected if centroid is outside
 
     polyCentroids
-  })
+  }
+  )
 }

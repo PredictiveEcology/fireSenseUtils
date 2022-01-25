@@ -1,5 +1,6 @@
 utils::globalVariables(c(
-  "burnProb", "i.burned"))
+  "burnProb", "i.burned"
+))
 
 #' Generate, Summarize, Predict Burn Classes from Covariates
 #'
@@ -87,11 +88,10 @@ utils::globalVariables(c(
 #' # predict -- add Burn Class to object
 #' set(DT[["test"]], NULL, "burnClass", burnClassPredict(bc$model, df = DT[["test"]]))
 #' prob <- burnProbFromClass(bc$model, DT[["test"]])
-#'
 #' }
 burnClassGenerator <- function(df, numClasses = 4:9, AUC = TRUE, plotAUC = FALSE) {
   df <- as.data.table(df)
-  sam <- sample(NROW(df), NROW(df)*0.75)
+  sam <- sample(NROW(df), NROW(df) * 0.75)
   dftrain <- df[sam]
   dftest <- df[-sam]
 
@@ -101,11 +101,15 @@ burnClassGenerator <- function(df, numClasses = 4:9, AUC = TRUE, plotAUC = FALSE
   if (isTRUE(AUC)) {
     summ <- burnClassSummary(mod)
     set(dftest, NULL, "burnClass", burnClassPredict(mod, dftest))
-    dftest[summ[,c("burnClass", "burned")], burnProb := i.burned, on = "burnClass"]
+    dftest[summ[, c("burnClass", "burned")], burnProb := i.burned, on = "burnClass"]
     rocDF <- data.frame(predictions = dftest$burnProb, labels = dftest$burned)
-    args <- list(rocDF$labels, rocDF$predictions, ci=TRUE, ci.alpha=0.9, stratified=FALSE, smoothed = TRUE)
-    if (plotAUC) args <- modifyList(args, list(plot=TRUE, auc.polygon=TRUE, max.auc.polygon=TRUE, grid=TRUE,
-                                               print.auc=TRUE, show.thres=TRUE))
+    args <- list(rocDF$labels, rocDF$predictions, ci = TRUE, ci.alpha = 0.9, stratified = FALSE, smoothed = TRUE)
+    if (plotAUC) {
+      args <- modifyList(args, list(
+        plot = TRUE, auc.polygon = TRUE, max.auc.polygon = TRUE, grid = TRUE,
+        print.auc = TRUE, show.thres = TRUE
+      ))
+    }
     pROC_obj <- do.call(roc, args)
     AUC <- pROC_obj$auc
   }
@@ -137,7 +141,6 @@ burnProbFromClass <- function(mod, df) {
   summ <- burnClassSummary(mod)
   colsToUse <- intersect(colnames(mod$data), colnames(df))
   set(df, NULL, "burnClass", burnClassPredict(mod, df[, ..colsToUse]))
-  df[summ[,c("burnClass", "burned")], burnProb := i.burned, on = "burnClass"]
+  df[summ[, c("burnClass", "burned")], burnProb := i.burned, on = "burnClass"]
   df$burnProb
 }
-

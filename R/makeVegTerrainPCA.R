@@ -26,29 +26,29 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
   dd <- dataForPCA[, !(..dontWant)]
 
   if (is.null(PCAmodel)) {
-    #year should be present in data
+    # year should be present in data
     vegTerrainPCA <- prcomp(dd, center = TRUE, scale. = TRUE, rank = 10)
-  } else{
+  } else {
     vegTerrainPCA <- predict(object = PCAmodel, newdata = dd)
   }
   # store as Integer
   if (is.null(PCAmodel)) {
     vegComponents <- as.data.table(vegTerrainPCA$x)
   } else {
-    vegComponents <- as.data.table(vegTerrainPCA) #object is a matrix, not prcomp
+    vegComponents <- as.data.table(vegTerrainPCA) # object is a matrix, not prcomp
     vegTerrainPCA <- NULL # predict only needs the data.table
   }
-    #put age and pixelID back in
-  set(vegComponents, NULL, "pixelID" ,dataForPCA$pixelID)
+  # put age and pixelID back in
+  set(vegComponents, NULL, "pixelID", dataForPCA$pixelID)
   set(vegComponents, NULL, "youngAge", dataForPCA$youngAge)
 
-  #put year in if present (i.e., during fitting)
+  # put year in if present (i.e., during fitting)
   if (!is.null(dataForPCA$year)) {
     vegComponents[, year := dataForPCA$year]
   }
   vegTerrainPCA$x <- NULL ## remove data from PCA object
 
-  #put age back in
+  # put age back in
   return(list("vegComponents" = vegComponents, "vegTerrainPCA" = vegTerrainPCA))
 }
 
@@ -68,33 +68,36 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
 #'
 #' @rdname makeLandcoverDT
 makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups) {
-
-  lcc <- data.table(pixelID = 1:ncell(rstLCC),
-                    lcc = getValues(rstLCC),
-                    flammable = getValues(flammableRTM)) %>%
-    .[lcc != 0,] %>%
-    .[!is.na(flammable),] %>%
-    .[flammable == 1,] %>%
+  lcc <- data.table(
+    pixelID = 1:ncell(rstLCC),
+    lcc = getValues(rstLCC),
+    flammable = getValues(flammableRTM)
+  ) %>%
+    .[lcc != 0, ] %>%
+    .[!is.na(flammable), ] %>%
+    .[flammable == 1, ] %>%
     .[, lcc := as.factor(lcc)]
   set(lcc, NULL, "flammable", NULL)
-  lcc <- dummy_cols(.data = lcc,
-                    select_columns = "lcc",
-                    remove_selected_columns = TRUE,
-                    remove_first_dummy = FALSE, #no need if all forest LC is removed anyway
-                    ignore_na = TRUE)
+  lcc <- dummy_cols(
+    .data = lcc,
+    select_columns = "lcc",
+    remove_selected_columns = TRUE,
+    remove_first_dummy = FALSE, # no need if all forest LC is removed anyway
+    ignore_na = TRUE
+  )
   #
   forestedLCC <- paste0("lcc_", forestedLCC)
   forestedLCC <- colnames(lcc)[colnames(lcc) %in% forestedLCC]
-  set(lcc, NULL, j = forestedLCC, NULL) #removes columns of forested LCC
+  set(lcc, NULL, j = forestedLCC, NULL) # removes columns of forested LCC
 
   # Group dummy columns into similar landcovers
   lccColsPreGroup <- colnames(lcc)[!colnames(lcc) %in% c("pixelID")]
-  setDT(lcc) #pre-allocate space for new columns
+  setDT(lcc) # pre-allocate space for new columns
 
   for (i in names(nonForestedLCCGroups)) {
     classes <- paste0("lcc_", nonForestedLCCGroups[[i]])
     classes <- classes[classes %in% colnames(lcc)]
-    set(lcc, NULL,  eval(i), rowSums(lcc[, .SD, .SDcols = classes]))
+    set(lcc, NULL, eval(i), rowSums(lcc[, .SD, .SDcols = classes]))
   }
   rm(classes)
   set(lcc, NULL, lccColsPreGroup, NULL)

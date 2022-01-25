@@ -91,10 +91,11 @@ for (i in c("train", "test")) {
   set(DT[[i]], NULL, "jp", rlnorm(N, mean = 4 + 0.5 * DT[[i]]$burned, sd = 0.25))
   set(DT[[i]], NULL, "bs", rlnorm(N, mean = 4 + 0.3 * DT[[i]]$burned, sd = 0.25))
   set(DT[[i]], NULL, "ws", rlnorm(N, mean = 4 + 0.2 * DT[[i]]$burned, sd = 0.25))
-  set(DT[[i]], NULL, "age", rlnorm(N, mean = 4 - 0.2* DT[[i]]$burned, sd = 0.25))
-  DT[[i]][, c("jp", "bs", "ws", "age") := lapply(.SD, function(x) x/max(x) * 1000),
-            .SDcols = c("jp", "bs", "ws", "age")]
-  DT[[i]][, c("age") := lapply(.SD, function(x) x/max(x) * 200), .SDcols = c("age")]
+  set(DT[[i]], NULL, "age", rlnorm(N, mean = 4 - 0.2 * DT[[i]]$burned, sd = 0.25))
+  DT[[i]][, c("jp", "bs", "ws", "age") := lapply(.SD, function(x) x / max(x) * 1000),
+    .SDcols = c("jp", "bs", "ws", "age")
+  ]
+  DT[[i]][, c("age") := lapply(.SD, function(x) x / max(x) * 200), .SDcols = c("age")]
   summary(DT[[i]])
   boxplot(DT[[i]]$age ~ DT[[i]]$burned)
 }
@@ -109,7 +110,6 @@ bc <- burnClassGenerator(DT[["train"]], 4:8)
 # predict -- add Burn Class to object
 set(DT[["test"]], NULL, "burnClass", burnClassPredict(bc$model, df = DT[["test"]]))
 prob <- burnProbFromClass(bc$model, DT[["test"]])
-
 }
 }
 \author{

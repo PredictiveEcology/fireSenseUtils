@@ -21,17 +21,19 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
   ## get particular fire polys in format that can be fasterized
   polysNeeded <- names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1) %>%
     firePolys[.] %>%
-    .[lengths(.) > 0] %>% #gets rid of missing years that break function
+    .[lengths(.) > 0] %>% # gets rid of missing years that break function
     lapply(., FUN = sf::st_as_sf) %>%
-    lapply(., FUN = function(x){
+    lapply(., FUN = function(x) {
       x <- x[, "YEAR"]
     }) %>%
     do.call(rbind, .)
 
-  #create background raster with TSD
-  initialTSD <-  sf::st_collection_extract(polysNeeded, "POLYGON") %>%
-    fasterize(sf = ., raster = standAgeMap, background = year - cutoffForYoungAge - 1,
-              field = "YEAR", fun = "max") %>%
+  # create background raster with TSD
+  initialTSD <- sf::st_collection_extract(polysNeeded, "POLYGON") %>%
+    fasterize(
+      sf = ., raster = standAgeMap, background = year - cutoffForYoungAge - 1,
+      field = "YEAR", fun = "max"
+    ) %>%
     setValues(., values = year - getValues(.))
 
   nfLCC <- names(lcc)[!names(lcc) %in% "pixelID"]
@@ -63,19 +65,19 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
 #' @importFrom data.table data.table
 calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT,
                          cutoffForYoungAge = 15) {
-  #this is safest way to subset given the NULL year
+  # this is safest way to subset given the NULL year
   for (year in years) {
     yearChar <- paste0("year", year)
     ann <- annualCovariates[[yearChar]] # no copy made
     fires <- fireBufferedListDT[[yearChar]]
     if (!is.null(fires)) {
       set(ann, NULL, "youngAge", as.integer(standAgeMap[ann$pixelID] <= cutoffForYoungAge) |
-            is.na(standAgeMap[ann$pixelID])) ## cannot have NAs
+        is.na(standAgeMap[ann$pixelID])) ## cannot have NAs
 
-      #pix <- annualCovariates[[yearChar]]$pixelID
-      #ages <- standAgeMap[pix]
+      # pix <- annualCovariates[[yearChar]]$pixelID
+      # ages <- standAgeMap[pix]
       # young <- ifelse(ages <= cutoffForYoungAge, 1, 0)
-      #annualCovariates[[yearChar]][, youngAge := as.integer(standAgeMap[][pixelID] <= cutoffForYoungAge)]
+      # annualCovariates[[yearChar]][, youngAge := as.integer(standAgeMap[][pixelID] <= cutoffForYoungAge)]
       burnedPix <- fires$pixelID[fires$buffer == 1]
       standAgeMap[burnedPix] <- 0
     }

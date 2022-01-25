@@ -1,5 +1,6 @@
 utils::globalVariables(c(
-  "nFires", "cells"))
+  "nFires", "cells"
+))
 
 
 
@@ -19,29 +20,27 @@ utils::globalVariables(c(
 #' @importFrom stats na.omit
 #' @importFrom magrittr %>%
 stackAndExtract <- function(years, fuel, LCC, climate, climVar, fires) {
-
   ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, climvar = climVar,
                                                 LCCras = LCC, fuelRas = fuel, ignitions = fires) {
-
-    climate <- climate[[year]] #get single climate layer
-    ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year,] #get annual ignitions
+    climate <- climate[[year]] # get single climate layer
+    ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year, ] # get annual ignitions
     names(climate) <- climVar
 
     yearCovariates <- raster::stack(climateRas, LCCras, fuelRas)
 
-    #get cells with ignitions and aggregate by repeated ignitions
+    # get cells with ignitions and aggregate by repeated ignitions
     ignitionDT <- extract(x = yearCovariates, y = ignitions, cellnumbers = TRUE) %>%
-     as.data.table(.) %>%
+      as.data.table(.) %>%
       .[, .(ignitions = .N), .(cells)]
 
-    #get covariate values of all cells
+    # get covariate values of all cells
     noIgnitionsDT <- raster::getValues(yearCovariates) %>%
       as.data.table(.) %>%
       .[, cells := 1:ncell(yearCovariates)] %>%
       na.omit(.)
 
-    #join and assign 0 to non-ignited pixels
-    ignitionYear <- ignitionDT[noIgnitionsDT, on = c('cells')]
+    # join and assign 0 to non-ignited pixels
+    ignitionYear <- ignitionDT[noIgnitionsDT, on = c("cells")]
     ignitionYear[is.na(ignitions), ignitions := 0]
 
     ignitionYear[, year := gsub("year", "", year)]

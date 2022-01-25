@@ -27,35 +27,42 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
                          sizeColUnits = "ha") {
   returnCols <- c("size", "date", "ids", "cells")
   keepCols <- c(sizeCol, dateCol, idsCol)
-  lociDF <- purrr::map(pts, ras = ras,
-                       function(.x, ras) {
-                         raster::extract(x = ras,
-                                         y = spTransform(.x[, keepCols], crs(ras)),
-                                         cellnumbers = TRUE,
-                                         sp = TRUE,
-                                         df = TRUE) %>%
-                           as.data.table()
-                       }) %>%
+  lociDF <- purrr::map(pts,
+    ras = ras,
+    function(.x, ras) {
+      raster::extract(
+        x = ras,
+        y = spTransform(.x[, keepCols], crs(ras)),
+        cellnumbers = TRUE,
+        sp = TRUE,
+        df = TRUE
+      ) %>%
+        as.data.table()
+    }
+  ) %>%
     rbindlist()
-  dtColNames <- data.table(old = c(sizeCol, dateCol, idsCol, "cells"),
-                           new = returnCols)
+  dtColNames <- data.table(
+    old = c(sizeCol, dateCol, idsCol, "cells"),
+    new = returnCols
+  )
   ma <- match(dtColNames$old, colnames(lociDF))
   setnames(lociDF, old = dtColNames$old[ma], new = dtColNames$new[ma])
   # setnames(lociDF, c(dateCol, idsCol), c("date", "ids"))
   set(lociDF, NULL, setdiff(colnames(lociDF), returnCols), NULL)
   divisor <- switch(sizeColUnits,
-                    "ha" = 1e4,
-                    "m2" = 1,
-                    stop("Must provide sizeColUnits either ha or m2"))
-  set(lociDF, NULL, "size", round(lociDF$size / (prod(res(ras))/divisor), 0))
+    "ha" = 1e4,
+    "m2" = 1,
+    stop("Must provide sizeColUnits either ha or m2")
+  )
+  set(lociDF, NULL, "size", round(lociDF$size / (prod(res(ras)) / divisor), 0))
 
   for (index in colnames(lociDF)) {
     if (is.numeric(lociDF[[index]]) &&
-        max(as.numeric(lociDF[[index]]) < 1e9) && ## ~ 2^31 / 2 (half of signed integer bits)
-        !is.integer(lociDF[[index]]))
+      max(as.numeric(lociDF[[index]]) < 1e9) && ## ~ 2^31 / 2 (half of signed integer bits)
+      !is.integer(lociDF[[index]])) {
       set(lociDF, NULL, index, as.integer(lociDF[[index]]))
+    }
   }
-  lociDF[, date := paste0("year", date)] #fires now have year in front
+  lociDF[, date := paste0("year", date)] # fires now have year in front
   split(lociDF, f = lociDF$date, keep.by = FALSE)
-
 }

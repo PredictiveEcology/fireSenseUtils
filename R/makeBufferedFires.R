@@ -43,7 +43,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
   if (is.null(polyName)) polyName <- names(poly)
   cores <- min(parallel::detectCores() - 1, min(length(poly), cores))
   if (cores > 1) {
-    out <-  parallel::mcMap(
+    out <- parallel::mcMap(
       mc.cores = cores,
       poly = poly,
       polyName = polyName,
@@ -51,16 +51,19 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
         rasterToMatch = rasterToMatch, verb = verb,
         areaMultiplier = areaMultiplier, field = field, minSize = minSize,
         cores = 1,
-        ...),
-      bufferToArea)
+        ...
+      ),
+      bufferToArea
+    )
   } else {
-    out <-  purrr::pmap(
+    out <- purrr::pmap(
       .l = list(poly = poly, polyName = polyName),
       rasterToMatch = rasterToMatch, verb = verb,
       areaMultiplier = areaMultiplier, field = field, minSize = minSize,
       cores = 1,
       ...,
-      .f = bufferToArea)
+      .f = bufferToArea
+    )
   }
   names(out) <- names(poly)
   out
@@ -74,12 +77,12 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
 bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 10,
                                          verb = FALSE, polyName = NULL, field = NULL,
                                          minSize = 500, cores = 1, ...) {
-
   if (is.null(polyName)) polyName <- "Layer 1"
-  if  (as.integer(verb) >= 1) print(paste("Buffering polygons on",polyName))
+  if (as.integer(verb) >= 1) print(paste("Buffering polygons on", polyName))
   r <- fasterize::fasterize(
     sf::st_transform(sf::st_as_sf(poly), sf::st_crs(rasterToMatch)),
-    raster = rasterToMatch, field = field, ...)
+    raster = rasterToMatch, field = field, ...
+  )
 
   if (all(is.na(r[]))) {
     return(data.table(pixelID = integer(), buffer = integer(), ids = integer()))
@@ -93,9 +96,11 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   } else {
     function(x) areaMultiplier * x
   }
-  fireSize <- initialDf[, list(actualSize = .N,
-                               # simSize = .N,# needed for numIters
-                               goalSize = asInteger(pmax(minSize, am(.N)))), by = "ids"]
+  fireSize <- initialDf[, list(
+    actualSize = .N,
+    # simSize = .N,# needed for numIters
+    goalSize = asInteger(pmax(minSize, am(.N)))
+  ), by = "ids"]
 
   out <- list()
   simSizes <- initialDf[, list(simSize = .N), by = "ids"]
@@ -110,8 +115,10 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
   while (length(loci) > 0) {
     dups <- duplicated(loci)
     df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq(ids[!dups]))
-    r1 <- spread(r, loci = df$loci, iterations = 1,
-                 spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE)
+    r1 <- spread(r,
+      loci = df$loci, iterations = 1,
+      spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE
+    )
     df <- df[r1, on = "id"]
     simSizes <- df[, list(simSize = .N), by = "ids"]
     simSizes <- fireSize[simSizes, on = "ids"]
@@ -122,19 +129,24 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
       names(idsBigger) <- idsBigger
       out1 <- lapply(idsBigger, function(idBig) {
         wh <- which(df$ids %in% idBig)
-        if (as.integer(verb) >= 2)
-          print(paste("  Fire id:,",idBig, "finished. Num pixels in buffer:",
-                      simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
-                      ", in fire:", simSizes[ids == idBig]$actualSize))
+        if (as.integer(verb) >= 2) {
+          print(paste(
+            "  Fire id:,", idBig, "finished. Num pixels in buffer:",
+            simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
+            ", in fire:", simSizes[ids == idBig]$actualSize
+          ))
+        }
         lastIters <- !df[wh]$active
         needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
         if (needMore > 0) {
-          dt <- try(rbindlist(list(df[wh][lastIters],
-                                   df[wh][sample(which(df[wh]$active), needMore)])))
+          dt <- try(rbindlist(list(
+            df[wh][lastIters],
+            df[wh][sample(which(df[wh]$active), needMore)]
+          )))
         } else {
           dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
         }
-        if (is(dt, "try-error")) browser()#stop("try error here")
+        if (is(dt, "try-error")) browser() # stop("try error here")
         dtOut <- dt[, list(buffer = 0L, pixelID = indices, ids)]
 
         dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1L]
@@ -171,7 +183,7 @@ multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
   pmax(minSize, round(pmax(baseMultiplier, 14 - log(size)) * size, 0))
 }
 
-#'buffer ignition points to create non-ignitions for model
+#' buffer ignition points to create non-ignitions for model
 #'
 #'
 #' @param ignitionPoints SpatialPolygonsDataFrame with year of ignition
@@ -186,33 +198,31 @@ multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
 #' @export
 #' @rdname bufferIgnitionPoints
 bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
-
   years <- sort(unique(ignitionPoints$YEAR))
   rtm <- setValues(rtm, 1:ncell(rtm))
   ignitionDT <- lapply(years, FUN = function(year, rtmIndices = rtm,
                                              ignitions = ignitionPoints) {
-    #subset ignitions to year
-    annIg <- ignitions[ignitions$YEAR == year,]
+    # subset ignitions to year
+    annIg <- ignitions[ignitions$YEAR == year, ]
 
-    #buffer them
+    # buffer them
     buffed <- buffer(annIg, bufferSize)
 
-    #get rtm indices of ignitions
+    # get rtm indices of ignitions
     ignitionPix <- raster::extract(rtmIndices, annIg)
 
-    #get rtm indices of buffer
+    # get rtm indices of buffer
     buffed <- sf::st_as_sf(buffed)
     buffed <- fasterize(buffed, raster = rtmIndices)
     annIndices <- rtmIndices[!is.na(buffed[])]
 
-    #make data.table
+    # make data.table
     indices <- data.table(pixelID = annIndices, ignited = annIndices %in% ignitionPix)
-    indices <- indices[!duplicated(pixelID),]
+    indices <- indices[!duplicated(pixelID), ]
 
     return(indices)
   })
-  #this does not list which cell ignited
-  names(ignitionDT) <- paste0('year', years)
+  # this does not list which cell ignited
+  names(ignitionDT) <- paste0("year", years)
   return(ignitionDT)
-
 }

@@ -25,43 +25,44 @@ castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, age
                            cutoffForYoungAge = 15) {
   cohortData <- copy(cohortData)
 
-  #need stand age for predictions but it won't be included in PCAer
+  # need stand age for predictions but it won't be included in PCAer
   # cohortData[, standAge := sum(B * age) / sum(B), .(pixelGroup)] # don't chain with magrittr
   #     Eliot removed the above line because it caused NAs to occur wherever there was sum(B) == 0
   #           We also don't want biomass-weighted stand age here, I believe. This should be "time since disturbance"
   cohortData[, standAge := max(age, na.rm = TRUE), .(pixelGroup)] # don't chain with magrittr
   cohortData <- dcast(cohortData, pixelGroup + standAge ~ speciesCode,
-                      value.var = c("B"), fun.aggregate = sum, fill = 0)
+    value.var = c("B"), fun.aggregate = sum, fill = 0
+  )
 
-  cohortDataLong <- data.table('pixelID' = 1:ncell(pixelGroupMap), 'pixelGroup' = getValues(pixelGroupMap))
+  cohortDataLong <- data.table("pixelID" = 1:ncell(pixelGroupMap), "pixelGroup" = getValues(pixelGroupMap))
   cohortData <- cohortData[cohortDataLong, on = c("pixelGroup")]
   rm(cohortDataLong)
   cohortData <- cohortData[lcc, on = c("pixelID")]
 
-  #reclassify forested lcc that is missing from cohortData as missingLCC group
+  # reclassify forested lcc that is missing from cohortData as missingLCC group
   lccNames <- colnames(lcc)[!colnames(lcc) %in% c("pixelID")]
 
-   #this should be faster
+  # this should be faster
   cohortData[, nonforest := rowSums(cohortData[, .SD, .SDcols = lccNames])]
-  cohortData[is.na(pixelGroup) & nonforest == 0, eval(missingLCC) := 1] #these are forest by LCC2005 and not LandR
-  set(cohortData, ,'nonforest', NULL)
+  cohortData[is.na(pixelGroup) & nonforest == 0, eval(missingLCC) := 1] # these are forest by LCC2005 and not LandR
+  set(cohortData, , "nonforest", NULL)
 
-  if (!is.null(ageMap)) { #should not be NULL in predict
+  if (!is.null(ageMap)) { # should not be NULL in predict
     cohortData[is.na(standAge), standAge := ageMap[cohortData[is.na(standAge)]$pixelID]]
   }
   if (!is.null(terrainDT)) {
     cohortData <- cohortData[terrainDT, on = c("pixelID")]
     setnafill(cohortData, fill = 0, cols = colnames(cohortData)[!colnames(cohortData) %in%
-                                                                  c('pixelGroup', colnames(terrainDT))])
+      c("pixelGroup", colnames(terrainDT))])
   }
 
   set(cohortData, NULL, "youngAge", as.integer(cohortData$standAge <= cutoffForYoungAge))
   # cohortData[, youngAge := ifelse(cohortData$standAge <= cutoffForYoungAge, 1, 0)]
-  set(cohortData, NULL, 'standAge', NULL)
-  #we only care if stand age is young
-  #we don't care at all about this during fit as we will reclassify it anyway
+  set(cohortData, NULL, "standAge", NULL)
+  # we only care if stand age is young
+  # we don't care at all about this during fit as we will reclassify it anyway
   if (!is.null(year)) {
-    set(cohortData, NULL, 'year', year)
+    set(cohortData, NULL, "year", year)
   }
   return(cohortData)
 }

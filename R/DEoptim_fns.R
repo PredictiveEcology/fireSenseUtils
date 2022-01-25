@@ -92,7 +92,6 @@ runDEoptim <- function(landscape,
                        .verbose,
                        visualizeDEoptim,
                        .plotSize = list(height = 1600, width = 2000)) {
-
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
     blas_set_num_threads(1)
@@ -109,25 +108,35 @@ runDEoptim <- function(landscape,
   ####################################################################
   control <- list(itermax = itermax, trace = trace, strategy = strategy)
 
-  if (!is.null(initialpop))
+  if (!is.null(initialpop)) {
     control$initialpop <- initialpop
+  }
 
-  if (!is.null(NP))
+  if (!is.null(NP)) {
     control$NP <- NP
+  }
 
-  objsNeeded <- list("landscape",
-                     "annualDTx1000",
-                     "nonAnnualDTx1000",
-                     "fireBufferedListDT",
-                     "historicalFires",
-                     "mutuallyExclusive")
+  objsNeeded <- list(
+    "landscape",
+    "annualDTx1000",
+    "nonAnnualDTx1000",
+    "fireBufferedListDT",
+    "historicalFires",
+    "mutuallyExclusive"
+  )
 
   if (!is.null(cores)) {
-    logPath <- file.path(logPath,
-                         paste0("fireSense_SpreadFit_", format(Sys.time(), "%Y-%m-%d_%H%M%S"),
-                                "_pid", Sys.getpid(), ".log"))
-    message(crayon::blurred(paste0("Starting parallel model fitting for ",
-                                   "fireSense_SpreadFit. Log: ", logPath)))
+    logPath <- file.path(
+      logPath,
+      paste0(
+        "fireSense_SpreadFit_", format(Sys.time(), "%Y-%m-%d_%H%M%S"),
+        "_pid", Sys.getpid(), ".log"
+      )
+    )
+    message(crayon::blurred(paste0(
+      "Starting parallel model fitting for ",
+      "fireSense_SpreadFit. Log: ", logPath
+    )))
 
     # Make sure logPath can be written in the workers -- need to create the dir
 
@@ -140,8 +149,10 @@ runDEoptim <- function(landscape,
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
       coresUnique <- setdiff(unique(cores), "localhost")
-      message("Making sure packages with sufficient versions installed and loaded on: ",
-              paste(coresUnique, collapse = ", "))
+      message(
+        "Making sure packages with sufficient versions installed and loaded on: ",
+        paste(coresUnique, collapse = ", ")
+      )
       st <- system.time({
         cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = .libPaths())
       })
@@ -150,7 +161,8 @@ runDEoptim <- function(landscape,
       clusterExport(cl, list("logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
 
       parallel::clusterEvalQ(
-        cl, {
+        cl,
+        {
           # Use the binary packages for install if Ubuntu & Linux
           if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
             .os.version <- strsplit(system("lsb_release -c", intern = TRUE), ":\t")[[1]][[2]]
@@ -159,13 +171,20 @@ runDEoptim <- function(landscape,
               paste(getRversion(), R.version["platform"], R.version["arch"], R.version["os"]),
               ")"
             )
-            optsNew <- list("repos" = c(CRAN = paste0("https://packagemanager.rstudio.com/all/__linux__/",
-                                                      .os.version, "/latest")),
-                            "HTTPUserAgent" = .user.agent)
+            optsNew <- list(
+              "repos" = c(CRAN = paste0(
+                "https://packagemanager.rstudio.com/all/__linux__/",
+                .os.version, "/latest"
+              )),
+              "HTTPUserAgent" = .user.agent
+            )
             opts <- options(optsNew)
-            on.exit({
-              options(opts)
-            }, add = TRUE)
+            on.exit(
+              {
+                options(opts)
+              },
+              add = TRUE
+            )
           }
 
           # If this is first time that packages need to be installed for this user on this machine
@@ -186,14 +205,18 @@ runDEoptim <- function(landscape,
           #    are dealt with
           Require::checkPath(dirname(logPath), create = TRUE)
 
-          if (!require("igraph"))
+          if (!require("igraph")) {
             install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
+          }
           # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
-            c("dqrng",
+            c(
+              "dqrng",
               paste0("PredictiveEcology/SpaDES.tools@development (>=", packageVersionST, ")"),
-              paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")),
-            upgrade = FALSE)
+              paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")
+            ),
+            upgrade = FALSE
+          )
         }
       )
       parallel::stopCluster(cl)
@@ -201,16 +224,21 @@ runDEoptim <- function(landscape,
 
     ## Now make full cluster with one worker per core listed in "cores"
     message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
-                               collapse = ", "), " clusters")
+      collapse = ", "
+    ), " clusters")
     message("Starting main parallel cluster ...")
     st <- system.time({
-      cl <- parallelly::makeClusterPSOCK(cores, revtunnel = revtunnel,
-                                         outfile = logPath, rscript_libs = .libPaths())
+      cl <- parallelly::makeClusterPSOCK(cores,
+        revtunnel = revtunnel,
+        outfile = logPath, rscript_libs = .libPaths()
+      )
     })
 
     on.exit(stopCluster(cl))
-    message("it took ", round(st[3],2), "s to start ",
-            paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads")
+    message(
+      "it took ", round(st[3], 2), "s to start ",
+      paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads"
+    )
     message("Moving objects to each node in cluster")
 
     stMoveObjects <- try({
@@ -226,7 +254,7 @@ runDEoptim <- function(landscape,
           Require::checkPath(dirname(filenameForTransfer), create = TRUE)
         })
         out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
-          st1 <- system.time(system(paste0("rsync -a ",filenameForTransfer," ", ip, ":", filenameForTransfer)))
+          st1 <- system.time(system(paste0("rsync -a ", filenameForTransfer, " ", ip, ":", filenameForTransfer)))
         })
         out <- clusterEvalQ(cl, {
           out <- qs::qread(file = filenameForTransfer)
@@ -234,8 +262,9 @@ runDEoptim <- function(landscape,
         })
         # Delete the file
         out <- clusterEvalQ(cl, {
-          if (dir.exists(dirname(filenameForTransfer)))
+          if (dir.exists(dirname(filenameForTransfer))) {
             try(unlink(dirname(filenameForTransfer), recursive = TRUE), silent = TRUE)
+          }
         })
       })
     })
@@ -245,17 +274,21 @@ runDEoptim <- function(landscape,
       stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
       list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
     }
-    message("it took ", round(stMoveObjects[3],2), "s to move objects to nodes")
+    message("it took ", round(stMoveObjects[3], 2), "s to move objects to nodes")
     message("loading packages in cluster nodes")
     stPackages <- system.time(parallel::clusterEvalQ(
-      cl, {
-        for (i in c("kSamples", "magrittr", "raster", "data.table",
-                    "SpaDES.tools", "fireSenseUtils"))
+      cl,
+      {
+        for (i in c(
+          "kSamples", "magrittr", "raster", "data.table",
+          "SpaDES.tools", "fireSenseUtils"
+        )) {
           library(i, character.only = TRUE)
-        message('loading ', i, ' at ', Sys.time())
+        }
+        message("loading ", i, " at ", Sys.time())
       }
     ))
-    message("it took ", round(stPackages[3],2), "s to load packages")
+    message("it took ", round(stPackages[3], 2), "s to load packages")
 
     control$cluster <- cl
   } else {
@@ -265,28 +298,29 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
-  DE <- #Cache(
-    DEoptimIterative(itermax = itermax, lower = lower,
-                     upper = upper,
-                     control = do.call("DEoptim.control", control),
-                     FS_formula = FS_formula,
-                     covMinMax = covMinMax,
-                     # tests = c("mad", "SNLL_FS"),
-                     tests = tests,
-                     maxFireSpread = maxFireSpread,
-                     objFunCoresInternal = objFunCoresInternal,
-                     Nreps = Nreps,
-                     .verbose = .verbose,
-                     mutuallyExclusive = mutuallyExclusive,
-                     doObjFunAssertions = doObjFunAssertions,
-                     visualizeDEoptim = visualizeDEoptim,
-                     .plotSize = .plotSize,
-                     #cachePath = cachePath,
-                     iterStep = iterStep,
-                     thresh = thresh,
-                     #omitArgs = c("verbose")
-    )#,
-  #cacheId = "cd495b412420ad4a") # iteration 201 to 300
+  DE <- # Cache(
+    DEoptimIterative(
+      itermax = itermax, lower = lower,
+      upper = upper,
+      control = do.call("DEoptim.control", control),
+      FS_formula = FS_formula,
+      covMinMax = covMinMax,
+      # tests = c("mad", "SNLL_FS"),
+      tests = tests,
+      maxFireSpread = maxFireSpread,
+      objFunCoresInternal = objFunCoresInternal,
+      Nreps = Nreps,
+      .verbose = .verbose,
+      mutuallyExclusive = mutuallyExclusive,
+      doObjFunAssertions = doObjFunAssertions,
+      visualizeDEoptim = visualizeDEoptim,
+      .plotSize = .plotSize,
+      # cachePath = cachePath,
+      iterStep = iterStep,
+      thresh = thresh,
+      # omitArgs = c("verbose")
+    ) # ,
+  # cacheId = "cd495b412420ad4a") # iteration 201 to 300
   DE
 }
 
@@ -303,8 +337,9 @@ runDEoptim <- function(landscape,
 #' @importFrom utils tail
 visualizeDE <- function(DE, cachePath) {
   if (missing(DE)) {
-    if (missing(cachePath))
+    if (missing(cachePath)) {
       stop("Must provide either DE or cachePath")
+    }
     message("DE not supplied; visualizing the most recent added to Cache")
     sc <- showCache(userTags = "DEoptim")
     cacheID <- tail(sc$cacheId, 1)
@@ -315,10 +350,10 @@ visualizeDE <- function(DE, cachePath) {
   }
 
   aa <- as.data.table(t(DE$member$pop))
-  aa[, pars := paste0("par", 1:NROW(aa))];
+  aa[, pars := paste0("par", 1:NROW(aa))]
   dim1 <- floor(sqrt(NROW(aa)))
   dim2 <- NROW(aa) / dim1
-  par(mfrow = c(dim1, dim2));
+  par(mfrow = c(dim1, dim2))
   aa[, hist(t(.SD), main = as.character(.BY))[[2]], by = pars]
 }
 
@@ -361,30 +396,32 @@ DEoptimIterative <- function(itermax,
     control$storepopfrom <- control$itermax + 1
 
     controlArgs <- do.call("DEoptim.control", control)
-    controlForCache <- controlArgs[c("VTR", "strategy", "NP", "CR", "F", "bs", "trace",
-                                     "initialpop", "p", "c", "reltol",
-                                     "packages", "parVar", "foreachArgs")]
+    controlForCache <- controlArgs[c(
+      "VTR", "strategy", "NP", "CR", "F", "bs", "trace",
+      "initialpop", "p", "c", "reltol",
+      "packages", "parVar", "foreachArgs"
+    )]
 
     if (TRUE) {
-      st1 <- system.time(DE[[iter]] <- #Cache(
-                           DEoptimForCache(
-                             fireSenseUtils::.objfunSpreadFit,
-                             lower = lower,
-                             upper = upper,
-                             control = controlArgs,
-                             FS_formula = FS_formula,
-                             covMinMax = covMinMax,
-                             tests = tests,
-                             maxFireSpread = maxFireSpread,
-                             mutuallyExclusive = mutuallyExclusive,
-                             doAssertions = doObjFunAssertions,
-                             Nreps = Nreps,
-                             controlForCache = controlForCache,
-                             objFunCoresInternal = objFunCoresInternal,
-                             thresh = thresh,
-                             verbose = .verbose#,
-                             #omitArgs = c("verbose", "control")
-                           ))
+      st1 <- system.time(DE[[iter]] <- # Cache(
+        DEoptimForCache(
+          fireSenseUtils::.objfunSpreadFit,
+          lower = lower,
+          upper = upper,
+          control = controlArgs,
+          FS_formula = FS_formula,
+          covMinMax = covMinMax,
+          tests = tests,
+          maxFireSpread = maxFireSpread,
+          mutuallyExclusive = mutuallyExclusive,
+          doAssertions = doObjFunAssertions,
+          Nreps = Nreps,
+          controlForCache = controlForCache,
+          objFunCoresInternal = objFunCoresInternal,
+          thresh = thresh,
+          verbose = .verbose # ,
+          # omitArgs = c("verbose", "control")
+        ))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
@@ -392,22 +429,24 @@ DEoptimIterative <- function(itermax,
       }
 
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-                                             fn,
-                                             lower = lower,
-                                             upper = upper,
-                                             mutuallyExclusive = mutuallyExclusive,
-                                             controlForCache = controlForCache,
-                                             control = control,
-                                             omitArgs = c("verbose", "control"),
-                                             x = x1
+        fn,
+        lower = lower,
+        upper = upper,
+        mutuallyExclusive = mutuallyExclusive,
+        controlForCache = controlForCache,
+        control = control,
+        omitArgs = c("verbose", "control"),
+        x = x1
       ))
     }
 
     control$initialpop <- DE[[iter]]$member$pop
     if (isTRUE(visualizeDEoptim)) {
       if (!isRstudioServer()) {
-        png(filename = paste0("DE_pars", as.character(Sys.time()), "_", Sys.getpid(), ".png"),
-            width = .plotSize$width, height = .plotSize$height)
+        png(
+          filename = paste0("DE_pars", as.character(Sys.time()), "_", Sys.getpid(), ".png"),
+          width = .plotSize$width, height = .plotSize$height
+        )
       }
       visualizeDE(DE[[iter]], cachePath)
       if (!isRstudioServer()) {
