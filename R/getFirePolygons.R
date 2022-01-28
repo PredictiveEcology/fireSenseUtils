@@ -10,7 +10,7 @@
 #' @export
 #' @importFrom raster compareCRS isLonLat
 #' @importFrom reproducible prepInputs
-#' @importFrom sf as_Spatial st_area
+#' @importFrom sf as_Spatial st_area st_zm
 getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
   ## TODO: remove this workaround once polygonShortcut working correctly
   RPS <- getOption("reproducible.polygonShortcut")
@@ -34,6 +34,7 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
   if (!is(firePolys, "sf")) {
     firePolys <- sf::st_as_sf(firePolys)
   }
+  firePolys <- st_zm(firePolys)
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
     firePoly <- polys[polys$YEAR == x, ]
     if (nrow(firePoly) > 0) {
