@@ -61,7 +61,6 @@ Remotes:
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
     PredictiveEcology/SpaDES.tools@development,
-    PredictiveEcology/quickPlot@development,
     PredictiveEcology/reproducible@development
 VignetteBuilder:
     knitr,
