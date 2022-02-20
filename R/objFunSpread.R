@@ -59,7 +59,7 @@ utils::globalVariables(c(
 #'
 #' @return
 #' Attempting a weighted likelihood,
-#' https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation
+#' \url{https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation}.
 #' With log(fireSize) * likelihood for each fire.
 #'
 #' @export
@@ -541,6 +541,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 
       # only use fires that escaped --> i.e., greater than 1 pixel
       # print(quantile(emp$size))
+      ## TODO: occasional errors during fitting because `obs` < 2; suggests N <2 (#8)
       emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = sqrt(N))), by = "ids"]
       # emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
       if (isTRUE(weighted)) {

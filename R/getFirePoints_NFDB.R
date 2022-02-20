@@ -110,6 +110,7 @@ getFirePoints_NFDB <- function(url = NULL,
 #' @return A \code{SpatialPointsDataFrame}.
 #'
 #' @export
+#' @importFrom crayon green yellow
 #' @importFrom raster crs crs<- plot res shapefile
 #' @importFrom reproducible Cache Checksums prepInputs projectInputs
 #' @importFrom sp coordinates<-

@@ -17,7 +17,9 @@ runDEoptim(
   trace,
   strategy,
   cores = NULL,
-  logPath,
+  libPath = .libPaths()[1],
+  logPath = tempfile(sprintf("fireSense_SpreadFit_\%s_", format(Sys.time(),
+    "\%Y-\%m-\%d_\%H\%M\%S")), fileext = ".log"),
   doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
   cachePath,
   iterStep = 25,
@@ -90,6 +92,10 @@ All covariates must be integers, and must be 1000x their actual values.}
 \item{cores}{A numeric (for running on localhost only) or a character vector of
 machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
+
+\item{libPath}{A character string indicating an R package library directory. This
+location must exist on each machine, though the function will make sure it
+does internally.}
 
 \item{logPath}{A character string indicating what file to write logs to. This
 \code{dirname(logPath)} must exist on each machine, though the function will make sure it

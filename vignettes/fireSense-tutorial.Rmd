@@ -122,7 +122,7 @@ setPaths(
 
 ## TODO: download modules to moduleDir -- use git or downloadModule() ???
 
-normalizeRaster <- function(x) { ## TODO: use pemisc version
+normalizeRaster <- function(x) { ## TODO: use pemisc version (#9)
   # Normalize raster values
   (x - minValue(x)) / (maxValue(x) - minValue(x))
 }

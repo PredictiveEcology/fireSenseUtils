@@ -29,6 +29,9 @@ utils::globalVariables(c(
 #' @param cores A numeric (for running on localhost only) or a character vector of
 #'   machine names (including possibly "localhost"), where
 #'   the length of the vector indicates how many cores should be used on that machine.
+#' @param libPath A character string indicating an R package library directory. This
+#'   location must exist on each machine, though the function will make sure it
+#'   does internally.
 #' @param logPath A character string indicating what file to write logs to. This
 #'   \code{dirname(logPath)} must exist on each machine, though the function will make sure it
 #'   does internally.
@@ -75,7 +78,9 @@ runDEoptim <- function(landscape,
                        trace,
                        strategy,
                        cores = NULL,
-                       logPath,
+                       libPath = .libPaths()[1],
+                       logPath = tempfile(sprintf("fireSense_SpreadFit_%s_",
+                                          format(Sys.time(), "%Y-%m-%d_%H%M%S")), fileext = ".log"),
                        doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                        cachePath,
                        iterStep = 25,
@@ -158,12 +163,12 @@ runDEoptim <- function(landscape,
       })
       packageVersionFSU <- packageVersion("fireSenseUtils")
       packageVersionST <- packageVersion("SpaDES.tools")
-      clusterExport(cl, list("logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
+      clusterExport(cl, list("libPath", "logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
 
       parallel::clusterEvalQ(
         cl,
         {
-          # Use the binary packages for install if Ubuntu & Linux
+          ## Use the binary packages for install if Ubuntu & Linux
           if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
             .os.version <- strsplit(system("lsb_release -c", intern = TRUE), ":\t")[[1]][[2]]
             .user.agent <- paste0(
@@ -172,42 +177,31 @@ runDEoptim <- function(landscape,
               ")"
             )
             optsNew <- list(
-              "repos" = c(CRAN = paste0(
-                "https://packagemanager.rstudio.com/all/__linux__/",
-                .os.version, "/latest"
-              )),
+              "repos" = c(CRAN = paste0("https://packagemanager.rstudio.com/all/__linux__/",
+                                        .os.version, "/latest")),
               "HTTPUserAgent" = .user.agent
             )
             opts <- options(optsNew)
-            on.exit(
-              {
-                options(opts)
-              },
-              add = TRUE
-            )
+            on.exit(options(opts), add = TRUE)
+          }
+
+          if (!require("Require", quietly = TRUE)) {
+            install.packages("Require", )
           }
 
           # If this is first time that packages need to be installed for this user on this machine
-          #   there won't be a folder present that is writeable
-          if (file.access(.libPaths()[1], mode = 2) < 0) {
-            message("The .libPaths()[1] is not writable; trying normal alternatives")
-            RLibPath <- .libPaths()[1]
+          #   there won't be a folder present that is writable
+          libPath <- Require::checkPath(libPath, create = TRUE)
 
-            if (!dir.exists(RLibPath)) {
-              dir.create(RLibPath, recursive = TRUE)
-            }
-          }
-
-          if (!require("Require", quietly = TRUE)) install.packages("Require") # will do Require too
           message(Sys.info()[["nodename"]])
+
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
           Require::checkPath(dirname(logPath), create = TRUE)
 
-          if (!require("igraph")) {
-            install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
-          }
+          SpaDES.install::installSourcePackages() ## should be "rerun" proof, i.e., won't reinstall
+
           # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
             c(

@@ -109,7 +109,7 @@ This will give large fires more influence on the SNLL.}
 }
 \value{
 Attempting a weighted likelihood,
-https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation
+\url{https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation}.
 With log(fireSize) * likelihood for each fire.
 }
 \description{
