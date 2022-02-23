@@ -9,6 +9,7 @@ cohortsToFuelClasses(
   yearCohort,
   pixelGroupMap,
   flammableRTM,
+  landcoverDT = NULL,
   sppEquiv,
   sppEquivCol,
   cutoffForYoungAge,
@@ -26,6 +27,9 @@ and \code{sumB}.}
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
 
 \item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
+
+\item{landcoverDT}{optional table of nonforest landcovers and pixel indices. It will override
+pixel values in \code{cohortData}, if supplied.}
 
 \item{sppEquiv}{table with species name equivalencies between the kNN and final naming formats.
 See \code{data("sppEquivalencies_CA", "LandR")}.

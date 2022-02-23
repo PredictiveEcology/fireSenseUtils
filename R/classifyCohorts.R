@@ -10,6 +10,8 @@ globalVariables(c(
 #' @template sppEquiv
 #' @template sppEquivCol
 #' @param yearCohort the year the \code{cohortData} represents
+#' @param landcoverDT optional table of nonforest landcovers and pixel indices. It will override
+#' pixel values in \code{cohortData}, if supplied.
 #' @template flammableRTM
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #' @param fuelClassCol the column in sppEquiv that describes unique fuel classes
@@ -21,7 +23,7 @@ globalVariables(c(
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom raster getValues nlayers raster stack
 #'
-cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM,
+cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM, landcoverDT = NULL,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
   cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
@@ -62,6 +64,14 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   )
 
   classList <- stack(classList)
+
+  if (!is.null(landcoverDT)) {
+    browser()
+    #find rows that aren't empty i.e. have non-forest landcover
+    landcoverDT[, foo := rowSums(.SD), .SD = setdiff(names(landcoverDT), "pixelID")]
+    classList[landcoverDT[foo > 0]$pixelID] <- NA
+  }
+
   names(classList) <- classes
   return(classList)
 }
