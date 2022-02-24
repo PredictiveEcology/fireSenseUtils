@@ -69,7 +69,8 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
     browser()
     #find rows that aren't empty i.e. have non-forest landcover
     landcoverDT[, foo := rowSums(.SD), .SD = setdiff(names(landcoverDT), "pixelID")]
-    classList[landcoverDT[foo > 0]$pixelID] <- NA
+    classList[landcoverDT[foo > 0]$pixelID] <- 0 #must be 0
+    landcoverDT[, foo := NULL]
   }
 
   names(classList) <- classes
