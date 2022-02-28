@@ -186,21 +186,22 @@ runDEoptim <- function(landscape,
           }
 
           if (!require("Require", quietly = TRUE)) {
-            install.packages("Require", )
+            install.packages("Require")
           }
 
           # If this is first time that packages need to be installed for this user on this machine
           #   there won't be a folder present that is writable
           libPath <- Require::checkPath(libPath, create = TRUE)
+          Require::checkPath(dirname(logPath), create = TRUE)
 
           message(Sys.info()[["nodename"]])
 
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          Require::checkPath(dirname(logPath), create = TRUE)
 
-          SpaDES.install::installSourcePackages() ## should be "rerun" proof, i.e., won't reinstall
+          Require::Require("PredictiveEcology/SpaDES.install@installFromSource", libPaths = libPath)
+          SpaDES.install::installSourcePackages(libPath = libPath) ## should be "rerun" proof, i.e., won't reinstall
 
           # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
