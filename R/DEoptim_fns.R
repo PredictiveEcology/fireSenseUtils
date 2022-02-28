@@ -159,7 +159,7 @@ runDEoptim <- function(landscape,
         paste(coresUnique, collapse = ", ")
       )
       st <- system.time({
-        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = .libPaths())
+        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath)
       })
       packageVersionFSU <- packageVersion("fireSenseUtils")
       packageVersionST <- packageVersion("SpaDES.tools")
@@ -199,9 +199,8 @@ runDEoptim <- function(landscape,
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          .libPaths(libPath)
-          Require::Require("PredictiveEcology/SpaDES.install@installFromSource", libPaths = libPath)
-          SpaDES.install::installSourcePackages(libPath = libPath) ## should be "rerun" proof, i.e., won't reinstall
+          Require::Require("PredictiveEcology/SpaDES.install@installFromSource")
+          SpaDES.install::installSourcePackages() ## should be "rerun" proof, i.e., won't reinstall
 
           # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
@@ -210,7 +209,7 @@ runDEoptim <- function(landscape,
               paste0("PredictiveEcology/SpaDES.tools@development (>=", packageVersionST, ")"),
               paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")
             ),
-            libPaths = libPath, upgrade = FALSE
+            upgrade = FALSE
           )
         }
       )
