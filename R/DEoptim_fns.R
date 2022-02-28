@@ -224,7 +224,7 @@ runDEoptim <- function(landscape,
     st <- system.time({
       cl <- parallelly::makeClusterPSOCK(cores,
         revtunnel = revtunnel,
-        outfile = logPath, rscript_libs = .libPaths()
+        outfile = logPath, rscript_libs = libPath
       )
     })
 
