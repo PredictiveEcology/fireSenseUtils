@@ -199,7 +199,7 @@ runDEoptim <- function(landscape,
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-
+          .libPaths(libPath)
           Require::Require("PredictiveEcology/SpaDES.install@installFromSource", libPaths = libPath)
           SpaDES.install::installSourcePackages(libPath = libPath) ## should be "rerun" proof, i.e., won't reinstall
 
@@ -210,7 +210,7 @@ runDEoptim <- function(landscape,
               paste0("PredictiveEcology/SpaDES.tools@development (>=", packageVersionST, ")"),
               paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")
             ),
-            upgrade = FALSE
+            libPaths = libPath, upgrade = FALSE
           )
         }
       )
