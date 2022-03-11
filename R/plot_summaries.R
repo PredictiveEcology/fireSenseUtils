@@ -52,24 +52,24 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
       # ggplot2::geom_smooth() +
       ggplot2::ylim(0, max(dat2$N) * 1.2) +
       ggplot2::labs(y = "number of ignitions",
-           title = studyAreaName,
-           subtitle = paste(gcm, ssp))
+                    title = studyAreaName,
+                    subtitle = paste(gcm, ssp))
 
     gEscapes <- ggplot2::ggplot(data = dat, ggplot2::aes(x = year, y = nFires, col = stat)) +
       ggplot2::geom_point() +
       # ggplot2::geom_smooth() +
       ggplot2::ylim(0, max(dat$nFires) * 1.2) +
       ggplot2::labs(y = "number of escaped fires",
-           title = studyAreaName,
-           subtitle = paste(gcm, ssp))
+                    title = studyAreaName,
+                    subtitle = paste(gcm, ssp))
 
     gBurns <- ggplot2::ggplot(data = dat, ggplot2::aes(x = year, y = sumBurn, col = stat)) +
       ggplot2::geom_point() +
       # ggplot2::geom_smooth() +
       ggplot2::ylim(0, max(dat$sumBurn) * 1.1) +
       ggplot2::labs(y = "annual area burned (ha)",
-           title = paste(studyAreaName, "rep", run),
-           subtitle = paste(gcm, ssp))
+                    title = paste(studyAreaName, "rep", run),
+                    subtitle = paste(gcm, ssp))
 
     figDir <- file.path(outputDir, runName, "figures")
     figs <- list(
@@ -88,18 +88,19 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
 #' Plot cumulative burn maps
 #'
 #' @template summary_plots
-#' @param Nreps the number of simulation replicates/run used to produce summary figures
+#' @template Nreps
 #' @template rasterToMatch
 #'
 #' @return a file path corresponding to the images and/or objects written to disk
 #'
 #' @export
+#' @importFrom parallel mclapply
 #' @importFrom raster calc crop mask maxValue raster stack
 plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps, rasterToMatch) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
-    burnMapAllReps <- lapply(1:Nreps, function(rep) {
+    burnMapAllReps <- parallel::mclapply(1:Nreps, function(rep) {
       runName <- sprintf("%s_%s_run%02d", studyAreaName, climateScenario, rep)
       resultsDir <- file.path(outputDir, runName)
 
@@ -114,16 +115,20 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
 
     fburnMap <- file.path(outputDir, studyAreaName, "figures",
                           paste0("cumulBurnMap_", studyAreaName, "_", climateScenario, ".png"))
-    png(filename = fburnMap, height = 800, width = 800)
-    rasterVis::levelplot(cumulBurnMap, margin = list(FUN = "mean"), ## median?
-                         main = paste0("Cumulative burn map 2011-2100 under ", climateScenario),
-                         colorkey = list(
-                           at = seq(0, maxValue(cumulBurnMap), length.out = Nreps + 1),
-                           space = "bottom",
-                           axis.line = list(col = "black"),
-                           width = 0.75
-                         ),
-                         par.settings = myTheme)
+
+    ## levelplot (trellis graphics more generally) won't plot correctly inside loop w/o print()
+    png(filename = fburnMap, height = 1000, width = 1000, res = 300)
+    print({
+      rasterVis::levelplot(cumulBurnMap, margin = list(FUN = "mean"), ## median?
+                           main = paste0("Cumulative burn map 2011-2100 under ", climateScenario),
+                           colorkey = list(
+                             at = seq(0, maxValue(cumulBurnMap), length.out = Nreps + 1),
+                             space = "bottom",
+                             axis.line = list(col = "black"),
+                             width = 0.75
+                           ),
+                           par.settings = myTheme)
+    })
     dev.off()
 
     return(fburnMap)
@@ -135,16 +140,17 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
 #' Create plot with subplots showing: a) area burned; b) number of fires; c) mean fire size.
 #'
 #' @template summary_plots
-#' @param Nreps the number of simulation replicates/run used to produce summary figures
+#' @template Nreps
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist
+#' @importFrom parallel mclapply
 #' @importFrom qs qread
 #' @importFrom stats coefficients lm pf
 plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
       requireNamespace("cowplot", quietly = TRUE)) {
-    burnSummaryAllReps <- rbindlist(lapply(1:Nreps, function(rep) {
+    burnSummaryAllReps <- rbindlist(parallel::mclapply(1:Nreps, function(rep) {
       runName <- sprintf("%s_%s_run%02d", studyAreaName, climateScenario, rep)
       resultsDir <- file.path(outputDir, runName)
 
@@ -234,30 +240,30 @@ plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
       ggplot2::stat_smooth(method = "lm", color = "darkred", fill = "red") +
       ggplot2::facet_grid(var ~ ., labeller = ggplot2::labeller(var = replacementNames)) +
       ggplot2::theme(legend.position = "none",
-            strip.text.y = ggplot2::element_text(size = 9, face = "bold"),
-            axis.title.x = ggplot2::element_blank(),
-            axis.text.x = ggplot2::element_blank(),
-            axis.ticks.x = ggplot2::element_blank(),
-            plot.margin = ggplot2::unit(c(0.2, 0.2, -0.01, 0.2), "cm")) +
+                     strip.text.y = ggplot2::element_text(size = 9, face = "bold"),
+                     axis.title.x = ggplot2::element_blank(),
+                     axis.text.x = ggplot2::element_blank(),
+                     axis.ticks.x = ggplot2::element_blank(),
+                     plot.margin = ggplot2::unit(c(0.2, 0.2, -0.01, 0.2), "cm")) +
       ggplot2::labs(y = "total area burned (ha)")
     p2 <- ggplot2::ggplot(data = dt[var == "number_fires",], ggplot2::aes(x = year, y = val, colour = "blue")) +
       ggplot2::geom_point(colour = "grey70") +
       ggplot2::stat_smooth(method = "lm", fill = "blue", color = "darkblue") +
       ggplot2::facet_grid(var ~ ., labeller = ggplot2::labeller(var = replacementNames)) +
       ggplot2::theme(legend.position = "none",
-            strip.text.y = ggplot2::element_text(size = 9, face = "bold"),
-            plot.margin = ggplot2::unit(c(0.2, 0.2, -0.01, 0.2), "cm"),
-            axis.title.x = ggplot2::element_blank(),
-            axis.text.x = ggplot2::element_blank(),
-            axis.ticks.x = ggplot2::element_blank()) +
+                     strip.text.y = ggplot2::element_text(size = 9, face = "bold"),
+                     plot.margin = ggplot2::unit(c(0.2, 0.2, -0.01, 0.2), "cm"),
+                     axis.title.x = ggplot2::element_blank(),
+                     axis.text.x = ggplot2::element_blank(),
+                     axis.ticks.x = ggplot2::element_blank()) +
       ggplot2::ylab(label = "no. of fires")
     p3 <- ggplot2::ggplot(data = dt[var == "fire_size",], ggplot2::aes(x = year, y = val)) +
       ggplot2::geom_point(colour = "grey70") +
       ggplot2::stat_smooth(method = "lm", color = "orange", fill = "orange") +
       ggplot2::facet_grid(var ~ ., labeller = ggplot2::labeller(var = replacementNames)) +
       ggplot2::theme(legend.position = "none",
-            strip.text.y = ggplot2::element_text(size = 9, face = "bold"),
-            plot.margin = ggplot2::unit(c(-0.01, 0.2, 0.2, 0.2), "cm")) +
+                     strip.text.y = ggplot2::element_text(size = 9, face = "bold"),
+                     plot.margin = ggplot2::unit(c(-0.01, 0.2, 0.2, 0.2), "cm")) +
       ggplot2::labs(y = "mean fire size (ha)")
 
     title <- cowplot::ggdraw() +
