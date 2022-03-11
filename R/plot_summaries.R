@@ -116,19 +116,19 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
     fburnMap <- file.path(outputDir, studyAreaName, "figures",
                           paste0("cumulBurnMap_", studyAreaName, "_", climateScenario, ".png"))
 
+    fig <- rasterVis::levelplot(cumulBurnMap, margin = list(FUN = "mean"), ## median?
+                                main = paste0("Cumulative burn map 2011-2100 under ", climateScenario),
+                                colorkey = list(
+                                  at = seq(0, maxValue(cumulBurnMap), length.out = Nreps + 1),
+                                  space = "bottom",
+                                  axis.line = list(col = "black"),
+                                  width = 0.75
+                                ),
+                                par.settings = myTheme)
+
     ## levelplot (trellis graphics more generally) won't plot correctly inside loop w/o print()
-    png(filename = fburnMap, height = 1000, width = 1000, res = 300)
-    print({
-      rasterVis::levelplot(cumulBurnMap, margin = list(FUN = "mean"), ## median?
-                           main = paste0("Cumulative burn map 2011-2100 under ", climateScenario),
-                           colorkey = list(
-                             at = seq(0, maxValue(cumulBurnMap), length.out = Nreps + 1),
-                             space = "bottom",
-                             axis.line = list(col = "black"),
-                             width = 0.75
-                           ),
-                           par.settings = myTheme)
-    })
+    png(filename = fburnMap, height = 1000, width = 1000)
+    print(fig)
     dev.off()
 
     return(fburnMap)
