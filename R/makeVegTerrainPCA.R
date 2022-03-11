@@ -62,9 +62,9 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
 #'
 #' @export
 #' @importFrom data.table data.table set setDT
-#' @importFrom raster getValues ncell
 #' @importFrom fastDummies dummy_cols
-#' @importFrom magrittr %>%
+#' @importFrom sf %>%
+#' @importFrom raster getValues ncell
 #'
 #' @rdname makeLandcoverDT
 makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups) {

@@ -20,9 +20,9 @@
 #'
 #' @export
 #' @importFrom data.table rbindlist as.data.table set
-#' @importFrom magrittr %>%
 #' @importFrom purrr map
 #' @importFrom raster extract
+#' @importFrom sf %>%
 makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol = "POLY_HA",
                          sizeColUnits = "ha") {
   returnCols <- c("size", "date", "ids", "cells")

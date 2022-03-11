@@ -14,9 +14,8 @@ utils::globalVariables(c(
 #' @export
 #' @importFrom data.table data.table
 #' @importFrom fasterize fasterize
-#' @importFrom magrittr %>%
 #' @importFrom raster getValues raster setValues
-#' @importFrom sf st_as_sf st_collection_extract
+#' @importFrom sf %>% st_as_sf st_collection_extract
 makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
   ## get particular fire polys in format that can be fasterized
   polysNeeded <- names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1) %>%
