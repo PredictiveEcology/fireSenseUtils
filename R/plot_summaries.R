@@ -31,7 +31,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
     historicalBurns <- historicalBurns[SIZE_HA > res,
                                        .(sumBurn = sum(as.numeric(POLY_HA)), nFires = .N), .(YEAR)]
     setnames(historicalBurns, "YEAR", "year")
-    historicalBurns[, stat := 'observed']
+    historicalBurns[, stat := "observed"]
     projectedEscapes <- burnSummary[areaBurnedHa > res, .(nFires = .N), .(year)]
     projectedBurns <- burnSummary[, .(sumBurn = sum(areaBurnedHa)), .(year)]
     projectedBurns <- projectedBurns[projectedEscapes, on = c("year")]
@@ -73,9 +73,9 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
 
     figDir <- file.path(outputDir, runName, "figures")
     figs <- list(
-      ignition = file.path(figDir, paste0("simulated_Ignitions", studyAreaName, ".png")),
-      escape = file.path(figDir, paste0("simulated_Escapes", studyAreaName, ".png")),
-      spread = file.path(figDir, paste0("simulated_burnArea", studyAreaName, ".png"))
+      ignition = file.path(figDir, paste0("simulated_Ignitions_", studyAreaName, "_", climateScenario, ".png")),
+      escape = file.path(figDir, paste0("simulated_Escapes_", studyAreaName, "_", climateScenario, ".png")),
+      spread = file.path(figDir, paste0("simulated_burnArea_", studyAreaName, "_", climateScenario, ".png"))
     )
     ggplot2::ggsave(plot = gIgnitions, filename = figs$ignition)
     ggplot2::ggsave(plot = gEscapes, filename = figs$escape)
