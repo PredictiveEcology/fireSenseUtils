@@ -116,6 +116,11 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
         proj4string = crs(ras)
       )
 
+      #TODO: investigate origin of error preventing rbind below - occurs with Quebec data (Guillaume SA)
+      if (!is.null(polyCentroids@data$x)){
+        polyCentroids@data$x <- NULL
+      }
+
       suppressWarnings({
         # browser()
         polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id, polyCentroids[[idCol]]), ], sp)
