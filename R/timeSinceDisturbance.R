@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #' @importFrom data.table data.table
 #' @importFrom fasterize fasterize
 #' @importFrom raster getValues raster setValues
-#' @importFrom sf %>% st_as_sf
+#' @importFrom sf %>% st_as_sf st_collection_extract
 makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
   ## get particular fire polys in format that can be fasterized
   polysNeeded <- names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1) %>%
@@ -28,8 +28,8 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
     do.call(rbind, .)
 
   # create background raster with TSD
-  #removed st_collection_extract because it generated needless warning
   #object class of polysNeeded has changed? 01/04/2022
+  polysNeeded <- suppressWarnings(sf::st_collection_extract(polysNeeded, "POLYGON"))
   initialTSD <- fasterize(polysNeeded, raster = standAgeMap, background = year - cutoffForYoungAge - 1,
     field = "YEAR", fun = "max"
   ) %>%
