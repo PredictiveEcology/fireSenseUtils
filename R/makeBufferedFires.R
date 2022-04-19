@@ -179,13 +179,16 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
       }
       loci <- df$indices
       ids <- df$ids
-      out <- emptyDT
       it <- it + 1L
     } else {
       loci <- integer(0)
     }
   }
-  out3 <- rbindlist(out)
+  out3 <- if (length(out) > 1) {
+    rbindlist(out)
+  } else {
+    emptyDT
+  }
   setorderv(out3, "buffer", order = -1L)
   out4 <- out3[, list(buffer = buffer[1], ids = ids[1]), by = "pixelID"]
 }
