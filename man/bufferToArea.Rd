@@ -4,6 +4,7 @@
 \alias{bufferToArea}
 \alias{bufferToArea.list}
 \alias{bufferToArea.SpatialPolygons}
+\alias{bufferToArea.sf}
 \title{Create buffers around polygons based on area target for buffer}
 \usage{
 bufferToArea(
@@ -31,6 +32,18 @@ bufferToArea(
 )
 
 \method{bufferToArea}{SpatialPolygons}(
+  poly,
+  rasterToMatch,
+  areaMultiplier = 10,
+  verb = FALSE,
+  polyName = NULL,
+  field = NULL,
+  minSize = 500,
+  cores = 1,
+  ...
+)
+
+\method{bufferToArea}{sf}(
   poly,
   rasterToMatch,
   areaMultiplier = 10,

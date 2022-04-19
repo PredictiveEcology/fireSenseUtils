@@ -73,17 +73,28 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
 }
 
 #' @export
-#' @importFrom data.table data.table rbindlist setorderv
-#' @importFrom fasterize fasterize
-#' @importFrom sf st_as_sf st_crs st_transform
+#' @importFrom sf st_as_sf
 #' @rdname bufferToArea
 bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 10,
                                          verb = FALSE, polyName = NULL, field = NULL,
                                          minSize = 500, cores = 1, ...) {
+  bufferToArea.sf(sf::st_as_sf(poly), rasterToMatch, areaMultiplier = areaMultiplier,
+                  verb = verb, polyName = polyName, field = field,
+                  minSize = minSize, cores = cores, ...)
+}
+
+#' @export
+#' @importFrom data.table data.table rbindlist setorderv
+#' @importFrom fasterize fasterize
+#' @importFrom sf st_crs st_transform
+#' @rdname bufferToArea
+bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
+                            verb = FALSE, polyName = NULL, field = NULL,
+                            minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- "Layer 1"
   if (as.integer(verb) >= 1) print(paste("Buffering polygons on", polyName))
   r <- fasterize::fasterize(
-    sf::st_transform(sf::st_as_sf(poly), sf::st_crs(rasterToMatch)),
+    sf::st_transform(poly, sf::st_crs(rasterToMatch)),
     raster = rasterToMatch, field = field, ...
   )
 
