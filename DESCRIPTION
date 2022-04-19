@@ -2,7 +2,7 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2022-03-14
+Date: 2022-04-19
 Version: 0.0.5.9022
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
@@ -30,7 +30,7 @@ Imports:
     qs,
     quickPlot,
     parallelly,
-    pemisc,
+    pemisc (>= 0.0.3.9004),
     pROC,
     purrr,
     raster,

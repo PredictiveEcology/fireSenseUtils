@@ -40,8 +40,11 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
                               verb = FALSE, polyName = NULL, field = NULL,
                               minSize = 500, cores = 1, ...) {
-  if (is.null(polyName)) polyName <- names(poly)
-  cores <- min(parallel::detectCores() - 1, min(length(poly), cores))
+  if (is.null(polyName)) {
+    polyName <- names(poly)
+  }
+  maxCores <- min(parallel::detectCores(), getFromNamespace(".NCONNECTIONS", "pemisc"))
+  cores <- min(min(length(poly), cores), maxCores - 1)
   if (cores > 1) {
     out <- parallel::mcMap(
       mc.cores = cores,
