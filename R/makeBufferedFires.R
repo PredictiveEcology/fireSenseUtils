@@ -98,8 +98,10 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
     raster = rasterToMatch, field = field, ...
   )
 
+  emptyDT <- data.table(pixelID = integer(0), buffer = integer(0), ids = integer(0))
+
   if (all(is.na(r[]))) {
-    return(data.table(pixelID = integer(), buffer = integer(), ids = integer()))
+    return(emptyDT)
   }
   loci <- which(!is.na(r[]))
   ids <- as.integer(r[loci])
@@ -126,7 +128,9 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   # } else {
   spreadProb <- 1
   # }
-  while (length(loci) > 0) {
+  it <- 1L
+  maxIts <- 100L ## TODO: what's reasonable here???
+  while ((length(loci) > 0) & (it <= maxIts)) {
     dups <- duplicated(loci)
     df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq(ids[!dups]))
     r1 <- spread(r,
@@ -175,8 +179,10 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
       }
       loci <- df$indices
       ids <- df$ids
+      out <- emptyDT
+      it <- it + 1L
     } else {
-      loci <- integer()
+      loci <- integer(0)
     }
   }
   out3 <- rbindlist(out)
