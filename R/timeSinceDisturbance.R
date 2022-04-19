@@ -28,11 +28,11 @@ makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
     do.call(rbind, .)
 
   # create background raster with TSD
-  initialTSD <- sf::st_collection_extract(polysNeeded, "POLYGON") %>%
-    fasterize(
-      sf = ., raster = standAgeMap, background = year - cutoffForYoungAge - 1,
-      field = "YEAR", fun = "max"
-    ) %>%
+  #object class of polysNeeded has changed? 01/04/2022
+  polysNeeded <- suppressWarnings(sf::st_collection_extract(polysNeeded, "POLYGON"))
+  initialTSD <- fasterize(polysNeeded, raster = standAgeMap, background = year - cutoffForYoungAge - 1,
+    field = "YEAR", fun = "max"
+  ) %>%
     setValues(., values = year - getValues(.))
 
   nfLCC <- names(lcc)[!names(lcc) %in% "pixelID"]
