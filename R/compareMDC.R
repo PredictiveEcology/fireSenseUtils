@@ -7,6 +7,9 @@ utils::globalVariables(c(
 #' @param historicalMDC raster stack of historical MDC
 #' @param projectedMDC raster stack of projected MDC
 #' @param flammableRTM an optional raster of flammable pixels to subset data
+#' @param Ylimits the upper and lower MDC range for the plot
+#' @param firstHistoricalYear the earliest year of historical data
+#' @param firstProjectedYear the earliest year of projected data
 #' @return a ggplot object
 #'
 #' @export
@@ -22,7 +25,8 @@ utils::globalVariables(c(
 #'   flammableRTM = fSsimDataPrep$flammableRTM
 #' )
 #' }
-compareMDC <- function(historicalMDC, projectedMDC, flammableRTM = NULL) {
+compareMDC <- function(historicalMDC, projectedMDC, flammableRTM = NULL, Ylimits = c(80, 220),
+                       firstHistoricalYear = 2001, firstProjectedYear = 2011) {
   if (requireNamespace("ggplot2", quietly = TRUE)) {
     valfun <- function(x, flamMap = NULL) {
       years <- 1:nlayers(x)
@@ -43,16 +47,16 @@ compareMDC <- function(historicalMDC, projectedMDC, flammableRTM = NULL) {
     }
 
     proj <- valfun(projectedMDC, flamMap = flammableRTM)
-    proj$year <- proj$year + 2010
+    proj$year <- proj$year + firstProjectedYear - 1
     proj$year
     proj$stat <- "projected"
     hist <- valfun(historicalMDC, flamMap = flammableRTM)
-    hist$year <- hist$year + 1989
+    hist$year <- hist$year + firstHistoricalYear - 1
     hist$stat <- "historical"
     MDC <- rbind(hist, proj)
     ggplot2::ggplot(data = MDC, ggplot2::aes(y = MDC, x = year, color = stat)) +
       ggplot2::geom_line() +
       ggplot2::geom_smooth() +
-      ggplot2::coord_cartesian(ylim = c(80, 220))
+      ggplot2::coord_cartesian(ylim = Ylimits)
   }
 }

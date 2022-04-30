@@ -4,7 +4,14 @@
 \alias{compareMDC}
 \title{Download and prepare fire data from National Fire Database}
 \usage{
-compareMDC(historicalMDC, projectedMDC, flammableRTM = NULL)
+compareMDC(
+  historicalMDC,
+  projectedMDC,
+  flammableRTM = NULL,
+  Ylimits = c(80, 220),
+  firstHistoricalYear = 2001,
+  firstProjectedYear = 2011
+)
 }
 \arguments{
 \item{historicalMDC}{raster stack of historical MDC}
@@ -12,6 +19,12 @@ compareMDC(historicalMDC, projectedMDC, flammableRTM = NULL)
 \item{projectedMDC}{raster stack of projected MDC}
 
 \item{flammableRTM}{an optional raster of flammable pixels to subset data}
+
+\item{Ylimits}{the upper and lower MDC range for the plot}
+
+\item{firstHistoricalYear}{the earliest year of historical data}
+
+\item{firstProjectedYear}{the earliest year of projected data}
 }
 \value{
 a ggplot object
