@@ -197,8 +197,10 @@ runDEoptim <- function(landscape,
             }
           }
 
-          if (!require("Require", quietly = TRUE)) {
-            install.packages("Require")
+          if (!"Require" %in% rownames(installed.packages())) {
+            remotes::install_github("PredictiveEcology/Require@development")
+          } else if (packageVersion("Require") < "0.1.0.9003") {
+            remotes::install_github("PredictiveEcology/Require@development")
           }
 
           logPath <- Require::checkPath(dirname(logPath), create = TRUE)
