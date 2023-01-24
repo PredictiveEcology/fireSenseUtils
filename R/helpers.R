@@ -193,6 +193,8 @@ annualStackToDTx1000.RasterStack <- function(x, whNotNA, ...) {
 }
 
 #' Generate random beta variates between 2 values and a mean
+#'
+#' @inheritParams stats::Beta
 #' @param shape1 non-negative parameter of the Beta distribution
 #' @param shape2 If provided, passed to \code{rbeta}. If not, \code{m} must be (i.e., the mean)
 #' @param l scalar numeric for the lower bound
