@@ -66,7 +66,7 @@ utils::globalVariables(c(
 #' @importFrom qs qread qsave
 #' @importFrom reproducible Cache checkPath
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
-#' @importFrom utils install.packages packageVersion
+#' @importFrom utils install.packages installed.packages packageVersion
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
@@ -197,7 +197,7 @@ runDEoptim <- function(landscape,
             }
           }
 
-          if (!"Require" %in% rownames(installed.packages())) {
+          if (!"Require" %in% rownames(utils::installed.packages())) {
             remotes::install_github("PredictiveEcology/Require@development")
           } else if (packageVersion("Require") < "0.1.0.9000") {
             remotes::install_github("PredictiveEcology/Require@development")
