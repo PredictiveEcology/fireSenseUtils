@@ -186,7 +186,7 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
       loci <- integer(0)
     }
   }
-  out3 <- if (length(out) > 1) {
+  out3 <- if (length(out) > 0) {
     rbindlist(out)
   } else {
     emptyDT
