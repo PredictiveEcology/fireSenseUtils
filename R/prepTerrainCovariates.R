@@ -28,7 +28,11 @@ prepTerrainCovariates <- function(rasterToMatch, studyArea, destinationPath) {
     unit = "degrees"
   )
   if (requireNamespace("spatialEco", quietly = TRUE)) {
-    hli <- spatialEco::hli(DEM)
+    if (requireNamespace("terra", quietly = TRUE)) {
+      DEM <- terra::rast(DEM)
+      hli <- spatialEco::hli(DEM)
+      hli <- raster::raster(hli)
+    }
   } else {
     stop("Please install.packages('spatialEco')")
   }
