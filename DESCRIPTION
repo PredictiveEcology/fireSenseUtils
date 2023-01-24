@@ -3,7 +3,7 @@ Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 Date: 2023-01-23
-Version: 0.0.5.9029
+Version: 0.0.5.9030
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -47,7 +47,6 @@ Suggests:
     ggplot2,
     knitr,
     lintr,
-    parallel,
     PtProcess,
     rasterVis,
     RColorBrewer,

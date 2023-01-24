@@ -35,7 +35,9 @@ bufferToArea <- function(poly, rasterToMatch, areaMultiplier,
 }
 
 #' @export
+#' @importFrom parallelly availableCores
 #' @importFrom purrr pmap
+#'
 #' @rdname bufferToArea
 bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
                               verb = FALSE, polyName = NULL, field = NULL,
@@ -43,7 +45,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
   if (is.null(polyName)) {
     polyName <- names(poly)
   }
-  maxCores <- min(parallel::detectCores(), getFromNamespace(".NCONNECTIONS", "pemisc"))
+  maxCores <- parallelly::availableCores(constraints = "connections")
   cores <- min(min(length(poly), cores), maxCores - 1)
   if (cores > 1) {
     out <- parallel::mcMap(
