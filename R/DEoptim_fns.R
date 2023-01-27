@@ -66,7 +66,7 @@ utils::globalVariables(c(
 #' @importFrom qs qread qsave
 #' @importFrom reproducible Cache checkPath
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
-#' @importFrom utils install.packages packageVersion
+#' @importFrom utils install.packages installed.packages packageVersion
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
@@ -185,21 +185,32 @@ runDEoptim <- function(landscape,
             on.exit(options(opts), add = TRUE)
           }
 
-          if (!require("Require", quietly = TRUE)) {
-            install.packages("Require")
-          }
-
           # If this is first time that packages need to be installed for this user on this machine
           #   there won't be a folder present that is writable
-          libPath <- Require::checkPath(libPath, create = TRUE)
-          Require::checkPath(dirname(logPath), create = TRUE)
+          if (!dir.exists(libPath)) {
+            dir.create(libPath, recursive = TRUE)
+
+            if (!dir.exists(libPath)) {
+              stop("libPath directory creation failed.\n",
+                   "Try creating on each machine manually, using e.g.,\n",
+                   "  mkdir -p ", libPath)
+            }
+          }
+
+          if (!"Require" %in% rownames(utils::installed.packages())) {
+            remotes::install_github("PredictiveEcology/Require@development")
+          } else if (packageVersion("Require") < "0.1.0.9000") {
+            remotes::install_github("PredictiveEcology/Require@development")
+          }
+
+          logPath <- Require::checkPath(dirname(logPath), create = TRUE)
 
           message(Sys.info()[["nodename"]])
 
           # Use Require with minimum version number as the mechanism for updating; remotes is
           #    too crazy with installing same package multiple times as recursive packages
           #    are dealt with
-          Require::Require("PredictiveEcology/SpaDES.install@installFromSource")
+          Require::Require("PredictiveEcology/SpaDES.install@development")
           SpaDES.install::installSourcePackages() ## should be "rerun" proof, i.e., won't reinstall
 
           # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
