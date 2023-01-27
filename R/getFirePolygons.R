@@ -10,7 +10,7 @@
 #' @export
 #' @importFrom raster compareCRS isLonLat
 #' @importFrom reproducible prepInputs
-#' @importFrom sf as_Spatial st_area st_zm
+#' @importFrom sf as_Spatial st_area st_zm st_transform
 getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
   ## TODO: remove this workaround once polygonShortcut working correctly
   RPS <- getOption("reproducible.polygonShortcut")
@@ -23,11 +23,10 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
     url = currentURL,
     studyArea = studyArea,
     useSAcrs = TRUE,
+    fun = "terra::vect",
     destinationPath = destinationPath,
     useCache = useInnerCache
   ) # this object will cache several gigabytes of cached for a small object
-
-  stopifnot(compareCRS(firePolys, studyArea))
 
   firePolys$YEAR <- as.numeric(firePolys$YEAR) # why is it character?
 
@@ -35,6 +34,11 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
     firePolys <- sf::st_as_sf(firePolys)
   }
   firePolys <- st_zm(firePolys)
+
+  if (!compareCRS(firePolys, studyArea)) {
+    firePolys <- st_transform(firePolys, studyArea)
+  }
+
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
     firePoly <- polys[polys$YEAR == x, ]
     if (nrow(firePoly) > 0) {
