@@ -73,7 +73,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
             iter <- 1
             out1 <- maxSoFar <- integer()
             while (notFound) {
-              spr <- spread(
+              spr <- SpaDES.tools::spread(
                 loci = tail(head(pixelID, iter * 20), 20), ras, spreadProb = 1, iterations = 1,
                 allowOverlap = TRUE, returnIndices = TRUE
               )
