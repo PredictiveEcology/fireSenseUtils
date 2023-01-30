@@ -242,7 +242,7 @@ utils::globalVariables(c(
         threshold <- thresh * numYrsDone ## lower is _more_ restrictive; too high takes too long
         mess <- character()
         annualSNLL <- round(SNLL_FSTest / numYrsDone, 0)
-        if (SNLL_FSTest > threshold && ii == 1) {
+        if (any(SNLL_FSTest > threshold) && ii == 1) {
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal
           mess <- paste0(

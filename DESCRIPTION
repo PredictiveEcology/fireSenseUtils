@@ -2,8 +2,8 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2023-01-24
-Version: 0.0.5.9031
+Date: 2023-01-29
+Version: 0.0.5.9033
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -15,7 +15,7 @@ Authors@R: c(
            role = c("aut"), comment = c(ORCID = "0000-0001-7397-2116"))
     )
 Depends:
-    R (>= 4.0)
+    R (>= 4.2)
 Imports:
     crayon,
     data.table,
