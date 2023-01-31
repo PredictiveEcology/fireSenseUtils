@@ -112,7 +112,7 @@ getFirePoints_NFDB <- function(url = NULL,
 #' @export
 #' @importFrom crayon green yellow
 #' @importFrom raster crs crs<- plot res shapefile
-#' @importFrom reproducible Cache Checksums prepInputs projectInputs
+#' @importFrom reproducible Cache Checksums prepInputs projectInputs postProcess
 #' @importFrom sp coordinates<-
 getFirePoints_NFDB_V2 <- function(url = NULL,
                                   studyArea = NULL,
@@ -157,6 +157,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
     firePoints <- Cache(prepInputs,
       url = url,
       fun = "shapefile",
+      studyArea = studyArea,
       destinationPath = NFDB_pointPath,
       useSAcrs = TRUE,
       omitArgs = c("NFDB_pointPath", "overwrite")
@@ -180,7 +181,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
     filename2 = "NFDBpointsProjected",
     targetCRS = crs(rasterToMatch)
   )
-  firePoints <- crop(firePointsReady, studyArea)
+  firePoints <- postProcess(firePoints, studyArea = studyArea)
   message(crayon::green("Fire points corrected"))
   if (isTRUE(plot)) {
     raster::plot(firePoints, col = "red")
