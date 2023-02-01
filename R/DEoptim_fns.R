@@ -170,16 +170,10 @@ runDEoptim <- function(landscape,
         {
           ## Use the binary packages for install if Ubuntu & Linux
           if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
-            .os.version <- strsplit(system("lsb_release -c", intern = TRUE), ":\t")[[1]][[2]]
-            .user.agent <- paste0(
-              "R/", getRversion(), " R (",
-              paste(getRversion(), R.version["platform"], R.version["arch"], R.version["os"]),
-              ")"
-            )
+            .os.version <- system("lsb_release -cs", intern = TRUE)
             optsNew <- list(
-              "repos" = c(CRAN = paste0("https://packagemanager.rstudio.com/all/__linux__/",
-                                        .os.version, "/latest")),
-              "HTTPUserAgent" = .user.agent
+              repos = c(CRAN = paste0("https://packagemanager.rstudio.com/all/__linux__/",
+                                      .os.version, "/latest"))
             )
             opts <- options(optsNew)
             on.exit(options(opts), add = TRUE)
