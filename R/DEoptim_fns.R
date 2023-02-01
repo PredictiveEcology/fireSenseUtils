@@ -168,17 +168,6 @@ runDEoptim <- function(landscape,
       parallel::clusterEvalQ(
         cl,
         {
-          ## Use the binary packages for install if Ubuntu & Linux
-          if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
-            .os.version <- system("lsb_release -cs", intern = TRUE)
-            optsNew <- list(
-              repos = c(CRAN = paste0("https://packagemanager.rstudio.com/all/__linux__/",
-                                      .os.version, "/latest"))
-            )
-            opts <- options(optsNew)
-            on.exit(options(opts), add = TRUE)
-          }
-
           # If this is first time that packages need to be installed for this user on this machine
           #   there won't be a folder present that is writable
           if (!dir.exists(libPath)) {
@@ -197,17 +186,14 @@ runDEoptim <- function(landscape,
             remotes::install_github("PredictiveEcology/Require@development")
           }
 
+          ## Use the binary packages for install if Ubuntu & Linux
+          Require::setLinuxBinaryRepo()
+
           logPath <- Require::checkPath(dirname(logPath), create = TRUE)
 
           message(Sys.info()[["nodename"]])
 
-          # Use Require with minimum version number as the mechanism for updating; remotes is
-          #    too crazy with installing same package multiple times as recursive packages
-          #    are dealt with
-          Require::Require("PredictiveEcology/SpaDES.install@development")
-          SpaDES.install::installSourcePackages() ## should be "rerun" proof, i.e., won't reinstall
-
-          # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
+          ## This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
             c(
               "dqrng",
