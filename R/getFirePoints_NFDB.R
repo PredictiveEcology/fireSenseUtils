@@ -181,7 +181,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
     filename2 = "NFDBpointsProjected",
     targetCRS = crs(rasterToMatch)
   )
-  firePoints <- postProcess(firePoints, studyArea = studyArea)
+  firePoints <- postProcess(firePointsReady, studyArea = studyArea, rasterToMatch = rasterToMatch)
   message(crayon::green("Fire points corrected"))
   if (isTRUE(plot)) {
     raster::plot(firePoints, col = "red")
