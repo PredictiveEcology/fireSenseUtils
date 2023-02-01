@@ -150,6 +150,13 @@ utils::globalVariables(c(
     x <- x[!duplicated(x$cells), ]
     x
   })
+
+  ## can't fit fires for years with no data; drop these years
+  omitYears <- names(historicalFiresAboveMin[which(lapply(historicalFiresAboveMin, nrow) == 0)])
+  if (length(omitYears > 0)) {
+    historicalFiresAboveMin[[omitYears]] <- NULL
+  }
+
   lowerSpreadProb <- 0.13
   fireSizesByYear <- unlist(lapply(historicalFiresAboveMin, function(x) sum(x$size)))
   largest <- head(sort(fireSizesByYear, decreasing = TRUE), 2) # max(2, objFunCoresInternal))
