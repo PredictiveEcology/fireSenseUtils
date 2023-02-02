@@ -313,7 +313,6 @@ rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
   a2
 }
 
-
 #' rescale function no.2
 #'
 #' @param x a vector to be rescaled

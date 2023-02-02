@@ -8,9 +8,9 @@ utils::globalVariables(c(
 #' 1. remove fires that were so small that they take less than 1 pixel so they are
 #' not in the \code{buff} object but are in the \code{cent} object.
 #' 2. the centroid cell is in a buffer or otherwise nonburnable cell (e.g., water).
-#' For 1) remove these from the centroid data. For 2) this function will search
-#' in the neighbourhood for the next closest pixel that
-#' has at least 7 available neighbours that can burn. If not, remove these.
+#' For 1) remove these from the centroid data.
+#' For 2) this function will search in the neighbourhood for the next closest pixel
+#' that has at least 7 available neighbours that can burn. If not, remove these.
 #'
 #' @param cent List of points as \code{SpatialPointsDataFrame}
 #' @param idCol The column name as a character string with the fire ids.
