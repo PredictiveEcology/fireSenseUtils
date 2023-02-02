@@ -10,7 +10,7 @@ utils::globalVariables(c(
 #' 2. the centroid cell is in a buffer or otherwise nonburnable cell (e.g., water).
 #' For 1) remove these from the centroid data. For 2) this function will search
 #' in the neighbourhood for the next closest pixel that
-#' has at least 7 available neighbours that can burn. If not, remove these.
+#' has at least 7 available neighbours that can burn.
 #'
 #' @param cent List of points as \code{SpatialPointsDataFrame}
 #' @param idCol The column name as a character string with the fire ids.
@@ -62,9 +62,6 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       from <- cbind(id = notInAFire$ids, xyFromCell(ras, notInAFire$pixelID))
       dfep <- distanceFromEachPoint(from, fr)
       dfep <- as.data.table(dfep)
-      if (nrow(dfep) == 0) {
-        return(NULL)
-      }
 
       ## TODO: make sure it is not surrounded by NAs
       setkeyv(dfep, c("id", "dists"))
