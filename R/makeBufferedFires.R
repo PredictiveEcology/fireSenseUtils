@@ -134,7 +134,7 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   maxIts <- 100L ## TODO: what's reasonable here???
   while ((length(loci) > 0) & (it <= maxIts)) {
     dups <- duplicated(loci)
-    df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq(ids[!dups]))
+    df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq_along(ids[!dups]))
     r1 <- SpaDES.tools::spread(r,
       loci = df$loci, iterations = 1,
       spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE
