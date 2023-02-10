@@ -4,7 +4,9 @@ utils::globalVariables(c(
 #' preparing a time since disturbance map from stand age and fire data
 #'
 #' @param standAgeMap initial stand age map
-#' @param firePolys list of \code{spatialPolygon} objects comprising annual fires
+#' @param firePolys list of \code{spatialPolygon} objects comprising annual fires.
+#' fireRaster will supersede firePolys if provided
+#' @param fireRaster a \code{RasterLayer} with values representing fire years
 #' @param year the year represented by \code{standAge}
 #' @param lcc \code{data.table} with landcover values - \code{landcoverDT}
 #' @inheritParams castCohortData
@@ -16,34 +18,48 @@ utils::globalVariables(c(
 #' @importFrom fasterize fasterize
 #' @importFrom raster getValues raster setValues
 #' @importFrom sf %>% st_as_sf st_collection_extract
-makeTSD <- function(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15) {
-  ## get particular fire polys in format that can be fasterized
-  polysNeeded <- names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1) %>%
-    firePolys[.] %>%
-    .[lengths(.) > 0] %>% # gets rid of missing years that break function
-    lapply(., FUN = sf::st_as_sf) %>%
-    lapply(., FUN = function(x) {
-      x <- x[, "YEAR"]
-    }) %>%
-    do.call(rbind, .)
+makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
+                    standAgeMap, lcc, cutoffForYoungAge = 15) {
 
-  # create background raster with TSD
-  #object class of polysNeeded has changed? 01/04/2022
-  polysNeeded <- suppressWarnings(sf::st_collection_extract(polysNeeded, "POLYGON"))
-  initialTSD <- fasterize(polysNeeded, raster = standAgeMap, background = year - cutoffForYoungAge - 1,
-    field = "YEAR", fun = "max"
-  ) %>%
-    setValues(., values = year - getValues(.))
+  if (!is.null(fireRaster)){
+    baseYear <- raster(fireRaster)
+    baseYear[] <- year
+    initialTSD <- baseYear - fireRaster
+    initialTSD[initialTSD < 0] <- cutoffForYoungAge + 1
+    #these pixels burn in the future - can't infer prior disturbance
+  } else if (!is.null(firePolys)) {
+    ## get particular fire polys in format that can be fasterized
+    polysNeeded <- names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1) %>%
+      firePolys[.] %>%
+      .[lengths(.) > 0] %>% # gets rid of missing years that break function
+      lapply(., FUN = sf::st_as_sf) %>%
+      lapply(., FUN = function(x) {
+        x <- x[, "YEAR"]
+      }) %>%
+      do.call(rbind, .)
+
+    # create background raster with TSD
+    polysNeeded <- suppressWarnings(sf::st_collection_extract(polysNeeded, "POLYGON"))
+    initialTSD <- fasterize(polysNeeded, raster = standAgeMap, background = year - cutoffForYoungAge - 1,
+                            field = "YEAR", fun = "max"
+    ) %>%
+      setValues(., values = year - getValues(.))
+  } else {
+    stop("Please provide either firePolys or fireRaster")
+  }
 
   nfLCC <- names(lcc)[!names(lcc) %in% "pixelID"]
   lcc[, sumRows := rowSums(.SD), .SDcol = nfLCC]
   pixToUpdate <- lcc[sumRows > 0]$pixelID
   lcc[, sumRows := NULL]
 
-
+  #these have no disturbance history but are apparently young
   falseYoungs <- standAgeMap[pixToUpdate] <= cutoffForYoungAge | is.na(standAgeMap[pixToUpdate])
+  #disturbance history suggests young
   trueYoungs <- initialTSD[pixToUpdate] <= cutoffForYoungAge
+
   standAgeMap[pixToUpdate[falseYoungs]] <- cutoffForYoungAge + 1
+  #note that by doing this second, pixels in both groups are correctly set to trueYoung
   standAgeMap[pixToUpdate[trueYoungs]] <- initialTSD[pixToUpdate[trueYoungs]]
 
   return(standAgeMap)
