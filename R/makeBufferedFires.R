@@ -89,6 +89,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 #' @importFrom data.table data.table rbindlist setorderv
 #' @importFrom fasterize fasterize
 #' @importFrom sf st_crs st_transform
+#' @importFrom SpaDES.tools spread
 #' @rdname bufferToArea
 bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
                             verb = FALSE, polyName = NULL, field = NULL,
