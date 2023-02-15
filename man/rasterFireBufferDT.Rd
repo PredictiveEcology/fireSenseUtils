@@ -37,7 +37,7 @@ be imposed after \code{areaMultiplier}.}
 \item{cores}{number of processor cores to use}
 }
 \value{
-a list of data.table named by year, with cols \code{fire ID}, \code{buffer},
+a list of data.table named by year, with cols \code{ids}, \code{buffer},
 and \code{pixelID}
 }
 \description{

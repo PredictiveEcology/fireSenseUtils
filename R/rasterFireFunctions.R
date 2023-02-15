@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
 #'   be imposed after \code{areaMultiplier}.
 #' @param cores number of processor cores to use
-#' @return a list of data.table named by year, with cols \code{id}, \code{buffer},
+#' @return a list of data.table named by year, with cols \code{ids}, \code{buffer},
 #' and \code{pixelID}
 #' @export
 #' @importFrom parallelly availableCores
@@ -89,7 +89,7 @@ makeFireIDs <- function(year, fireRaster, flammableRTM, bufferForFireRaster, are
 #'  \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
 #' @return a data.table with fire ID, buffer status, and pixelID
 #' @export
-#' @importFrom data.table rbindlist data.table set
+#' @importFrom data.table rbindlist data.table set setnames
 #' @importFrom terra buffer res values
 #' @importFrom SpaDES.tools spread
 bufferToAreaRast <- function(fireIDraster, areaMultiplier, minSize, flammableRTM, verb = 1) {
@@ -232,8 +232,9 @@ rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
   firePoints <- rbindlist(firePoints)
   #calculate size in hectares
   multiplier <- prod(res(flammableRTM))/10000
-  burnSizes <-fireBufferDT[buffer == 1, .(SIZE_HA = .N * multiplier), .(ids)]
+  burnSizes <-fireBufferDT[buffer == 1, .(POLY_HA = .N * multiplier, size = .N), .(ids)]
   firePoints <- firePoints[burnSizes, on = c("ids")]
+  setnames(firePoints, old = "ids", new = "FIRE_ID") #following fireSenseUtils::makeLociList
   firePoints <- st_as_sf(firePoints)
   return(firePoints)
 }
