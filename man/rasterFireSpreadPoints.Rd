@@ -4,16 +4,16 @@
 \alias{rasterFireSpreadPoints}
 \title{create a list of annual ignition points based on fire raster}
 \usage{
-rasterFireSpreadPoints(fireBufferListDT)
+rasterFireSpreadPoints(fireBufferDT, flammableRTM)
 }
 \arguments{
-\item{fireBufferListDT}{a list of \code{data.table} with columns \code{buffer} (1 = burned),
+\item{fireBufferDT}{a \code{data.table} with columns \code{buffer} (1 = burned),
 \code{id} (unique fire ID), and \code{pixelID}}
 
 \item{flammableRTM}{@template flammableRTM}
 }
 \value{
-a list of \code{SpatialPoints}
+a list of \code{sf} point objects
 }
 \description{
 create a list of annual ignition points based on fire raster

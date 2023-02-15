@@ -15,6 +15,9 @@ bufferToAreaRast(fireIDraster, areaMultiplier, minSize, flammableRTM, verb = 1)
 be imposed after \code{areaMultiplier}.}
 
 \item{flammableRTM}{@template flammableRTM}
+
+\item{verb}{Logical or numeric related to how much verbosity is printed. \code{FALSE} or
+\code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
 }
 \value{
 a data.table with fire ID, buffer status, and pixelID

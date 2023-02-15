@@ -40,6 +40,7 @@ Imports:
     sp,
     SpaDES.tools (>= 0.3.7),
     stats,
+    terra,
     utils
 Suggests:
     cowplot,
@@ -57,7 +58,6 @@ Suggests:
     spatialEco,
     spatstat,
     spelling,
-    terra,
     testthat
 Remotes:
     PredictiveEcology/LandR@development,
