@@ -50,7 +50,7 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
 #'   be imposed after \code{areaMultiplier}.
 #' @return a data.table with fire ID, buffer status, and pixelID
 #' @export
-#' @importFrom data.table rbindlist data.table set
+#' @importFrom data.table rbindlist data.table set setcolorder
 #' @importFrom terra buffer patches
 makeFireIDs <- function(year, fireRaster, flammableRTM, bufferForFireRaster, areaMultiplier, minSize = 5000, verb = 1) {
 
@@ -75,6 +75,8 @@ makeFireIDs <- function(year, fireRaster, flammableRTM, bufferForFireRaster, are
                                      areaMultiplier = areaMultiplier,
                                      minSize = minSize,
                                      verb = verb)
+    #match the polygonal order
+    setcolorder(fireBufferDT, c("pixelID", "buffer", "ids"))
     return(fireBufferDT)
   }
 }
