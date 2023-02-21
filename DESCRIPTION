@@ -38,7 +38,7 @@ Imports:
     RhpcBLASctl,
     sf,
     sp,
-    SpaDES.tools (>= 0.3.7),
+    SpaDES.tools (>= 1.0.2),
     stats,
     terra,
     utils

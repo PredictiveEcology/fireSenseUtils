@@ -16,12 +16,12 @@ globalVariables(c(
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #' @param fuelClassCol the column in sppEquiv that describes unique fuel classes
 #'
-#' @return a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
+#' @return a terra SpatRaster of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
 #'
 #' @export
 #' @importFrom data.table copy setkey
 #' @importFrom SpaDES.tools rasterizeReduced
-#' @importFrom raster getValues nlayers raster stack
+#' @importFrom terra values nlr rast
 #'
 cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM, landcoverDT = NULL,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
@@ -63,12 +63,15 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
     cohortData = cD
   )
 
-  classList <- stack(classList)
+  classList <- rast(classList)
 
   if (!is.null(landcoverDT)) {
     #find rows that aren't empty i.e. have non-forest landcover
     landcoverDT[, foo := rowSums(.SD), .SD = setdiff(names(landcoverDT), "pixelID")]
-    classList[landcoverDT[foo > 0]$pixelID] <- 0 #must be 0
+    #terra needs protection from zero-length index
+    if (nrow(landcoverDT[foo > 0,]) > 0) {
+      classList[landcoverDT[foo > 0]$pixelID] <- 0 #must be 0
+    }
     landcoverDT[, foo := NULL]
   }
 
@@ -76,16 +79,18 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   return(classList)
 }
 
-#' Put \code{cohortData} back into raster with some extra details
+#' Put \code{cohortData} back into a \code{SpatRaster} with some extra details
 #'
 #' @param class fuelClass from  \code{sppEquiv}
 #' @template flammableRTM
 #' @template pixelGroupMap
 #' @template cohortData
-#' @return a raster
+#' @return a SpatRaster
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom data.table data.table
+#' @importFrom terra values set.values rast
 makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
+
   cohortDataub <- copy(cohortData)
   cohortDataub <- cohortDataub[FuelClass == class, ]
   cohortDataub[, LeaderValue := 1]
@@ -96,7 +101,10 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
     mapcode = "pixelGroup"
   )
   # fuel class is 0 and not NA if absent entirely
-  # to prevent NAs following aggregation to 25 km pixels
-  ras[!is.na(flammableRTM[]) & is.na(ras[])] <- 0
+  # to prevent NAs following aggregation during ignitionFit
+  flamVals <- values(flammableRTM, mat = FALSE)
+  rasVals <- values(ras, mat = FALSE)
+  rasVals[!is.na(flamVals) & is.na(rasVals)] <- 0
+  ras <- set.values(ras, rasVals)
   return(ras)
 }
