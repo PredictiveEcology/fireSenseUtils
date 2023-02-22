@@ -8,15 +8,9 @@
 #' @return DESCRIPTION NEEDED
 #'
 #' @export
-#' @importFrom raster compareCRS isLonLat
 #' @importFrom reproducible prepInputs
-#' @importFrom sf as_Spatial st_area st_zm st_transform
+#' @importFrom sf st_area st_zm st_transform st_is_longlat
 getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = FALSE) {
-  ## TODO: remove this workaround once polygonShortcut working correctly
-  RPS <- getOption("reproducible.polygonShortcut")
-  options(reproducible.polygonShortcut = FALSE)
-  on.exit(options(reproducible.polygonShortcut = RPS))
-  ## end workaround
 
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
   firePolys <- prepInputs(
@@ -28,6 +22,8 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
     useCache = useInnerCache
   ) # this object will cache several gigabytes of cached for a small object
 
+  #consider terra compareGeom for two vectors... unsure
+
   firePolys$YEAR <- as.numeric(firePolys$YEAR) # why is it character?
 
   if (!is(firePolys, "sf")) {
@@ -35,19 +31,15 @@ getFirePolygons <- function(years, studyArea, destinationPath, useInnerCache = F
   }
   firePolys <- st_zm(firePolys)
 
-  if (!compareCRS(firePolys, studyArea)) {
-    firePolys <- st_transform(firePolys, studyArea)
-  }
-
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
     firePoly <- polys[polys$YEAR == x, ]
     if (nrow(firePoly) > 0) {
-      if (isLonLat(firePoly)) {
+      if (st_is_longlat(firePoly)) {
         stop("please use a study area that is projected in metres")
       }
       firePoly$POLY_HA <- round(sf::st_area(firePoly, by_element = TRUE) / 1e4, digits = 2)
       firePoly <- firePoly[!duplicated(firePoly$FIRE_ID), ]
-      return(as_Spatial(firePoly))
+      return(firePoly)
     } else {
       return(NULL)
     }

@@ -17,7 +17,7 @@
   minFireSize = 2,
   tests = "snll_fs",
   Nreps = 10,
-  mutuallyExclusive = list(youngAge = c("vegPC")),
+  mutuallyExclusive = list(youngAge = c("class", "nf")),
   doAssertions = TRUE,
   plot.it = FALSE,
   objFunCoresInternal = 1,

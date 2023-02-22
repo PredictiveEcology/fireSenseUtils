@@ -25,8 +25,9 @@ utils::globalVariables(c(
 #' @importFrom pemisc rasterToMatch
 #' @importFrom purrr pmap
 #' @importFrom sp identicalCRS SpatialPointsDataFrame spTransform
+#' @importFrom sf st_as_sf st_crs "st_crs<-"
 #' @importFrom SpaDES.tools distanceFromEachPoint spread
-#' @importFrom raster cellFromXY compareCRS crs xyFromCell
+#' @importFrom terra cellFromXY compareGeom xyFromCell
 #' @importFrom utils head tail
 harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
   purrr::pmap(list(
@@ -37,8 +38,8 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     if (!nrow(buff) > 0) { # cent can be >1 row while buff = 0, if poly is small
       return(NULL)
     }
-    if (!identicalCRS(ras, cent)) {
-      cent <- sp::spTransform(cent, crs(ras))
+    if (!compareGeom(ras, cent)) {
+      cent <- project(cent, ras)
     }
 
     whToUse <- cent[[idCol]] %in% buff$ids
@@ -50,14 +51,14 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     }
     inOrigFire <- buff[buffer == 1, ]
     centDT <- data.table(
-      pixelID = cellFromXY(spTransform(polyCentroids, crs(ras)), object = ras),
+      pixelID = cellFromXY(polyCentroids, object = ras),
       ids = polyCentroids[[idCol]]
     )
     notInAFire <- centDT[!inOrigFire, on = c("pixelID")]
     if (NROW(notInAFire)) {
       inAFire <- buff[buffer == 1]
       fr <- cbind(xyFromCell(ras, inAFire$pixelID),
-        id = inAFire$ids, pixelID = inAFire$pixelID
+                  id = inAFire$ids, pixelID = inAFire$pixelID
       )
       from <- cbind(id = notInAFire$ids, xyFromCell(ras, notInAFire$pixelID))
       dfep <- distanceFromEachPoint(from, fr)
@@ -70,43 +71,45 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       setkeyv(dfep, c("id", "dists"))
       i <- 1
       replacementCentroids <- dfep[,
-        list(centroidIndex = {
-          if (.N > 1) {
-            # if (i == 1) browseri <- 1
-            notFound <- TRUE
-            iter <- 1
-            out1 <- maxSoFar <- integer()
-            while (notFound) {
-              spr <- SpaDES.tools::spread(
-                loci = tail(head(pixelID, iter * 20), 20), ras, spreadProb = 1, iterations = 1,
-                allowOverlap = TRUE, returnIndices = TRUE
-              )
-              out <- spr[, list(numNeighs = sum(ras[][indices], na.rm = TRUE)), by = "id"][, numNeighs := numNeighs - 1]
-              notFound <- (!any(out$numNeighs > 6))
-              if (!notFound) {
-                ind <- min(which(out$numNeighs > 6))
-                out1 <- .I[ind]
-              } else {
-                iter <- iter + 1
-                print(paste(.BY, ":", iter))
-                ind <- which.max(out$numNeighs)
-                maxSoFar <- c(maxSoFar, out$numNeighs[ind])
-                out1 <- c(out1, .I[ind])
-                # if (i == 1) browser()
-                # if (.BY[[1]] == "706") browser()
-                if (iter * 20 > .N) {
-                  notFound <- FALSE
-                  ind1 <- which.max(maxSoFar)
-                  out1 <- out1[ind1]
-                }
-              }
-            }
-          } else {
-            out1 <- .I[1L]
-          }
-          out1
-        }),
-        by = "id"
+                                   list(centroidIndex = {
+                                     if (.N > 1) {
+                                       # if (i == 1) browseri <- 1
+                                       notFound <- TRUE
+                                       iter <- 1
+                                       out1 <- maxSoFar <- integer()
+                                       while (notFound) {
+                                         spr <- SpaDES.tools::spread(
+                                           loci = tail(head(pixelID, iter * 20), 20), ras, spreadProb = 1, iterations = 1,
+                                           allowOverlap = TRUE, returnIndices = TRUE
+                                         )
+                                         out <- spr[, list(numNeighs = sum(ras[][indices],
+                                                                           na.rm = TRUE)),
+                                                    by = "id"][, numNeighs := numNeighs - 1]
+                                         notFound <- (!any(out$numNeighs > 6))
+                                         if (!notFound) {
+                                           ind <- min(which(out$numNeighs > 6))
+                                           out1 <- .I[ind]
+                                         } else {
+                                           iter <- iter + 1
+                                           print(paste(.BY, ":", iter))
+                                           ind <- which.max(out$numNeighs)
+                                           maxSoFar <- c(maxSoFar, out$numNeighs[ind])
+                                           out1 <- c(out1, .I[ind])
+                                           # if (i == 1) browser()
+                                           # if (.BY[[1]] == "706") browser()
+                                           if (iter * 20 > .N) {
+                                             notFound <- FALSE
+                                             ind1 <- which.max(maxSoFar)
+                                             out1 <- out1[ind1]
+                                           }
+                                         }
+                                       }
+                                     } else {
+                                       out1 <- .I[1L]
+                                     }
+                                     out1
+                                   }),
+                                   by = "id"
       ]
       replacementCentroids <- dfep[replacementCentroids$centroidIndex]
 
@@ -115,10 +118,10 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
         match(replacementCentroids$id, spOrig[[idCol]]),
         grep("^x|y$|coords", names(spOrig), value = TRUE, invert = TRUE)
       ]
-      sp <- SpatialPointsDataFrame(replacementCentroids[, c("x", "y")],
-        spOrig,
-        proj4string = crs(ras)
-      )
+      sp <- st_as_sf(replacementCentroids[, c("id", "x", "y")], coords = c("x", "y"))
+      sp <- sp[spOrig, on = "id"] #make sure this is still an sf object.
+      #we want to join spOrig with sp
+      st_crs(sp) <- st_crs(ras)
 
       #TODO: investigate origin of error preventing rbind below - occurs with Quebec data (Guillaume SA)
       if (!is.null(polyCentroids@data$x)) {

@@ -64,14 +64,14 @@ makeVegTerrainPCA <- function(dataForPCA, PCAmodel = NULL,
 #' @importFrom data.table data.table set setDT
 #' @importFrom fastDummies dummy_cols
 #' @importFrom sf %>%
-#' @importFrom raster getValues ncell
+#' @importFrom terra values ncell
 #'
 #' @rdname makeLandcoverDT
 makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups) {
   lcc <- data.table(
     pixelID = 1:ncell(rstLCC),
-    lcc = getValues(rstLCC),
-    flammable = getValues(flammableRTM)
+    lcc = values(rstLCC, mat = FALSE),
+    flammable = values(flammableRTM, mat = FALSE)
   ) %>%
     .[lcc != 0, ] %>%
     .[!is.na(flammable), ] %>%

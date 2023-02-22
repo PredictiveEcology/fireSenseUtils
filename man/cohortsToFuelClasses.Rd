@@ -44,7 +44,7 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{fuelClassCol}{the column in sppEquiv that describes unique fuel classes}
 }
 \value{
-a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
+a terra SpatRaster of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
 }
 \description{
 Classify \code{pixelGroups} by flammability

@@ -12,13 +12,14 @@
 #' @return A \code{SpatialPointsDataFrame}.
 #'
 #' @export
-#' @importFrom raster crs crs<- res
+#' @importFrom terra res
 #' @importFrom reproducible Cache Checksums prepInputs
 #' @importFrom utils getFromNamespace
 getFirePoints_NFDB <- function(url = NULL,
                                studyArea = NULL, rasterToMatch = NULL,
                                redownloadIn = 1,
                                years = 1991:2017,
+                               fun = "terra::vect",
                                fireSizeColName = "SIZE_HA",
                                NFDB_pointPath = NULL) {
   if (!requireNamespace("SpaDES.core", quietly = TRUE)) {
@@ -57,7 +58,7 @@ getFirePoints_NFDB <- function(url = NULL,
     firePoints <- Cache(prepInputs,
       url = url,
       studyArea = studyArea,
-      fun = "shapefile",
+      fun = "terra::vect",
       destinationPath = NFDB_pointPath,
       useCache = "overwrite",
       useSAcrs = TRUE,
@@ -78,7 +79,7 @@ getFirePoints_NFDB <- function(url = NULL,
     firePoints <- Cache(prepInputs,
       targetFile = file.path(NFDB_pointPath, aFile),
       destinationPath = NFDB_pointPath,
-      # x = firePoints, fun = sf::read_sf,
+      fun = "terra::vect",
       studyArea = studyArea, filename2 = NULL,
       rasterToMatch = rasterToMatch,
       userTags = c("cacheTags", "NFDB")
@@ -90,8 +91,7 @@ getFirePoints_NFDB <- function(url = NULL,
   firePoints$fireSize <- asInteger(firePoints[[fireSizeColName]] / prod(res(rasterToMatch)) * 1e4)
   names(firePoints) <- c("date", "size_ha", "size")
 
-  #    rasterTemp <- setValues(pixelGroupMap2001, values = 1:ncell(pixelGroupMap2001))
-  crs(firePoints) <- crs(studyArea)
+
   return(firePoints)
 }
 

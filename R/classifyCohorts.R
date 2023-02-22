@@ -21,7 +21,7 @@ globalVariables(c(
 #' @export
 #' @importFrom data.table copy setkey
 #' @importFrom SpaDES.tools rasterizeReduced
-#' @importFrom terra values nlr rast
+#' @importFrom terra values rast
 #'
 cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM, landcoverDT = NULL,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {

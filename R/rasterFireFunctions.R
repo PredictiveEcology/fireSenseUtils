@@ -211,6 +211,7 @@ rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
   burnLocs <- as.data.table(burnLocs)
   burnLocs$ids <- burnedPoints$ids
 
+  #TODO - we can use st_centroid without the need to join if we are able to
   burnPoints <- st_as_sf(burnLocs, coords = c("x", "y"))
   st_crs(burnPoints) <- st_crs(flammableRTM)
 
@@ -230,7 +231,6 @@ rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
     return(p)
   })
 
-  #this is a silly step where we coerce to spatialPoints for spreadFit, for now
   firePoints <- rbindlist(firePoints)
   #calculate size in hectares
   multiplier <- prod(res(flammableRTM))/10000

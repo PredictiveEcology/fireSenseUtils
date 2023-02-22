@@ -10,6 +10,7 @@ getFirePoints_NFDB(
   rasterToMatch = NULL,
   redownloadIn = 1,
   years = 1991:2017,
+  fun = "terra::vect",
   fireSizeColName = "SIZE_HA",
   NFDB_pointPath = NULL
 )
