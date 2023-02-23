@@ -15,8 +15,7 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom data.table data.table
-#' @importFrom fasterize fasterize
-#' @importFrom raster getValues raster setValues
+#' @importFrom terra values rast setValues rasterize vect
 #' @importFrom sf %>% st_as_sf st_collection_extract
 makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
                     standAgeMap, lcc, cutoffForYoungAge = 15) {
@@ -29,21 +28,15 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
     #these pixels burn in the future - can't infer prior disturbance
   } else if (!is.null(firePolys)) {
     ## get particular fire polys in format that can be fasterized
-    polysNeeded <- names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1) %>%
-      firePolys[.] %>%
-      .[lengths(.) > 0] %>% # gets rid of missing years that break function
-      lapply(., FUN = sf::st_as_sf) %>%
-      lapply(., FUN = function(x) {
-        x <- x[, "YEAR"]
-      }) %>%
-      do.call(rbind, .)
+    polysNeeded <- firePolys[names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1)]
+    polysNeeded <- polysNeeded[sapply(polysNeeded, length) > 0]
+    polysNeeded <- do.call(rbind, polysNeeded)
 
     # create background raster with TSD
-    polysNeeded <- suppressWarnings(sf::st_collection_extract(polysNeeded, "POLYGON"))
-    initialTSD <- fasterize(polysNeeded, raster = standAgeMap, background = year - cutoffForYoungAge - 1,
-                            field = "YEAR", fun = "max"
-    ) %>%
-      setValues(., values = year - getValues(.))
+    initialTSD <- rasterize(polysNeeded, y = standAgeMap,
+                            background = year - cutoffForYoungAge - 1,
+                            field = "YEAR", fun = "max")
+    initialTSD <- year - initialTSD
   } else {
     stop("Please provide either firePolys or fireRaster")
   }
@@ -53,14 +46,17 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   pixToUpdate <- lcc[sumRows > 0]$pixelID
   lcc[, sumRows := NULL]
 
+  standAgeVals <- values(standAgeMap, mat = FALSE)
   #these have no disturbance history but are apparently young
-  falseYoungs <- standAgeMap[pixToUpdate] <= cutoffForYoungAge | is.na(standAgeMap[pixToUpdate])
+  falseYoungs <- standAgeVals[pixToUpdate] <= cutoffForYoungAge | is.na(standAgeVals[pixToUpdate])
   #disturbance history suggests young
   trueYoungs <- initialTSD[pixToUpdate] <= cutoffForYoungAge
 
-  standAgeMap[pixToUpdate[falseYoungs]] <- cutoffForYoungAge + 1
+  standAgeVals[pixToUpdate[falseYoungs]] <- cutoffForYoungAge + 1
   #note that by doing this second, pixels in both groups are correctly set to trueYoung
-  standAgeMap[pixToUpdate[trueYoungs]] <- initialTSD[pixToUpdate[trueYoungs]]
+  standAgeVals[pixToUpdate[trueYoungs]] <- values(initialTSD, mat = FALSE)[pixToUpdate[trueYoungs]]
+  standAgeMap <- setValues(standAgeMap, standAgeVals)
+  set.names(standAgeMap, paste0("timeSinceDisturbance", year))
 
   return(standAgeMap)
 }

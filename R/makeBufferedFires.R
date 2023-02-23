@@ -87,7 +87,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 
 #' @export
 #' @importFrom data.table data.table rbindlist setorderv
-#' @importFrom fasterize fasterize
+#' @importFrom terra rasterize
 #' @importFrom sf st_crs st_transform
 #' @importFrom SpaDES.tools spread
 #' @rdname bufferToArea
@@ -96,9 +96,8 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
                             minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- "Layer 1"
   if (as.integer(verb) >= 1) print(paste("Buffering polygons on", polyName))
-  r <- fasterize::fasterize(
-    sf::st_transform(poly, sf::st_crs(rasterToMatch)),
-    raster = rasterToMatch, field = field, ...
+  r <- rasterize(x = sf::st_transform(poly, sf::st_crs(rasterToMatch)),
+                 y = rasterToMatch, field = field, ...
   )
 
   emptyDT <- data.table(pixelID = integer(0), buffer = integer(0), ids = integer(0))
@@ -218,8 +217,7 @@ multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
 #'
 #' @return a list of data.tables containing indices inside buffered area of each year's ignitions
 #'
-#' @importFrom fasterize fasterize
-#' @importFrom raster buffer raster setValues extract
+#' @importFrom terra buffer rast set.values extract rasterize
 #' @importFrom sf st_as_sf
 #' @export
 #' @rdname bufferIgnitionPoints
@@ -235,11 +233,11 @@ bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
     buffed <- buffer(annIg, bufferSize)
 
     # get rtm indices of ignitions
-    ignitionPix <- raster::extract(rtmIndices, annIg)
+    ignitionPix <- extract(rtmIndices, annIg)
 
     # get rtm indices of buffer
     buffed <- sf::st_as_sf(buffed)
-    buffed <- fasterize(buffed, raster = rtmIndices)
+    buffed <- rasterize(buffed, y = rtmIndices)
     annIndices <- rtmIndices[!is.na(buffed[])]
 
     # make data.table

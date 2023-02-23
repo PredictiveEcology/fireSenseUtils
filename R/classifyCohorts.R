@@ -42,11 +42,11 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   # Fix zero age, zero biomass
   cD[, Leading := BperClass == max(BperClass), .(pixelGroup)]
   cD <- unique(cD[Leading == TRUE, .(FuelClass, pixelGroup)]) # unique due to species
-  cD[, N := .N, .(pixelGroup)]
+  cD[, NspeciesWithMaxB := .N, .(pixelGroup)]
 
   # In the event of a tie, we randomly pick a fuel class
-  ties <- cD[N > 1]
-  noTies <- cD[N == 1]
+  ties <- cD[NspeciesWithMaxB > 1]
+  noTies <- cD[NspeciesWithMaxB == 1]
   if (nrow(ties) > 1) {
     ties$foo <- sample(x = 1:nrow(ties), size = nrow(ties))
     setkey(ties, foo)
@@ -88,7 +88,7 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
 #' @return a SpatRaster
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom data.table data.table
-#' @importFrom terra values set.values rast
+#' @importFrom terra values setValues rast
 makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
 
   cohortDataub <- copy(cohortData)
@@ -105,6 +105,6 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
   flamVals <- values(flammableRTM, mat = FALSE)
   rasVals <- values(ras, mat = FALSE)
   rasVals[!is.na(flamVals) & is.na(rasVals)] <- 0
-  ras <- set.values(ras, rasVals)
+  ras <- setValues(x = ras, values = rasVals)
   return(ras)
 }
