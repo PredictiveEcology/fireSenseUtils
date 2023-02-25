@@ -87,9 +87,9 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 
 #' @export
 #' @importFrom data.table data.table rbindlist setorderv
-#' @importFrom terra rasterize
+#' @importFrom terra rasterize values
 #' @importFrom sf st_crs st_transform
-#' @importFrom SpaDES.tools spread
+#' @importFrom SpaDES.tools spread2
 #' @rdname bufferToArea
 bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
                             verb = FALSE, polyName = NULL, field = NULL,
@@ -105,8 +105,9 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   if (all(is.na(r[]))) {
     return(emptyDT)
   }
-  loci <- which(!is.na(r[]))
-  ids <- as.integer(r[loci])
+  rvals <- values(r, mat = FALSE)
+  loci <- which(!is.na(rvals))
+  ids <- as.integer(rvals[loci])
 
   initialDf <- data.table(loci, ids, id = seq(ids))
   am <- if (is(areaMultiplier, "function")) {
@@ -135,11 +136,9 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   while ((length(loci) > 0) & (it <= maxIts)) {
     dups <- duplicated(loci)
     df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq_along(ids[!dups]))
-    r1 <- SpaDES.tools::spread(r,
-      loci = df$loci, iterations = 1,
-      spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE
-    )
-    df <- df[r1, on = "id"]
+    r1 <- SpaDES.tools::spread2(landscape = r, start = df$loci, iterations = 1,
+                                spreadProb = spreadProb, asRaster = FALSE)
+    df <- df[r1, on = c("loci" = "initialPixels")] #TODO: confirm this
     simSizes <- df[, list(simSize = .N), by = "ids"]
     simSizes <- fireSize[simSizes, on = "ids"]
     bigger <- simSizes$simSize > simSizes$goalSize
@@ -149,25 +148,19 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
       names(idsBigger) <- idsBigger
       out1 <- lapply(idsBigger, function(idBig) {
         wh <- which(df$ids %in% idBig)
-        if (as.integer(verb) >= 2) {
-          print(paste(
-            "  Fire id:,", idBig, "finished. Num pixels in buffer:",
-            simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
-            ", in fire:", simSizes[ids == idBig]$actualSize
-          ))
-        }
-        lastIters <- !df[wh]$active
+        if (as.integer(verb) >= 2) {df}
+        lastIters <- !df[wh]$state == "activeSource"
         needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
         if (needMore > 0) {
           dt <- try(rbindlist(list(
             df[wh][lastIters],
-            df[wh][sample(which(df[wh]$active), needMore)]
+            df[wh][sample(which(df[wh]$state == "activeSource"), needMore)]
           )))
         } else {
           dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
         }
         if (is(dt, "try-error")) browser() # stop("try error here")
-        dtOut <- dt[, list(buffer = 0L, pixelID = indices, ids)]
+        dtOut <- dt[, list(buffer = 0L, pixelID = pixels, ids)]
 
         dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1L]
         dtOut
@@ -179,7 +172,7 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
         simSizes <- simSizes[simSize <= goalSize]
         df <- df[df$ids %in% simSizes$ids]
       }
-      loci <- df$indices
+      loci <- df$pixels
       ids <- df$ids
       it <- it + 1L
     } else {
