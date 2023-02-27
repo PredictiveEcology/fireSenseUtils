@@ -24,10 +24,10 @@ utils::globalVariables(c(
 #' @importFrom data.table as.data.table data.table setkeyv
 #' @importFrom pemisc rasterToMatch
 #' @importFrom purrr pmap
-#' @importFrom sp identicalCRS SpatialPointsDataFrame spTransform
-#' @importFrom sf st_as_sf st_crs "st_crs<-"
-#' @importFrom SpaDES.tools distanceFromEachPoint spread
-#' @importFrom terra cellFromXY compareGeom xyFromCell
+#' @importFrom sf st_as_sf st_crs "st_crs<-" st_transform st_coordinates
+#' @importFrom LandR .compareCRS
+#' @importFrom SpaDES.tools distanceFromEachPoint spread2
+#' @importFrom terra cellFromXY xyFromCell
 #' @importFrom utils head tail
 harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
   purrr::pmap(list(
@@ -38,8 +38,9 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     if (!nrow(buff) > 0) { # cent can be >1 row while buff = 0, if poly is small
       return(NULL)
     }
-    if (!compareGeom(ras, cent)) {
-      cent <- project(cent, ras)
+
+    if (!.compareCRS(ras, cent)) {
+      cent <- st_project(cent, st_crs(ras))
     }
 
     whToUse <- cent[[idCol]] %in% buff$ids
@@ -51,11 +52,13 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     }
     inOrigFire <- buff[buffer == 1, ]
     centDT <- data.table(
-      pixelID = cellFromXY(polyCentroids, object = ras),
+      pixelID = cellFromXY(st_coordinates(polyCentroids), object = ras),
       ids = polyCentroids[[idCol]]
     )
+
     notInAFire <- centDT[!inOrigFire, on = c("pixelID")]
     if (NROW(notInAFire)) {
+
       inAFire <- buff[buffer == 1]
       fr <- cbind(xyFromCell(ras, inAFire$pixelID),
                   id = inAFire$ids, pixelID = inAFire$pixelID
@@ -70,21 +73,22 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       ## TODO: make sure it is not surrounded by NAs
       setkeyv(dfep, c("id", "dists"))
       i <- 1
+      browser()
       replacementCentroids <- dfep[,
                                    list(centroidIndex = {
                                      if (.N > 1) {
-                                       # if (i == 1) browseri <- 1
                                        notFound <- TRUE
                                        iter <- 1
                                        out1 <- maxSoFar <- integer()
                                        while (notFound) {
-                                         spr <- SpaDES.tools::spread(
-                                           loci = tail(head(pixelID, iter * 20), 20), ras, spreadProb = 1, iterations = 1,
-                                           allowOverlap = TRUE, returnIndices = TRUE
-                                         )
-                                         out <- spr[, list(numNeighs = sum(ras[][indices],
+                                         spr <- SpaDES.tools::spread2(
+                                           start = tail(head(pixelID, iter * 20), 20), landscape = ras,
+                                           spreadProb = 1, iterations = 1, asRaster = FALSE,
+                                           allowOverlap = TRUE)
+
+                                         out <- spr[, list(numNeighs = sum(values(ras, mat = FALSE)[pixels],
                                                                            na.rm = TRUE)),
-                                                    by = "id"][, numNeighs := numNeighs - 1]
+                                                    by = "initialPixels"][, numNeighs := numNeighs - 1]
                                          notFound <- (!any(out$numNeighs > 6))
                                          if (!notFound) {
                                            ind <- min(which(out$numNeighs > 6))
@@ -134,7 +138,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       })
     }
     centDT2 <- data.table(
-      pixelID = cellFromXY(spTransform(polyCentroids, crs(ras)), object = ras),
+      pixelID = cellFromXY(st_coordinates(polyCentroids), object = ras),
       ids = polyCentroids[[idCol]]
     )
     notInAFire <- centDT2[!inOrigFire, on = c("pixelID")]
