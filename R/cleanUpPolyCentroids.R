@@ -21,7 +21,7 @@ utils::globalVariables(c(
 #' @param ras The raster that created the \code{pixelIDs} in the \code{buff}.
 #'
 #' @export
-#' @importFrom data.table as.data.table data.table setkeyv
+#' @importFrom data.table as.data.table data.table setkeyv set
 #' @importFrom pemisc rasterToMatch
 #' @importFrom purrr pmap
 #' @importFrom sf st_as_sf st_crs "st_crs<-" st_transform st_coordinates
@@ -34,7 +34,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     cent = cent,
     buff = buff
   ),
-  .f = function(cent, buff) {
+  .f = function(cent, buff, fireIDcol = idCol) {
     if (!nrow(buff) > 0) { # cent can be >1 row while buff = 0, if poly is small
       return(NULL)
     }
@@ -43,8 +43,8 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       cent <- st_project(cent, st_crs(ras))
     }
 
-    whToUse <- cent[[idCol]] %in% buff$ids
-    idsNotInBuffer <- cent[[idCol]][!whToUse]
+    whToUse <- cent[[fireIDcol]] %in% buff$ids
+    idsNotInBuffer <- cent[[fireIDcol]][!whToUse]
     if (NROW(idsNotInBuffer) > 0) {
       polyCentroids <- cent[whToUse, ]
     } else {
@@ -53,8 +53,11 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     inOrigFire <- buff[buffer == 1, ]
     centDT <- data.table(
       pixelID = cellFromXY(st_coordinates(polyCentroids), object = ras),
-      ids = polyCentroids[[idCol]]
+      ids = polyCentroids[[fireIDcol]]
     )
+
+    #for rbindlist, need to ensure col order
+    colOrders <- names(cent)
 
     notInAFire <- centDT[!inOrigFire, on = c("pixelID")]
     if (NROW(notInAFire)) {
@@ -73,7 +76,6 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       ## TODO: make sure it is not surrounded by NAs
       setkeyv(dfep, c("id", "dists"))
       i <- 1
-      browser()
       replacementCentroids <- dfep[,
                                    list(centroidIndex = {
                                      if (.N > 1) {
@@ -117,36 +119,30 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       ]
       replacementCentroids <- dfep[replacementCentroids$centroidIndex]
 
-      spOrig <- as.data.frame(polyCentroids[match(replacementCentroids$id, polyCentroids[[idCol]]), ])
+      spOrig <- as.data.table(polyCentroids[match(replacementCentroids$id, polyCentroids[[fireIDcol]]), ])
       spOrig <- spOrig[
-        match(replacementCentroids$id, spOrig[[idCol]]),
-        grep("^x|y$|coords", names(spOrig), value = TRUE, invert = TRUE)
-      ]
-      sp <- st_as_sf(replacementCentroids[, c("id", "x", "y")], coords = c("x", "y"))
-      sp <- sp[spOrig, on = "id"] #make sure this is still an sf object.
-      #we want to join spOrig with sp
+        match(replacementCentroids$id, spOrig[[fireIDcol]]),
+        .SD, .SDcol = grep("^x|y$|coords", names(spOrig), value = TRUE, invert = TRUE)]
+
+      #the join does not work with named argument for column, so assign to temp
+      #we could use merge but I prefer this approach
+      set(spOrig, NULL, "tempFoo", spOrig[[fireIDcol]])
+      sp <- spOrig[replacementCentroids, on = c("tempFoo" = "id")]
+      sp[, tempFoo := NULL]
+      sp <- st_as_sf(sp, coords = c("x", "y"))
       st_crs(sp) <- st_crs(ras)
 
-      #TODO: investigate origin of error preventing rbind below - occurs with Quebec data (Guillaume SA)
-      if (!is.null(polyCentroids@data$x)) {
-        polyCentroids@data$x <- NULL
-      }
+      #subset original out
+      whichToKeep <- !polyCentroids[[fireIDcol]] %in% sp[[fireIDcol]]
+      polyCentroids <- polyCentroids[whichToKeep,]
+      set(sp, NULL, c("dists", "pixelID"), NULL)
 
-      suppressWarnings({
-        # browser()
-        polyCentroids <- rbind(polyCentroids[-match(replacementCentroids$id, polyCentroids[[idCol]]), ], sp)
-      })
+      polyCentroids <- rbind(polyCentroids, sp)
+
     }
-    centDT2 <- data.table(
-      pixelID = cellFromXY(st_coordinates(polyCentroids), object = ras),
-      ids = polyCentroids[[idCol]]
-    )
-    notInAFire <- centDT2[!inOrigFire, on = c("pixelID")]
+    #col order must be preserved
 
-    # if (NROW(notInAFire) > 0) browser()
-    # fires will be rejected if centroid is outside
-
-    polyCentroids
+    polyCentroids <- setcolorder(polyCentroids, colOrders)
   }
   )
 }
