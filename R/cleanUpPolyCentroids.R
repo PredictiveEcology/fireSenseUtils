@@ -129,8 +129,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
       set(spOrig, NULL, "tempFoo", spOrig[[fireIDcol]])
       sp <- spOrig[replacementCentroids, on = c("tempFoo" = "id")]
       sp[, tempFoo := NULL]
-      sp <- st_as_sf(sp, coords = c("x", "y"))
-      st_crs(sp) <- st_crs(ras)
+      sp <- st_as_sf(sp, coords = c("x", "y"), crs = st_crs(polyCentroids))
 
       #subset original out
       whichToKeep <- !polyCentroids[[fireIDcol]] %in% sp[[fireIDcol]]
