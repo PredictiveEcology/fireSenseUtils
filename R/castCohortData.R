@@ -5,7 +5,6 @@ globalVariables(c(
 #' preparing covariates for fitting modules
 #'
 #' @template cohortData
-#' @param terrainDT optional data table of terrain covariates with pixelIndex
 #' @param lcc data.table of dummified landcover
 #' @template pixelGroupMap
 #' @param ageMap a stand age map to assign ages to non-forest LCC used during predict
@@ -21,7 +20,7 @@ globalVariables(c(
 #' @importFrom terra rast values
 #' @importFrom data.table copy dcast set setnafill
 #' @rdname castCohortData
-castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, ageMap = NULL,
+castCohortData <- function(cohortData, pixelGroupMap, lcc, ageMap = NULL,
                            missingLCC, year = NULL,
                            cutoffForYoungAge = 15) {
   cohortData <- copy(cohortData)
@@ -50,11 +49,6 @@ castCohortData <- function(cohortData, terrainDT = NULL, pixelGroupMap, lcc, age
 
   if (!is.null(ageMap)) { # should not be NULL in predict mode
     cohortData[is.na(standAge), standAge := values(ageMap, mat = FALSE)[cohortData[is.na(standAge)]$pixelID]]
-  }
-  if (!is.null(terrainDT)) {
-    cohortData <- cohortData[terrainDT, on = c("pixelID")]
-    setnafill(cohortData, fill = 0, cols = colnames(cohortData)[!colnames(cohortData) %in%
-      c("pixelGroup", colnames(terrainDT))])
   }
 
   set(cohortData, NULL, "youngAge", as.integer(cohortData$standAge <= cutoffForYoungAge))
