@@ -6,7 +6,6 @@
 \usage{
 castCohortData(
   cohortData,
-  terrainDT = NULL,
   pixelGroupMap,
   lcc,
   ageMap = NULL,
@@ -19,8 +18,6 @@ castCohortData(
 \item{cohortData}{A \code{data.table} with columns: \code{pixelGroup}, \code{ecoregionGroup},
 \code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
 and \code{sumB}.}
-
-\item{terrainDT}{optional data table of terrain covariates with pixelIndex}
 
 \item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}

@@ -332,9 +332,6 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   return(D)
 }
 
-#' @importFrom LandR rescale
-#' @export
-LandR::rescale
 
 objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         annualFires, nonAnnualDTx1000, annualFireBufferedDT,
