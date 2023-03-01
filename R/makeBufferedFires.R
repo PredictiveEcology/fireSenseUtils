@@ -4,15 +4,15 @@ utils::globalVariables(c(
 
 #' Create buffers around polygons based on area target for buffer
 #'
-#' @param poly \code{SpatialPolygons} or a list of \code{SpatialPolygons}, containing polygons to buffer.
-#' @param rasterToMatch A \code{RasterLayer} with \code{res}, \code{origin}, \code{extent},
+#' @param poly \code{sf} polygons or a list of \code{sf} containing polygons to buffer.
+#' @param rasterToMatch A \code{SpatRaster} with \code{res}, \code{origin}, \code{extent},
 #'   \code{crs} of desired outputted \code{pixelID} values.
 #' @param areaMultiplier Either a scalar that will buffer \code{areaMultiplier * fireSize} or
 #'   a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.
 #' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 #'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
 #' @param polyName Optional character string of the polygon layer name (not the individual polygons
-#'   on a \code{SpatialPolygons} object)
+#'   on a \code{sf} polygon object)
 #' @param field Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
 #'   then each polygon will have its buffer calculated independently for each unique value
 #'   in \code{field}
