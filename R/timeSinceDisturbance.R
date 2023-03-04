@@ -72,7 +72,7 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
 #' @return a raster layer with unified standAge and time-since-disturbance values
 #'
 #' @export
-#' @importFrom raster raster setValues
+#' @importFrom terra rast setValues values
 #' @importFrom data.table data.table
 calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT,
                          cutoffForYoungAge = 15) {
@@ -82,17 +82,14 @@ calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListD
     ann <- annualCovariates[[yearChar]] # no copy made
     fires <- fireBufferedListDT[[yearChar]]
     if (!is.null(fires)) {
-      set(ann, NULL, "youngAge", as.integer(standAgeMap[ann$pixelID] <= cutoffForYoungAge) |
-        is.na(standAgeMap[ann$pixelID])) ## cannot have NAs
-
-      # pix <- annualCovariates[[yearChar]]$pixelID
-      # ages <- standAgeMap[pix]
-      # young <- ifelse(ages <= cutoffForYoungAge, 1, 0)
-      # annualCovariates[[yearChar]][, youngAge := as.integer(standAgeMap[][pixelID] <= cutoffForYoungAge)]
+      ageVals <- values(standAgeMap, mat = FALSE)
+      set(ann, NULL, "youngAge", as.integer(ageVals[ann$pixelID] <= cutoffForYoungAge) |
+        is.na(ageVals[ann$pixelID])) ## cannot have NAs
       burnedPix <- fires$pixelID[fires$buffer == 1]
-      standAgeMap[burnedPix] <- 0
+      ageVals[burnedPix] <- 0
+      standAgeMap <- setValues(standAgeMap, values = ageVals)
     }
-    standAgeMap <- setValues(standAgeMap, getValues(standAgeMap) + 1)
+    standAgeMap <- setValues(standAgeMap, values = values(standAgeMap, mat = FALSE) + 1)
   }
   return(annualCovariates)
 }
