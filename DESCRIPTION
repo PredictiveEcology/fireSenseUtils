@@ -62,7 +62,6 @@ Remotes:
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
     PredictiveEcology/SpaDES.core@development,
-    PredictiveEcology/SpaDES.install@development,
     PredictiveEcology/SpaDES.tools@development,
     PredictiveEcology/quickPlot@development,
     PredictiveEcology/Require@development,
