@@ -10,9 +10,9 @@ getFirePoints_NFDB(
   rasterToMatch = NULL,
   redownloadIn = 1,
   years = 1991:2017,
-  fun = "terra::vect",
+  fun = "sf_read",
   fireSizeColName = "SIZE_HA",
-  NFDB_pointPath = NULL
+  NFDB_pointPath
 )
 }
 \arguments{
@@ -34,7 +34,7 @@ raster operations (i.e., the one used throughout the simulation).}
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}
 }
 \value{
-A \code{SpatialPointsDataFrame}.
+A \code{sf} spatial points object.
 }
 \description{
 Get Fire \code{SpatialPoints} from Canadian Fire Database
