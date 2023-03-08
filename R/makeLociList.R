@@ -1,3 +1,6 @@
+globalVariables(c(
+"cell"
+))
 #' Convert a list of \code{SpatialPointsDataFrame} object to a list of \code{data.table} objects
 #'
 #' Must supply a raster so that points can be converted to the cells on a raster.
@@ -5,7 +8,7 @@
 #' If not, it should be recalculated before this function call.
 #'
 #' @param ras A raster that will be the template for cells (pixel ids)
-#' @param pts A list of \code{SpatialPointsDataFrame} objects
+#' @param pts A list of \code{sf} point objects
 #' @param idsCol Character string identifying column name in \code{pts} that has unique
 #'   id per event (i.e., fire)
 #' @param dateCol Character string identifying column name in \code{pts} that has year
@@ -21,28 +24,24 @@
 #' @export
 #' @importFrom data.table rbindlist as.data.table set
 #' @importFrom purrr map
-#' @importFrom raster extract
-#' @importFrom sf %>%
+#' @importFrom terra extract
+#' @importFrom sf %>% st_crs st_transform
 makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol = "POLY_HA",
                          sizeColUnits = "ha") {
-  returnCols <- c("size", "date", "ids", "cells")
+  returnCols <- c("size", "date", "ids", "cell")
   keepCols <- c(sizeCol, dateCol, idsCol)
+
+  xPoints <-  st_transform(x, st_crs(ras))
   lociDF <- purrr::map(pts,
     ras = ras,
-    function(.x, ras) {
-      raster::extract(
-        x = ras,
-        y = spTransform(.x[, keepCols], crs(ras)),
-        cellnumbers = TRUE,
-        sp = TRUE,
-        df = TRUE
-      ) %>%
+    function(x, ras) {
+      extract(x = ras, y = xPoints, cellnumbers = TRUE, sp = TRUE, df = TRUE) %>%
         as.data.table()
     }
   ) %>%
     rbindlist()
   dtColNames <- data.table(
-    old = c(sizeCol, dateCol, idsCol, "cells"),
+    old = c(sizeCol, dateCol, idsCol, "cell"),
     new = returnCols
   )
   ma <- match(dtColNames$old, colnames(lociDF))

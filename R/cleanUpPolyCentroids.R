@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  ".BY", ".I", "indices", "numNeighs"
+  ".BY", ".I", "indices", "numNeighs", "foo"
 ))
 
 #' Cleaning up the polygon points
@@ -40,7 +40,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
     }
 
     if (!.compareCRS(ras, cent)) {
-      cent <- st_project(cent, st_crs(ras))
+      cent <- st_transform(cent, st_crs(ras))
     }
 
     whToUse <- cent[[fireIDcol]] %in% buff$ids
@@ -126,9 +126,9 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
 
       #the join does not work with named argument for column, so assign to temp
       #we could use merge but I prefer this approach
-      set(spOrig, NULL, "tempFoo", spOrig[[fireIDcol]])
-      sp <- spOrig[replacementCentroids, on = c("tempFoo" = "id")]
-      sp[, tempFoo := NULL]
+      set(spOrig, NULL, "foo", spOrig[[fireIDcol]])
+      sp <- spOrig[replacementCentroids, on = c("foo" = "id")]
+      sp[, foo := NULL]
       sp <- st_as_sf(sp, coords = c("x", "y"), crs = st_crs(polyCentroids))
 
       #subset original out

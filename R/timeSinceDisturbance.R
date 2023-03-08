@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom data.table data.table
-#' @importFrom terra values rast setValues rasterize vect
+#' @importFrom terra values rast setValues rasterize vect set.names
 #' @importFrom sf %>% st_as_sf st_collection_extract
 makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
                     standAgeMap, lcc, cutoffForYoungAge = 15) {

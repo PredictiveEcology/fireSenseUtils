@@ -1,6 +1,6 @@
 globalVariables(c(
   "age", "B", "BperClass", "FuelClass", "foo", "Leading", "LeaderValue",
-  "totalBiomass"
+  "totalBiomass", "NspeciesWithMaxB"
 ))
 
 #' Classify \code{pixelGroups} by flammability

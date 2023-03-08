@@ -1,3 +1,6 @@
+globalVariables(c(
+  "geometry", "dists", "isFlammable"
+))
 #' Ensure fire points are located on flammable pixels inside a fire polygon
 #' Intended to be run using \code{Map}
 #'

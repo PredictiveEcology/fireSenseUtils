@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  ".N", "goalSize", "simSize"
+  ".N", "goalSize", "simSize", "pixels"
 ))
 
 #' Create buffers around polygons based on area target for buffer

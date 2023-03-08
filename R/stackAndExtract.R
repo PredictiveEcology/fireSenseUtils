@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "nFires", "cells"
+  "nFires", "cell"
 ))
 
 
