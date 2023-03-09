@@ -16,7 +16,7 @@ makeLociList(
 \arguments{
 \item{ras}{A raster that will be the template for cells (pixel ids)}
 
-\item{pts}{A list of \code{SpatialPointsDataFrame} objects}
+\item{pts}{A list of \code{sf} point objects}
 
 \item{idsCol}{Character string identifying column name in \code{pts} that has unique
 id per event (i.e., fire)}

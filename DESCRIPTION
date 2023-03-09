@@ -22,7 +22,6 @@ Imports:
     DEoptim,
     EnvStats,
     fastDummies,
-    fasterize,
     kSamples,
     LandR (>= 1.0.0.9029),
     mclust,
