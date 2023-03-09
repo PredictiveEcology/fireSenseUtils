@@ -10,7 +10,6 @@ getFirePoints_NFDB(
   rasterToMatch = NULL,
   redownloadIn = 1,
   years = 1991:2017,
-  fun = "sf_read",
   fireSizeColName = "SIZE_HA",
   NFDB_pointPath
 )
