@@ -11,7 +11,7 @@ utils::globalVariables(c(
 #' @param lcc \code{data.table} with landcover values - \code{landcoverDT}
 #' @inheritParams castCohortData
 #'
-#' @return a raster layer with values representing time since disturbance
+#' @return a \code{SpatRaster} with values representing time since disturbance
 #'
 #' @export
 #' @importFrom data.table data.table
@@ -21,8 +21,8 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
                     standAgeMap, lcc, cutoffForYoungAge = 15) {
 
   if (!is.null(fireRaster)){
-    baseYear <- raster(fireRaster)
-    baseYear[] <- year
+    baseYear <- rast(fireRaster)
+    baseYear <- setValues(baseYear, year)
     initialTSD <- baseYear - fireRaster
     initialTSD[initialTSD < 0] <- cutoffForYoungAge + 1
     #these pixels burn in the future - can't infer prior disturbance
@@ -63,7 +63,7 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
 
 #' Iteratively calculate \code{youngAge} column  in FS covariates
 #'
-#' @param standAgeMap template raster
+#' @param standAgeMap template \code{SpatRaster}
 #' @param years the years over which to iterate
 #' @param fireBufferedListDT data.table containing non-annual burn and buffer pixelIDs
 #' @param annualCovariates list of data.table objects with pixelID
