@@ -24,18 +24,19 @@ globalVariables(c(
 #' @export
 #' @importFrom data.table rbindlist as.data.table set
 #' @importFrom purrr map
-#' @importFrom terra extract
+#' @importFrom terra extract res
 #' @importFrom sf %>% st_crs st_transform
 makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol = "POLY_HA",
                          sizeColUnits = "ha") {
   returnCols <- c("size", "date", "ids", "cell")
   keepCols <- c(sizeCol, dateCol, idsCol)
+  #pts shoudl already be projected but no harm in forcing..
+  pts <- lapply(pts, st_transform, crs = st_crs(ras))
 
-  xPoints <-  st_transform(x, st_crs(ras))
   lociDF <- purrr::map(pts,
     ras = ras,
     function(x, ras) {
-      extract(x = ras, y = xPoints, cellnumbers = TRUE, sp = TRUE, df = TRUE) %>%
+    extract(x = ras, y = x, bind = TRUE, cells = TRUE) %>%
         as.data.table()
     }
   ) %>%
@@ -45,8 +46,8 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
     new = returnCols
   )
   ma <- match(dtColNames$old, colnames(lociDF))
-  setnames(lociDF, old = dtColNames$old[ma], new = dtColNames$new[ma])
-  # setnames(lociDF, c(dateCol, idsCol), c("date", "ids"))
+  lociDF <- lociDF[, .SD, .SDcol = dtColNames$old]
+  setnames(lociDF, old = dtColNames$old, new = dtColNames$new)
   set(lociDF, NULL, setdiff(colnames(lociDF), returnCols), NULL)
   divisor <- switch(sizeColUnits,
     "ha" = 1e4,

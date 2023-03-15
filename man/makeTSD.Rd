@@ -29,7 +29,7 @@ fireRaster will supersede firePolys if provided}
 "young" --> youngAge column will be 1 if age <= 15}
 }
 \value{
-a raster layer with values representing time since disturbance
+a \code{SpatRaster} with values representing time since disturbance
 }
 \description{
 preparing a time since disturbance map from stand age and fire data
