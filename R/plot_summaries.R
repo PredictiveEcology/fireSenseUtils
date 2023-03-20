@@ -151,8 +151,8 @@ plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
       requireNamespace("cowplot", quietly = TRUE)) {
     burnSummaryAllReps <- rbindlist(parallel::mclapply(1:Nreps, function(rep) {
-      runName <- sprintf("%s_%s_run%02d", studyAreaName, climateScenario, rep)
-      resultsDir <- file.path(outputDir, runName)
+      runName <- sprintf("%s_%s", studyAreaName, climateScenario)
+      resultsDir <- file.path(outputDir, runName, sprintf("run%02d", rep))
 
       burnDT <- qs::qread(file.path(resultsDir, "burnSummary_year2100.qs"))
       burnSummary <- data.table(year = burnDT[["year"]],
