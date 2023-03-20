@@ -17,8 +17,8 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
       requireNamespace("SpaDES.core", quietly = TRUE)) {
     gcm <- strsplit(climateScenario, "_")[[1]][1]
     ssp <- strsplit(climateScenario, "_")[[1]][2]
-    runName <- sprintf("%s_%s_run01", studyAreaName, climateScenario) ## doesn't matter which run, all same
-    run <- as.integer(strsplit(runName, "run")[[1]][2])
+    runName <- sprintf("%s_%s_rep01", studyAreaName, climateScenario) ## doesn't matter which run, all same
+    run <- as.integer(strsplit(runName, "rep")[[1]][2])
     sim <- SpaDES.core::loadSimList(file.path(outputDir, runName, paste0(runName, ".qs")))
     burnSummary <- sim$burnSummary
     rm(sim)
@@ -101,7 +101,7 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
     burnMapAllReps <- parallel::mclapply(1:Nreps, function(rep) {
-      runName <- sprintf("%s_%s_run%02d", studyAreaName, climateScenario, rep)
+      runName <- sprintf("%s_%s_rep%02d", studyAreaName, climateScenario, rep)
       resultsDir <- file.path(outputDir, runName)
 
       burnMap <- raster(file.path(resultsDir, "burnMap_2100_year2100.tif"))
@@ -152,7 +152,7 @@ plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
       requireNamespace("cowplot", quietly = TRUE)) {
     burnSummaryAllReps <- rbindlist(parallel::mclapply(1:Nreps, function(rep) {
       runName <- sprintf("%s_%s", studyAreaName, climateScenario)
-      resultsDir <- file.path(outputDir, runName, sprintf("run%02d", rep))
+      resultsDir <- file.path(outputDir, runName, sprintf("rep%02d", rep))
 
       burnDT <- qs::qread(file.path(resultsDir, "burnSummary_year2100.qs"))
       burnSummary <- data.table(year = burnDT[["year"]],
