@@ -71,7 +71,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
                     title = paste(studyAreaName, "rep", run),
                     subtitle = paste(gcm, ssp))
 
-    figDir <- file.path(outputDir, runName, "figures")
+    figDir <- file.path(outputDir, studyAreaName, "figures")
     figs <- list(
       ignition = file.path(figDir, paste0("simulated_Ignitions_", studyAreaName, "_", climateScenario, ".png")),
       escape = file.path(figDir, paste0("simulated_Escapes_", studyAreaName, "_", climateScenario, ".png")),
