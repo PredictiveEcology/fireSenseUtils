@@ -30,7 +30,7 @@
 \arguments{
 \item{par}{parameters}
 
-\item{landscape}{A RasterLayer with extent, res, proj used for SpaDES.tools::spread}
+\item{landscape}{A SpatRaster with extent, res, proj used for SpaDES.tools::spread2}
 
 \item{annualDTx1000}{A list of data.table class objects. Each list element is
 data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number

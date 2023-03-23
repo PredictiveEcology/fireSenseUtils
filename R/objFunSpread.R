@@ -6,7 +6,7 @@ utils::globalVariables(c(
 #' Objective function for \code{fireSense_spreadFit} module
 #'
 #' @param par parameters
-#' @param landscape A RasterLayer with extent, res, proj used for SpaDES.tools::spread2
+#' @param landscape A SpatRaster with extent, res, proj used for SpaDES.tools::spread2
 #' @param annualDTx1000 A list of data.table class objects. Each list element is
 #'   data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
 #'   year. The columns in the data.table must integers, that are 1000x their actual values as
@@ -69,7 +69,7 @@ utils::globalVariables(c(
 #' @importFrom kSamples ad.test
 #' @importFrom purrr map2 pmap transpose
 #' @importFrom quickPlot clearPlot dev gpar Plot
-#' @importFrom terra buffer crop extent ncell rast trim xyFromCell
+#' @importFrom terra buffer crop ext ncell rast trim xyFromCell
 #' @importFrom sp SpatialPoints
 #' @importFrom SpaDES.tools spread2
 #' @importFrom stats as.formula dbinom median terms quantile
@@ -595,7 +595,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         bigFire <- bigFire1
         bigFire[bigFire != keepFire] <- NA
         bf <- trim(bigFire)
-        ex <- extent(bf)
+        ex <- ext(bf)
 
         thisFire <- annualFires[ids == keepFire]
 
