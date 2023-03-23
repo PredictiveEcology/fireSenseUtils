@@ -6,7 +6,7 @@ utils::globalVariables(c(
 #' Objective function for \code{fireSense_spreadFit} module
 #'
 #' @param par parameters
-#' @param landscape A RasterLayer with extent, res, proj used for SpaDES.tools::spread
+#' @param landscape A RasterLayer with extent, res, proj used for SpaDES.tools::spread2
 #' @param annualDTx1000 A list of data.table class objects. Each list element is
 #'   data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
 #'   year. The columns in the data.table must integers, that are 1000x their actual values as
@@ -69,9 +69,9 @@ utils::globalVariables(c(
 #' @importFrom kSamples ad.test
 #' @importFrom purrr map2 pmap transpose
 #' @importFrom quickPlot clearPlot dev gpar Plot
-#' @importFrom raster buffer crop extent ncell raster trim xyFromCell
+#' @importFrom terra buffer crop extent ncell rast trim xyFromCell
 #' @importFrom sp SpatialPoints
-#' @importFrom SpaDES.tools spread
+#' @importFrom SpaDES.tools spread2
 #' @importFrom stats as.formula dbinom median terms quantile
 #' @importFrom utils tail
 .objfunSpreadFit <- function(par,
@@ -132,7 +132,7 @@ utils::globalVariables(c(
   parsModel <- length(colsToUse)
   ncells <- ncell(landscape)
 
-  r <- raster(landscape)
+  r <- rast(landscape)
   years <- as.character(names(annualDTx1000))
   names(years) <- years
   cells <- integer(ncells)
@@ -465,14 +465,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
 
     spreadState <- lapply(seq_len(Nreps), function(i) {
-      SpaDES.tools::spread(
+      SpaDES.tools::spread2(
         landscape = r,
         maxSize = maxSizes,
-        loci = loci,
+        start = loci,
         spreadProb = cells,
-        returnIndices = TRUE,
-        allowOverlap = FALSE,
-        quick = TRUE
+        asRaster = FALSE,
+        allowOverlap = FALSE
       )
     })
     if (isTRUE(plot.it)) {
@@ -493,8 +492,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
-      emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
-      emp <- emp[annualFires, on = c("initialLocus" = "cells")]
+      emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialPixels")]
+      emp <- emp[annualFires, on = c("initialPixels" = "cells")]
       if (plot.it) {
         emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL]
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
@@ -566,8 +565,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
       # if (isTRUE(doSNLLTest)) {
-      burnedProb <- spreadState[, .N, by = "indices"]
-      setnames(burnedProb, "indices", "pixelID")
+      burnedProb <- spreadState[, .N, by = "pixels"]
+      setnames(burnedProb, "pixels", "pixelID")
       out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
 
       # fix the out
@@ -581,8 +580,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       # 4 -- Set initial pixels to burned = 2 -- is a work around for cases where "initial pixels" are not actually burned in
       #   the polygon database
       out[, burnedClass := burned]
-      out[pixelID %in% annualFires$cells, burnedClass := 2]
-      bigFire1 <- raster(r)
+      out[pixelID %in% annualFires$cell, burnedClass := 2]
+      bigFire1 <- rast(r)
       bigFire1[out$pixelID] <- out$ids
       keepFire <- tail(sort(table(out$ids)), 4)
       setDT(annualFires)
@@ -600,12 +599,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 
         thisFire <- annualFires[ids == keepFire]
 
-        r <- raster(r)
+        r <- rast(r)
         r[out$pixelID] <- out$prob
 
         predictedFireProb <- crop(r, ex)
         # clearPlot();Plot(r)
-        actualFire <- raster(r)
+        actualFire <- rast(r)
         actualFire[out$pixelID] <- out$burnedClass
         actualFire <- crop(actualFire, ex)
         levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
@@ -616,7 +615,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           x = out$burned,
           log = TRUE
         )
-        spreadProbMap <- raster(r)
+        spreadProbMap <- rast(r)
         spreadProbMap[out$pixelID] <- cells[out$pixelID]
         spreadProbMap <- crop(spreadProbMap, ex)
         spreadProbMap[spreadProbMap >= par[1]] <- par[1]
@@ -625,7 +624,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         lowerLim <- quantile(ccc, 0.05)
         ccc <- ccc[ccc > lowerLim]
         spreadProbMap[spreadProbMap <= lowerLim] <- lowerLim
-        predLiklihood <- raster(r)
+        predLiklihood <- rast(r)
         predLiklihood[out$pixelID] <- predictedLiklihood
         predLiklihood <- crop(predLiklihood, ex)
         spIgnits <- SpatialPoints(coords = xyFromCell(r, thisFire$cells))
