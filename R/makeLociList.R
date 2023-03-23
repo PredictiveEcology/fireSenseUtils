@@ -28,7 +28,7 @@ globalVariables(c(
 #' @importFrom sf %>% st_crs st_transform
 makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol = "POLY_HA",
                          sizeColUnits = "ha") {
-  returnCols <- c("size", "date", "ids", "cell")
+  returnCols <- c("size", "date", "ids", "cells")
   keepCols <- c(sizeCol, dateCol, idsCol)
   #pts shoudl already be projected but no harm in forcing..
   pts <- lapply(pts, st_transform, crs = st_crs(ras))
@@ -48,7 +48,6 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
   ma <- match(dtColNames$old, colnames(lociDF))
   lociDF <- lociDF[, .SD, .SDcol = dtColNames$old]
   setnames(lociDF, old = dtColNames$old, new = dtColNames$new)
-  set(lociDF, NULL, setdiff(colnames(lociDF), returnCols), NULL)
   divisor <- switch(sizeColUnits,
     "ha" = 1e4,
     "m2" = 1,
