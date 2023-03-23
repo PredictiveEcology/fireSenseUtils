@@ -463,7 +463,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       maxSizes <- maxSizes[!dups]
       loci <- annualFires$cells[!dups]
     }
-
     spreadState <- lapply(seq_len(Nreps), function(i) {
       SpaDES.tools::spread2(
         landscape = r,
@@ -492,7 +491,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
-      emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialPixels")]
+      #terra update: id not returned by spread2 but I don't believe it is necessary
+      #as there is only 1 row per rep/initial pixel
+      emp <- spreadState[, .N, by = c("rep", "initialPixels")]
+      # emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialPixels")]
       emp <- emp[annualFires, on = c("initialPixels" = "cells")]
       if (plot.it) {
         emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL]
@@ -560,7 +562,9 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
 
     if (isTRUE(doMADTest) || isTRUE(doADTest)) {
-      fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0) # Here tabulate() is equivalent to table() but faster
+      #TODO: ask eliot about this
+      fireSizes <- round(tabulate(spreadState[, .N, .(initialPixels)]$N) / Nreps, 0)
+      # fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0) # Here tabulate() is equivalent to table() but faster
       ret <- append(ret, list(fireSizes = fireSizes))
     }
     if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
