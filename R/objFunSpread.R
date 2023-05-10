@@ -470,7 +470,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         start = loci,
         spreadProb = cells,
         asRaster = FALSE,
-        allowOverlap = FALSE
+        allowOverlap = FALSE,
+        skipChecks = TRUE
       )
     })
     if (isTRUE(plot.it)) {
@@ -491,23 +492,20 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
-      #terra update: id not returned by spread2 but I don't believe it is necessary
-      #as there is only 1 row per rep/initial pixel
-      emp <- spreadState[, .N, by = c("rep", "initialPixels")]
-      # emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialPixels")]
+      emp <- spreadState[, list(N = .N), by = c("rep", "initialPixels")]
       emp <- emp[annualFires, on = c("initialPixels" = "cells")]
       if (plot.it) {
-        emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL]
+        emp <- tableOfBufferedMaps[emp, on = c("initialPixels"), nomatch = NULL]
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
         emp <- setorderv(emp, c("size"), order = -1L)
         numLargest <- 4
         numHists <- 49 - numLargest - length(par) - 12 - 1 # 12 for rasters
-        uniqueEmpIds <- unique(emp$ids)
+        uniqueEmpIds <- unique(emp$initialPixels)
         sam <- if (length(uniqueEmpIds) >= (numHists)) {
           try(c(
             unique(emp$ids)[1:numLargest],
-            sample(unique(emp$ids)[-(1:numLargest)],
-              size = min(length(unique(emp$ids)) - numLargest, numHists)
+            sample(unique(emp$initialPixels)[-(1:numLargest)],
+              size = min(length(unique(emp$initialPixels)) - numLargest, numHists)
             )
           ))
         } else {
@@ -528,7 +526,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
             abline(v = log(size[1]), col = "red")
             abline(v = log(unique(numAvailPixels)), col = "green")
           },
-          by = "ids"
+          by = "initialPixels"
         ]
         mtext(
           outer = TRUE,
@@ -562,9 +560,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
 
     if (isTRUE(doMADTest) || isTRUE(doADTest)) {
-      #TODO: ask eliot about this
-      fireSizes <- round(tabulate(spreadState[, .N, .(initialPixels)]$N) / Nreps, 0)
-      # fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0) # Here tabulate() is equivalent to table() but faster
+      fireSizes <- round(spreadState[, .N, .(initialPixels)][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
       ret <- append(ret, list(fireSizes = fireSizes))
     }
     if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
