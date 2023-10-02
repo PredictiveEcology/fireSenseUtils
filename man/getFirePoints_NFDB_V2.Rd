@@ -7,7 +7,6 @@
 getFirePoints_NFDB_V2(
   url = NULL,
   studyArea = NULL,
-  rasterToMatch = NULL,
   redownloadIn = 1,
   years = 1991:2017,
   fireSizeColName = "SIZE_HA",
@@ -21,9 +20,6 @@ getFirePoints_NFDB_V2(
 \item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
 passed to \code{\link[reproducible]{prepInputs}}.}
 
-\item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
-raster operations (i.e., the one used throughout the simulation).}
-
 \item{redownloadIn}{Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 0.5 would mean "re-download data older than 6 months"}
 
@@ -36,7 +32,7 @@ raster operations (i.e., the one used throughout the simulation).}
 \item{plot}{logical indicating whether to produce plot of fire points. Default FALSE.}
 }
 \value{
-A \code{SpatialPointsDataFrame}.
+A \code{sf} spatial points object.
 }
 \description{
 Get Fire \code{SpatialPoints} from Canadian Fire Database

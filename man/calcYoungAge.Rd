@@ -17,7 +17,7 @@ calcYoungAge(
 
 \item{annualCovariates}{list of data.table objects with pixelID}
 
-\item{standAgeMap}{template raster}
+\item{standAgeMap}{template \code{SpatRaster}}
 
 \item{fireBufferedListDT}{data.table containing non-annual burn and buffer pixelIDs}
 

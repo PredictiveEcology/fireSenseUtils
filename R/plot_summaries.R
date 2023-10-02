@@ -5,9 +5,9 @@ utils::globalVariables(c(
 #' Plot historic ignitions, escapes, and area burned
 #'
 #' @template summary_plots
-#' @param firePolys A `SpatialPolygonsDataFrame` of historic fire burn areas, from the Canadian
+#' @param firePolys A `sf` spatial polygons of historic fire burn areas, from the Canadian
 #'    National Fire Database.
-#' @param ignitionPoints A `SpatialPointsDataFrame` of historic fire ignitions, from the Canadian
+#' @param ignitionPoints A `sf` spatial points of historic fire ignitions, from the Canadian
 #'    National Fire Database.
 #'
 #' @export

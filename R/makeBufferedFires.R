@@ -1,18 +1,18 @@
 utils::globalVariables(c(
-  ".N", "goalSize", "simSize"
+  ".N", "goalSize", "simSize", "pixels"
 ))
 
 #' Create buffers around polygons based on area target for buffer
 #'
-#' @param poly \code{SpatialPolygons} or a list of \code{SpatialPolygons}, containing polygons to buffer.
-#' @param rasterToMatch A \code{RasterLayer} with \code{res}, \code{origin}, \code{extent},
+#' @param poly \code{sf} polygons or a list of \code{sf} containing polygons to buffer.
+#' @param rasterToMatch A \code{SpatRaster} with \code{res}, \code{origin}, \code{extent},
 #'   \code{crs} of desired outputted \code{pixelID} values.
 #' @param areaMultiplier Either a scalar that will buffer \code{areaMultiplier * fireSize} or
 #'   a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.
 #' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 #'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
 #' @param polyName Optional character string of the polygon layer name (not the individual polygons
-#'   on a \code{SpatialPolygons} object)
+#'   on a \code{sf} polygon object)
 #' @param field Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
 #'   then each polygon will have its buffer calculated independently for each unique value
 #'   in \code{field}
@@ -87,17 +87,17 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 
 #' @export
 #' @importFrom data.table data.table rbindlist setorderv
-#' @importFrom fasterize fasterize
+#' @importFrom terra rasterize values
 #' @importFrom sf st_crs st_transform
+#' @importFrom SpaDES.tools spread2
 #' @rdname bufferToArea
 bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
                             verb = FALSE, polyName = NULL, field = NULL,
                             minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- "Layer 1"
   if (as.integer(verb) >= 1) print(paste("Buffering polygons on", polyName))
-  r <- fasterize::fasterize(
-    sf::st_transform(poly, sf::st_crs(rasterToMatch)),
-    raster = rasterToMatch, field = field, ...
+  r <- rasterize(x = sf::st_transform(poly, sf::st_crs(rasterToMatch)),
+                 y = rasterToMatch, field = field, ...
   )
 
   emptyDT <- data.table(pixelID = integer(0), buffer = integer(0), ids = integer(0))
@@ -105,8 +105,9 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   if (all(is.na(r[]))) {
     return(emptyDT)
   }
-  loci <- which(!is.na(r[]))
-  ids <- as.integer(r[loci])
+  rvals <- values(r, mat = FALSE)
+  loci <- which(!is.na(rvals))
+  ids <- as.integer(rvals[loci])
 
   initialDf <- data.table(loci, ids, id = seq(ids))
   am <- if (is(areaMultiplier, "function")) {
@@ -135,11 +136,9 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   while ((length(loci) > 0) & (it <= maxIts)) {
     dups <- duplicated(loci)
     df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq_along(ids[!dups]))
-    r1 <- SpaDES.tools::spread(r,
-      loci = df$loci, iterations = 1,
-      spreadProb = spreadProb, quick = TRUE, returnIndices = TRUE
-    )
-    df <- df[r1, on = "id"]
+    r1 <- SpaDES.tools::spread2(landscape = r, start = df$loci, iterations = 1,
+                                spreadProb = spreadProb, asRaster = FALSE)
+    df <- df[r1, on = c("loci" = "initialPixels")] #TODO: confirm this
     simSizes <- df[, list(simSize = .N), by = "ids"]
     simSizes <- fireSize[simSizes, on = "ids"]
     bigger <- simSizes$simSize > simSizes$goalSize
@@ -149,25 +148,19 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
       names(idsBigger) <- idsBigger
       out1 <- lapply(idsBigger, function(idBig) {
         wh <- which(df$ids %in% idBig)
-        if (as.integer(verb) >= 2) {
-          print(paste(
-            "  Fire id:,", idBig, "finished. Num pixels in buffer:",
-            simSizes[ids == idBig]$goalSize - simSizes[ids == idBig]$actualSize,
-            ", in fire:", simSizes[ids == idBig]$actualSize
-          ))
-        }
-        lastIters <- !df[wh]$active
+        if (as.integer(verb) >= 2) {df}
+        lastIters <- !df[wh]$state == "activeSource"
         needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
         if (needMore > 0) {
           dt <- try(rbindlist(list(
             df[wh][lastIters],
-            df[wh][sample(which(df[wh]$active), needMore)]
+            df[wh][sample(which(df[wh]$state == "activeSource"), needMore)]
           )))
         } else {
           dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
         }
         if (is(dt, "try-error")) browser() # stop("try error here")
-        dtOut <- dt[, list(buffer = 0L, pixelID = indices, ids)]
+        dtOut <- dt[, list(buffer = 0L, pixelID = pixels, ids)]
 
         dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1L]
         dtOut
@@ -179,7 +172,7 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
         simSizes <- simSizes[simSize <= goalSize]
         df <- df[df$ids %in% simSizes$ids]
       }
-      loci <- df$indices
+      loci <- df$pixels
       ids <- df$ids
       it <- it + 1L
     } else {
@@ -217,8 +210,7 @@ multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
 #'
 #' @return a list of data.tables containing indices inside buffered area of each year's ignitions
 #'
-#' @importFrom fasterize fasterize
-#' @importFrom raster buffer raster setValues extract
+#' @importFrom terra buffer rast set.values extract rasterize
 #' @importFrom sf st_as_sf
 #' @export
 #' @rdname bufferIgnitionPoints
@@ -234,11 +226,11 @@ bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
     buffed <- buffer(annIg, bufferSize)
 
     # get rtm indices of ignitions
-    ignitionPix <- raster::extract(rtmIndices, annIg)
+    ignitionPix <- extract(rtmIndices, annIg)
 
     # get rtm indices of buffer
     buffed <- sf::st_as_sf(buffed)
-    buffed <- fasterize(buffed, raster = rtmIndices)
+    buffed <- rasterize(buffed, y = rtmIndices)
     annIndices <- rtmIndices[!is.na(buffed[])]
 
     # make data.table

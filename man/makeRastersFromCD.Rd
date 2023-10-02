@@ -2,7 +2,7 @@
 % Please edit documentation in R/classifyCohorts.R
 \name{makeRastersFromCD}
 \alias{makeRastersFromCD}
-\title{Put \code{cohortData} back into raster with some extra details}
+\title{Put \code{cohortData} back into a \code{SpatRaster} with some extra details}
 \usage{
 makeRastersFromCD(class, cohortData, flammableRTM, pixelGroupMap)
 }
@@ -19,8 +19,8 @@ and \code{sumB}.}
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
 }
 \value{
-a raster
+a SpatRaster
 }
 \description{
-Put \code{cohortData} back into raster with some extra details
+Put \code{cohortData} back into a \code{SpatRaster} with some extra details
 }

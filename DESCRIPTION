@@ -3,7 +3,7 @@ Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 Date: 2023-02-02
-Version: 0.0.5.9042
+Version: 0.0.5.9046
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -22,9 +22,8 @@ Imports:
     DEoptim,
     EnvStats,
     fastDummies,
-    fasterize,
     kSamples,
-    LandR (>= 1.0.0.9002),
+    LandR (>= 1.0.0.9029),
     mclust,
     methods,
     qs,
@@ -38,8 +37,9 @@ Imports:
     RhpcBLASctl,
     sf,
     sp,
-    SpaDES.tools (>= 0.3.7),
+    SpaDES.tools (>= 1.0.2),
     stats,
+    terra,
     utils
 Suggests:
     cowplot,
@@ -56,7 +56,6 @@ Suggests:
     spatialEco,
     spatstat,
     spelling,
-    terra,
     testthat
 Remotes:
     PredictiveEcology/LandR@development,

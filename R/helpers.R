@@ -53,14 +53,14 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
   DT
 }
 
-#' Convert list of annual raster stack to \code{data.table}
+#' Convert list of annual SpatRaster to \code{data.table}
 #'
 #' @param x \code{RasterStack} or list of rasters to convert to \code{data.table}
 #'          and multiply by 1000 to save space
 #' @param whNotNA Pixel indexes that should go through this process (i.e. not NA)
 #' @param ... Not currently used
 #'
-#' @return \code{data.table} of the raster stack or the list
+#' @return \code{data.table} of the SpatRaster or the list
 #' @export
 #' @rdname annualStackToDTx1000
 #'
@@ -103,9 +103,10 @@ annualStackToDTx1000 <- function(x, whNotNA, ...) {
 
 #' @export
 #' @importFrom data.table as.data.table set
+#' @importFrom terra values
 #' @rdname annualStackToDTx1000
-annualStackToDTx1000.RasterLayer <- function(x, whNotNA, ...) {
-  layDT <- as.data.table(x[])[whNotNA]
+annualStackToDTx1000.SpatRaster <- function(x, whNotNA, ...) {
+  layDT <- as.data.table(values(x))[whNotNA]
   layDT <- dtReplaceNAwith0(layDT)
   set(layDT, NULL, 1L, asInteger(layDT[[1L]] * 1000))
   names(layDT) <- names(x)
@@ -153,44 +154,6 @@ annualStackToDTx1000.list <- function(x, whNotNA, ...) {
   return(rastersDT)
 }
 
-#' @export
-#' @importFrom data.table as.data.table set
-#' @importFrom raster stack unstack
-#' @rdname annualStackToDTx1000
-annualStackToDTx1000.RasterStack <- function(x, whNotNA, ...) {
-  annualList <- raster::unstack(x)
-  names(annualList) <- names(x)
-  rastersDT <- annualStackToDTx1000(annualList, whNotNA, ...)
-  # stkName <- names(x)
-  # rastersDT <- lapply(names(x), whNotNA = whNotNA, function(x, whNotNA) {
-  #   if (any(is(x, "list"), is(x, "RasterStack"))) {
-  #     lay <- x[[x]]
-  #   } else {
-  #     stop("x must be either a list or a RasterStack")
-  #   }
-  #   layDT <- as.data.table(lay[])[whNotNA]
-  #   layDT <- dtReplaceNAwith0(layDT)
-  #   names(layDT) <- names(lay)
-  #   return(layDT)
-  # })
-  # lapply(rastersDT, function(x) { # Should be the fitting and predicting
-  #   for (col in colnames(x)) {
-  #     set(x, NULL, col, asInteger(x[[col]]*1000))
-  #     message("Layer ", col, " converted to integer")
-  #   }
-  # })
-  # if (is(x, "RasterStack")) { # Should be the prediction, raster stack
-  #   bindedList <- do.call(cbind, args = rastersDT)
-  #   bindedList <- data.table::data.table(bindedList)
-  #   if (any(duplicated(names(bindedList)))) {
-  #     warning("There are duplicated names in the raster layer. Deleting...",
-  #             immediate. = TRUE)
-  #     bindedList[, `:=`(which(duplicated(names(bindedList))), NULL)]
-  #   }
-  #   rastersDT <- bindedList
-  # }
-  return(rastersDT)
-}
 
 #' Generate random beta variates between 2 values and a mean
 #'

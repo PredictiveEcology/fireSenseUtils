@@ -21,10 +21,10 @@ including SSP, formatted as in `ClimateNA`, using underscores as separator
 
 \item{outputDir}{Path specifying the directory to which outputs figures/objects should be saved.}
 
-\item{firePolys}{A `SpatialPolygonsDataFrame` of historic fire burn areas, from the Canadian
+\item{firePolys}{A `sf` spatial polygons of historic fire burn areas, from the Canadian
 National Fire Database.}
 
-\item{ignitionPoints}{A `SpatialPointsDataFrame` of historic fire ignitions, from the Canadian
+\item{ignitionPoints}{A `sf` spatial points of historic fire ignitions, from the Canadian
 National Fire Database.}
 }
 \value{
