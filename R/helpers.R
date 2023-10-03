@@ -115,6 +115,13 @@ annualStackToDTx1000.SpatRaster <- function(x, whNotNA, ...) {
 }
 
 #' @export
+#' @importFrom
+#' @rdname annualStackToDTx1000
+annualStackToDTx1000.Raster <- function(x, whNotNA, ...) {
+  annualStackToDTx1000(rast(x), whNotNA, ...)
+}
+
+#' @export
 #' @importFrom data.table as.data.table
 #' @rdname annualStackToDTx1000
 annualStackToDTx1000.list <- function(x, whNotNA, ...) {

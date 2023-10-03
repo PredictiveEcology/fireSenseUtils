@@ -3,12 +3,15 @@
 \name{annualStackToDTx1000}
 \alias{annualStackToDTx1000}
 \alias{annualStackToDTx1000.SpatRaster}
+\alias{annualStackToDTx1000.Raster}
 \alias{annualStackToDTx1000.list}
 \title{Convert list of annual SpatRaster to \code{data.table}}
 \usage{
 annualStackToDTx1000(x, whNotNA, ...)
 
 \method{annualStackToDTx1000}{SpatRaster}(x, whNotNA, ...)
+
+\method{annualStackToDTx1000}{Raster}(x, whNotNA, ...)
 
 \method{annualStackToDTx1000}{list}(x, whNotNA, ...)
 }
