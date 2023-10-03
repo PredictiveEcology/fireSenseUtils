@@ -1,6 +1,6 @@
 utils::globalVariables(c(
-  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N", "numAvailPixels",
-  "pixelID", "prob", "simFireSize", "size", "spreadProb"
+  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "initialPixels",
+  "N", "numAvailPixels", "pixelID", "prob", "simFireSize", "size", "spreadProb"
 ))
 
 #' Objective function for \code{fireSense_spreadFit} module

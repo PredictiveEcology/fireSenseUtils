@@ -229,15 +229,15 @@ runDEoptim <- function(landscape,
     stMoveObjects <- try({
       system.time({
         objsToCopy <- mget(unlist(objsNeeded))
-        objsToCopy <- lapply(objsToCopy, FUN = function(x){
-          if (inherits(x, "SpatRaster")){
+        objsToCopy <- lapply(objsToCopy, FUN = function(x) {
+          if (inherits(x, "SpatRaster")) {
             x <- terra::wrap(x)
           } else {
             x
           }
           x
         })
-        filenameForTransfer <- normPath(tempfile(fileext = ".qs"))
+        filenameForTransfer <- Require::normPath(tempfile(fileext = ".qs"))
         Require::checkPath(dirname(filenameForTransfer), create = TRUE) # during development, this was deleted accidentally
         qs::qsave(objsToCopy, file = filenameForTransfer)
         stExport <- system.time({
@@ -251,7 +251,7 @@ runDEoptim <- function(landscape,
         })
         out <- clusterEvalQ(cl, {
           out <- qs::qread(file = filenameForTransfer)
-          out <- lapply(out, FUN = function(x){
+          out <- lapply(out, FUN = function(x) {
             if (inherits(x, "PackedSpatRaster")){
               x <- terra::unwrap(x)
             } else {
