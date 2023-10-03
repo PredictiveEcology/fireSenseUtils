@@ -2,8 +2,8 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2023-02-02
-Version: 0.0.5.9046
+Date: 2023-10-02
+Version: 0.0.5.9047
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -23,21 +23,21 @@ Imports:
     EnvStats,
     fastDummies,
     kSamples,
-    LandR (>= 1.0.0.9029),
+    LandR (>= 1.1.0.9066),
     mclust,
     methods,
     qs,
     quickPlot,
     parallelly,
-    pemisc (>= 0.0.3.9004),
+    pemisc (>= 0.0.4.9011),
     pROC,
     purrr,
     raster,
-    reproducible (>= 1.2.16.9018),
+    reproducible (>= 2.0.8),
     RhpcBLASctl,
     sf,
     sp,
-    SpaDES.tools (>= 1.0.2),
+    SpaDES.tools (>= 2.0.4),
     stats,
     terra,
     utils
@@ -50,7 +50,7 @@ Suggests:
     PtProcess,
     rasterVis,
     RColorBrewer,
-    Require (>= 0.1.0.9000),
+    Require (>= 0.3.1),
     rmarkdown,
     SpaDES.core,
     spatialEco,
@@ -58,7 +58,7 @@ Suggests:
     spelling,
     testthat
 Remotes:
-    PredictiveEcology/LandR@development,
+    PredictiveEcology/LandR@terra-migration,
     PredictiveEcology/pemisc@development,
     PredictiveEcology/SpaDES.core@development,
     PredictiveEcology/SpaDES.tools@development,
