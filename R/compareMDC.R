@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #' @export
 #' @importFrom data.table data.table rbindlist
 #' @importFrom stats median
-#' @importFrom raster ncell nlayers getValues
+#' @importFrom terra ncell nlyr rast values
 #'
 #' @examples
 #' \dontrun{
@@ -27,15 +27,27 @@ utils::globalVariables(c(
 #' }
 compareMDC <- function(historicalMDC, projectedMDC, flammableRTM = NULL, Ylimits = c(80, 220),
                        firstHistoricalYear = 2001, firstProjectedYear = 2011) {
+  if (is(historicalMDC, "Raster")) {
+    historicalMDC <- rast(historicalMDC)
+  }
+
+  if (is(projectedMDC, "Raster")) {
+    projectedMDC <- rast(projectedMDC)
+  }
+
+  if (is(flammableRTM, "Raster")) {
+    flammableRTM <- rast(flammableRTM)
+  }
+
   if (requireNamespace("ggplot2", quietly = TRUE)) {
     valfun <- function(x, flamMap = NULL) {
-      years <- 1:nlayers(x)
+      years <- 1:nlyr(x)
       if (!is.null(flamMap)) {
-        isFlam <- getValues(flamMap)
+        isFlam <- as.vector(values(flamMap))
         flamMap <- c(1:ncell(flamMap))[!is.na(isFlam) & isFlam > 0]
       }
       medVal <- lapply(years, FUN = function(year, index = flamMap) {
-        dt <- data.table("year" = year, "MDC" = getValues(x[[year]]))
+        dt <- data.table("year" = year, "MDC" = as.vector(values(x[[year]])))
         if (!is.null(index)) {
           dt <- dt[index]
         }
