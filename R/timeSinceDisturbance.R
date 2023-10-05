@@ -4,14 +4,14 @@ utils::globalVariables(c(
 #' preparing a time since disturbance map from stand age and fire data
 #'
 #' @param standAgeMap initial stand age map
-#' @param firePolys list of \code{spatialPolygon} objects comprising annual fires.
+#' @param firePolys list of `spatialPolygon` objects comprising annual fires.
 #' fireRaster will supersede firePolys if provided
-#' @param fireRaster a \code{RasterLayer} with values representing fire years
-#' @param year the year represented by \code{standAge}
-#' @param lcc \code{data.table} with landcover values - \code{landcoverDT}
+#' @param fireRaster a `RasterLayer` with values representing fire years
+#' @param year the year represented by `standAge`
+#' @param lcc `data.table` with landcover values - `landcoverDT`
 #' @inheritParams castCohortData
 #'
-#' @return a \code{SpatRaster} with values representing time since disturbance
+#' @return a `SpatRaster` with values representing time since disturbance
 #'
 #' @export
 #' @importFrom data.table data.table
@@ -61,9 +61,9 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   return(standAgeMap)
 }
 
-#' Iteratively calculate \code{youngAge} column  in FS covariates
+#' Iteratively calculate `youngAge` column  in FS covariates
 #'
-#' @param standAgeMap template \code{SpatRaster}
+#' @param standAgeMap template `SpatRaster`
 #' @param years the years over which to iterate
 #' @param fireBufferedListDT data.table containing non-annual burn and buffer pixelIDs
 #' @param annualCovariates list of data.table objects with pixelID

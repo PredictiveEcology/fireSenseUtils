@@ -3,20 +3,20 @@ utils::globalVariables(c(
 ))
 
 #' this is a wrapper to simplify caching of lapply with bufferForFireRaster.
-#' Years are iteratively processed by \code{makeFireID}.
+#' Years are iteratively processed by `makeFireID`.
 #' @param years numeric fire years
-#' @param fireRaster a \code{SpatRaster} with values representing fire years
+#' @param fireRaster a `SpatRaster` with values representing fire years
 #' @template flammableRTM
 #' @param bufferForFireRaster buffer size used to group discrete patches of burned pixels as
 #' belonging to the same fire
-#' @param areaMultiplier A scalar that will buffer \code{areaMultiplier * fireSize}
-#' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
-#'  \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
+#' @param areaMultiplier A scalar that will buffer `areaMultiplier * fireSize`
+#' @param verb Logical or numeric related to how much verbosity is printed. `FALSE` or
+#'  `0` is none. `TRUE` or `1` is some. `2` is much more.
 #' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
-#'   be imposed after \code{areaMultiplier}.
+#'   be imposed after `areaMultiplier`.
 #' @param cores number of processor cores to use
-#' @return a list of data.table named by year, with cols \code{ids}, \code{buffer},
-#' and \code{pixelID}
+#' @return a list of data.table named by year, with cols `ids`, `buffer`,
+#' and `pixelID`
 #' @export
 #' @importFrom parallelly availableCores
 rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRaster, areaMultiplier,
@@ -39,15 +39,15 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
 
 #' identify each year's individual fires and buffer them accordingly
 #' @param year numeric fire year
-#' @param fireRaster a \code{SpatRaster} with values representing fire years
+#' @param fireRaster a `SpatRaster` with values representing fire years
 #' @template flammableRTM
 #' @param bufferForFireRaster buffer size used to group discrete patches of burned pixels as
 #' belonging to the same fire
-#' @param areaMultiplier A scalar that will buffer \code{areaMultiplier * fireSize}
-#' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
-#'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
+#' @param areaMultiplier A scalar that will buffer `areaMultiplier * fireSize`
+#' @param verb Logical or numeric related to how much verbosity is printed. `FALSE` or
+#'   `0` is none. `TRUE` or `1` is some. `2` is much more.
 #' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
-#'   be imposed after \code{areaMultiplier}.
+#'   be imposed after `areaMultiplier`.
 #' @return a data.table with fire ID, buffer status, and pixelID
 #' @export
 #' @importFrom data.table rbindlist data.table set setcolorder
@@ -82,13 +82,13 @@ makeFireIDs <- function(year, fireRaster, flammableRTM, bufferForFireRaster, are
 }
 
 #' create a variable sized buffer around a set of pixels belonging to the same fire ID
-#' @param fireIDraster a \code{SpatRaster} with values representing distinct fires in a year
+#' @param fireIDraster a `SpatRaster` with values representing distinct fires in a year
 #' @param flammableRTM @template flammableRTM
-#' @param areaMultiplier A scalar that will buffer \code{areaMultiplier * fireSize}
+#' @param areaMultiplier A scalar that will buffer `areaMultiplier * fireSize`
 #' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
-#'   be imposed after \code{areaMultiplier}.
-#' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
-#'  \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
+#'   be imposed after `areaMultiplier`.
+#' @param verb Logical or numeric related to how much verbosity is printed. `FALSE` or
+#'  `0` is none. `TRUE` or `1` is some. `2` is much more.
 #' @return a data.table with fire ID, buffer status, and pixelID
 #' @export
 #' @importFrom data.table rbindlist data.table set setnames
@@ -191,10 +191,10 @@ bufferToAreaRast <- function(fireIDraster, areaMultiplier, minSize, flammableRTM
 }
 
 #' create a list of annual ignition points based on fire raster
-#' @param fireBufferDT a \code{data.table} with columns \code{buffer} (1 = burned),
-#' \code{id} (unique fire ID), and \code{pixelID}
+#' @param fireBufferDT a `data.table` with columns `buffer` (1 = burned),
+#' `id` (unique fire ID), and `pixelID`
 #' @param flammableRTM @template flammableRTM
-#' @return a list of \code{sf} point objects
+#' @return a list of `sf` point objects
 #' @export
 #' @importFrom data.table rbindlist data.table set
 #' @importFrom terra xyFromCell rast res

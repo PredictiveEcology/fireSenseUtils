@@ -5,7 +5,7 @@ globalVariables(c(
 #' Create landcoverDT object to classify and track non-forest lcc
 #' @param rstLCC landcover raster
 #' @template flammableRTM
-#' @param forestedLCC vector of values representing forested landcover classes in \code{rstLCC}
+#' @param forestedLCC vector of values representing forested landcover classes in `rstLCC`
 #' @param nonForestedLCCGroups a named list of non-forested flammable landcover groups
 #' @return a data.table with columns for pixelID and binary presence of landcover
 #'

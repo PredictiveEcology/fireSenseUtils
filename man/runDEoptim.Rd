@@ -69,7 +69,7 @@ All covariates must be integers, and must be 1000x their actual values.}
 
 \item{nonAnnualDTx1000}{A list of data.table objects. Each list element must be named
 with a concatenated sequence of names from \code{names(annualDTx1000)},
-e.g., \code{1991_1992_1993}.
+e.g., \verb{1991_1992_1993}.
 It should contain all the years in \code{names(annualDTx1000)}.
 All covariates must be integers, and must be 1000x their actual values.}
 

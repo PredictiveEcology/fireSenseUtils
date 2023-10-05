@@ -94,7 +94,7 @@ hyperthreaded cores here, internally will speed things up (i.e., this maybe coul
 \item{lanscape1stQuantileThresh}{A \code{spreadProb} value that represents a threshold for the
 1st quantile of the \code{spreadProbs} on the landscape; if that quantile is above this
 number, then the \code{.objFunSpredFit} will bail because it is "too burny" a landscape.
-Default = \code{0.265}, meaning if only 25% of the pixels on the landscape are below
+Default = \code{0.265}, meaning if only 25\% of the pixels on the landscape are below
 this \code{spreadProb}, then it will bail.}
 
 \item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.

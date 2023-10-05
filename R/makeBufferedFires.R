@@ -4,27 +4,27 @@ utils::globalVariables(c(
 
 #' Create buffers around polygons based on area target for buffer
 #'
-#' @param poly \code{sf} polygons or a list of \code{sf} containing polygons to buffer.
-#' @param rasterToMatch A \code{SpatRaster} with \code{res}, \code{origin}, \code{extent},
-#'   \code{crs} of desired outputted \code{pixelID} values.
-#' @param areaMultiplier Either a scalar that will buffer \code{areaMultiplier * fireSize} or
-#'   a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.
-#' @param verb Logical or numeric related to how much verbosity is printed. \code{FALSE} or
-#'   \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.
+#' @param poly `sf` polygons or a list of `sf` containing polygons to buffer.
+#' @param rasterToMatch A `SpatRaster` with `res`, `origin`, `extent`,
+#'   `crs` of desired outputted `pixelID` values.
+#' @param areaMultiplier Either a scalar that will buffer `areaMultiplier * fireSize` or
+#'   a function of `fireSize.` Default is 1. See [multiplier()] for an example.
+#' @param verb Logical or numeric related to how much verbosity is printed. `FALSE` or
+#'   `0` is none. `TRUE` or `1` is some. `2` is much more.
 #' @param polyName Optional character string of the polygon layer name (not the individual polygons
-#'   on a \code{sf} polygon object)
-#' @param field Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
+#'   on a `sf` polygon object)
+#' @param field Passed to `fasterize::fasterize`. If this is unique (such as polygon id),
 #'   then each polygon will have its buffer calculated independently for each unique value
-#'   in \code{field}
+#'   in `field`
 #' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
-#'   be imposed after \code{areaMultiplier}.
+#'   be imposed after `areaMultiplier`.
 #' @param cores number of processor cores to use
-#' @param ... passed to \code{fasterize::fasterize}
+#' @param ... passed to `fasterize::fasterize`
 #'
 #' @return
-#' A \code{data.table} (or list of \code{data.table}s if \code{poly} was a list) with 2 columns:
-#' \code{buffer} and \code{pixelID}. \code{buffer} is either \code{1} (the original polygon) or
-#' \code{0} (in the buffer).
+#' A `data.table` (or list of `data.table`s if `poly` was a list) with 2 columns:
+#' `buffer` and `pixelID`. `buffer` is either `1` (the original polygon) or
+#' `0` (in the buffer).
 #'
 #' @export
 #' @rdname bufferToArea

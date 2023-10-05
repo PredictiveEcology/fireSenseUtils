@@ -14,17 +14,17 @@ plotHistoricFires(
 }
 \arguments{
 \item{climateScenario}{character string specifying the name of a CIMP6 climate scenario,
-including SSP, formatted as in `ClimateNA`, using underscores as separator
+including SSP, formatted as in \code{ClimateNA}, using underscores as separator
 (e.g., 'CanESM5_SSP370').}
 
 \item{studyAreaName}{character string giving the study area name}
 
 \item{outputDir}{Path specifying the directory to which outputs figures/objects should be saved.}
 
-\item{firePolys}{A `sf` spatial polygons of historic fire burn areas, from the Canadian
+\item{firePolys}{A \code{sf} spatial polygons of historic fire burn areas, from the Canadian
 National Fire Database.}
 
-\item{ignitionPoints}{A `sf` spatial points of historic fire ignitions, from the Canadian
+\item{ignitionPoints}{A \code{sf} spatial points of historic fire ignitions, from the Canadian
 National Fire Database.}
 }
 \value{

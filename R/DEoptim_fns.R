@@ -2,30 +2,30 @@ utils::globalVariables(c(
   ".BY", ".SD", "pars"
 ))
 
-#' Wrapper around \code{DEoptim} call
+#' Wrapper around `DEoptim` call
 #'
 #' Does the multiple cluster connections. This will only work if
 #' ssh keys are correctly made between machines (if using multiple machines).
 #'
-#' @param landscape A \code{RasterLayer} which has the correct metadata associated with
-#'   the \code{pixelID} and cells of other objects in this function call
+#' @param landscape A `RasterLayer` which has the correct metadata associated with
+#'   the `pixelID` and cells of other objects in this function call
 #' @param annualDTx1000 A list of data.table objects. Each list element will be from 1
-#'   year, and it must be the same length as \code{fireBufferedListDT} and \code{historicalFires}.
+#'   year, and it must be the same length as `fireBufferedListDT` and `historicalFires`.
 #'   All covariates must be integers, and must be 1000x their actual values.
 #' @param nonAnnualDTx1000 A list of data.table objects. Each list element must be named
-#'   with a concatenated sequence of names from \code{names(annualDTx1000)},
-#'   e.g., \code{1991_1992_1993}.
-#'   It should contain all the years in \code{names(annualDTx1000)}.
+#'   with a concatenated sequence of names from `names(annualDTx1000)`,
+#'   e.g., `1991_1992_1993`.
+#'   It should contain all the years in `names(annualDTx1000)`.
 #'   All covariates must be integers, and must be 1000x their actual values.
 #' @param fireBufferedListDT A list of data.table objects. It must be same length as
-#'   \code{annualDTx1000}, with same names. Each element is a \code{data.table} with columns:
-#'   \code{buff}...TODO: INCOMPLETE
+#'   `annualDTx1000`, with same names. Each element is a `data.table` with columns:
+#'   `buff`...TODO: INCOMPLETE
 #' @param historicalFires DESCRIPTION NEEDED
-#' @param itermax Passed to \code{DEoptim.control}
+#' @param itermax Passed to `DEoptim.control`
 #' @param initialpop DESCRIPTION NEEDED
 #' @param NP DESCRIPTION NEEDED
-#' @param trace Passed to \code{DEoptim.control}
-#' @param strategy Passed to \code{DEoptim.control}
+#' @param trace Passed to `DEoptim.control`
+#' @param strategy Passed to `DEoptim.control`
 #' @param cores A numeric (for running on localhost only) or a character vector of
 #'   machine names (including possibly "localhost"), where
 #'   the length of the vector indicates how many cores should be used on that machine.
@@ -33,28 +33,28 @@ utils::globalVariables(c(
 #'   location must exist on each machine, though the function will make sure it
 #'   does internally.
 #' @param logPath A character string indicating what file to write logs to. This
-#'   \code{dirname(logPath)} must exist on each machine, though the function will make sure it
+#'   `dirname(logPath)` must exist on each machine, though the function will make sure it
 #'   does internally.
 #' @param doObjFunAssertions logical indicating whether to do assertions.
-#' @param cachePath The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}
-#' @param iterStep Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
-#'   the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
+#' @param cachePath The `cachePath` to store cache in. Should likely be `cachePath(sim)`
+#' @param iterStep Integer. Must be less than `itermax`. This will cause `DEoptim` to run
+#'   the `itermax` iterations in `ceiling(itermax / iterStep)` steps. At the end of
 #'   each step, this function will plot, optionally, the parameter histograms (if
-#'   \code{visualizeDEoptim} is \code{TRUE})
-#' @param lower Passed to \code{DEoptim}
-#' @param upper Passed to \code{DEoptim}
+#'   `visualizeDEoptim` is `TRUE`)
+#' @param lower Passed to `DEoptim`
+#' @param upper Passed to `DEoptim`
 #' @template mutuallyExclusive
-#' @param FS_formula Passed to \code{DEoptim}
+#' @param FS_formula Passed to `DEoptim`
 #' @param objFunCoresInternal DESCRIPTION NEEDED
-#' @param covMinMax Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param tests Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param maxFireSpread Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param Nreps Passed to \code{fireSenseUtils::.objfunSpreadFit}
+#' @param covMinMax Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param tests Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param maxFireSpread Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param Nreps Passed to `fireSenseUtils::.objfunSpreadFit`
 #' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
-#' @param .verbose Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param visualizeDEoptim Logical. If \code{TRUE}, then histograms will be made of
-#'   \code{DEoptim} outputs.
-#' @param .plotSize List specifying plot \code{height} and \code{width}, in pixels.
+#' @param .verbose Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of
+#'   `DEoptim` outputs.
+#' @param .plotSize List specifying plot `height` and `width`, in pixels.
 #'
 #' @return DESCRIPTION NEEDED
 #'
@@ -325,11 +325,11 @@ runDEoptim <- function(landscape,
   DE
 }
 
-#' Make histograms of \code{DEoptim} object \code{pars}
+#' Make histograms of `DEoptim` object `pars`
 #'
-#' @param DE An object from a \code{DEoptim} call
-#' @param cachePath A \code{cacheRepo} to pass to \code{showCache} and
-#'        \code{loadFromCache} if \code{DE} is missing.
+#' @param DE An object from a `DEoptim` call
+#' @param cachePath A `cacheRepo` to pass to `showCache` and
+#'        `loadFromCache` if `DE` is missing.
 #'
 #' @export
 #' @importFrom data.table as.data.table

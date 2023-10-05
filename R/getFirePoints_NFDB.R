@@ -1,15 +1,15 @@
-#' Get Fire \code{SpatialPoints} from Canadian Fire Database
+#' Get Fire `SpatialPoints` from Canadian Fire Database
 #'
-#' @param url Passed to \code{prepInputs}
+#' @param url Passed to `prepInputs`
 #' @template studyArea
 #' @template rasterToMatch
 #' @param redownloadIn Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 #'   0.5 would mean "redownload data older than 6 months"
 #' @param years Numeric vector of consecutive years to fetch.
 #' @param fireSizeColName Character describing the name of the column containing fire size information.
-#' @param NFDB_pointPath Passed to \code{destinationPath} in \code{prepInputs}
+#' @param NFDB_pointPath Passed to `destinationPath` in `prepInputs`
 #'
-#' @return A \code{sf} spatial points object.
+#' @return A `sf` spatial points object.
 #'
 #' @export
 #' @importFrom terra res
@@ -89,18 +89,18 @@ getFirePoints_NFDB <- function(url = NULL,
   return(firePoints)
 }
 
-#' Get Fire \code{SpatialPoints} from Canadian Fire Database
+#' Get Fire `SpatialPoints` from Canadian Fire Database
 #'
-#' @param url Passed to \code{prepInputs}
+#' @param url Passed to `prepInputs`
 #' @template studyArea
 #' @param redownloadIn Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 #'   0.5 would mean "re-download data older than 6 months"
 #' @param years Numeric vector of consecutive years to fetch.
 #' @param fireSizeColName Character describing the name of the column containing fire size information.
-#' @param NFDB_pointPath Passed to \code{destinationPath} in \code{prepInputs}
+#' @param NFDB_pointPath Passed to `destinationPath` in `prepInputs`
 #' @param plot logical indicating whether to produce plot of fire points. Default FALSE.
 #'
-#' @return A \code{sf} spatial points object.
+#' @return A `sf` spatial points object.
 #'
 #' @export
 #' @importFrom crayon green yellow

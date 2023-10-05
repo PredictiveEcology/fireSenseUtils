@@ -62,7 +62,7 @@ bufferToArea(
 \code{crs} of desired outputted \code{pixelID} values.}
 
 \item{areaMultiplier}{Either a scalar that will buffer \code{areaMultiplier * fireSize} or
-a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.}
+a function of \code{fireSize.} Default is 1. See \code{\link[=multiplier]{multiplier()}} for an example.}
 
 \item{verb}{Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}

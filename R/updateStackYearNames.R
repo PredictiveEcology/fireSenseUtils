@@ -1,6 +1,6 @@
 #' Update name of layers in a climate raster stack
 #'
-#' @param annualDataStack \code{RasterStack}
+#' @param annualDataStack `RasterStack`
 #' @param desiredYears character
 #'
 #' @export

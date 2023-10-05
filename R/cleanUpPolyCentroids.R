@@ -6,19 +6,19 @@ utils::globalVariables(c(
 #'
 #' Mostly this is about 2 things:
 #' 1. remove fires that were so small that they take less than 1 pixel so they are
-#' not in the \code{buff} object but are in the \code{cent} object.
+#' not in the `buff` object but are in the `cent` object.
 #' 2. the centroid cell is in a buffer or otherwise nonburnable cell (e.g., water).
 #' For 1) remove these from the centroid data.
 #' For 2) this function will search in the neighbourhood for the next closest pixel
 #' that has at least 7 available neighbours that can burn. If not, remove these.
 #'
-#' @param cent List of points as \code{SpatialPointsDataFrame}
+#' @param cent List of points as `SpatialPointsDataFrame`
 #' @param idCol The column name as a character string with the fire ids.
-#'   Defaults to \code{"FIRE_ID"}.
-#' @param buff List of \code{data.table} objects with 3 columns, "buffer" which is 1 (in the fire)
-#'   or 0 (in a buffer), \code{ids} which are the fire ids which MUST match the ids
-#'   in the \code{cent}.
-#' @param ras The raster that created the \code{pixelIDs} in the \code{buff}.
+#'   Defaults to `"FIRE_ID"`.
+#' @param buff List of `data.table` objects with 3 columns, "buffer" which is 1 (in the fire)
+#'   or 0 (in a buffer), `ids` which are the fire ids which MUST match the ids
+#'   in the `cent`.
+#' @param ras The raster that created the `pixelIDs` in the `buff`.
 #'
 #' @export
 #' @importFrom data.table as.data.table data.table setkeyv set

@@ -3,20 +3,20 @@ globalVariables(c(
   "totalBiomass", "NspeciesWithMaxB"
 ))
 
-#' Classify \code{pixelGroups} by flammability
+#' Classify `pixelGroups` by flammability
 #'
 #' @template cohortData
 #' @template pixelGroupMap
 #' @template sppEquiv
 #' @template sppEquivCol
-#' @param yearCohort the year the \code{cohortData} represents
+#' @param yearCohort the year the `cohortData` represents
 #' @param landcoverDT optional table of nonforest landcovers and pixel indices. It will override
-#' pixel values in \code{cohortData}, if supplied.
+#' pixel values in `cohortData`, if supplied.
 #' @template flammableRTM
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #' @param fuelClassCol the column in sppEquiv that describes unique fuel classes
 #'
-#' @return a terra SpatRaster of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
+#' @return a terra SpatRaster of fuel classes defined by leading species and `sppEquiv$fuelClass`
 #'
 #' @export
 #' @importFrom data.table copy setkey
@@ -79,9 +79,9 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   return(classList)
 }
 
-#' Put \code{cohortData} back into a \code{SpatRaster} with some extra details
+#' Put `cohortData` back into a `SpatRaster` with some extra details
 #'
-#' @param class fuelClass from  \code{sppEquiv}
+#' @param class fuelClass from  `sppEquiv`
 #' @template flammableRTM
 #' @template pixelGroupMap
 #' @template cohortData

@@ -2,11 +2,11 @@ globalVariables(c(
   "geometry", "dists", "isFlammable"
 ))
 #' Ensure fire points are located on flammable pixels inside a fire polygon
-#' Intended to be run using \code{Map}
+#' Intended to be run using `Map`
 #'
-#' @param firePoints a \code{sf} points object representing annual ignitions
+#' @param firePoints a `sf` points object representing annual ignitions
 #' @template flammableRTM
-#' @param bufferDT a data.table of burned cells, output from \code{bufferToArea}
+#' @param bufferDT a data.table of burned cells, output from `bufferToArea`
 #' @return a list of harmonized points and polygons
 #' @importFrom SpaDES.tools distanceFromEachPoint
 #' @importFrom data.table data.table as.data.table

@@ -31,7 +31,7 @@ logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par4
 }
 
-#' Replace \code{NA}s in a \code{data.table} with zeros
+#' Replace `NA`s in a `data.table` with zeros
 #'
 #' @param DT DESCRIPTION NEEDED
 #' @param colsToUse DESCRIPTION NEEDED
@@ -53,14 +53,14 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
   DT
 }
 
-#' Convert list of annual SpatRaster to \code{data.table}
+#' Convert list of annual SpatRaster to `data.table`
 #'
-#' @param x \code{RasterStack} or list of rasters to convert to \code{data.table}
+#' @param x `RasterStack` or list of rasters to convert to `data.table`
 #'          and multiply by 1000 to save space
 #' @param whNotNA Pixel indexes that should go through this process (i.e. not NA)
 #' @param ... Not currently used
 #'
-#' @return \code{data.table} of the SpatRaster or the list
+#' @return `data.table` of the SpatRaster or the list
 #' @export
 #' @rdname annualStackToDTx1000
 #'
@@ -115,7 +115,6 @@ annualStackToDTx1000.SpatRaster <- function(x, whNotNA, ...) {
 }
 
 #' @export
-#' @importFrom
 #' @rdname annualStackToDTx1000
 annualStackToDTx1000.Raster <- function(x, whNotNA, ...) {
   annualStackToDTx1000(rast(x), whNotNA, ...)
@@ -166,7 +165,7 @@ annualStackToDTx1000.list <- function(x, whNotNA, ...) {
 #'
 #' @inheritParams stats::Beta
 #' @param shape1 non-negative parameter of the Beta distribution
-#' @param shape2 If provided, passed to \code{rbeta}. If not, \code{m} must be (i.e., the mean)
+#' @param shape2 If provided, passed to `rbeta`. If not, `m` must be (i.e., the mean)
 #' @param l scalar numeric for the lower bound
 #' @param u scalar numeric for the upper bound
 #' @param m scalar numeric for the mean

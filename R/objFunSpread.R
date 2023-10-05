@@ -3,7 +3,7 @@ utils::globalVariables(c(
   "N", "numAvailPixels", "pixelID", "prob", "simFireSize", "size", "spreadProb"
 ))
 
-#' Objective function for \code{fireSense_spreadFit} module
+#' Objective function for `fireSense_spreadFit` module
 #'
 #' @param par parameters
 #' @param landscape A SpatRaster with extent, res, proj used for SpaDES.tools::spread2
@@ -11,12 +11,12 @@ utils::globalVariables(c(
 #'   data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
 #'   year. The columns in the data.table must integers, that are 1000x their actual values as
 #'   this function will divide by 1000.
-#' @param nonAnnualDTx1000 Like \code{annualDTx1000}, but with where each list element will be
+#' @param nonAnnualDTx1000 Like `annualDTx1000`, but with where each list element will be
 #'   used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_yearzzzz" where the
 #'   xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
 #'   The columns are variables that are used for more than 1 year.
-#' @param FS_formula Formula, put provided as a character string, not class \code{formula}.
-#'   (if it is provided as a class \code{formula}, then it invariably will have an
+#' @param FS_formula Formula, put provided as a character string, not class `formula`.
+#'   (if it is provided as a class `formula`, then it invariably will have an
 #'   enormous amount of data hidden in the formula environment; this is bad for DEoptim)
 #' @param historicalFires DESCRIPTION NEEDED
 #' @param fireBufferedListDT DESCRIPTION NEEDED
@@ -25,41 +25,41 @@ utils::globalVariables(c(
 #'   be used to rescale the covariates internally so that they are all between 0 and 1. It is important
 #'   to not simply rescale internally here because only 1 year is run at a time; all years
 #'   must be rescaled for a given covariate by the same amount.
-#' @param maxFireSpread A value for \code{spreadProb} that is considered impossible to go above.
+#' @param maxFireSpread A value for `spreadProb` that is considered impossible to go above.
 #'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
 #' @param minFireSize DESCRIPTION NEEDED
 #' @template mutuallyExclusive
-#' @param doAssertions Logical. If \code{TRUE}, the default, the function will test a few minor things
-#'   for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
+#' @param doAssertions Logical. If `TRUE`, the default, the function will test a few minor things
+#'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
-#' @param tests One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
-#'              Default: \code{"mad"}.
+#' @param tests One or more of `"mad"`, `"adTest"`, `"SNLL"`, or `"SNLL_FS"`.
+#'              Default: `"mad"`.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #' @param plot.it DESCRIPTION NEEDED
-#' @param objFunCoresInternal Internally, this function can use \code{mcmapply} to run multiple
-#'   parallel \code{spread} function calls. This should only be >1L if there are spare threads.
-#'   It is highly likely that there won't be. However, sometimes the \code{DEoptim} is
+#' @param objFunCoresInternal Internally, this function can use `mcmapply` to run multiple
+#'   parallel `spread` function calls. This should only be >1L if there are spare threads.
+#'   It is highly likely that there won't be. However, sometimes the `DEoptim` is
 #'   particularly inefficient, it starts X cores, and immediately several of them are
 #'   stopped inside this function because the parameters are so bad, only 2 year are attempted.
-#'   Then the core will stay idle until all other cores for the \code{DEoptim} iteration are complete.
-#'   Similarly, if only physical cores are used for \code{DEoptim}, the additional use of
+#'   Then the core will stay idle until all other cores for the `DEoptim` iteration are complete.
+#'   Similarly, if only physical cores are used for `DEoptim`, the additional use of
 #'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).
 #' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
 #'   Lowering the threshold value will be more restrictive, but being too restrictive will result
-#'   in \code{DEoptim} rejecting more tests and using the "fail value" of 10000.
+#'   in `DEoptim` rejecting more tests and using the "fail value" of 10000.
 #'   Too high a threshold, and more years will be run and it will take longer to find values.
-#' @param lanscape1stQuantileThresh A \code{spreadProb} value that represents a threshold for the
-#'   1st quantile of the \code{spreadProbs} on the landscape; if that quantile is above this
-#'   number, then the \code{.objFunSpredFit} will bail because it is "too burny" a landscape.
-#'   Default = \code{0.265}, meaning if only 25% of the pixels on the landscape are below
-#'   this \code{spreadProb}, then it will bail.
+#' @param lanscape1stQuantileThresh A `spreadProb` value that represents a threshold for the
+#'   1st quantile of the `spreadProbs` on the landscape; if that quantile is above this
+#'   number, then the `.objFunSpredFit` will bail because it is "too burny" a landscape.
+#'   Default = `0.265`, meaning if only 25% of the pixels on the landscape are below
+#'   this `spreadProb`, then it will bail.
 #' @param weighted Logical. Should empirical likelihood be weighted by log of the actual fire size?
 #'    This will give large fires more influence on the SNLL.
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return
 #' Attempting a weighted likelihood,
-#' \url{https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation}.
+#' <https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation>.
 #' With log(fireSize) * likelihood for each fire.
 #'
 #' @export

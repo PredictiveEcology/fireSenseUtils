@@ -1,25 +1,25 @@
 globalVariables(c(
 "cell"
 ))
-#' Convert a list of \code{SpatialPointsDataFrame} object to a list of \code{data.table} objects
+#' Convert a list of `SpatialPointsDataFrame` object to a list of `data.table` objects
 #'
 #' Must supply a raster so that points can be converted to the cells on a raster.
-#' It is assumed that the \code{sizeCol} is accurate.
+#' It is assumed that the `sizeCol` is accurate.
 #' If not, it should be recalculated before this function call.
 #'
 #' @param ras A raster that will be the template for cells (pixel ids)
-#' @param pts A list of \code{sf} point objects
-#' @param idsCol Character string identifying column name in \code{pts} that has unique
+#' @param pts A list of `sf` point objects
+#' @param idsCol Character string identifying column name in `pts` that has unique
 #'   id per event (i.e., fire)
-#' @param dateCol Character string identifying column name in \code{pts} that has year
-#' @param sizeCol Character string identifying column name in \code{pts} that has size of
-#'   individual event. Can be in hectares or metres squared. Should set \code{sizeColUnits}
-#' @param sizeColUnits Character string. Either \code{"ha"} or \code{"m2"}.
+#' @param dateCol Character string identifying column name in `pts` that has year
+#' @param sizeCol Character string identifying column name in `pts` that has size of
+#'   individual event. Can be in hectares or metres squared. Should set `sizeColUnits`
+#' @param sizeColUnits Character string. Either `"ha"` or `"m2"`.
 #'
 #' @return
-#' A list of data.table objects, each with 4 columns, \code{"size"} (in pixels), \code{"date"},
-#' \code{"ids"} from \code{idsCol}, and \code{"cells"}, which are the pixel indices of the
-#' \code{pts} points.
+#' A list of data.table objects, each with 4 columns, `"size"` (in pixels), `"date"`,
+#' `"ids"` from `idsCol`, and `"cells"`, which are the pixel indices of the
+#' `pts` points.
 #'
 #' @export
 #' @importFrom data.table rbindlist as.data.table set

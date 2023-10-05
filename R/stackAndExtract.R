@@ -9,7 +9,7 @@ utils::globalVariables(c(
 #' @param years character vector of fire years with FS notation e.g. year2002
 #' @param fuel raster brick of aggregated fuel classes
 #' @param LCC raster brick of aggregated LCC classes
-#' @param climate raster stack of climate layers with names matching \code{years}
+#' @param climate raster stack of climate layers with names matching `years`
 #' @param climVar the name of the climate variable
 #' @param fires list of spatial points representing annual ignitions
 #' @return a data.frame with cell numbers, ignitions, and covariates for each year
