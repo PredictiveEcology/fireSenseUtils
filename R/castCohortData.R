@@ -34,7 +34,8 @@ castCohortData <- function(cohortData, pixelGroupMap, lcc, ageMap = NULL,
     value.var = c("B"), fun.aggregate = sum, fill = 0
   )
 
-  cohortDataLong <- data.table("pixelID" = 1:ncell(pixelGroupMap), "pixelGroup" = getValues(pixelGroupMap))
+  cohortDataLong <- data.table(pixelID = 1:ncell(pixelGroupMap),
+                               pixelGroup = as.vector(values(pixelGroupMap)))
   cohortData <- cohortData[cohortDataLong, on = c("pixelGroup")]
   rm(cohortDataLong)
   cohortData <- cohortData[lcc, on = c("pixelID")]
