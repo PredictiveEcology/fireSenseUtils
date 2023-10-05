@@ -26,16 +26,16 @@ number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}
 
 \item{ageMap}{a stand age map to assign ages to non-forest LCC used during predict}
 
-\item{missingLCC}{LCC class to assign forested pixels absent from cohortData
-must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'}
+\item{missingLCC}{LCC class to assign forested pixels absent from \code{cohortData}
+must be a character matching a \code{nonForestedLCC} group, e.g. '\verb{nonForest_highFlam'}}
 
-\item{year}{numeric representing the year represented by cohortData}
+\item{year}{numeric representing the year represented by \code{cohortData}}
 
 \item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
-"young" --> youngAge column will be 1 if age <= 15}
+"young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
 }
 \value{
-a trimmed cohortData with wide-layout and rows for every pixel in lcc
+a trimmed \code{cohortData} with wide-layout and rows for every pixel in lcc
 }
 \description{
 preparing covariates for fitting modules

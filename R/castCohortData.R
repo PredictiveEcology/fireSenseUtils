@@ -8,13 +8,13 @@ globalVariables(c(
 #' @param lcc data.table of dummified landcover
 #' @template pixelGroupMap
 #' @param ageMap a stand age map to assign ages to non-forest LCC used during predict
-#' @param missingLCC LCC class to assign forested pixels absent from cohortData
-#'   must be a character matching a nonForestedLCC group, e.g. 'nonForest_highFlam'
-#' @param year numeric representing the year represented by cohortData
+#' @param missingLCC LCC class to assign forested pixels absent from `cohortData`
+#'   must be a character matching a `nonForestedLCC` group, e.g. '`nonForest_highFlam'`
+#' @param year numeric representing the year represented by `cohortData`
 #' @param cutoffForYoungAge Numeric. Default is 15. This is the age below which the pixel is considered
-#'   "young" --> youngAge column will be 1 if age <= 15
+#'   "young" --> `youngAge` column will be 1 if `age <= 15`
 #'
-#' @return a trimmed cohortData with wide-layout and rows for every pixel in lcc
+#' @return a trimmed `cohortData` with wide-layout and rows for every pixel in lcc
 #'
 #' @export
 #' @importFrom terra rast values

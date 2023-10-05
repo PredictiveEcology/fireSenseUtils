@@ -26,7 +26,7 @@ fireRaster will supersede firePolys if provided}
 \item{lcc}{\code{data.table} with landcover values - \code{landcoverDT}}
 
 \item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
-"young" --> youngAge column will be 1 if age <= 15}
+"young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
 }
 \value{
 a \code{SpatRaster} with values representing time since disturbance
