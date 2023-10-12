@@ -17,9 +17,9 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
       requireNamespace("SpaDES.core", quietly = TRUE)) {
     gcm <- strsplit(climateScenario, "_")[[1]][1]
     ssp <- strsplit(climateScenario, "_")[[1]][2]
-    runName <- sprintf("%s_%s_rep01", studyAreaName, climateScenario) ## doesn't matter which run, all same
-    run <- as.integer(strsplit(runName, "rep")[[1]][2])
-    sim <- SpaDES.core::loadSimList(file.path(outputDir, runName, paste0(runName, ".qs")))
+    runName <- sprintf("%s_%s", studyAreaName, climateScenario) ## doesn't matter which run, all same
+    run <- 1L
+    sim <- SpaDES.core::loadSimList(file.path(outputDir, runName, "rep01", paste0(runName, ".qs")))
     burnSummary <- sim$burnSummary
     rm(sim)
 
