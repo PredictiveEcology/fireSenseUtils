@@ -101,8 +101,8 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
     burnMapAllReps <- parallel::mclapply(1:Nreps, function(rep) {
-      runName <- sprintf("%s_%s_rep%02d", studyAreaName, climateScenario, rep)
-      resultsDir <- file.path(outputDir, runName)
+      runName <- sprintf("%s_%s", studyAreaName, climateScenario)
+      resultsDir <- file.path(outputDir, runName, sprintf("rep%02d", rep))
 
       burnMap <- raster(file.path(resultsDir, "burnMap_2100_year2100.tif"))
     })
