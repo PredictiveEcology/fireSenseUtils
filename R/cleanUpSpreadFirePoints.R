@@ -1,20 +1,24 @@
-globalVariables(c(
-  "geometry", "dists", "isFlammable"
+utils::globalVariables(c(
+  "dists", "geometry", "isFlammable"
 ))
+
 #' Ensure fire points are located on flammable pixels inside a fire polygon
 #' Intended to be run using `Map`
 #'
 #' @param firePoints a `sf` points object representing annual ignitions
+#'
 #' @template flammableRTM
+#'
 #' @param bufferDT a data.table of burned cells, output from `bufferToArea`
+#'
 #' @return a list of harmonized points and polygons
+#'
+#' @export
 #' @importFrom SpaDES.tools distanceFromEachPoint
 #' @importFrom data.table data.table as.data.table
 #' @importFrom sf st_as_sf st_crs
 #' @importFrom terra extract xyFromCell
-#' @export
 cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
-
   FlamPoints <- as.data.table(extract(flammableRTM, firePoints, cells = TRUE))
   setnames(FlamPoints, c("ID", "isFlammable", "cells"))
   FlamPoints[, isFlammable := as.numeric(as.character(isFlammable))] #otherwise factor = 1 and 2
@@ -47,7 +51,7 @@ cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
       firePoints <- rbind(firePoints, newStarts)
     }
     # 2. rm bad points - those without ANY flammable pixels
-    if (length(badPolys) > 0){
+    if (length(badPolys) > 0) {
       bufferDT <- bufferDT[!ids %in% badPolys]
     }
   }
