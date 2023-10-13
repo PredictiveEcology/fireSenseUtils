@@ -12,6 +12,7 @@ globalVariables(c(
 #' @importFrom data.table data.table as.data.table
 #' @importFrom sf st_as_sf st_crs
 #' @importFrom terra extract xyFromCell
+#' @export
 cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
 
   FlamPoints <- as.data.table(extract(flammableRTM, firePoints, cells = TRUE))
