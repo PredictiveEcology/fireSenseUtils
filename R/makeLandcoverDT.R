@@ -13,10 +13,19 @@ globalVariables(c(
 #' @importFrom data.table data.table set setDT
 #' @importFrom fastDummies dummy_cols
 #' @importFrom sf %>%
-#' @importFrom terra values ncell
+#' @importFrom terra values ncell compareGeom
+#' @importFrom reproducible postProcess
 #'
 #' @rdname makeLandcoverDT
 makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups) {
+
+  if (!compareGeom(rstLCC, flammableRTM, stopOnError = FALSE)) {
+    #assume flammableRTM is correct
+    rstLCC <- postProcess(rstLCC,
+                          cropTo = flammableRTM,
+                          projectTo = flammableRTM)
+  }
+
   lcc <- data.table(
     pixelID = 1:ncell(rstLCC),
     lcc = values(rstLCC, mat = FALSE),
