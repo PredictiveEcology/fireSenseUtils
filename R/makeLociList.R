@@ -53,6 +53,11 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
     "m2" = 1,
     stop("Must provide sizeColUnits either ha or m2")
   )
+  #Check if loci sizes are numeric, otherwise the rescaling fails
+  if (!inherits(x = lociDF$size, what = "numeric")){
+    warning(paste0("Fire sizes were classified as ", class(lociDF$size),". Converting to numeric."))
+    lociDF[, size := as.numeric(size)]
+  }
   set(lociDF, NULL, "size", round(lociDF$size / (prod(res(ras)) / divisor), 0))
 
   for (index in colnames(lociDF)) {
