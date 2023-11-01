@@ -59,10 +59,13 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
     lociDF[, size := as.numeric(size)]
   }
   set(lociDF, NULL, "size", round(lociDF$size / (prod(res(ras)) / divisor), 0))
+  if (anyNA(locIDF$size)) {
+    warning("NAs detected in sizeCol of pts. Please address!")
+  }
 
   for (index in colnames(lociDF)) {
     if (is.numeric(lociDF[[index]]) &&
-      max(as.numeric(lociDF[[index]]) < 1e9) && ## ~ 2^31 / 2 (half of signed integer bits)
+      max(as.numeric(lociDF[[index]], na.rm = TRUE) < 1e9) && ## ~ 2^31 / 2 (half of signed integer bits)
       !is.integer(lociDF[[index]])) {
       set(lociDF, NULL, index, as.integer(lociDF[[index]]))
     }
