@@ -59,7 +59,7 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
     lociDF[, size := as.numeric(size)]
   }
   set(lociDF, NULL, "size", round(lociDF$size / (prod(res(ras)) / divisor), 0))
-  if (anyNA(locIDF$size)) {
+  if (anyNA(lociDF$size)) {
     warning("NAs detected in sizeCol of pts. Please address!")
   }
 
