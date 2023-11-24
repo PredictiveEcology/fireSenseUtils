@@ -2,18 +2,18 @@
 % Please edit documentation in R/helpers.R
 \name{annualStackToDTx1000}
 \alias{annualStackToDTx1000}
-\alias{annualStackToDTx1000.RasterLayer}
+\alias{annualStackToDTx1000.SpatRaster}
+\alias{annualStackToDTx1000.Raster}
 \alias{annualStackToDTx1000.list}
-\alias{annualStackToDTx1000.RasterStack}
-\title{Convert list of annual raster stack to \code{data.table}}
+\title{Convert list of annual SpatRaster to \code{data.table}}
 \usage{
 annualStackToDTx1000(x, whNotNA, ...)
 
-\method{annualStackToDTx1000}{RasterLayer}(x, whNotNA, ...)
+\method{annualStackToDTx1000}{SpatRaster}(x, whNotNA, ...)
+
+\method{annualStackToDTx1000}{Raster}(x, whNotNA, ...)
 
 \method{annualStackToDTx1000}{list}(x, whNotNA, ...)
-
-\method{annualStackToDTx1000}{RasterStack}(x, whNotNA, ...)
 }
 \arguments{
 \item{x}{\code{RasterStack} or list of rasters to convert to \code{data.table}
@@ -24,10 +24,10 @@ and multiply by 1000 to save space}
 \item{...}{Not currently used}
 }
 \value{
-\code{data.table} of the raster stack or the list
+\code{data.table} of the SpatRaster or the list
 }
 \description{
-Convert list of annual raster stack to \code{data.table}
+Convert list of annual SpatRaster to \code{data.table}
 }
 \examples{
 library(raster)

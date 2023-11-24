@@ -7,12 +7,13 @@
 climateRasterToDataTable(historicalClimateRasters, Index = NULL)
 }
 \arguments{
-\item{historicalClimateRasters}{named list of raster stack(s)}
+\item{historicalClimateRasters}{named list of \code{SpatRaster} objects}
 
-\item{Index}{optional list of `data.table`s named by `fireYear` containing fire buffer indices}
+\item{Index}{optional list of \code{data.table} objects named by fireYear and
+containing fire buffer indices}
 }
 \value{
-a `data.table` of variables for fireSense PCA
+a long-layout \code{data.table} of climate values in each pixel and year
 }
 \description{
 Converts stacks of climate rasters to data.table and optionally subsets to index

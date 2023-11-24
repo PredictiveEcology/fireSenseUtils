@@ -9,8 +9,8 @@ knitr::opts_chunk$set(
 
 ## ----init---------------------------------------------------------------------
 #  library(Require)
-#  Require(c("magrittr", "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
-#            "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
+#  Require(c("data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
+#            "raster", "sf", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
 #  
 #  options(reproducible.useCache = FALSE) # Turn off caching
 #  
@@ -24,7 +24,7 @@ knitr::opts_chunk$set(
 #  
 #  ## TODO: download modules to moduleDir -- use git or downloadModule() ???
 #  
-#  normalizeRaster <- function(x) { ## TODO: use pemisc version
+#  normalizeRaster <- function(x) { ## TODO: use pemisc version (#9)
 #    # Normalize raster values
 #    (x - minValue(x)) / (maxValue(x) - minValue(x))
 #  }

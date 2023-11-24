@@ -12,11 +12,23 @@
 
 <meta name="author" content="Jean Marchal, Eliot McIntire, Tati Micheletti, Alex Chubaty" />
 
-<meta name="date" content="2021-02-05" />
+<meta name="date" content="2022-04-19" />
 
 <title>fireSense tutorial</title>
 
-<script src="data:application/javascript;base64,Ly8gUGFuZG9jIDIuOSBhZGRzIGF0dHJpYnV0ZXMgb24gYm90aCBoZWFkZXIgYW5kIGRpdi4gV2UgcmVtb3ZlIHRoZSBmb3JtZXIgKHRvCi8vIGJlIGNvbXBhdGlibGUgd2l0aCB0aGUgYmVoYXZpb3Igb2YgUGFuZG9jIDwgMi44KS4KZG9jdW1lbnQuYWRkRXZlbnRMaXN0ZW5lcignRE9NQ29udGVudExvYWRlZCcsIGZ1bmN0aW9uKGUpIHsKICB2YXIgaHMgPSBkb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKCJkaXYuc2VjdGlvbltjbGFzcyo9J2xldmVsJ10gPiA6Zmlyc3QtY2hpbGQiKTsKICB2YXIgaSwgaCwgYTsKICBmb3IgKGkgPSAwOyBpIDwgaHMubGVuZ3RoOyBpKyspIHsKICAgIGggPSBoc1tpXTsKICAgIGlmICghL15oWzEtNl0kL2kudGVzdChoLnRhZ05hbWUpKSBjb250aW51ZTsgIC8vIGl0IHNob3VsZCBiZSBhIGhlYWRlciBoMS1oNgogICAgYSA9IGguYXR0cmlidXRlczsKICAgIHdoaWxlIChhLmxlbmd0aCA+IDApIGgucmVtb3ZlQXR0cmlidXRlKGFbMF0ubmFtZSk7CiAgfQp9KTsK"></script>
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
 
 <style type="text/css">
   code{white-space: pre-wrap;}
@@ -28,11 +40,20 @@
     </style>
 
 
-<style type="text/css">code{white-space: pre;}</style>
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
 pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
 div.sourceCode { margin: 1em 0; }
 pre.sourceCode { margin: 0; }
@@ -141,7 +162,187 @@ div.csl-indent {
 }
 </style>
 
-<link rel="stylesheet" href="data:text/css,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" type="text/css" />
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
 
 
 
@@ -154,14 +355,15 @@ div.csl-indent {
 
 
 <h1 class="title toc-ignore">fireSense tutorial</h1>
-<h4 class="author">Jean Marchal, Eliot McIntire, Tati Micheletti, Alex Chubaty</h4>
-<h4 class="date">2021-02-05</h4>
+<h4 class="author">Jean Marchal, Eliot McIntire, Tati Micheletti, Alex
+Chubaty</h4>
+<h4 class="date">2022-04-19</h4>
 
 
 
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Require)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Require</span>(<span class="fu">c</span>(<span class="st">&quot;magrittr&quot;</span>, <span class="st">&quot;data.table&quot;</span>, <span class="st">&quot;dplyr&quot;</span>, <span class="st">&quot;pemisc&quot;</span>, <span class="st">&quot;PtProcess&quot;</span>, <span class="st">&quot;quickPlot&quot;</span>,</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>          <span class="st">&quot;raster&quot;</span>, <span class="st">&quot;rgeos&quot;</span>, <span class="st">&quot;sp&quot;</span>, <span class="st">&quot;SpaDES.core&quot;</span>, <span class="st">&quot;SpaDES.tools&quot;</span>, <span class="st">&quot;spatstat&quot;</span>))</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Require</span>(<span class="fu">c</span>(<span class="st">&quot;data.table&quot;</span>, <span class="st">&quot;dplyr&quot;</span>, <span class="st">&quot;pemisc&quot;</span>, <span class="st">&quot;PtProcess&quot;</span>, <span class="st">&quot;quickPlot&quot;</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>          <span class="st">&quot;raster&quot;</span>, <span class="st">&quot;sf&quot;</span>, <span class="st">&quot;sp&quot;</span>, <span class="st">&quot;SpaDES.core&quot;</span>, <span class="st">&quot;SpaDES.tools&quot;</span>, <span class="st">&quot;spatstat&quot;</span>))</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">reproducible.useCache =</span> <span class="cn">FALSE</span>) <span class="co"># Turn off caching</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
@@ -175,25 +377,69 @@ div.csl-indent {
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="do">## </span><span class="al">TODO</span><span class="do">: download modules to moduleDir -- use git or downloadModule() ???</span></span>
 <span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>normalizeRaster <span class="ot">&lt;-</span> <span class="cf">function</span>(x) { <span class="do">## </span><span class="al">TODO</span><span class="do">: use pemisc version</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>normalizeRaster <span class="ot">&lt;-</span> <span class="cf">function</span>(x) { <span class="do">## </span><span class="al">TODO</span><span class="do">: use pemisc version (#9)</span></span>
 <span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Normalize raster values</span></span>
 <span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  (x <span class="sc">-</span> <span class="fu">minValue</span>(x)) <span class="sc">/</span> (<span class="fu">maxValue</span>(x) <span class="sc">-</span> <span class="fu">minValue</span>(x))</span>
 <span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <div id="introduction" class="section level1">
 <h1>Introduction</h1>
-<p><code>fireSense</code> is a spatially explicit landscape fire model, that is, it simulates the fire disturbance in the landscape. <code>fireSense</code> is implemented as a group of <code>SpaDES</code> modules. A main asset of <code>fireSense</code> is that it can be parameterized directly from data using systematic methods while incorporating sensitivity to different environmental drivers.</p>
-<p>To better represent how environmental drivers control fire, <code>fireSense</code> breaks down the fire process into three stages: ignition, escape, and spread. Sensitivity to environmental drivers can be introduced at each of these stages and these factors need not necessarily be identical for all stages. This way each module can be adapted to your own problem and used to answer your own questions.</p>
-<p>In order to facilitate the parameterization of <code>fireSense</code> from data using systematic methods we have created SpaDES modules dedicated to these tasks:</p>
+<p><code>fireSense</code> is a spatially explicit landscape fire model,
+that is, it simulates the fire disturbance in the landscape.
+<code>fireSense</code> is implemented as a group of <code>SpaDES</code>
+modules. A main asset of <code>fireSense</code> is that it can be
+parameterized directly from data using systematic methods while
+incorporating sensitivity to different environmental drivers.</p>
+<p>To better represent how environmental drivers control fire,
+<code>fireSense</code> breaks down the fire process into three stages:
+ignition, escape, and spread. Sensitivity to environmental drivers can
+be introduced at each of these stages and these factors need not
+necessarily be identical for all stages. This way each module can be
+adapted to your own problem and used to answer your own questions.</p>
+<p>In order to facilitate the parameterization of <code>fireSense</code>
+from data using systematic methods we have created SpaDES modules
+dedicated to these tasks:</p>
 <ul>
 <li><code>fireSense_IgnitionFit</code></li>
 <li><code>fireSense_EscapeFit</code></li>
 <li><code>fireSense_SpreadFit</code></li>
 </ul>
-<p>These follow the way <code>fireSense</code> breaks down the fire process and are named accordingly. For example, <code>fireSense_IgnitionFit</code> implements methods to fit the statistical model of fire ignitions. The <code>fireSense_IgnitionFit</code> module implements methods described in Marchal et al. <span class="citation">(2017)</span>, <code>fireSense_EscapeFit</code> and <code>fireSense_SpreadFit</code> implement methods described in Marchal et al. <span class="citation">(2019)</span>. Each of these modules is associated with an additional module to facilitate the production of predictive maps (rasters) or data sets (data.frames). To continue with the example of fire ignitions, the module <code>fireSense_IgnitionPredict</code> is associated with the <code>fireSense_IgnitionFit</code> module. One possible use of the <code>fireSense_IgnitionPredict</code> module would be to generate rasters describing in a spatially explicit way the predicted ignition rates.</p>
-<p>In addition of these modules, we implemented the <code>fireSense_SizeFit</code> module to fit statistical model of the fire size distribution using the tapered Pareto distribution <span class="citation">(Schoenberg, Peng, and Woods 2003)</span>. The use of <code>fireSense_SizeFit</code> is not a requirement because these outputs are not required by <code>fireSense</code>. Although the use of <code>fireSense_SizeFit</code> is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the . module later. Later in this tutorial we will show how the outputs of the <code>fireSense_SizeFit</code> module can be used as inputs of the <code>fireSense_SpreadFit</code> module.</p>
-<p>Alternatively, the parameter of the tapered Pareto distribution can be used as inputs of the spread model assuming these capture the effect of environmental drivers of fire sizes.</p>
-<p>We start by fitting the spread model using the <code>fireSense_SpreadFit</code> module. In order to fit this model we need data about the shape of the fire size distribution. We can predict it using the <code>fireSense_SizePredict</code> module and fit the model to our study region using the <code>fireSense_SizeFit</code> module.</p>
-<p>This tutorial is intended to provide examples to run all <code>fireSense</code> modules without the need to download actual data. Depending on the fact that some of them have dependencies.</p>
+<p>These follow the way <code>fireSense</code> breaks down the fire
+process and are named accordingly. For example,
+<code>fireSense_IgnitionFit</code> implements methods to fit the
+statistical model of fire ignitions. The
+<code>fireSense_IgnitionFit</code> module implements methods described
+in Marchal et al. <span class="citation">(2017)</span>,
+<code>fireSense_EscapeFit</code> and <code>fireSense_SpreadFit</code>
+implement methods described in Marchal et al. <span class="citation">(2019)</span>. Each of these modules is associated with
+an additional module to facilitate the production of predictive maps
+(rasters) or data sets (data.frames). To continue with the example of
+fire ignitions, the module <code>fireSense_IgnitionPredict</code> is
+associated with the <code>fireSense_IgnitionFit</code> module. One
+possible use of the <code>fireSense_IgnitionPredict</code> module would
+be to generate rasters describing in a spatially explicit way the
+predicted ignition rates.</p>
+<p>In addition of these modules, we implemented the
+<code>fireSense_SizeFit</code> module to fit statistical model of the
+fire size distribution using the tapered Pareto distribution <span class="citation">(Schoenberg, Peng, and Woods 2003)</span>. The use of
+<code>fireSense_SizeFit</code> is not a requirement because these
+outputs are not required by <code>fireSense</code>. Although the use of
+<code>fireSense_SizeFit</code> is optional, it can be used to reduce the
+dimensionality of the problem, which helps speed up and facilitate
+convergence when using the . module later. Later in this tutorial we
+will show how the outputs of the <code>fireSense_SizeFit</code> module
+can be used as inputs of the <code>fireSense_SpreadFit</code>
+module.</p>
+<p>Alternatively, the parameter of the tapered Pareto distribution can
+be used as inputs of the spread model assuming these capture the effect
+of environmental drivers of fire sizes.</p>
+<p>We start by fitting the spread model using the
+<code>fireSense_SpreadFit</code> module. In order to fit this model we
+need data about the shape of the fire size distribution. We can predict
+it using the <code>fireSense_SizePredict</code> module and fit the model
+to our study region using the <code>fireSense_SizeFit</code> module.</p>
+<p>This tutorial is intended to provide examples to run all
+<code>fireSense</code> modules without the need to download actual data.
+Depending on the fact that some of them have dependencies.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a raster template describing the study area</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>raster_width <span class="ot">&lt;-</span> raster_height <span class="ot">&lt;-</span> <span class="dv">100</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>r_template <span class="ot">&lt;-</span> <span class="fu">raster</span>(<span class="fu">matrix</span>(<span class="at">nrow =</span> raster_height, <span class="at">ncol =</span> raster_width))</span>
@@ -399,11 +645,21 @@ div.csl-indent {
 </div>
 <div id="fit-the-statistical-model-of-the-spread-probabilities" class="section level2">
 <h2>Fit the statistical model of the spread probabilities</h2>
-<p>The purpose of this step is to derive variable fire spread probabilities at the cell level, both spatially and temporally, which are sensitive to environmental drivers that control fire size.</p>
+<p>The purpose of this step is to derive variable fire spread
+probabilities at the cell level, both spatially and temporally, which
+are sensitive to environmental drivers that control fire size.</p>
 </div>
 <div id="fit-the-statistical-model-of-the-fire-size-distribution" class="section level2">
 <h2>Fit the statistical model of the fire size distribution</h2>
-<p>Although the use of fireSense_SizeFit is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the fireSense_SpreadFit module later. Here, we use the fireSense_SizeFit module to model the relation between fire sizes and flammability conditions as represented by the drought index and the type of fuels. We then use the fireSense_SpreadFit module to convert the fitted equations produced by fireSense_SizeFit into variable probabilities of fire spread at the cell level, which are also sensitive to environmental drivers that control fire size.</p>
+<p>Although the use of fireSense_SizeFit is optional, it can be used to
+reduce the dimensionality of the problem, which helps speed up and
+facilitate convergence when using the fireSense_SpreadFit module later.
+Here, we use the fireSense_SizeFit module to model the relation between
+fire sizes and flammability conditions as represented by the drought
+index and the type of fuels. We then use the fireSense_SpreadFit module
+to convert the fitted equations produced by fireSense_SizeFit into
+variable probabilities of fire spread at the cell level, which are also
+sensitive to environmental drivers that control fire size.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_SizeFit&quot;</span>)</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="dv">1</span>)</span>
@@ -495,8 +751,10 @@ div.csl-indent {
 <span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
 </div>
 <div id="use-predicted-parameters-of-the-tapered-pareto-as-inputs-to-the-statistical-model-of-the-spread-probabilities" class="section level3">
-<h3>Use predicted parameters of the tapered Pareto as inputs to the statistical model of the spread probabilities</h3>
-<p>Here, we use the <code>fireSense_SpreadFit</code> module to convert them into spatially variable spread probabilities.</p>
+<h3>Use predicted parameters of the tapered Pareto as inputs to the
+statistical model of the spread probabilities</h3>
+<p>Here, we use the <code>fireSense_SpreadFit</code> module to convert
+them into spatially variable spread probabilities.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_SpreadFit&quot;</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="dv">1</span>)</span>
@@ -555,7 +813,8 @@ div.csl-indent {
 </div>
 </div>
 <div id="predict-maps-of-fire-ignition-rates-escape-and-spread-probabilities" class="section level2">
-<h2>Predict maps of fire ignition rates, escape and spread probabilities</h2>
+<h2>Predict maps of fire ignition rates, escape and spread
+probabilities</h2>
 <div id="fire-ignition-rates" class="section level3">
 <h3>Fire ignition rates</h3>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_IgnitionPredict&quot;</span>)</span>
@@ -757,25 +1016,36 @@ div.csl-indent {
 <span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>burnMap <span class="ot">&lt;-</span> sim<span class="sc">$</span>burnMap</span>
 <span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a><span class="fu">Plot</span>(burnMap)</span></code></pre></div>
-<p>Note that all the steps above could be done in one simulation / SpaDES call.</p>
+<p>Note that all the steps above could be done in one simulation /
+SpaDES call.</p>
 </div>
 </div>
 <div id="additional-resources" class="section level1">
 <h1>Additional resources</h1>
-<p>Read modules metadata, all module parameters are documented in Rmd files.</p>
+<p>Read modules metadata, all module parameters are documented in
+<code>.Rmd</code> files.</p>
 </div>
 <div id="references" class="section level1">
 <h1>References</h1>
 <!-- automatically generated -->
 <div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-Marchal2017" class="csl-entry">
-Marchal, Jean, Steve G. Cumming, and Eliot J. B. McIntire. 2017. <span>“<span class="nocase">Exploiting Poisson additivity to predict fire frequency from maps of fire weather and land cover in boreal forests of Québec, Canada</span>.”</span> <em>Ecography</em> 40 (1): 200–209. <a href="https://doi.org/10.1111/ecog.01849">https://doi.org/10.1111/ecog.01849</a>.
+Marchal, Jean, Steve G. Cumming, and Eliot J. B. McIntire. 2017.
+<span>“<span class="nocase">Exploiting Poisson additivity to predict
+fire frequency from maps of fire weather and land cover in boreal
+forests of Québec, Canada</span>.”</span> <em>Ecography</em> 40 (1):
+200–209. <a href="https://doi.org/10.1111/ecog.01849">https://doi.org/10.1111/ecog.01849</a>.
 </div>
 <div id="ref-Marchal2019" class="csl-entry">
-Marchal, Jean, Steven G. Cumming, and Eliot J. B. McIntire. 2019. <span>“<span class="nocase">Turning Down the Heat: Vegetation Feedbacks Limit Fire Regime Responses to Global Warming</span>.”</span> <em>Ecosystems</em>, May. <a href="https://doi.org/10.1007/s10021-019-00398-2">https://doi.org/10.1007/s10021-019-00398-2</a>.
+Marchal, Jean, Steven G. Cumming, and Eliot J. B. McIntire. 2019.
+<span>“<span class="nocase">Turning Down the Heat: Vegetation Feedbacks
+Limit Fire Regime Responses to Global Warming</span>.”</span>
+<em>Ecosystems</em>, May. <a href="https://doi.org/10.1007/s10021-019-00398-2">https://doi.org/10.1007/s10021-019-00398-2</a>.
 </div>
 <div id="ref-Schoenberg2003" class="csl-entry">
-Schoenberg, Frederic Paik, Roger Peng, and James Woods. 2003. <span>“<span class="nocase">On the distribution of wildfire sizes</span>.”</span> <em>Environmetrics</em> 14 (6): 583–92. <a href="https://doi.org/10.1002/env.605">https://doi.org/10.1002/env.605</a>.
+Schoenberg, Frederic Paik, Roger Peng, and James Woods. 2003.
+<span>“<span class="nocase">On the distribution of wildfire
+sizes</span>.”</span> <em>Environmetrics</em> 14 (6): 583–92. <a href="https://doi.org/10.1002/env.605">https://doi.org/10.1002/env.605</a>.
 </div>
 </div>
 </div>

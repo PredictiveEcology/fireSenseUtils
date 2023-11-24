@@ -2,55 +2,55 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2022-01-25
-Version: 0.0.5.9012
+Date: 2023-10-13
+Version: 0.0.5.9055
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
-    role = c("aut")),
+           role = c("aut")),
     person("Eliot J B", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca",
-    role = c("aut", "cre"), comment=c(ORCID = "0000-0002-6914-8316")),
+           role = c("aut", "cre"), comment=c(ORCID = "0000-0002-6914-8316")),
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca",
-    role = c("aut"), comment = c(ORCID = "0000-0001-7146-8135")),
+           role = c("aut"), comment = c(ORCID = "0000-0001-7146-8135")),
     person("Ian", "Eddy", email = "ian.eddy@nrcan-rncan.gc.ca",
-    role = c("aut"), comment = c(ORCID = "0000-0001-7397-2116"))
+           role = c("aut"), comment = c(ORCID = "0000-0001-7397-2116"))
     )
 Depends:
-    R (>= 4.0)
+    R (>= 4.2)
 Imports:
     crayon,
     data.table,
     DEoptim,
     EnvStats,
     fastDummies,
-    fasterize,
-    fpCompare,
     kSamples,
-    LandR (>= 1.0.0.9002),
-    magrittr,
+    LandR (>= 1.1.0.9066),
     mclust,
     methods,
     qs,
     quickPlot,
     parallelly,
-    pemisc,
+    pemisc (>= 0.0.4.9011),
     pROC,
     purrr,
     raster,
-    reproducible,
+    reproducible (>= 2.0.8),
     RhpcBLASctl,
     sf,
     sp,
-    SpaDES.tools (>= 0.3.7),
+    SpaDES.tools (>= 2.0.4),
     stats,
+    terra,
     utils
 Suggests:
+    cowplot,
     dplyr,
     ggplot2,
     knitr,
     lintr,
-    parallel,
     PtProcess,
-    Require,
+    rasterVis,
+    RColorBrewer,
+    Require (>= 0.3.1),
     rmarkdown,
     SpaDES.core,
     spatialEco,
@@ -58,9 +58,13 @@ Suggests:
     spelling,
     testthat
 Remotes:
+    jeffreyevans/spatialEco,
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
+    PredictiveEcology/SpaDES.core@development,
     PredictiveEcology/SpaDES.tools@development,
+    PredictiveEcology/quickPlot@development,
+    PredictiveEcology/Require@development,
     PredictiveEcology/reproducible@development
 VignetteBuilder:
     knitr,
@@ -70,4 +74,5 @@ Language: en-CA
 LazyData: true
 License: GPL-3
 BugReports: https://github.com/PredictiveEcology/fireSenseUtils/issues
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
+Roxygen: list(markdown = TRUE)

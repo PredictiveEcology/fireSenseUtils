@@ -17,12 +17,12 @@ calcYoungAge(
 
 \item{annualCovariates}{list of data.table objects with pixelID}
 
-\item{standAgeMap}{template raster}
+\item{standAgeMap}{template \code{SpatRaster}}
 
 \item{fireBufferedListDT}{data.table containing non-annual burn and buffer pixelIDs}
 
 \item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
-"young" --> youngAge column will be 1 if age <= 15}
+"young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
 }
 \value{
 a raster layer with unified standAge and time-since-disturbance values

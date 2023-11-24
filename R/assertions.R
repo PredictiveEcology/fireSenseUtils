@@ -1,4 +1,4 @@
-#' Data checks and assertions for \code{spreadFitRun}
+#' Data checks and assertions for `spreadFitRun`
 #'
 #' @param cells DESCRIPTION NEEDED
 #' @param size DESCRIPTION NEEDED

@@ -1,22 +1,22 @@
 utils::globalVariables(c(
-  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "N", "numAvailPixels",
-  "pixelID", "prob", "simFireSize", "size", "spreadProb"
+  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "initialPixels",
+  "N", "numAvailPixels", "pixelID", "prob", "simFireSize", "size", "spreadProb"
 ))
 
-#' Objective function for \code{fireSense_spreadFit} module
+#' Objective function for `fireSense_spreadFit` module
 #'
 #' @param par parameters
-#' @param landscape A RasterLayer with extent, res, proj used for SpaDES.tools::spread
+#' @param landscape A SpatRaster with extent, res, proj used for SpaDES.tools::spread2
 #' @param annualDTx1000 A list of data.table class objects. Each list element is
 #'   data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
 #'   year. The columns in the data.table must integers, that are 1000x their actual values as
 #'   this function will divide by 1000.
-#' @param nonAnnualDTx1000 Like \code{annualDTx1000}, but with where each list element will be
+#' @param nonAnnualDTx1000 Like `annualDTx1000`, but with where each list element will be
 #'   used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_yearzzzz" where the
 #'   xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
 #'   The columns are variables that are used for more than 1 year.
-#' @param FS_formula Formula, put provided as a character string, not class \code{formula}.
-#'   (if it is provided as a class \code{formula}, then it invariably will have an
+#' @param FS_formula Formula, put provided as a character string, not class `formula`.
+#'   (if it is provided as a class `formula`, then it invariably will have an
 #'   enormous amount of data hidden in the formula environment; this is bad for DEoptim)
 #' @param historicalFires DESCRIPTION NEEDED
 #' @param fireBufferedListDT DESCRIPTION NEEDED
@@ -25,41 +25,41 @@ utils::globalVariables(c(
 #'   be used to rescale the covariates internally so that they are all between 0 and 1. It is important
 #'   to not simply rescale internally here because only 1 year is run at a time; all years
 #'   must be rescaled for a given covariate by the same amount.
-#' @param maxFireSpread A value for \code{spreadProb} that is considered impossible to go above.
+#' @param maxFireSpread A value for `spreadProb` that is considered impossible to go above.
 #'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
 #' @param minFireSize DESCRIPTION NEEDED
 #' @template mutuallyExclusive
-#' @param doAssertions Logical. If \code{TRUE}, the default, the function will test a few minor things
-#'   for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
+#' @param doAssertions Logical. If `TRUE`, the default, the function will test a few minor things
+#'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
-#' @param tests One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
-#'              Default: \code{"mad"}.
+#' @param tests One or more of `"mad"`, `"adTest"`, `"SNLL"`, or `"SNLL_FS"`.
+#'              Default: `"mad"`.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #' @param plot.it DESCRIPTION NEEDED
-#' @param objFunCoresInternal Internally, this function can use \code{mcmapply} to run multiple
-#'   parallel \code{spread} function calls. This should only be >1L if there are spare threads.
-#'   It is highly likely that there won't be. However, sometimes the \code{DEoptim} is
+#' @param objFunCoresInternal Internally, this function can use `mcmapply` to run multiple
+#'   parallel `spread` function calls. This should only be >1L if there are spare threads.
+#'   It is highly likely that there won't be. However, sometimes the `DEoptim` is
 #'   particularly inefficient, it starts X cores, and immediately several of them are
 #'   stopped inside this function because the parameters are so bad, only 2 year are attempted.
-#'   Then the core will stay idle until all other cores for the \code{DEoptim} iteration are complete.
-#'   Similarly, if only physical cores are used for \code{DEoptim}, the additional use of
+#'   Then the core will stay idle until all other cores for the `DEoptim` iteration are complete.
+#'   Similarly, if only physical cores are used for `DEoptim`, the additional use of
 #'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).
 #' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
 #'   Lowering the threshold value will be more restrictive, but being too restrictive will result
-#'   in \code{DEoptim} rejecting more tests and using the "fail value" of 10000.
+#'   in `DEoptim` rejecting more tests and using the "fail value" of 10000.
 #'   Too high a threshold, and more years will be run and it will take longer to find values.
-#' @param lanscape1stQuantileThresh A \code{spreadProb} value that represents a threshold for the
-#'   1st quantile of the \code{spreadProbs} on the landscape; if that quantile is above this
-#'   number, then the \code{.objFunSpredFit} will bail because it is "too burny" a landscape.
-#'   Default = \code{0.265}, meaning if only 25% of the pixels on the landscape are below
-#'   this \code{spreadProb}, then it will bail.
+#' @param lanscape1stQuantileThresh A `spreadProb` value that represents a threshold for the
+#'   1st quantile of the `spreadProbs` on the landscape; if that quantile is above this
+#'   number, then the `.objFunSpredFit` will bail because it is "too burny" a landscape.
+#'   Default = `0.265`, meaning if only 25% of the pixels on the landscape are below
+#'   this `spreadProb`, then it will bail.
 #' @param weighted Logical. Should empirical likelihood be weighted by log of the actual fire size?
 #'    This will give large fires more influence on the SNLL.
 #' @param verbose DESCRIPTION NEEDED
 #'
 #' @return
 #' Attempting a weighted likelihood,
-#' https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation
+#' <https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation>.
 #' With log(fireSize) * likelihood for each fire.
 #'
 #' @export
@@ -69,9 +69,9 @@ utils::globalVariables(c(
 #' @importFrom kSamples ad.test
 #' @importFrom purrr map2 pmap transpose
 #' @importFrom quickPlot clearPlot dev gpar Plot
-#' @importFrom raster buffer crop extent ncell raster trim xyFromCell
+#' @importFrom terra buffer crop ext ncell rast trim xyFromCell
 #' @importFrom sp SpatialPoints
-#' @importFrom SpaDES.tools spread
+#' @importFrom SpaDES.tools spread2
 #' @importFrom stats as.formula dbinom median terms quantile
 #' @importFrom utils tail
 .objfunSpreadFit <- function(par,
@@ -86,7 +86,7 @@ utils::globalVariables(c(
                              minFireSize = 2,
                              tests = "snll_fs",
                              Nreps = 10,
-                             mutuallyExclusive = list("youngAge" = c("vegPC")),
+                             mutuallyExclusive = list("youngAge" = c("class", "nf")),
                              doAssertions = TRUE,
                              plot.it = FALSE,
                              objFunCoresInternal = 1,
@@ -132,7 +132,7 @@ utils::globalVariables(c(
   parsModel <- length(colsToUse)
   ncells <- ncell(landscape)
 
-  r <- raster(landscape)
+  r <- rast(landscape)
   years <- as.character(names(annualDTx1000))
   names(years) <- years
   cells <- integer(ncells)
@@ -150,6 +150,13 @@ utils::globalVariables(c(
     x <- x[!duplicated(x$cells), ]
     x
   })
+
+  ## can't fit fires for years with no data; drop these years
+  omitYears <- names(historicalFiresAboveMin[which(lapply(historicalFiresAboveMin, nrow) == 0)])
+  if (length(omitYears > 0)) {
+    historicalFiresAboveMin[[omitYears]] <- NULL
+  }
+
   lowerSpreadProb <- 0.13
   fireSizesByYear <- unlist(lapply(historicalFiresAboveMin, function(x) sum(x$size)))
   largest <- head(sort(fireSizesByYear, decreasing = TRUE), 2) # max(2, objFunCoresInternal))
@@ -242,7 +249,7 @@ utils::globalVariables(c(
         threshold <- thresh * numYrsDone ## lower is _more_ restrictive; too high takes too long
         mess <- character()
         annualSNLL <- round(SNLL_FSTest / numYrsDone, 0)
-        if (SNLL_FSTest > threshold && ii == 1) {
+        if (any(SNLL_FSTest > threshold) && ii == 1) {
           SNLL_FSTestOrig <- SNLL_FSTest
           SNLL_FSTest <- failVal
           mess <- paste0(
@@ -306,7 +313,6 @@ rescaleKnown <- function(x, minNew, maxNew, minOrig, maxOrig) {
   a2
 }
 
-
 #' rescale function no.2
 #'
 #' @param x a vector to be rescaled
@@ -326,9 +332,6 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   return(D)
 }
 
-#' @importFrom LandR rescale
-#' @export
-LandR::rescale
 
 objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         annualFires, nonAnnualDTx1000, annualFireBufferedDT,
@@ -460,16 +463,15 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       maxSizes <- maxSizes[!dups]
       loci <- annualFires$cells[!dups]
     }
-
     spreadState <- lapply(seq_len(Nreps), function(i) {
-      SpaDES.tools::spread(
+      SpaDES.tools::spread2(
         landscape = r,
         maxSize = maxSizes,
-        loci = loci,
+        start = loci,
         spreadProb = cells,
-        returnIndices = TRUE,
+        asRaster = FALSE,
         allowOverlap = FALSE,
-        quick = TRUE
+        skipChecks = TRUE
       )
     })
     if (isTRUE(plot.it)) {
@@ -490,20 +492,20 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
-      emp <- spreadState[, list(N = .N, id = id[1]), by = c("rep", "initialLocus")]
-      emp <- emp[annualFires, on = c("initialLocus" = "cells")]
+      emp <- spreadState[, list(N = .N), by = c("rep", "initialPixels")]
+      emp <- emp[annualFires, on = c("initialPixels" = "cells")]
       if (plot.it) {
-        emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL]
+        emp <- tableOfBufferedMaps[emp, on = c("initialPixels"), nomatch = NULL]
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
         emp <- setorderv(emp, c("size"), order = -1L)
         numLargest <- 4
         numHists <- 49 - numLargest - length(par) - 12 - 1 # 12 for rasters
-        uniqueEmpIds <- unique(emp$ids)
+        uniqueEmpIds <- unique(emp$initialPixels)
         sam <- if (length(uniqueEmpIds) >= (numHists)) {
           try(c(
             unique(emp$ids)[1:numLargest],
-            sample(unique(emp$ids)[-(1:numLargest)],
-              size = min(length(unique(emp$ids)) - numLargest, numHists)
+            sample(unique(emp$initialPixels)[-(1:numLargest)],
+              size = min(length(unique(emp$initialPixels)) - numLargest, numHists)
             )
           ))
         } else {
@@ -524,7 +526,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
             abline(v = log(size[1]), col = "red")
             abline(v = log(unique(numAvailPixels)), col = "green")
           },
-          by = "ids"
+          by = "initialPixels"
         ]
         mtext(
           outer = TRUE,
@@ -541,6 +543,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 
       # only use fires that escaped --> i.e., greater than 1 pixel
       # print(quantile(emp$size))
+      ## TODO: occasional errors during fitting because `obs` < 2; suggests N <2 (#8)
       emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = sqrt(N))), by = "ids"]
       # emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
       if (isTRUE(weighted)) {
@@ -557,13 +560,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
 
     if (isTRUE(doMADTest) || isTRUE(doADTest)) {
-      fireSizes <- round(tabulate(spreadState[["id"]]) / Nreps, 0) # Here tabulate() is equivalent to table() but faster
+      fireSizes <- round(spreadState[, .N, .(initialPixels)][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
       ret <- append(ret, list(fireSizes = fireSizes))
     }
     if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
       # if (isTRUE(doSNLLTest)) {
-      burnedProb <- spreadState[, .N, by = "indices"]
-      setnames(burnedProb, "indices", "pixelID")
+      burnedProb <- spreadState[, .N, by = "pixels"]
+      setnames(burnedProb, "pixels", "pixelID")
       out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
 
       # fix the out
@@ -577,8 +580,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       # 4 -- Set initial pixels to burned = 2 -- is a work around for cases where "initial pixels" are not actually burned in
       #   the polygon database
       out[, burnedClass := burned]
-      out[pixelID %in% annualFires$cells, burnedClass := 2]
-      bigFire1 <- raster(r)
+      out[pixelID %in% annualFires$cell, burnedClass := 2]
+      bigFire1 <- rast(r)
       bigFire1[out$pixelID] <- out$ids
       keepFire <- tail(sort(table(out$ids)), 4)
       setDT(annualFires)
@@ -592,16 +595,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         bigFire <- bigFire1
         bigFire[bigFire != keepFire] <- NA
         bf <- trim(bigFire)
-        ex <- extent(bf)
+        ex <- ext(bf)
 
         thisFire <- annualFires[ids == keepFire]
 
-        r <- raster(r)
+        r <- rast(r)
         r[out$pixelID] <- out$prob
 
         predictedFireProb <- crop(r, ex)
         # clearPlot();Plot(r)
-        actualFire <- raster(r)
+        actualFire <- rast(r)
         actualFire[out$pixelID] <- out$burnedClass
         actualFire <- crop(actualFire, ex)
         levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
@@ -612,7 +615,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           x = out$burned,
           log = TRUE
         )
-        spreadProbMap <- raster(r)
+        spreadProbMap <- rast(r)
         spreadProbMap[out$pixelID] <- cells[out$pixelID]
         spreadProbMap <- crop(spreadProbMap, ex)
         spreadProbMap[spreadProbMap >= par[1]] <- par[1]
@@ -621,7 +624,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         lowerLim <- quantile(ccc, 0.05)
         ccc <- ccc[ccc > lowerLim]
         spreadProbMap[spreadProbMap <= lowerLim] <- lowerLim
-        predLiklihood <- raster(r)
+        predLiklihood <- rast(r)
         predLiklihood[out$pixelID] <- predictedLiklihood
         predLiklihood <- crop(predLiklihood, ex)
         spIgnits <- SpatialPoints(coords = xyFromCell(r, thisFire$cells))

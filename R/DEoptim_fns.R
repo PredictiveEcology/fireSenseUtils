@@ -2,56 +2,59 @@ utils::globalVariables(c(
   ".BY", ".SD", "pars"
 ))
 
-#' Wrapper around \code{DEoptim} call
+#' Wrapper around `DEoptim` call
 #'
 #' Does the multiple cluster connections. This will only work if
 #' ssh keys are correctly made between machines (if using multiple machines).
 #'
-#' @param landscape A \code{RasterLayer} which has the correct metadata associated with
-#'   the \code{pixelID} and cells of other objects in this function call
+#' @param landscape A `RasterLayer` which has the correct metadata associated with
+#'   the `pixelID` and cells of other objects in this function call
 #' @param annualDTx1000 A list of data.table objects. Each list element will be from 1
-#'   year, and it must be the same length as \code{fireBufferedListDT} and \code{historicalFires}.
+#'   year, and it must be the same length as `fireBufferedListDT` and `historicalFires`.
 #'   All covariates must be integers, and must be 1000x their actual values.
 #' @param nonAnnualDTx1000 A list of data.table objects. Each list element must be named
-#'   with a concatenated sequence of names from \code{names(annualDTx1000)},
-#'   e.g., \code{1991_1992_1993}.
-#'   It should contain all the years in \code{names(annualDTx1000)}.
+#'   with a concatenated sequence of names from `names(annualDTx1000)`,
+#'   e.g., `1991_1992_1993`.
+#'   It should contain all the years in `names(annualDTx1000)`.
 #'   All covariates must be integers, and must be 1000x their actual values.
 #' @param fireBufferedListDT A list of data.table objects. It must be same length as
-#'   \code{annualDTx1000}, with same names. Each element is a \code{data.table} with columns:
-#'   \code{buff}...TODO: INCOMPLETE
+#'   `annualDTx1000`, with same names. Each element is a `data.table` with columns:
+#'   `buff`...TODO: INCOMPLETE
 #' @param historicalFires DESCRIPTION NEEDED
-#' @param itermax Passed to \code{DEoptim.control}
+#' @param itermax Passed to `DEoptim.control`
 #' @param initialpop DESCRIPTION NEEDED
 #' @param NP DESCRIPTION NEEDED
-#' @param trace Passed to \code{DEoptim.control}
-#' @param strategy Passed to \code{DEoptim.control}
+#' @param trace Passed to `DEoptim.control`
+#' @param strategy Passed to `DEoptim.control`
 #' @param cores A numeric (for running on localhost only) or a character vector of
 #'   machine names (including possibly "localhost"), where
 #'   the length of the vector indicates how many cores should be used on that machine.
+#' @param libPath A character string indicating an R package library directory. This
+#'   location must exist on each machine, though the function will make sure it
+#'   does internally.
 #' @param logPath A character string indicating what file to write logs to. This
-#'   \code{dirname(logPath)} must exist on each machine, though the function will make sure it
+#'   `dirname(logPath)` must exist on each machine, though the function will make sure it
 #'   does internally.
 #' @param doObjFunAssertions logical indicating whether to do assertions.
-#' @param cachePath The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}
-#' @param iterStep Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
-#'   the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
+#' @param cachePath The `cachePath` to store cache in. Should likely be `cachePath(sim)`
+#' @param iterStep Integer. Must be less than `itermax`. This will cause `DEoptim` to run
+#'   the `itermax` iterations in `ceiling(itermax / iterStep)` steps. At the end of
 #'   each step, this function will plot, optionally, the parameter histograms (if
-#'   \code{visualizeDEoptim} is \code{TRUE})
-#' @param lower Passed to \code{DEoptim}
-#' @param upper Passed to \code{DEoptim}
+#'   `visualizeDEoptim` is `TRUE`)
+#' @param lower Passed to `DEoptim`
+#' @param upper Passed to `DEoptim`
 #' @template mutuallyExclusive
-#' @param FS_formula Passed to \code{DEoptim}
+#' @param FS_formula Passed to `DEoptim`
 #' @param objFunCoresInternal DESCRIPTION NEEDED
-#' @param covMinMax Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param tests Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param maxFireSpread Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param Nreps Passed to \code{fireSenseUtils::.objfunSpreadFit}
+#' @param covMinMax Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param tests Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param maxFireSpread Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param Nreps Passed to `fireSenseUtils::.objfunSpreadFit`
 #' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
-#' @param .verbose Passed to \code{fireSenseUtils::.objfunSpreadFit}
-#' @param visualizeDEoptim Logical. If \code{TRUE}, then histograms will be made of
-#'   \code{DEoptim} outputs.
-#' @param .plotSize List specifying plot \code{height} and \code{width}, in pixels.
+#' @param .verbose Passed to `fireSenseUtils::.objfunSpreadFit`
+#' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of
+#'   `DEoptim` outputs.
+#' @param .plotSize List specifying plot `height` and `width`, in pixels.
 #'
 #' @return DESCRIPTION NEEDED
 #'
@@ -63,7 +66,7 @@ utils::globalVariables(c(
 #' @importFrom qs qread qsave
 #' @importFrom reproducible Cache checkPath
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
-#' @importFrom utils install.packages packageVersion
+#' @importFrom utils install.packages installed.packages packageVersion
 runDEoptim <- function(landscape,
                        annualDTx1000,
                        nonAnnualDTx1000,
@@ -75,7 +78,9 @@ runDEoptim <- function(landscape,
                        trace,
                        strategy,
                        cores = NULL,
-                       logPath,
+                       libPath = .libPaths()[1],
+                       logPath = tempfile(sprintf("fireSense_SpreadFit_%s_",
+                                          format(Sys.time(), "%Y-%m-%d_%H%M%S")), fileext = ".log"),
                        doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                        cachePath,
                        iterStep = 25,
@@ -154,61 +159,41 @@ runDEoptim <- function(landscape,
         paste(coresUnique, collapse = ", ")
       )
       st <- system.time({
-        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = .libPaths())
+        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath)
       })
       packageVersionFSU <- packageVersion("fireSenseUtils")
       packageVersionST <- packageVersion("SpaDES.tools")
-      clusterExport(cl, list("logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
+      clusterExport(cl, list("libPath", "logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
 
       parallel::clusterEvalQ(
         cl,
         {
-          # Use the binary packages for install if Ubuntu & Linux
-          if (Sys.info()["sysname"] == "Linux" && grepl("Ubuntu", utils::osVersion)) {
-            .os.version <- strsplit(system("lsb_release -c", intern = TRUE), ":\t")[[1]][[2]]
-            .user.agent <- paste0(
-              "R/", getRversion(), " R (",
-              paste(getRversion(), R.version["platform"], R.version["arch"], R.version["os"]),
-              ")"
-            )
-            optsNew <- list(
-              "repos" = c(CRAN = paste0(
-                "https://packagemanager.rstudio.com/all/__linux__/",
-                .os.version, "/latest"
-              )),
-              "HTTPUserAgent" = .user.agent
-            )
-            opts <- options(optsNew)
-            on.exit(
-              {
-                options(opts)
-              },
-              add = TRUE
-            )
-          }
-
           # If this is first time that packages need to be installed for this user on this machine
-          #   there won't be a folder present that is writeable
-          if (file.access(.libPaths()[1], mode = 2) < 0) {
-            message("The .libPaths()[1] is not writable; trying normal alternatives")
-            RLibPath <- .libPaths()[1]
+          #   there won't be a folder present that is writable
+          if (!dir.exists(libPath)) {
+            dir.create(libPath, recursive = TRUE)
 
-            if (!dir.exists(RLibPath)) {
-              dir.create(RLibPath, recursive = TRUE)
+            if (!dir.exists(libPath)) {
+              stop("libPath directory creation failed.\n",
+                   "Try creating on each machine manually, using e.g.,\n",
+                   "  mkdir -p ", libPath)
             }
           }
 
-          if (!require("Require", quietly = TRUE)) install.packages("Require") # will do Require too
-          message(Sys.info()[["nodename"]])
-          # Use Require with minimum version number as the mechanism for updating; remotes is
-          #    too crazy with installing same package multiple times as recursive packages
-          #    are dealt with
-          Require::checkPath(dirname(logPath), create = TRUE)
-
-          if (!require("igraph")) {
-            install.packages("igraph", type = "source", repos = "https://cran.rstudio.com")
+          if (!"Require" %in% rownames(utils::installed.packages())) {
+            remotes::install_github("PredictiveEcology/Require@development")
+          } else if (packageVersion("Require") < "0.1.0.9000") {
+            remotes::install_github("PredictiveEcology/Require@development")
           }
-          # This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
+
+          ## Use the binary packages for install if Ubuntu & Linux
+          Require::setLinuxBinaryRepo()
+
+          logPath <- Require::checkPath(dirname(logPath), create = TRUE)
+
+          message(Sys.info()[["nodename"]])
+
+          ## This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
           Require::Require(
             c(
               "dqrng",
@@ -230,7 +215,7 @@ runDEoptim <- function(landscape,
     st <- system.time({
       cl <- parallelly::makeClusterPSOCK(cores,
         revtunnel = revtunnel,
-        outfile = logPath, rscript_libs = .libPaths()
+        outfile = logPath, rscript_libs = libPath
       )
     })
 
@@ -244,7 +229,15 @@ runDEoptim <- function(landscape,
     stMoveObjects <- try({
       system.time({
         objsToCopy <- mget(unlist(objsNeeded))
-        filenameForTransfer <- tempfile(fileext = ".qs")
+        objsToCopy <- lapply(objsToCopy, FUN = function(x) {
+          if (inherits(x, "SpatRaster")) {
+            x <- terra::wrap(x)
+          } else {
+            x
+          }
+          x
+        })
+        filenameForTransfer <- Require::normPath(tempfile(fileext = ".qs"))
         Require::checkPath(dirname(filenameForTransfer), create = TRUE) # during development, this was deleted accidentally
         qs::qsave(objsToCopy, file = filenameForTransfer)
         stExport <- system.time({
@@ -258,6 +251,14 @@ runDEoptim <- function(landscape,
         })
         out <- clusterEvalQ(cl, {
           out <- qs::qread(file = filenameForTransfer)
+          out <- lapply(out, FUN = function(x) {
+            if (inherits(x, "PackedSpatRaster")){
+              x <- terra::unwrap(x)
+            } else {
+              x
+            }
+            x
+          })
           list2env(out, envir = .GlobalEnv)
         })
         # Delete the file
@@ -324,11 +325,11 @@ runDEoptim <- function(landscape,
   DE
 }
 
-#' Make histograms of \code{DEoptim} object \code{pars}
+#' Make histograms of `DEoptim` object `pars`
 #'
-#' @param DE An object from a \code{DEoptim} call
-#' @param cachePath A \code{cacheRepo} to pass to \code{showCache} and
-#'        \code{loadFromCache} if \code{DE} is missing.
+#' @param DE An object from a `DEoptim` call
+#' @param cachePath A `cacheRepo` to pass to `showCache` and
+#'        `loadFromCache` if `DE` is missing.
 #'
 #' @export
 #' @importFrom data.table as.data.table

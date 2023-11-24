@@ -101,9 +101,9 @@ extractSpecial <- function(v, k) {
   }
 }
 
-#' \code{objNlminb}
+#' `objNlminb`
 #'
-#' Wrapper around \code{stats::nlminb}
+#' Wrapper around `stats::nlminb`
 #'
 #' @param x DESCRIPTION NEEDED
 #' @param objective objective function

@@ -9,6 +9,7 @@ cohortsToFuelClasses(
   yearCohort,
   pixelGroupMap,
   flammableRTM,
+  landcoverDT = NULL,
   sppEquiv,
   sppEquivCol,
   cutoffForYoungAge,
@@ -27,6 +28,9 @@ number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}
 
 \item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
 
+\item{landcoverDT}{optional table of nonforest landcovers and pixel indices. It will override
+pixel values in \code{cohortData}, if supplied.}
+
 \item{sppEquiv}{table with species name equivalencies between the kNN and final naming formats.
 See \code{data("sppEquivalencies_CA", "LandR")}.
 Only necessary if \code{mixedType == 2}.
@@ -40,7 +44,7 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{fuelClassCol}{the column in sppEquiv that describes unique fuel classes}
 }
 \value{
-a raster stack of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
+a terra SpatRaster of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
 }
 \description{
 Classify \code{pixelGroups} by flammability

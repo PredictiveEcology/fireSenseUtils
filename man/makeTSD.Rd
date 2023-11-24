@@ -4,22 +4,32 @@
 \alias{makeTSD}
 \title{preparing a time since disturbance map from stand age and fire data}
 \usage{
-makeTSD(year, firePolys, standAgeMap, lcc, cutoffForYoungAge = 15)
+makeTSD(
+  year,
+  firePolys = NULL,
+  fireRaster = NULL,
+  standAgeMap,
+  lcc,
+  cutoffForYoungAge = 15
+)
 }
 \arguments{
 \item{year}{the year represented by \code{standAge}}
 
-\item{firePolys}{list of \code{spatialPolygon} objects comprising annual fires}
+\item{firePolys}{list of \code{spatialPolygon} objects comprising annual fires.
+fireRaster will supersede firePolys if provided}
+
+\item{fireRaster}{a \code{RasterLayer} with values representing fire years}
 
 \item{standAgeMap}{initial stand age map}
 
 \item{lcc}{\code{data.table} with landcover values - \code{landcoverDT}}
 
 \item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
-"young" --> youngAge column will be 1 if age <= 15}
+"young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
 }
 \value{
-a raster layer with values representing time since disturbance
+a \code{SpatRaster} with values representing time since disturbance
 }
 \description{
 preparing a time since disturbance map from stand age and fire data

@@ -17,7 +17,7 @@
   minFireSize = 2,
   tests = "snll_fs",
   Nreps = 10,
-  mutuallyExclusive = list(youngAge = c("vegPC")),
+  mutuallyExclusive = list(youngAge = c("class", "nf")),
   doAssertions = TRUE,
   plot.it = FALSE,
   objFunCoresInternal = 1,
@@ -30,7 +30,7 @@
 \arguments{
 \item{par}{parameters}
 
-\item{landscape}{A RasterLayer with extent, res, proj used for SpaDES.tools::spread}
+\item{landscape}{A SpatRaster with extent, res, proj used for SpaDES.tools::spread2}
 
 \item{annualDTx1000}{A list of data.table class objects. Each list element is
 data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
@@ -94,7 +94,7 @@ hyperthreaded cores here, internally will speed things up (i.e., this maybe coul
 \item{lanscape1stQuantileThresh}{A \code{spreadProb} value that represents a threshold for the
 1st quantile of the \code{spreadProbs} on the landscape; if that quantile is above this
 number, then the \code{.objFunSpredFit} will bail because it is "too burny" a landscape.
-Default = \code{0.265}, meaning if only 25% of the pixels on the landscape are below
+Default = \code{0.265}, meaning if only 25\% of the pixels on the landscape are below
 this \code{spreadProb}, then it will bail.}
 
 \item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
@@ -109,7 +109,7 @@ This will give large fires more influence on the SNLL.}
 }
 \value{
 Attempting a weighted likelihood,
-https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation
+\url{https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation}.
 With log(fireSize) * likelihood for each fire.
 }
 \description{

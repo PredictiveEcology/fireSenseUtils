@@ -1,4 +1,4 @@
-#' \code{fireSenseUtils} package
+#' `fireSenseUtils` package
 #'
 #' Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 #'

@@ -1,36 +1,25 @@
 #' Converts stacks of climate rasters to data.table and optionally subsets to index
 #'
-#' @param historicalClimateRasters named list of raster stack(s)
-#' @param Index optional list of `data.table`s named by `fireYear` containing fire buffer indices
+#' @param historicalClimateRasters named list of `SpatRaster` objects
+#' @param Index optional list of `data.table` objects named by fireYear and
+#' containing fire buffer indices
 #'
-#' @return a `data.table` of variables for fireSense PCA
+#' @return a long-layout `data.table` of climate values in each pixel and year
 #'
 #' @export
-#' @importFrom data.table data.table setnames
+#' @importFrom data.table as.data.table setnames melt.data.table
 #' @importFrom LandR asInteger
+#' @importFrom terra values ncell
 #' @rdname climateRasterToDataTable
 climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
-  climatePCAdat <- lapply(names(historicalClimateRasters),
-    FUN = function(var, stackList = historicalClimateRasters) {
-      annualStack <- stackList[[var]]
-      annualVars <- lapply(1:nlayers(annualStack), FUN = function(layer) {
-        layer <- annualStack[[layer]]
-        rasterDat <- data.table(
-          pixelID = 1:ncell(layer),
-          value = asInteger(getValues(layer)),
-          year = names(layer)
-        )
-      })
-      annualVars <- rbindlist(annualVars)
-      annualVars <- na.omit(annualVars)
 
-      ## Index will be flammable cells only - should always be passed
-      if (!is.null(Index)) {
-        annualVars <- annualVars[pixelID %in% Index, ]
-      }
-      setnames(annualVars, old = "value", new = var)
-      return(annualVars)
-    }
-  )
-  return(climatePCAdat)
+  varName <- names(historicalClimateRasters)
+  temp <- as.data.table(values(historicalClimateRasters[[1]]))
+  temp[, pixelID := 1:ncell(historicalClimateRasters[[1]][[1]])]
+  temp <- temp[pixelID %in% Index]
+  temp <- melt.data.table(data = temp, id.vars = "pixelID", value.name = varName,
+                          variable.name = "year")
+  temp[, (varName) := lapply(.SD, asInteger), .SDcols = varName]
+  gc()
+  return(temp)
 }

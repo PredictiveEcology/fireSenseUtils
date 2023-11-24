@@ -17,7 +17,9 @@ runDEoptim(
   trace,
   strategy,
   cores = NULL,
-  logPath,
+  libPath = .libPaths()[1],
+  logPath = tempfile(sprintf("fireSense_SpreadFit_\%s_", format(Sys.time(),
+    "\%Y-\%m-\%d_\%H\%M\%S")), fileext = ".log"),
   doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
   cachePath,
   iterStep = 25,
@@ -67,7 +69,7 @@ All covariates must be integers, and must be 1000x their actual values.}
 
 \item{nonAnnualDTx1000}{A list of data.table objects. Each list element must be named
 with a concatenated sequence of names from \code{names(annualDTx1000)},
-e.g., \code{1991_1992_1993}.
+e.g., \verb{1991_1992_1993}.
 It should contain all the years in \code{names(annualDTx1000)}.
 All covariates must be integers, and must be 1000x their actual values.}
 
@@ -90,6 +92,10 @@ All covariates must be integers, and must be 1000x their actual values.}
 \item{cores}{A numeric (for running on localhost only) or a character vector of
 machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
+
+\item{libPath}{A character string indicating an R package library directory. This
+location must exist on each machine, though the function will make sure it
+does internally.}
 
 \item{logPath}{A character string indicating what file to write logs to. This
 \code{dirname(logPath)} must exist on each machine, though the function will make sure it
