@@ -23,11 +23,11 @@ stackAndExtract <- function(years, fuel, LCC, climate, climVar, fires) {
   ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, climvar = climVar,
                                                 LCCras = LCC, fuelRas = fuel, ignitions = fires) {
 
-    climate <- climate[[year]] # get single climate layer
+    thisYearsClimateRas <- climateRas[[year]] # get single climate layer
     ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year, ] # get annual ignitions
-    names(climate) <- climVar
+    names(thisYearsClimateRas) <- climVar
 
-    yearCovariates <- c(climateRas, LCCras, fuelRas)
+    yearCovariates <- c(thisYearsClimateRas, LCCras, fuelRas)
 
     # get cells with ignitions and aggregate by repeated ignitions
     ignitionDT <- extract(x = yearCovariates, y = ignitions, cells = TRUE) %>%
