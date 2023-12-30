@@ -343,6 +343,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   # needed because data.table objects were recovered from disk
   # Rescale to numerics and /1000
   # setDT(nonAnnDTx1000)
+  browser()
   setDT(annDTx1000)
   shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
   if (!is.null(covMinMax)) {
@@ -402,7 +403,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
   spreadOutEnough <- sdSP / medSP > 0.025
   ret <- list()
-  minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
+  minLik <- 1e-29 # min(emp$lik[emp$lik > 0])
   loci <- annualFires$cells
   summ <- summary(nonEdgeValues)
   lowSPLowEnough <- summ[2] < lanscape1stQuantileThresh

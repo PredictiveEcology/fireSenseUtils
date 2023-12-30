@@ -150,6 +150,7 @@ runDEoptim <- function(landscape,
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #     multiple times per machine, if not all 'localhost'
     revtunnel <- FALSE
+    # browser()
     if (!identical("localhost", unique(cores))) {
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
@@ -163,7 +164,17 @@ runDEoptim <- function(landscape,
       })
       packageVersionFSU <- packageVersion("fireSenseUtils")
       packageVersionST <- packageVersion("SpaDES.tools")
-      clusterExport(cl, list("libPath", "logPath", "packageVersionFSU", "packageVersionST"), envir = environment())
+      repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
+
+      neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
+        "SpaDES.tools", "fireSenseUtils")
+
+      aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
+                                     "PredictiveEcology/fireSenseUtils@development", "qs", "RCurl", neededPkgs)), recursive = TRUE)
+
+      browser()
+      clusterExport(cl, list("libPath", "logPath", "packageVersionFSU", "packageVersionST", "repos"),
+                    envir = environment())
 
       parallel::clusterEvalQ(
         cl,
@@ -180,32 +191,41 @@ runDEoptim <- function(landscape,
             }
           }
 
-          if (!"Require" %in% rownames(utils::installed.packages())) {
-            remotes::install_github("PredictiveEcology/Require@development")
-          } else if (packageVersion("Require") < "0.1.0.9000") {
-            remotes::install_github("PredictiveEcology/Require@development")
-          }
-
-          ## Use the binary packages for install if Ubuntu & Linux
-          Require::setLinuxBinaryRepo()
-
-          logPath <- Require::checkPath(dirname(logPath), create = TRUE)
+          # logPath <- Require::checkPath(dirname(logPath), create = TRUE)
+          logPath <- dir.create(dirname(logPath), showWarnings = FALSE, recursive = TRUE)
 
           message(Sys.info()[["nodename"]])
 
-          ## This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
-          Require::Require(
-            c(
-              "dqrng",
-              paste0("PredictiveEcology/SpaDES.tools@development (>=", packageVersionST, ")"),
-              paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")
-            ),
-            upgrade = FALSE
-          )
+          #scp -r /home/emcintir/.local/share/R/Edehzhie/packages/x86_64-pc-linux-gnu/4.3/fireSenseUtils emcintir@10.│^C
+          #20.0.97:/home/emcintir/.local/share/R/Edehzhie/packages/x86_64-pc-linux-gnu/4.3
+
+          needRequire <- FALSE
+          if (!"Require" %in% rownames(utils::installed.packages())) {
+            needRequire <- TRUE
+          } else if (packageVersion("Require") < "0.1.0.9000")  {
+            needRequire <- TRUE
+          }
+          if (isTRUE(needRequire))
+            install.packages("Require", repos = repos, lib = libPath)
+
+          ## Use the binary packages for install if Ubuntu & Linux
+          # Require::setLinuxBinaryRepo()
+
+          if (FALSE) {
+            ## This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
+            Require::Require(c("dqrng", "SpaDES.tools", "fireSenseUtils"), repos = repos)
+          }
+
         }
       )
       parallel::stopCluster(cl)
     }
+
+    pkgsNeeded <- unique(Require::extractPkgName(unname(unlist(aa))))
+    out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
+      system(paste0("rsync -aruv --update ", paste(file.path(libPath, pkgsNeeded), collapse = " "),
+                    " ", ip, ":", libPath))
+    })
 
     ## Now make full cluster with one worker per core listed in "cores"
     message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
@@ -237,14 +257,14 @@ runDEoptim <- function(landscape,
           }
           x
         })
-        filenameForTransfer <- Require::normPath(tempfile(fileext = ".qs"))
-        Require::checkPath(dirname(filenameForTransfer), create = TRUE) # during development, this was deleted accidentally
+        filenameForTransfer <- normalizePath(tempfile(fileext = ".qs"), mustWork = FALSE, winslash = "/")
+        dir.create(dirname(filenameForTransfer), recursive = TRUE, showWarnings = FALSE) # during development, this was deleted accidentally
         qs::qsave(objsToCopy, file = filenameForTransfer)
         stExport <- system.time({
           outExp <- clusterExport(cl, varlist = "filenameForTransfer", envir = environment())
         })
         out11 <- clusterEvalQ(cl, {
-          Require::checkPath(dirname(filenameForTransfer), create = TRUE)
+          dir.create(dirname(filenameForTransfer), recursive = TRUE, showWarnings = FALSE)
         })
         out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
           st1 <- system.time(system(paste0("rsync -a ", filenameForTransfer, " ", ip, ":", filenameForTransfer)))
@@ -277,13 +297,12 @@ runDEoptim <- function(landscape,
     }
     message("it took ", round(stMoveObjects[3], 2), "s to move objects to nodes")
     message("loading packages in cluster nodes")
+
+    clusterExport(cl, "neededPkgs", envir = environment())
     stPackages <- system.time(parallel::clusterEvalQ(
       cl,
       {
-        for (i in c(
-          "kSamples", "magrittr", "raster", "data.table",
-          "SpaDES.tools", "fireSenseUtils"
-        )) {
+        for (i in neededPkgs) {
           library(i, character.only = TRUE)
         }
         message("loading ", i, " at ", Sys.time())
