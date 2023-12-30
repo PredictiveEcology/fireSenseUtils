@@ -97,6 +97,7 @@ runDEoptim <- function(landscape,
                        .verbose,
                        visualizeDEoptim,
                        .plotSize = list(height = 1600, width = 2000)) {
+  if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
     blas_set_num_threads(1)
@@ -150,6 +151,13 @@ runDEoptim <- function(landscape,
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #     multiple times per machine, if not all 'localhost'
     revtunnel <- FALSE
+    repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
+
+    neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
+                    "SpaDES.tools", "fireSenseUtils")
+
+    aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
+                                   "PredictiveEcology/fireSenseUtils@development", "qs", "RCurl", neededPkgs)), recursive = TRUE)
     # browser()
     if (!identical("localhost", unique(cores))) {
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
@@ -161,20 +169,11 @@ runDEoptim <- function(landscape,
       )
       st <- system.time({
         cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath)
-      })
-      packageVersionFSU <- packageVersion("fireSenseUtils")
-      packageVersionST <- packageVersion("SpaDES.tools")
-      repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
-
-      neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
-        "SpaDES.tools", "fireSenseUtils")
-
-      aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
-                                     "PredictiveEcology/fireSenseUtils@development", "qs", "RCurl", neededPkgs)), recursive = TRUE)
-
-      browser()
-      clusterExport(cl, list("libPath", "logPath", "packageVersionFSU", "packageVersionST", "repos"),
-                    envir = environment())
+        })
+        packageVersionFSU <- packageVersion("fireSenseUtils")
+        packageVersionST <- packageVersion("SpaDES.tools")
+        clusterExport(cl, list("libPath", "logPath", "packageVersionFSU", "packageVersionST", "repos"),
+                      envir = environment())
 
       parallel::clusterEvalQ(
         cl,

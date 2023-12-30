@@ -343,7 +343,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   # needed because data.table objects were recovered from disk
   # Rescale to numerics and /1000
   # setDT(nonAnnDTx1000)
-  browser()
   setDT(annDTx1000)
   shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
   if (!is.null(covMinMax)) {
@@ -444,6 +443,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     minSize <- 100
     if (doAssertions || plot.it) {
       tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
+      tableOfBufferedMaps <- tableOfBufferedMaps[annualFires, on = "ids"]
+      setnames(tableOfBufferedMaps, old = "cells", new = "initialPixels")
       minSizes <- tableOfBufferedMaps$numAvailPixels
       minSize <- quantile(minSizes, 0.3)
       if (minSize < 2000) {
