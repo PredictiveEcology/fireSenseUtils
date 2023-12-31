@@ -634,7 +634,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         predLiklihood <- rast(r)
         predLiklihood[out$pixelID] <- predictedLiklihood
         predLiklihood <- crop(predLiklihood, ex)
-        spIgnits <- SpatialPoints(coords = xyFromCell(r, thisFire$cells))
+        spIgnits <- terra::vect(xyFromCell(r, thisFire$cells))
         spIgnits <- buffer(spIgnits, width = 5000)
         spIgnits <- crop(spIgnits, ex)
         list(
