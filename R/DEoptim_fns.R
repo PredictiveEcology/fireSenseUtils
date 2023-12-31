@@ -151,80 +151,80 @@ runDEoptim <- function(landscape,
     ## Make cluster with just one worker per machine --> don't need to do these steps
     #     multiple times per machine, if not all 'localhost'
     revtunnel <- FALSE
-    repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
-
     neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
                     "SpaDES.tools", "fireSenseUtils")
 
-    aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
-                                   "PredictiveEcology/fireSenseUtils@development", "qs", "RCurl", neededPkgs)), recursive = TRUE)
     # browser()
     if (!identical("localhost", unique(cores))) {
+      repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
+
+      aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
+                                     "PredictiveEcology/fireSenseUtils@development", "qs", "RCurl", neededPkgs)), recursive = TRUE)
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
-      coresUnique <- setdiff(unique(cores), "localhost")
-      message(
-        "Making sure packages with sufficient versions installed and loaded on: ",
-        paste(coresUnique, collapse = ", ")
-      )
-      st <- system.time({
-        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath)
+        coresUnique <- setdiff(unique(cores), "localhost")
+        message(
+          "Making sure packages with sufficient versions installed and loaded on: ",
+          paste(coresUnique, collapse = ", ")
+        )
+        st <- system.time({
+          cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath)
         })
         packageVersionFSU <- packageVersion("fireSenseUtils")
         packageVersionST <- packageVersion("SpaDES.tools")
         clusterExport(cl, list("libPath", "logPath", "packageVersionFSU", "packageVersionST", "repos"),
                       envir = environment())
 
-      parallel::clusterEvalQ(
-        cl,
-        {
-          # If this is first time that packages need to be installed for this user on this machine
-          #   there won't be a folder present that is writable
-          if (!dir.exists(libPath)) {
-            dir.create(libPath, recursive = TRUE)
-
+        parallel::clusterEvalQ(
+          cl,
+          {
+            # If this is first time that packages need to be installed for this user on this machine
+            #   there won't be a folder present that is writable
             if (!dir.exists(libPath)) {
-              stop("libPath directory creation failed.\n",
-                   "Try creating on each machine manually, using e.g.,\n",
-                   "  mkdir -p ", libPath)
+              dir.create(libPath, recursive = TRUE)
+
+              if (!dir.exists(libPath)) {
+                stop("libPath directory creation failed.\n",
+                     "Try creating on each machine manually, using e.g.,\n",
+                     "  mkdir -p ", libPath)
+              }
             }
+
+            # logPath <- Require::checkPath(dirname(logPath), create = TRUE)
+            logPath <- dir.create(dirname(logPath), showWarnings = FALSE, recursive = TRUE)
+
+            message(Sys.info()[["nodename"]])
+
+            #scp -r /home/emcintir/.local/share/R/Edehzhie/packages/x86_64-pc-linux-gnu/4.3/fireSenseUtils emcintir@10.│^C
+            #20.0.97:/home/emcintir/.local/share/R/Edehzhie/packages/x86_64-pc-linux-gnu/4.3
+
+            needRequire <- FALSE
+            if (!"Require" %in% rownames(utils::installed.packages())) {
+              needRequire <- TRUE
+            } else if (packageVersion("Require") < "0.1.0.9000")  {
+              needRequire <- TRUE
+            }
+            if (isTRUE(needRequire))
+              install.packages("Require", repos = repos, lib = libPath)
+
+            ## Use the binary packages for install if Ubuntu & Linux
+            # Require::setLinuxBinaryRepo()
+
+            if (FALSE) {
+              ## This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
+              Require::Require(c("dqrng", "SpaDES.tools", "fireSenseUtils"), repos = repos)
+            }
+
           }
+        )
+        pkgsNeeded <- unique(Require::extractPkgName(unname(unlist(aa))))
+        out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
+          system(paste0("rsync -aruv --update ", paste(file.path(libPath, pkgsNeeded), collapse = " "),
+                        " ", ip, ":", libPath))
+        })
 
-          # logPath <- Require::checkPath(dirname(logPath), create = TRUE)
-          logPath <- dir.create(dirname(logPath), showWarnings = FALSE, recursive = TRUE)
-
-          message(Sys.info()[["nodename"]])
-
-          #scp -r /home/emcintir/.local/share/R/Edehzhie/packages/x86_64-pc-linux-gnu/4.3/fireSenseUtils emcintir@10.│^C
-          #20.0.97:/home/emcintir/.local/share/R/Edehzhie/packages/x86_64-pc-linux-gnu/4.3
-
-          needRequire <- FALSE
-          if (!"Require" %in% rownames(utils::installed.packages())) {
-            needRequire <- TRUE
-          } else if (packageVersion("Require") < "0.1.0.9000")  {
-            needRequire <- TRUE
-          }
-          if (isTRUE(needRequire))
-            install.packages("Require", repos = repos, lib = libPath)
-
-          ## Use the binary packages for install if Ubuntu & Linux
-          # Require::setLinuxBinaryRepo()
-
-          if (FALSE) {
-            ## This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
-            Require::Require(c("dqrng", "SpaDES.tools", "fireSenseUtils"), repos = repos)
-          }
-
-        }
-      )
-      parallel::stopCluster(cl)
+        parallel::stopCluster(cl)
     }
-
-    pkgsNeeded <- unique(Require::extractPkgName(unname(unlist(aa))))
-    out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
-      system(paste0("rsync -aruv --update ", paste(file.path(libPath, pkgsNeeded), collapse = " "),
-                    " ", ip, ":", libPath))
-    })
 
     ## Now make full cluster with one worker per core listed in "cores"
     message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
@@ -435,6 +435,7 @@ DEoptimIterative <- function(itermax,
           mutuallyExclusive = mutuallyExclusive,
           doAssertions = doObjFunAssertions,
           Nreps = Nreps,
+          plot.it = FALSE,
           controlForCache = controlForCache,
           objFunCoresInternal = objFunCoresInternal,
           thresh = thresh,
