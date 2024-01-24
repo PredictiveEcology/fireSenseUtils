@@ -3,14 +3,13 @@ utils::globalVariables(c(
 ))
 
 
-
 #' prepare covariate table with ignition year, fuel class, climate value, and land cover
 #'
 #' @param years character vector of fire years with FS notation e.g. year2002
 #' @param fuel raster brick of aggregated fuel classes
 #' @param LCC raster brick of aggregated LCC classes
-#' @param climate raster stack of climate layers with names matching `years`
-#' @param climVar the name of the climate variable
+#' @param climate list of raster layers named by climate variable
+#'  with raster layer names matching `years`
 #' @param fires list of spatial points representing annual ignitions
 #' @return a data.frame with cell numbers, ignitions, and covariates for each year
 #'
@@ -19,15 +18,22 @@ utils::globalVariables(c(
 #' @importFrom terra extract rast values ncell
 #' @importFrom sf %>%
 #' @importFrom stats na.omit
-stackAndExtract <- function(years, fuel, LCC, climate, climVar, fires) {
-  ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, climvar = climVar,
-                                                LCCras = LCC, fuelRas = fuel, ignitions = fires) {
+stackAndExtract <- function(years, fuel, LCC, climate, fires) {
 
-    thisYearsClimateRas <- climateRas[[year]] # get single climate layer
+  ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, fuelRas = fuel,
+                                                LCCras = LCC, ignitions = fires) {
+    climateVariables <- names(climateRas)
+    thisYearsClimate <- lapply(climateRas,
+                               FUN = function(x){x[[which(names(x) == year, useNames = TRUE)]]}) |>
+      rast()
+
     ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year, ] # get annual ignitions
-    names(thisYearsClimateRas) <- climVar
+    #TODO: check this works with length = 1 and length > 1. str of lapply changes..
 
-    yearCovariates <- c(thisYearsClimateRas, LCCras, fuelRas)
+    #rename from year to climate variable
+    names(thisYearsClimate) <- climateVariables
+
+    yearCovariates <- c(thisYearsClimate, LCCras, fuelRas)
 
     # get cells with ignitions and aggregate by repeated ignitions
     ignitionDT <- extract(x = yearCovariates, y = ignitions, cells = TRUE) %>%

@@ -7,19 +7,32 @@
 #' @return a long-layout `data.table` of climate values in each pixel and year
 #'
 #' @export
-#' @importFrom data.table as.data.table setnames melt.data.table
+#' @importFrom data.table as.data.table melt.data.table merge.data.table setnames
 #' @importFrom LandR asInteger
-#' @importFrom terra values ncell
+#' @importFrom terra as.data.frame
 #' @rdname climateRasterToDataTable
 climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
 
-  varName <- names(historicalClimateRasters)
-  temp <- as.data.table(values(historicalClimateRasters[[1]]))
-  temp[, pixelID := 1:ncell(historicalClimateRasters[[1]][[1]])]
-  temp <- temp[pixelID %in% Index]
-  temp <- melt.data.table(data = temp, id.vars = "pixelID", value.name = varName,
-                          variable.name = "year")
-  temp[, (varName) := lapply(.SD, asInteger), .SDcols = varName]
+  climVar <- names(historicalClimateRasters)
+  wideClimate <- lapply(historicalClimateRasters, terra::as.data.frame, cells = TRUE)
+  wideClimate <- lapply(wideClimate, as.data.table)
+  out <- lapply(climVar, FUN = function(var){
+    longClimate <- wideClimate[[var]]
+    longClimate <- melt.data.table(longClimate, id.vars = "cell",
+                                   value.name = var, variable.name = "year")
+  })
+
+  if (length(out) > 1) {
+    out$by <- c("cell", "year")
+    out <- do.call(data.table::merge.data.table, out)
+  }
+  setnames(out, old = "cell", new = "pixelID")
+
+  out[, (climVar) := lapply(.SD, asInteger), .SDcols = climVar]
+
+  if (!is.null(Index)){
+    out <- out[pixelID %in% Index]
+  }
   gc()
-  return(temp)
+  return(out)
 }
