@@ -25,6 +25,8 @@ climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
   if (length(out) > 1) {
     out$by <- c("cell", "year")
     out <- do.call(data.table::merge.data.table, out)
+  } else {
+    out <- out[[1]]
   }
   setnames(out, old = "cell", new = "pixelID")
 
