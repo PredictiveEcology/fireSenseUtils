@@ -31,12 +31,8 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
   # data.table needs an argument for which column names are kept during join
 
-  cD[age <= cutoffForYoungAge, FuelClass := "youngAge"]
-  if (!"totalBiomass" %in% names(cD)) {
-    cD[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
-  }
 
-  cD[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
+  cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
 
   # Fix zero age, zero biomass
   classes <- sort(unique(cD$FuelClass))
@@ -74,12 +70,11 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
 #' @importFrom terra values setValues rast
 makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
 
-  cohortDataub <- copy(cohortData)
-  cohortDataub <- cohortDataub[FuelClass == class, ]
+  cohortDataFB <- cohortData[FuelClass == class, ]
   ras <- rasterizeReduced(
-    reduced = cohortDataub,
+    reduced = cohortDataFB,
     fullRaster = pixelGroupMap,
-    newRasterCols = "B",
+    newRasterCols = "BperClass",
     mapcode = "pixelGroup"
   )
   # fuel class is 0 and not NA if absent entirely
