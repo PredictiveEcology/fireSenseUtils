@@ -19,7 +19,7 @@ and \code{sumB}.}
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
 }
 \value{
-a SpatRaster
+a SpatRaster with values equal to \code{class} biomass (B)
 }
 \description{
 Put \code{cohortData} back into a \code{SpatRaster} with some extra details

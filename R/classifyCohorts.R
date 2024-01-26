@@ -9,21 +9,20 @@ globalVariables(c(
 #' @template pixelGroupMap
 #' @template sppEquiv
 #' @template sppEquivCol
-#' @param yearCohort the year the `cohortData` represents
 #' @param landcoverDT optional table of nonforest landcovers and pixel indices. It will override
 #' pixel values in `cohortData`, if supplied.
 #' @template flammableRTM
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #' @param fuelClassCol the column in sppEquiv that describes unique fuel classes
 #'
-#' @return a terra SpatRaster of fuel classes defined by leading species and `sppEquiv$fuelClass`
+#' @return a {SpatRaster} of biomass by fuel class as determined by `fuelClassCol` and `cohortData`
 #'
 #' @export
 #' @importFrom data.table copy setkey
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom terra values rast
 #'
-cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM, landcoverDT = NULL,
+cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landcoverDT = NULL,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
   cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
@@ -40,22 +39,6 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   cD[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
 
   # Fix zero age, zero biomass
-  cD[, Leading := BperClass == max(BperClass), .(pixelGroup)]
-  cD <- unique(cD[Leading == TRUE, .(FuelClass, pixelGroup)]) # unique due to species
-  cD[, NspeciesWithMaxB := .N, .(pixelGroup)]
-
-  # In the event of a tie, we randomly pick a fuel class
-  ties <- cD[NspeciesWithMaxB > 1]
-  noTies <- cD[NspeciesWithMaxB == 1]
-  if (nrow(ties) > 1) {
-    ties$foo <- sample(x = 1:nrow(ties), size = nrow(ties))
-    setkey(ties, foo)
-    ties <- ties[!duplicated(ties[, .(pixelGroup)])]
-    ties[, foo := NULL]
-    cD <- rbind(ties, noTies)
-  } else {
-    cD <- noTies
-  }
   classes <- sort(unique(cD$FuelClass))
   classList <- lapply(classes, makeRastersFromCD,
     flammableRTM = flammableRTM,
@@ -85,7 +68,7 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
 #' @template flammableRTM
 #' @template pixelGroupMap
 #' @template cohortData
-#' @return a SpatRaster
+#' @return a SpatRaster with values equal to `class` biomass (B)
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom data.table data.table
 #' @importFrom terra values setValues rast
@@ -93,11 +76,10 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
 
   cohortDataub <- copy(cohortData)
   cohortDataub <- cohortDataub[FuelClass == class, ]
-  cohortDataub[, LeaderValue := 1]
   ras <- rasterizeReduced(
     reduced = cohortDataub,
     fullRaster = pixelGroupMap,
-    newRasterCols = "LeaderValue",
+    newRasterCols = "B",
     mapcode = "pixelGroup"
   )
   # fuel class is 0 and not NA if absent entirely

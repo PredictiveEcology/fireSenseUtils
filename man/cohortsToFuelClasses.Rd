@@ -6,7 +6,6 @@
 \usage{
 cohortsToFuelClasses(
   cohortData,
-  yearCohort,
   pixelGroupMap,
   flammableRTM,
   landcoverDT = NULL,
@@ -20,8 +19,6 @@ cohortsToFuelClasses(
 \item{cohortData}{A \code{data.table} with columns: \code{pixelGroup}, \code{ecoregionGroup},
 \code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
 and \code{sumB}.}
-
-\item{yearCohort}{the year the \code{cohortData} represents}
 
 \item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
@@ -44,7 +41,7 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{fuelClassCol}{the column in sppEquiv that describes unique fuel classes}
 }
 \value{
-a terra SpatRaster of fuel classes defined by leading species and \code{sppEquiv$fuelClass}
+a {SpatRaster} of biomass by fuel class as determined by \code{fuelClassCol} and \code{cohortData}
 }
 \description{
 Classify \code{pixelGroups} by flammability
