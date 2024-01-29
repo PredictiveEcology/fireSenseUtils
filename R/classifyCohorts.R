@@ -31,6 +31,9 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
   # data.table needs an argument for which column names are kept during join
 
+  cD[, maxAge := max(age), .(pixelGroup)]
+  cD[maxAge <= cutoffForYoungAge, FuelClass := "youngAge"]
+  cD[, maxAge := NULL]
 
   cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
 
