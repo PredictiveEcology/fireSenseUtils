@@ -37,6 +37,9 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
 
   cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
 
+  #youngAge is better treated as a binary cover variable than continuous measure of biomass
+  cD[FuelClass == "youngAge", BperClass := 1]
+
   # Fix zero age, zero biomass
   classes <- sort(unique(cD$FuelClass))
   classList <- lapply(classes, makeRastersFromCD,
