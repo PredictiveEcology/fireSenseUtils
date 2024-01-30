@@ -91,3 +91,23 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
   ras <- setValues(x = ras, values = rasVals)
   return(ras)
 }
+
+#' Modify cohortData with burn column
+#'
+#' @param year length-two vector giving temporal period used to subset firePolys. Closed interval
+#' @param pixelGroupMap either a `SpatRaster` with `pixelGroups` or list of `SpatRasters` named by year
+#' @param cohortData either a `cohortData` object or list of `cohortData` objects named by year
+#' @param firePolys the output of `fireSenseUtils::getFirePolys` with `YEAR` column
+#' @return cohortData modified with burn status
+#' @importFrom LandR addPixels2CohortData
+#' @importFrom terra rasterize
+buildCohortBurnHistory <- function(cohortData, pixelGroupMap,firePolys, year) {
+
+  #build fire raster
+  firePolys <- do.call(rbind, firePolys)
+  firePolys <- firePolys[firePolys$YEAR >= min(year) & firePolys$YEAR <= max(year),]
+  fireRas <- rasterize(firePolys, pixelGroupMap, field = "YEAR", fun = min)
+  cdLong <- addPixels2CohortData(cohortData, pixelGroupMap)
+  cdLong[, burned := fireRas[pixelIndex]]
+  return(cdLong)
+}
