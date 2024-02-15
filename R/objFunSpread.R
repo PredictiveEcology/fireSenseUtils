@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "initialPixels",
+  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "initialLocus",
   "N", "numAvailPixels", "pixelID", "prob", "simFireSize", "size", "spreadProb"
 ))
 
@@ -88,7 +88,7 @@ utils::globalVariables(c(
                              Nreps = 10,
                              mutuallyExclusive = list("youngAge" = c("class", "nf")),
                              doAssertions = TRUE,
-                             plot.it = FALSE,
+                             plot.it = FALSE, #TODO parameterize this line for plotting
                              objFunCoresInternal = 1,
                              lanscape1stQuantileThresh = 0.265,
                              thresh = 550,
@@ -464,12 +464,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       loci <- annualFires$cells[!dups]
     }
     spreadState <- lapply(seq_len(Nreps), function(i) {
-      SpaDES.tools::spread2(
+      SpaDES.tools::spread(
         landscape = r,
         maxSize = maxSizes,
-        start = loci,
+        loci = loci,
         spreadProb = cells,
-        asRaster = FALSE,
+        returnIndices = TRUE,
         allowOverlap = FALSE,
         skipChecks = TRUE
       )
@@ -490,28 +490,29 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", "))
       )
     }
+
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
-      emp <- spreadState[, list(N = .N), by = c("rep", "initialPixels")]
-      emp <- emp[annualFires, on = c("initialPixels" = "cells")]
+      emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
+      emp <- emp[annualFires, on = c("initialLocus" = "cells")]
       if (plot.it) {
-        emp <- tableOfBufferedMaps[emp, on = c("initialPixels"), nomatch = NULL]
+        emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL] #should be on = initialLocus
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
         emp <- setorderv(emp, c("size"), order = -1L)
         numLargest <- 4
         numHists <- 49 - numLargest - length(par) - 12 - 1 # 12 for rasters
-        uniqueEmpIds <- unique(emp$initialPixels)
+        uniqueEmpIds <- unique(emp$initialLocus)
         sam <- if (length(uniqueEmpIds) >= (numHists)) {
           try(c(
             unique(emp$ids)[1:numLargest],
-            sample(unique(emp$initialPixels)[-(1:numLargest)],
-              size = min(length(unique(emp$initialPixels)) - numLargest, numHists)
+            sample(unique(emp$initialLocus)[-(1:numLargest)],
+              size = min(length(unique(emp$initialLocus)) - numLargest, numHists)
             )
           ))
         } else {
           uniqueEmpIds
         }
-        if (is(sam, "try-error")) browser()
+
         emp[ids %in% sam,
           {
             dat <- round(log(N))
@@ -526,7 +527,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
             abline(v = log(size[1]), col = "red")
             abline(v = log(unique(numAvailPixels)), col = "green")
           },
-          by = "initialPixels"
+          by = "initialLocus"
         ]
         mtext(
           outer = TRUE,
@@ -560,13 +561,14 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
 
     if (isTRUE(doMADTest) || isTRUE(doADTest)) {
-      fireSizes <- round(spreadState[, .N, .(initialPixels)][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
+      fireSizes <- round(spreadState[, .N, .(initialLocus)][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
       ret <- append(ret, list(fireSizes = fireSizes))
     }
     if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
       # if (isTRUE(doSNLLTest)) {
-      burnedProb <- spreadState[, .N, by = "pixels"]
-      setnames(burnedProb, "pixels", "pixelID")
+
+      burnedProb <- spreadState[, .N, by = "indices"]
+      setnames(burnedProb, "indices", "pixelID")
       out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
 
       # fix the out
@@ -627,7 +629,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         predLiklihood <- rast(r)
         predLiklihood[out$pixelID] <- predictedLiklihood
         predLiklihood <- crop(predLiklihood, ex)
-        spIgnits <- SpatialPoints(coords = xyFromCell(r, thisFire$cells))
+        spIgnits <- terra::vect(xyFromCell(r, thisFire$cells))
         spIgnits <- buffer(spIgnits, width = 5000)
         spIgnits <- crop(spIgnits, ex)
         list(
