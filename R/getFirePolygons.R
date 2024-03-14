@@ -14,7 +14,8 @@ getFirePolygons <- function(years, useInnerCache = FALSE, ...) {
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
   firePolys <- prepInputs(
     url = currentURL,
-    useCache = useInnerCache
+    useCache = useInnerCache,
+    ...
   ) # this object will cache several gigabytes of cached for a small object
 
   firePolys$YEAR <- as.numeric(firePolys$YEAR) #it has been character before.. 
