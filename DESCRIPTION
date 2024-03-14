@@ -53,12 +53,10 @@ Suggests:
     Require (>= 0.3.1),
     rmarkdown,
     SpaDES.core,
-    spatialEco,
     spatstat,
     spelling,
     testthat
 Remotes:
-    jeffreyevans/spatialEco,
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
     PredictiveEcology/SpaDES.core@development,
