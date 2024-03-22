@@ -29,8 +29,8 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
     ## get particular fire polys in format that can be fasterized
     polysNeeded <- firePolys[names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1)]
     polysNeeded <- polysNeeded[sapply(polysNeeded, length) > 0]
-    polysNeeded <- vect(polysNeeded) #this is terra method
-
+    # polysNeeded <- vect(polysNeeded) #terrarize 
+    polysNeeded <- do.call(rbind, polysNeeded)
     # create background raster with TSD
     initialTSD <- rasterize(polysNeeded, y = standAgeMap,
                             background = year - cutoffForYoungAge - 1,

@@ -8,7 +8,7 @@
 #'
 #' @export
 #' @importFrom reproducible prepInputs
-#' @importFrom terra expanse
+#' @importFrom sf st_area
 getFirePolygons <- function(years, useInnerCache = FALSE, ...) {
 
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
@@ -23,7 +23,8 @@ getFirePolygons <- function(years, useInnerCache = FALSE, ...) {
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
     firePoly <- polys[polys$YEAR == x, ]
     if (nrow(firePoly) > 0) {
-      firePoly$POLY_HA <- round(expanse(firePoly, unit = "ha"), digits = 2)
+      # firePoly$POLY_HA <- round(expanse(firePoly, unit = "ha"), digits = 2) #when terrarizing
+      firePoly$POLY_HA <- round(st_area(firePoly, unit = "ha"), digits = 2)
       # firePoly <- firePoly[!duplicated(firePoly$FIRE_ID), ] what was this for? 
       return(firePoly)
     } else {
