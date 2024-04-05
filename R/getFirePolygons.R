@@ -24,7 +24,8 @@ getFirePolygons <- function(years, useInnerCache = FALSE, ...) {
     firePoly <- polys[polys$YEAR == x, ]
     if (nrow(firePoly) > 0) {
       # firePoly$POLY_HA <- round(expanse(firePoly, unit = "ha"), digits = 2) #when terrarizing
-      firePoly$POLY_HA <- round(st_area(firePoly, unit = "ha"), digits = 2)
+
+      firePoly$POLY_HA <- round(st_area(firePoly, unit = "ha")/1e4, digits = 2)
       # firePoly <- firePoly[!duplicated(firePoly$FIRE_ID), ] what was this for? 
       return(firePoly)
     } else {

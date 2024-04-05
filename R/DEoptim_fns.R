@@ -158,6 +158,7 @@ runDEoptim <- function(landscape,
         "Making sure packages with sufficient versions installed and loaded on: ",
         paste(coresUnique, collapse = ", ")
       )
+
       st <- system.time({
         cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath)
       })
@@ -197,8 +198,8 @@ runDEoptim <- function(landscape,
           Require::Require(
             c(
               "dqrng",
-              paste0("PredictiveEcology/SpaDES.tools@development (>=", packageVersionST, ")"),
-              paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")
+              paste0("PredictiveEcology/SpaDES.tools (>=", packageVersionST, ")"),
+              paste0("PredictiveEcology/fireSenseUtils (>=", packageVersionFSU, ")")
             ),
             upgrade = FALSE
           )
