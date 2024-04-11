@@ -12,14 +12,15 @@
 #' @importFrom terra as.data.frame
 #' @rdname climateRasterToDataTable
 climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
-
   climVar <- names(historicalClimateRasters)
   wideClimate <- lapply(historicalClimateRasters, terra::as.data.frame, cells = TRUE)
   wideClimate <- lapply(wideClimate, as.data.table)
-  out <- lapply(climVar, FUN = function(var){
+  out <- lapply(climVar, FUN = function(var) {
     longClimate <- wideClimate[[var]]
-    longClimate <- melt.data.table(longClimate, id.vars = "cell",
-                                   value.name = var, variable.name = "year")
+    longClimate <- melt.data.table(longClimate,
+      id.vars = "cell",
+      value.name = var, variable.name = "year"
+    )
   })
 
   if (length(out) > 1) {
@@ -32,7 +33,7 @@ climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
 
   out[, (climVar) := lapply(.SD, asInteger), .SDcols = climVar]
 
-  if (!is.null(Index)){
+  if (!is.null(Index)) {
     out <- out[pixelID %in% Index]
   }
   gc()

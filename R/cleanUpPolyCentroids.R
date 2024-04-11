@@ -30,118 +30,122 @@ utils::globalVariables(c(
 #' @importFrom terra cellFromXY xyFromCell
 #' @importFrom utils head tail
 harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
-  purrr::pmap(list(
-    cent = cent,
-    buff = buff
-  ),
-  .f = function(cent, buff, fireIDcol = idCol) {
-    if (!nrow(buff) > 0) { # cent can be >1 row while buff = 0, if poly is small
-      return(NULL)
-    }
-
-    if (!.compareCRS(ras, cent)) {
-      cent <- st_transform(cent, st_crs(ras))
-    }
-
-    whToUse <- cent[[fireIDcol]] %in% buff$ids
-    idsNotInBuffer <- cent[[fireIDcol]][!whToUse]
-    if (NROW(idsNotInBuffer) > 0) {
-      polyCentroids <- cent[whToUse, ]
-    } else {
-      polyCentroids <- cent
-    }
-    inOrigFire <- buff[buffer == 1, ]
-    centDT <- data.table(
-      pixelID = cellFromXY(st_coordinates(polyCentroids), object = ras),
-      ids = polyCentroids[[fireIDcol]]
-    )
-
-    #for rbindlist, need to ensure col order
-    colOrders <- names(cent)
-
-    notInAFire <- centDT[!inOrigFire, on = c("pixelID")]
-    if (NROW(notInAFire)) {
-
-      inAFire <- buff[buffer == 1]
-      fr <- cbind(xyFromCell(ras, inAFire$pixelID),
-                  id = inAFire$ids, pixelID = inAFire$pixelID
-      )
-      from <- cbind(id = notInAFire$ids, xyFromCell(ras, notInAFire$pixelID))
-      dfep <- distanceFromEachPoint(from, fr)
-      dfep <- as.data.table(dfep)
-      if (nrow(dfep) == 0) {
+  purrr::pmap(
+    list(
+      cent = cent,
+      buff = buff
+    ),
+    .f = function(cent, buff, fireIDcol = idCol) {
+      if (!nrow(buff) > 0) { # cent can be >1 row while buff = 0, if poly is small
         return(NULL)
       }
 
-      ## TODO: make sure it is not surrounded by NAs
-      setkeyv(dfep, c("id", "dists"))
-      i <- 1
-      replacementCentroids <- dfep[,
-                                   list(centroidIndex = {
-                                     if (.N > 1) {
-                                       notFound <- TRUE
-                                       iter <- 1
-                                       out1 <- maxSoFar <- integer()
-                                       while (notFound) {
-                                         spr <- SpaDES.tools::spread2(
-                                           start = tail(head(pixelID, iter * 20), 20), landscape = ras,
-                                           spreadProb = 1, iterations = 1, asRaster = FALSE,
-                                           allowOverlap = TRUE)
+      if (!.compareCRS(ras, cent)) {
+        cent <- st_transform(cent, st_crs(ras))
+      }
 
-                                         out <- spr[, list(numNeighs = sum(values(ras, mat = FALSE)[pixels],
-                                                                           na.rm = TRUE)),
-                                                    by = "initialPixels"][, numNeighs := numNeighs - 1]
-                                         notFound <- (!any(out$numNeighs > 6))
-                                         if (!notFound) {
-                                           ind <- min(which(out$numNeighs > 6))
-                                           out1 <- .I[ind]
-                                         } else {
-                                           iter <- iter + 1
-                                           print(paste(.BY, ":", iter))
-                                           ind <- which.max(out$numNeighs)
-                                           maxSoFar <- c(maxSoFar, out$numNeighs[ind])
-                                           out1 <- c(out1, .I[ind])
-                                           # if (i == 1) browser()
-                                           # if (.BY[[1]] == "706") browser()
-                                           if (iter * 20 > .N) {
-                                             notFound <- FALSE
-                                             ind1 <- which.max(maxSoFar)
-                                             out1 <- out1[ind1]
-                                           }
-                                         }
-                                       }
-                                     } else {
-                                       out1 <- .I[1L]
-                                     }
-                                     out1
-                                   }),
-                                   by = "id"
-      ]
-      replacementCentroids <- dfep[replacementCentroids$centroidIndex]
+      whToUse <- cent[[fireIDcol]] %in% buff$ids
+      idsNotInBuffer <- cent[[fireIDcol]][!whToUse]
+      if (NROW(idsNotInBuffer) > 0) {
+        polyCentroids <- cent[whToUse, ]
+      } else {
+        polyCentroids <- cent
+      }
+      inOrigFire <- buff[buffer == 1, ]
+      centDT <- data.table(
+        pixelID = cellFromXY(st_coordinates(polyCentroids), object = ras),
+        ids = polyCentroids[[fireIDcol]]
+      )
 
-      spOrig <- as.data.table(polyCentroids[match(replacementCentroids$id, polyCentroids[[fireIDcol]]), ])
-      spOrig <- spOrig[
-        match(replacementCentroids$id, spOrig[[fireIDcol]]),
-        .SD, .SDcol = grep("^x|y$|coords", names(spOrig), value = TRUE, invert = TRUE)]
+      # for rbindlist, need to ensure col order
+      colOrders <- names(cent)
 
-      #the join does not work with named argument for column, so assign to temp
-      #we could use merge but I prefer this approach
-      set(spOrig, NULL, "foo", spOrig[[fireIDcol]])
-      sp <- spOrig[replacementCentroids, on = c("foo" = "id")]
-      sp[, foo := NULL]
-      sp <- st_as_sf(sp, coords = c("x", "y"), crs = st_crs(polyCentroids))
+      notInAFire <- centDT[!inOrigFire, on = c("pixelID")]
+      if (NROW(notInAFire)) {
+        inAFire <- buff[buffer == 1]
+        fr <- cbind(xyFromCell(ras, inAFire$pixelID),
+          id = inAFire$ids, pixelID = inAFire$pixelID
+        )
+        from <- cbind(id = notInAFire$ids, xyFromCell(ras, notInAFire$pixelID))
+        dfep <- distanceFromEachPoint(from, fr)
+        dfep <- as.data.table(dfep)
+        if (nrow(dfep) == 0) {
+          return(NULL)
+        }
 
-      #subset original out
-      whichToKeep <- !polyCentroids[[fireIDcol]] %in% sp[[fireIDcol]]
-      polyCentroids <- polyCentroids[whichToKeep,]
-      set(sp, NULL, c("dists", "pixelID"), NULL)
+        ## TODO: make sure it is not surrounded by NAs
+        setkeyv(dfep, c("id", "dists"))
+        i <- 1
+        replacementCentroids <- dfep[,
+          list(centroidIndex = {
+            if (.N > 1) {
+              notFound <- TRUE
+              iter <- 1
+              out1 <- maxSoFar <- integer()
+              while (notFound) {
+                spr <- SpaDES.tools::spread2(
+                  start = tail(head(pixelID, iter * 20), 20), landscape = ras,
+                  spreadProb = 1, iterations = 1, asRaster = FALSE,
+                  allowOverlap = TRUE
+                )
 
-      polyCentroids <- rbind(polyCentroids, sp)
+                out <- spr[, list(numNeighs = sum(values(ras, mat = FALSE)[pixels],
+                  na.rm = TRUE
+                )),
+                by = "initialPixels"
+                ][, numNeighs := numNeighs - 1]
+                notFound <- (!any(out$numNeighs > 6))
+                if (!notFound) {
+                  ind <- min(which(out$numNeighs > 6))
+                  out1 <- .I[ind]
+                } else {
+                  iter <- iter + 1
+                  print(paste(.BY, ":", iter))
+                  ind <- which.max(out$numNeighs)
+                  maxSoFar <- c(maxSoFar, out$numNeighs[ind])
+                  out1 <- c(out1, .I[ind])
+                  # if (i == 1) browser()
+                  # if (.BY[[1]] == "706") browser()
+                  if (iter * 20 > .N) {
+                    notFound <- FALSE
+                    ind1 <- which.max(maxSoFar)
+                    out1 <- out1[ind1]
+                  }
+                }
+              }
+            } else {
+              out1 <- .I[1L]
+            }
+            out1
+          }),
+          by = "id"
+        ]
+        replacementCentroids <- dfep[replacementCentroids$centroidIndex]
 
+        spOrig <- as.data.table(polyCentroids[match(replacementCentroids$id, polyCentroids[[fireIDcol]]), ])
+        spOrig <- spOrig[
+          match(replacementCentroids$id, spOrig[[fireIDcol]]),
+          .SD,
+          .SDcol = grep("^x|y$|coords", names(spOrig), value = TRUE, invert = TRUE)
+        ]
+
+        # the join does not work with named argument for column, so assign to temp
+        # we could use merge but I prefer this approach
+        set(spOrig, NULL, "foo", spOrig[[fireIDcol]])
+        sp <- spOrig[replacementCentroids, on = c("foo" = "id")]
+        sp[, foo := NULL]
+        sp <- st_as_sf(sp, coords = c("x", "y"), crs = st_crs(polyCentroids))
+
+        # subset original out
+        whichToKeep <- !polyCentroids[[fireIDcol]] %in% sp[[fireIDcol]]
+        polyCentroids <- polyCentroids[whichToKeep, ]
+        set(sp, NULL, c("dists", "pixelID"), NULL)
+
+        polyCentroids <- rbind(polyCentroids, sp)
+      }
+      # col order must be preserved
+
+      polyCentroids <- setcolorder(polyCentroids, colOrders)
     }
-    #col order must be preserved
-
-    polyCentroids <- setcolorder(polyCentroids, colOrders)
-  }
   )
 }

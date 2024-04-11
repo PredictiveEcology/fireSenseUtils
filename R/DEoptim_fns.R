@@ -79,8 +79,10 @@ runDEoptim <- function(landscape,
                        strategy,
                        cores = NULL,
                        libPath = .libPaths()[1],
-                       logPath = tempfile(sprintf("fireSense_SpreadFit_%s_",
-                                          format(Sys.time(), "%Y-%m-%d_%H%M%S")), fileext = ".log"),
+                       logPath = tempfile(sprintf(
+                         "fireSense_SpreadFit_%s_",
+                         format(Sys.time(), "%Y-%m-%d_%H%M%S")
+                       ), fileext = ".log"),
                        doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                        cachePath,
                        iterStep = 25,
@@ -175,9 +177,11 @@ runDEoptim <- function(landscape,
             dir.create(libPath, recursive = TRUE)
 
             if (!dir.exists(libPath)) {
-              stop("libPath directory creation failed.\n",
-                   "Try creating on each machine manually, using e.g.,\n",
-                   "  mkdir -p ", libPath)
+              stop(
+                "libPath directory creation failed.\n",
+                "Try creating on each machine manually, using e.g.,\n",
+                "  mkdir -p ", libPath
+              )
             }
           }
 
@@ -253,7 +257,7 @@ runDEoptim <- function(landscape,
         out <- clusterEvalQ(cl, {
           out <- qs::qread(file = filenameForTransfer)
           out <- lapply(out, FUN = function(x) {
-            if (inherits(x, "PackedSpatRaster")){
+            if (inherits(x, "PackedSpatRaster")) {
               x <- terra::unwrap(x)
             } else {
               x

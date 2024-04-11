@@ -88,7 +88,7 @@ utils::globalVariables(c(
                              Nreps = 10,
                              mutuallyExclusive = list("youngAge" = c("class", "nf")),
                              doAssertions = TRUE,
-                             plot.it = FALSE, #TODO parameterize this line for plotting
+                             plot.it = FALSE, # TODO parameterize this line for plotting
                              objFunCoresInternal = 1,
                              lanscape1stQuantileThresh = 0.265,
                              thresh = 550,
@@ -496,7 +496,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
       emp <- emp[annualFires, on = c("initialLocus" = "cells")]
       if (plot.it) {
-        emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL] #should be on = initialLocus
+        emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL] # should be on = initialLocus
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
         emp <- setorderv(emp, c("size"), order = -1L)
         numLargest <- 4

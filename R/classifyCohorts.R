@@ -1,6 +1,6 @@
 globalVariables(c(
   "age", "B", "BperClass", "FuelClass", "foo", "Leading", "LeaderValue",
-  "totalBiomass", "NspeciesWithMaxB"
+  "maxAge", "NspeciesWithMaxB", "pixelIndex", "totalBiomass"
 ))
 
 #' Classify `pixelGroups` by flammability
@@ -9,13 +9,13 @@ globalVariables(c(
 #' @template pixelGroupMap
 #' @template sppEquiv
 #' @template sppEquivCol
-#' @param landcoverDT optional table of nonforest landcovers and pixel indices. It will override
-#' pixel values in `cohortData`, if supplied.
+#' @param landcoverDT Optional table of nonforest landcovers and pixel indices.
+#'                    It will override pixel values in `cohortData`, if supplied.
 #' @template flammableRTM
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
-#' @param fuelClassCol the column in sppEquiv that describes unique fuel classes
+#' @param fuelClassCol the column in `sppEquiv` that describes unique fuel classes
 #'
-#' @return a {SpatRaster} of biomass by fuel class as determined by `fuelClassCol` and `cohortData`
+#' @return a `SpatRaster` of biomass by fuel class as determined by `fuelClassCol` and `cohortData`
 #'
 #' @export
 #' @importFrom data.table copy setkey
@@ -37,7 +37,7 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
 
   cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
 
-  #youngAge is better treated as a binary cover variable than continuous measure of biomass
+  # youngAge is better treated as a binary cover variable than continuous measure of biomass
   cD[FuelClass == "youngAge", BperClass := 1]
 
   # Fix zero age, zero biomass
@@ -51,11 +51,11 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   classList <- rast(classList)
 
   if (!is.null(landcoverDT)) {
-    #find rows that aren't empty i.e. have non-forest landcover
+    # find rows that aren't empty i.e. have non-forest landcover
     landcoverDT[, foo := rowSums(.SD), .SD = setdiff(names(landcoverDT), "pixelID")]
-    #terra needs protection from zero-length index
-    if (nrow(landcoverDT[foo > 0,]) > 0) {
-      classList[landcoverDT[foo > 0]$pixelID] <- 0 #must be 0
+    # terra needs protection from zero-length index
+    if (nrow(landcoverDT[foo > 0, ]) > 0) {
+      classList[landcoverDT[foo > 0]$pixelID] <- 0 # must be 0
     }
     landcoverDT[, foo := NULL]
   }
@@ -75,7 +75,6 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
 #' @importFrom data.table data.table
 #' @importFrom terra values setValues rast
 makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
-
   cohortDataFB <- cohortData[FuelClass == class, ]
   ras <- rasterizeReduced(
     reduced = cohortDataFB,
@@ -101,11 +100,10 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
 #' @return cohortData modified with burn status
 #' @importFrom LandR addPixels2CohortData
 #' @importFrom terra rasterize
-buildCohortBurnHistory <- function(cohortData, pixelGroupMap,firePolys, year) {
-
-  #build fire raster
+buildCohortBurnHistory <- function(cohortData, pixelGroupMap, firePolys, year) {
+  # build fire raster
   firePolys <- do.call(rbind, firePolys)
-  firePolys <- firePolys[firePolys$YEAR >= min(year) & firePolys$YEAR <= max(year),]
+  firePolys <- firePolys[firePolys$YEAR >= min(year) & firePolys$YEAR <= max(year), ]
   fireRas <- rasterize(firePolys, pixelGroupMap, field = "YEAR", fun = min)
   cdLong <- addPixels2CohortData(cohortData, pixelGroupMap)
   cdLong[, burned := fireRas[pixelIndex]]

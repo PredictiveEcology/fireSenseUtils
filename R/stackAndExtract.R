@@ -23,7 +23,10 @@ stackAndExtract <- function(years, fuel, LCC, climate, fires) {
                                                 LCCras = LCC, ignitions = fires) {
     climateVariables <- names(climateRas)
     thisYearsClimate <- lapply(climateRas,
-                               FUN = function(x){x[[which(names(x) == year, useNames = TRUE)]]}) |>
+      FUN = function(x) {
+        x[[which(names(x) == year, useNames = TRUE)]]
+      }
+    ) |>
       rast()
 
     ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year, ] # get annual ignitions
@@ -36,7 +39,7 @@ stackAndExtract <- function(years, fuel, LCC, climate, fires) {
 
     ## get cells with ignitions and aggregate by repeated ignitions
     ignitionDT <- extract(x = yearCovariates, y = ignitions, cells = TRUE) %>%
-      as.data.table(.) %>% #some ignitions are not in cells
+      as.data.table(.) %>% # some ignitions are not in cells
       .[, .(ignitions = .N), .(cell)]
 
     ## get covariate values of all cells

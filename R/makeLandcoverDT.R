@@ -18,12 +18,12 @@ globalVariables(c(
 #'
 #' @rdname makeLandcoverDT
 makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups) {
-
   if (!compareGeom(rstLCC, flammableRTM, stopOnError = FALSE)) {
-    #assume flammableRTM is correct
+    # assume flammableRTM is correct
     rstLCC <- postProcess(rstLCC,
-                          cropTo = flammableRTM,
-                          projectTo = flammableRTM)
+      cropTo = flammableRTM,
+      projectTo = flammableRTM
+    )
   }
 
   lcc <- data.table(

@@ -21,25 +21,29 @@ utils::globalVariables(c(
 cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
   FlamPoints <- as.data.table(extract(flammableRTM, firePoints, cells = TRUE))
   setnames(FlamPoints, c("ID", "isFlammable", "cells"))
-  FlamPoints[, isFlammable := as.numeric(as.character(isFlammable))] #otherwise factor = 1 and 2
+  FlamPoints[, isFlammable := as.numeric(as.character(isFlammable))] # otherwise factor = 1 and 2
   FlamPoints[is.na(isFlammable), isFlammable := 0]
   if (any(FlamPoints$isFlammable == 0)) {
     badPoints <- FlamPoints[isFlammable == 0]
-    badStarts <- firePoints[firePoints$FIRE_ID %in% FlamPoints[isFlammable == 0]$ID,]
-    FlamPoints <- FlamPoints[isFlammable == 1,] #keep the good ones
-    polysWBadStarts <- bufferDT[ids %in% badPoints$ID,]
+    badStarts <- firePoints[firePoints$FIRE_ID %in% FlamPoints[isFlammable == 0]$ID, ]
+    FlamPoints <- FlamPoints[isFlammable == 1, ] # keep the good ones
+    polysWBadStarts <- bufferDT[ids %in% badPoints$ID, ]
     cells <- polysWBadStarts[polysWBadStarts$buffer == 1, ]
-    flammableInPolys <- extract(flammableRTM, cells$pixelID)[,1] == 1
-    cells <- cells[flammableInPolys,]
+    flammableInPolys <- extract(flammableRTM, cells$pixelID)[, 1] == 1
+    cells <- cells[flammableInPolys, ]
 
-    badPolys <- setdiff(polysWBadStarts$ids, cells$ids) #truly bad; no flammable pixels anywhere in fire
+    badPolys <- setdiff(polysWBadStarts$ids, cells$ids) # truly bad; no flammable pixels anywhere in fire
     if (any(flammableInPolys, na.rm = TRUE)) {
-      xyPolys <- cbind(id = cells$ids,
-                       pixelID = cells$pixelID,
-                       xyFromCell(flammableRTM, cells$pixelID))
-      xyPoints <- cbind(id = badPoints$ID,
-                        #pixelID = badStartsPixels[, "cells"],
-                        xyFromCell(flammableRTM, badPoints$cells))
+      xyPolys <- cbind(
+        id = cells$ids,
+        pixelID = cells$pixelID,
+        xyFromCell(flammableRTM, cells$pixelID)
+      )
+      xyPoints <- cbind(
+        id = badPoints$ID,
+        # pixelID = badStartsPixels[, "cells"],
+        xyFromCell(flammableRTM, badPoints$cells)
+      )
       dd <- as.data.table(distanceFromEachPoint(to = xyPolys, from = xyPoints))
       nearestPixels <- dd[, .SD[which.min(dists)], by = "id"]
       nearestPixels <- nearestPixels[, .(x, y, id)]
@@ -47,13 +51,13 @@ cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
       badStarts[, geometry := NULL]
       badStarts <- badStarts[nearestPixels, on = c("FIRE_ID" = "id")]
       newStarts <- st_as_sf(badStarts, coords = c("x", "y"), crs = st_crs(firePoints))
-      firePoints <- firePoints[!firePoints$FIRE_ID %in% newStarts$FIRE_ID,]
+      firePoints <- firePoints[!firePoints$FIRE_ID %in% newStarts$FIRE_ID, ]
       firePoints <- rbind(firePoints, newStarts)
     }
     # 2. rm bad points - those without ANY flammable pixels
     if (length(badPolys) > 0) {
       bufferDT <- bufferDT[!ids %in% badPolys]
-      firePoints <- firePoints[!firePoints$FIRE_ID %in% badPolys,]
+      firePoints <- firePoints[!firePoints$FIRE_ID %in% badPolys, ]
     }
   }
   list(SpatialPoints = firePoints, FireBuffered = bufferDT)
