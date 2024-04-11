@@ -9,12 +9,12 @@ getFirePolygons(years, useInnerCache = FALSE, ...)
 \arguments{
 \item{years}{years to filter fire polygons by}
 
-\item{useInnerCache}{cache the prepInputs call}
+\item{useInnerCache}{logical indicating whether to cache the \code{prepInputs} call}
 
-\item{...}{additional arguments passed to prepInputs}
+\item{...}{additional arguments passed to \code{\link[=prepInputs]{prepInputs()}}}
 }
 \value{
-DESCRIPTION NEEDED
+list of fire polygons by year
 }
 \description{
 Download and prepare fire data from National Fire Database

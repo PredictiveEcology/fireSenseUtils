@@ -95,20 +95,20 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
 #'
 #' @export
 #' @importFrom parallel mclapply
-#' @importFrom raster calc crop mask maxValue raster stack
 plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps, rasterToMatch) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
+      requireNamespace("raster", quietly = TRUE) &&
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
     burnMapAllReps <- parallel::mclapply(1:Nreps, function(rep) {
       runName <- sprintf("%s_%s", studyAreaName, climateScenario)
       resultsDir <- file.path(outputDir, runName, sprintf("rep%02d", rep))
 
-      burnMap <- raster(file.path(resultsDir, "burnMap_2100_year2100.tif"))
+      burnMap <- raster::raster(file.path(resultsDir, "burnMap_2100_year2100.tif"))
     })
 
-    cumulBurnMap <- calc(stack(burnMapAllReps), fun = sum) / Nreps
-    cumulBurnMap <- mask(crop(cumulBurnMap, rasterToMatch), rasterToMatch)
+    cumulBurnMap <- raster::calc(raster::stack(burnMapAllReps), fun = sum) / Nreps
+    cumulBurnMap <- raster::mask(raster::crop(cumulBurnMap, rasterToMatch), rasterToMatch)
 
     myPal <- RColorBrewer::brewer.pal("Reds", n = Nreps + 1) ## include 0 ## TODO: max 9 cols!
     myTheme <- rasterVis::rasterTheme(region = myPal)
@@ -119,7 +119,7 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
     fig <- rasterVis::levelplot(cumulBurnMap, margin = list(FUN = "mean"), ## median?
                                 main = paste0("Cumulative burn map 2011-2100 under ", climateScenario),
                                 colorkey = list(
-                                  at = seq(0, maxValue(cumulBurnMap), length.out = Nreps + 1),
+                                  at = seq(0, raster::maxValue(cumulBurnMap), length.out = Nreps + 1),
                                   space = "bottom",
                                   axis.line = list(col = "black"),
                                   width = 0.75

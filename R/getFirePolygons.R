@@ -1,10 +1,10 @@
 #' Download and prepare fire data from National Fire Database
 #'
 #' @param years years to filter fire polygons by
-#' @param ... additional arguments passed to prepInputs
-#' @param useInnerCache cache the prepInputs call
+#' @param ... additional arguments passed to [prepInputs()]
+#' @param useInnerCache logical indicating whether to cache the `prepInputs` call
 #'
-#' @return DESCRIPTION NEEDED
+#' @return list of fire polygons by year
 #'
 #' @export
 #' @importFrom reproducible prepInputs
@@ -24,7 +24,7 @@ getFirePolygons <- function(years, useInnerCache = FALSE, ...) {
     if (nrow(firePoly) > 0) {
       # firePoly$POLY_HA <- round(expanse(firePoly, unit = "ha"), digits = 2) ## TODO: when terrarizing
 
-      firePoly$POLY_HA <- round(st_area(firePoly, unit = "ha")/1e4, digits = 2)
+      firePoly$POLY_HA <- round(st_area(firePoly, unit = "ha") / 1e4, digits = 2)
       # firePoly <- firePoly[!duplicated(firePoly$FIRE_ID), ] ## TODO: what was this for?
       return(firePoly)
     } else {

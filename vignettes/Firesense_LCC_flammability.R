@@ -9,11 +9,10 @@ knitr::opts_chunk$set(
 
 ## ----packages-----------------------------------------------------------------
 #  library(data.table)
-#  library(fasterize)
 #  library(ggplot2)
-#  library(raster)
 #  library(reproducible)
 #  library(sf)
+#  library(terra)
 
 ## ----compare_LCC_and_fire_data------------------------------------------------
 #  dPath <- tempdir()

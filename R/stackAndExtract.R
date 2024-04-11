@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom data.table as.data.table data.table rbindlist setnames
-#' @importFrom terra extract ncell rbindlist
+#' @importFrom terra extract ncell
 #' @importFrom sf %>%
 #' @importFrom stats na.omit
 stackAndExtract <- function(years, fuel, LCC, climate, fires) {
@@ -42,7 +42,7 @@ stackAndExtract <- function(years, fuel, LCC, climate, fires) {
     ## get covariate values of all cells
     noIgnitionsDT <- values(yearCovariates) %>%
       as.data.table() %>%
-      .[, cell := 1:ncell(yearCovariates)] %>%
+      .[, cell := seq_len(ncell(yearCovariates))] %>%
       na.omit()
     ## join and assign 0 to non-ignited pixels
     ignitionYear <- ignitionDT[noIgnitionsDT, on = c("cell")]
