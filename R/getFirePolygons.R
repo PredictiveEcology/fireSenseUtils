@@ -10,7 +10,6 @@
 #' @importFrom reproducible prepInputs
 #' @importFrom sf st_area
 getFirePolygons <- function(years, useInnerCache = FALSE, ...) {
-
   currentURL <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
   firePolys <- prepInputs(
     url = currentURL,
@@ -18,15 +17,15 @@ getFirePolygons <- function(years, useInnerCache = FALSE, ...) {
     ...
   ) # this object will cache several gigabytes of cached for a small object
 
-  firePolys$YEAR <- as.numeric(firePolys$YEAR) #it has been character before.. 
+  firePolys$YEAR <- as.numeric(firePolys$YEAR) ## it has been character before...
 
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
     firePoly <- polys[polys$YEAR == x, ]
     if (nrow(firePoly) > 0) {
-      # firePoly$POLY_HA <- round(expanse(firePoly, unit = "ha"), digits = 2) #when terrarizing
+      # firePoly$POLY_HA <- round(expanse(firePoly, unit = "ha"), digits = 2) ## TODO: when terrarizing
 
       firePoly$POLY_HA <- round(st_area(firePoly, unit = "ha")/1e4, digits = 2)
-      # firePoly <- firePoly[!duplicated(firePoly$FIRE_ID), ] what was this for? 
+      # firePoly <- firePoly[!duplicated(firePoly$FIRE_ID), ] ## TODO: what was this for?
       return(firePoly)
     } else {
       return(NULL)

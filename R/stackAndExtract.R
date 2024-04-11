@@ -14,12 +14,11 @@ utils::globalVariables(c(
 #' @return a data.frame with cell numbers, ignitions, and covariates for each year
 #'
 #' @export
-#' @importFrom data.table rbindlist data.table setnames as.data.table
-#' @importFrom terra extract rast values ncell
+#' @importFrom data.table as.data.table data.table rbindlist setnames
+#' @importFrom terra extract ncell rbindlist
 #' @importFrom sf %>%
 #' @importFrom stats na.omit
 stackAndExtract <- function(years, fuel, LCC, climate, fires) {
-
   ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, fuelRas = fuel,
                                                 LCCras = LCC, ignitions = fires) {
     climateVariables <- names(climateRas)
@@ -28,24 +27,24 @@ stackAndExtract <- function(years, fuel, LCC, climate, fires) {
       rast()
 
     ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year, ] # get annual ignitions
-    #TODO: check this works with length = 1 and length > 1. str of lapply changes..
+    ## TODO: check this works with length = 1 and length > 1. str of lapply changes..
 
-    #rename from year to climate variable
+    ## rename from year to climate variable
     names(thisYearsClimate) <- climateVariables
 
     yearCovariates <- c(thisYearsClimate, LCCras, fuelRas)
 
-    # get cells with ignitions and aggregate by repeated ignitions
+    ## get cells with ignitions and aggregate by repeated ignitions
     ignitionDT <- extract(x = yearCovariates, y = ignitions, cells = TRUE) %>%
       as.data.table(.) %>% #some ignitions are not in cells
       .[, .(ignitions = .N), .(cell)]
 
-    # get covariate values of all cells
+    ## get covariate values of all cells
     noIgnitionsDT <- values(yearCovariates) %>%
-      as.data.table(.) %>%
+      as.data.table() %>%
       .[, cell := 1:ncell(yearCovariates)] %>%
-      na.omit(.)
-    # join and assign 0 to non-ignited pixels
+      na.omit()
+    ## join and assign 0 to non-ignited pixels
     ignitionYear <- ignitionDT[noIgnitionsDT, on = c("cell")]
     ignitionYear[is.na(ignitions), ignitions := 0]
 
