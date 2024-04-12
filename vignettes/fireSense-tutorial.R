@@ -9,8 +9,10 @@ knitr::opts_chunk$set(
 
 ## ----init---------------------------------------------------------------------
 #  library(Require)
-#  Require(c("data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
-#            "raster", "sf", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
+#  Require(c(
+#    "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
+#    "raster", "sf", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"
+#  ))
 #  
 #  options(reproducible.useCache = FALSE) # Turn off caching
 #  
@@ -64,19 +66,19 @@ knitr::opts_chunk$set(
 #  fireLocations <- rpoint(nbFires, f = function(x, y, ...) 300 * y) # Introduce some spatial variability: more fires in the North
 #  fireLocations <- as(fireLocations, "SpatialPoints")
 #  
-#  #landcoverDataLowRes <- extract(landTypeOneLowRes, fireLocations, cellnumbers = TRUE) %>%
+#  # landcoverDataLowRes <- extract(landTypeOneLowRes, fireLocations, cellnumbers = TRUE) %>%
 #  #  as_tibble %>%
 #  #  rename(cell_id = 1, landtype_1_pp = 2) %>% # Rename columns using column index
 #  #  distinct(cell_id, landtype_1_pp) %>%
 #  #  mutate(landtype_2_pp = 1 - landtype_1_pp)  # Add a column with the 2nd landcover type
 #  
-#  #weatherDataLowRes <- extract(weatherLowRes, fireLocations, cellnumbers = TRUE) %>%
+#  # weatherDataLowRes <- extract(weatherLowRes, fireLocations, cellnumbers = TRUE) %>%
 #  #  as_tibble %>%
 #  #  rename(cell_id = 1, weather = 2) %>% # Rename columns using column index
 #  #  distinct(cell_id, weather)
 #  
 #  # Create the dataset necessary to fit the statistical model of fire ignitions
-#  #dataFireSense_IgnitionFit <- landcoverDataLowRes %>%
+#  # dataFireSense_IgnitionFit <- landcoverDataLowRes %>%
 #  #  group_by(cell_id) %>%
 #  #  summarise(n_fires = n()) %>%
 #  #  right_join(landcoverDataLowRes) %>%
@@ -102,11 +104,11 @@ knitr::opts_chunk$set(
 #  )
 #  
 #  # Create the dataset necessary to fit the statistical model fire escapes
-#  #dataFireSense_EscapeFit <- tibble(
+#  # dataFireSense_EscapeFit <- tibble(
 #  #  landtype_1_pp = extract(landTypeOne, fireLocations),
 #  #  landtype_2_pp = extract(landTypeTwo, fireLocations),
 #  #  weather = extract(weather, fireLocations)
-#  #)
+#  # )
 #  
 #  b1 <- .01
 #  b2 <- -1
@@ -124,15 +126,15 @@ knitr::opts_chunk$set(
 #  
 #  landtypeTypeOneBufMn <- extract(landTypeOne, buf_around_loc_escaped) %>%
 #    lapply(mean) %>%
-#    unlist
+#    unlist()
 #  
 #  landtypeTypeTwoBufMn <- extract(landTypeTwo, buf_around_loc_escaped) %>%
 #    lapply(mean) %>%
-#    unlist
+#    unlist()
 #  
 #  weatherBufMn <- extract(weather, buf_around_loc_escaped) %>%
 #    lapply(mean) %>%
-#    unlist
+#    unlist()
 #  
 #  dataFireSense_SizeFit <- data.table(
 #    landtype_1_pp = landtypeTypeOneBufMn,
@@ -160,7 +162,8 @@ knitr::opts_chunk$set(
 #  # Create the fire attribute dataset that describes the starting locations
 #  # and the size of the fires to be spread. This is needed to fit the statistical model of spread probabilities
 #  fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.logical(escaped)],
-#                                                              data = data.frame(size = fireSize))
+#    data = data.frame(size = fireSize)
+#  )
 
 ## ----fit_ignition_model, message=FALSE----------------------------------------
 #  modules <- list("fireSense_IgnitionFit")
@@ -357,7 +360,7 @@ knitr::opts_chunk$set(
 #  objects <- list(fireAttributesFireSense_SpreadFit = fireAttributesFireSense_SpreadFit)
 #  
 #  # Define fireSense_SpreadFit module parameters
-#  formula <- formula(~ I(1/beta) + log(theta) - 1)
+#  formula <- formula(~ I(1 / beta) + log(theta) - 1)
 #  
 #  parameters <- list(
 #    fireSense_SpreadFit = list(

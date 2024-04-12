@@ -353,29 +353,33 @@ Chubaty</h4>
 <div id="compare-lcc-and-fire-data" class="section level2">
 <h2>Compare LCC and fire data</h2>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>dPath <span class="ot">&lt;-</span> <span class="fu">tempdir</span>()</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>lccUrl <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">&quot;ftp://ftp.ccrs.nrcan.gc.ca/ad/NLCCLandCover/&quot;</span>,</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>                 <span class="st">&quot;LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip&quot;</span>)</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>lcc <span class="ot">&lt;-</span> <span class="fu">prepInputs</span>(<span class="at">url =</span> lccUrl, <span class="at">destinationPath =</span> dPath,</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>                  <span class="at">targetFile =</span> <span class="st">&quot;LCC2005_V1_4a.tif&quot;</span>, <span class="at">alsoExtract =</span> <span class="cn">NA</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>fireUrl <span class="ot">&lt;-</span> <span class="st">&quot;https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip&quot;</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> <span class="fu">prepInputs</span>(<span class="at">url =</span> fireUrl, <span class="at">destinationPath =</span> dPath, <span class="at">fun =</span> <span class="st">&quot;sf::read_sf&quot;</span>)</span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> sf<span class="sc">::</span><span class="fu">st_transform</span>(firePolygons, <span class="at">crs =</span> <span class="fu">crs</span>(lcc))</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>lccUrl <span class="ot">&lt;-</span> <span class="fu">paste0</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="st">&quot;ftp://ftp.ccrs.nrcan.gc.ca/ad/NLCCLandCover/&quot;</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="st">&quot;LandcoverCanada2005_250m/LandCoverOfCanada2005_V1_4.zip&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>)</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>lcc <span class="ot">&lt;-</span> <span class="fu">prepInputs</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>  <span class="at">url =</span> lccUrl, <span class="at">destinationPath =</span> dPath,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>  <span class="at">targetFile =</span> <span class="st">&quot;LCC2005_V1_4a.tif&quot;</span>, <span class="at">alsoExtract =</span> <span class="cn">NA</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>)</span>
 <span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="co">#rasterize firePolygons</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>firePolygons<span class="sc">$</span>dummyVar <span class="ot">&lt;-</span> <span class="dv">1</span></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> firePolygons[firePolygons<span class="sc">$</span>YEAR <span class="sc">&gt;</span> <span class="dv">2004</span>, ]</span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>fireRaster <span class="ot">&lt;-</span> <span class="fu">fasterize</span>(<span class="at">sf =</span> firePolygons, <span class="at">raster =</span> lcc, <span class="at">field =</span> <span class="st">&quot;dummyVar&quot;</span>)</span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>fireLoc <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncell</span>(lcc)</span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>fireLoc <span class="ot">&lt;-</span> fireLoc[<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">getValues</span>(fireRaster))]</span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>burned <span class="ot">&lt;-</span> <span class="fu">data.table</span>(<span class="at">pixelID =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncell</span>(lcc), <span class="at">lcc =</span> <span class="fu">getValues</span>(lcc))</span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>burned[pixelID <span class="sc">%in%</span> fireLoc, burn <span class="sc">:=</span> <span class="dv">1</span>]</span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>burnCalc <span class="ot">&lt;-</span> burned[, .(<span class="at">available =</span> .N, <span class="at">burned =</span> <span class="fu">sum</span>(burn, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)), .(lcc)]</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>fireUrl <span class="ot">&lt;-</span> <span class="st">&quot;https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip&quot;</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> <span class="fu">prepInputs</span>(<span class="at">url =</span> fireUrl, <span class="at">destinationPath =</span> dPath, <span class="at">fun =</span> <span class="st">&quot;sf::read_sf&quot;</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> sf<span class="sc">::</span><span class="fu">st_transform</span>(firePolygons, <span class="at">crs =</span> <span class="fu">crs</span>(lcc))</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co"># rasterize firePolygons</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>firePolygons<span class="sc">$</span>dummyVar <span class="ot">&lt;-</span> <span class="dv">1</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>firePolygons <span class="ot">&lt;-</span> firePolygons[firePolygons<span class="sc">$</span>YEAR <span class="sc">&gt;</span> <span class="dv">2004</span>, ]</span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>fireRaster <span class="ot">&lt;-</span> <span class="fu">fasterize</span>(<span class="at">sf =</span> firePolygons, <span class="at">raster =</span> lcc, <span class="at">field =</span> <span class="st">&quot;dummyVar&quot;</span>)</span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>fireLoc <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncell</span>(lcc)</span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>fireLoc <span class="ot">&lt;-</span> fireLoc[<span class="sc">!</span><span class="fu">is.na</span>(<span class="fu">getValues</span>(fireRaster))]</span>
 <span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a></span>
-<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>burnCalc[, <span class="st">&quot;percentBurned&quot;</span> <span class="sc">:=</span> <span class="fu">round</span>(burned<span class="sc">/</span>available <span class="sc">*</span> <span class="dv">100</span>, <span class="at">digits =</span> <span class="dv">3</span>)]</span>
-<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="fu">setkey</span>(burnCalc, lcc)</span>
-<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>burnCalc</span></code></pre></div>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>burned <span class="ot">&lt;-</span> <span class="fu">data.table</span>(<span class="at">pixelID =</span> <span class="dv">1</span><span class="sc">:</span><span class="fu">ncell</span>(lcc), <span class="at">lcc =</span> <span class="fu">getValues</span>(lcc))</span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>burned[pixelID <span class="sc">%in%</span> fireLoc, burn <span class="sc">:=</span> <span class="dv">1</span>]</span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>burnCalc <span class="ot">&lt;-</span> burned[, .(<span class="at">available =</span> .N, <span class="at">burned =</span> <span class="fu">sum</span>(burn, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)), .(lcc)]</span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a>burnCalc[, <span class="st">&quot;percentBurned&quot;</span> <span class="sc">:=</span> <span class="fu">round</span>(burned <span class="sc">/</span> available <span class="sc">*</span> <span class="dv">100</span>, <span class="at">digits =</span> <span class="dv">3</span>)]</span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="fu">setkey</span>(burnCalc, lcc)</span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a>burnCalc</span></code></pre></div>
 </div>
 <div id="plot" class="section level2">
 <h2>Plot</h2>
