@@ -22,10 +22,10 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom data.table as.data.table data.table setkeyv set
+#' @importFrom LandR .compareCRS
 #' @importFrom pemisc rasterToMatch
 #' @importFrom purrr pmap
 #' @importFrom sf st_as_sf st_crs "st_crs<-" st_transform st_coordinates
-#' @importFrom LandR .compareCRS
 #' @importFrom SpaDES.tools distanceFromEachPoint spread2
 #' @importFrom terra cellFromXY xyFromCell
 #' @importFrom utils head tail
