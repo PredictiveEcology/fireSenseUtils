@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom data.table as.data.table data.table rbindlist setnames
-#' @importFrom terra extract ncell rbindlist
+#' @importFrom terra extract ncell rast values
 #' @importFrom sf %>%
 #' @importFrom stats na.omit
 stackAndExtract <- function(years, fuel, LCC, climate, fires) {

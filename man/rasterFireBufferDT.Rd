@@ -2,7 +2,7 @@
 % Please edit documentation in R/rasterFireFunctions.R
 \name{rasterFireBufferDT}
 \alias{rasterFireBufferDT}
-\title{this is a wrapper to simplify caching of lapply with bufferForFireRaster.
+\title{this is a wrapper to simplify caching of \code{lapply} with \code{bufferForFireRaster}.
 Years are iteratively processed by \code{makeFireID}.}
 \usage{
 rasterFireBufferDT(
@@ -28,19 +28,18 @@ belonging to the same fire}
 
 \item{areaMultiplier}{A scalar that will buffer \code{areaMultiplier * fireSize}}
 
-\item{minSize}{The absolute minimum size of the buffer & non-buffer together. This will
-be imposed after \code{areaMultiplier}.}
+\item{minSize}{The absolute minimum size of the buffer & non-buffer together.
+This will be imposed after \code{areaMultiplier}.}
 
-\item{verb}{Logical or numeric related to how much verbosity is printed. \code{FALSE} or
-\code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
+\item{verb}{Logical or numeric related to how much verbosity is printed.
+\code{FALSE} or \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
 
 \item{cores}{number of processor cores to use}
 }
 \value{
-a list of data.table named by year, with cols \code{ids}, \code{buffer},
-and \code{pixelID}
+a list of \code{data.table}s named by year, with cols \code{ids}, \code{buffer}, and \code{pixelID}
 }
 \description{
-this is a wrapper to simplify caching of lapply with bufferForFireRaster.
+this is a wrapper to simplify caching of \code{lapply} with \code{bufferForFireRaster}.
 Years are iteratively processed by \code{makeFireID}.
 }
