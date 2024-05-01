@@ -1,5 +1,5 @@
 globalVariables(c(
-"cell"
+  "cell"
 ))
 #' Convert a list of `SpatialPointsDataFrame` object to a list of `data.table` objects
 #'
@@ -30,13 +30,13 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
                          sizeColUnits = "ha") {
   returnCols <- c("size", "date", "ids", "cells")
   keepCols <- c(sizeCol, dateCol, idsCol)
-  #pts shoudl already be projected but no harm in forcing..
+  # pts shoudl already be projected but no harm in forcing..
   pts <- lapply(pts, st_transform, crs = st_crs(ras))
 
   lociDF <- purrr::map(pts,
     ras = ras,
     function(x, ras) {
-    extract(x = ras, y = x, bind = TRUE, cells = TRUE) %>%
+      extract(x = ras, y = x, bind = TRUE, cells = TRUE) %>%
         as.data.table()
     }
   ) %>%
@@ -53,9 +53,9 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
     "m2" = 1,
     stop("Must provide sizeColUnits either ha or m2")
   )
-  #Check if loci sizes are numeric, otherwise the rescaling fails
-  if (!inherits(x = lociDF$size, what = "numeric")){
-   #TODO: #this is a terra::extract issue as of 31/10/2023 - check if issue persists at a later date
+  # Check if loci sizes are numeric, otherwise the rescaling fails
+  if (!inherits(x = lociDF$size, what = "numeric")) {
+    # TODO: #this is a terra::extract issue as of 31/10/2023 - check if issue persists at a later date
     lociDF[, size := as.numeric(size)]
   }
   set(lociDF, NULL, "size", round(lociDF$size / (prod(res(ras)) / divisor), 0))

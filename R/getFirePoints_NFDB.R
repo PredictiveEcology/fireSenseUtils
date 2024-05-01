@@ -31,8 +31,8 @@ getFirePoints_NFDB <- function(url = NULL,
   }
 
   check <- Checksums(NFDB_pointPath,
-                     checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
-                     write = TRUE
+    checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
+    write = TRUE
   )
   whRowIsShp <- grep("NFDB_point.*shp$", check$expectedFile)
   whIsOK <- which(check$result[whRowIsShp] == "OK")
@@ -44,7 +44,7 @@ getFirePoints_NFDB <- function(url = NULL,
       x = filesToCheck,
       start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck)
     )
-    if (as.Date(dateOfFile, format = "%Y%m%d") + 365/redownloadIn > Sys.Date()) {
+    if (as.Date(dateOfFile, format = "%Y%m%d") + 365 / redownloadIn > Sys.Date()) {
       # can change dyear(...) to whatever... e.g., dyear(0.5) would be 6 months
       needNewDownload <- FALSE
     }
@@ -52,13 +52,13 @@ getFirePoints_NFDB <- function(url = NULL,
   if (needNewDownload) {
     print("downloading NFDB")
     firePoints <- Cache(prepInputs,
-                        url = url,
-                        studyArea = studyArea,
-                        fun = "sf::st_read",
-                        destinationPath = NFDB_pointPath,
-                        useCache = "overwrite",
-                        useSAcrs = TRUE,
-                        omitArgs = c("NFDB_pointPath", "overwrite")
+      url = url,
+      studyArea = studyArea,
+      fun = "sf::st_read",
+      destinationPath = NFDB_pointPath,
+      useCache = "overwrite",
+      useSAcrs = TRUE,
+      omitArgs = c("NFDB_pointPath", "overwrite")
     )
   } else {
     NFDBs <- grep(list.files(NFDB_pointPath), pattern = "^NFDB", value = TRUE)
@@ -73,15 +73,15 @@ getFirePoints_NFDB <- function(url = NULL,
     })
     a <- Sys.time()
     firePoints <- Cache(postProcess,
-                        firePoints,
-                        studyArea = studyArea,
-                        userTags = c("cacheTags", "NFDB")
+      firePoints,
+      studyArea = studyArea,
+      userTags = c("cacheTags", "NFDB")
     )
   }
   firePoints <- firePoints[firePoints$YEAR <= max(years) &
-                             firePoints$YEAR >= min(years), ]
+    firePoints$YEAR >= min(years), ]
   firePoints <- firePoints[, c("YEAR", fireSizeColName)]
-  if (!is.null(rasterToMatch)){
+  if (!is.null(rasterToMatch)) {
     firePoints$size <- asInteger(firePoints[[fireSizeColName]] / prod(res(rasterToMatch)) * 1e4)
   }
   names(firePoints)[1:2] <- c("date", "size_ha")
@@ -117,8 +117,9 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
     url <- "http://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point.zip"
   }
   check <- Checksums(NFDB_pointPath,
-                     checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
-                     write = TRUE)
+    checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),
+    write = TRUE
+  )
   whRowIsShp <- grep("NFDB_point.*shp$", check$expectedFile)
   whIsOK <- which(check$result[whRowIsShp] == "OK")
   needNewDownload <- TRUE
@@ -129,19 +130,19 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
       x = filesToCheck,
       start = nchar(filesToCheck) - 8 + 1, nchar(filesToCheck)
     )
-    if (as.Date(dateOfFile, format = "%Y%m%d") + 365/redownloadIn > Sys.Date()) {
+    if (as.Date(dateOfFile, format = "%Y%m%d") + 365 / redownloadIn > Sys.Date()) {
       needNewDownload <- FALSE
     }
   }
   if (needNewDownload) {
     print("downloading NFDB...") # put prepInputs here
     firePoints <- Cache(prepInputs,
-                        url = url,
-                        fun = "st_read",
-                        studyArea = studyArea,
-                        destinationPath = NFDB_pointPath,
-                        useSAcrs = TRUE,
-                        omitArgs = c("NFDB_pointPath", "overwrite")
+      url = url,
+      fun = "st_read",
+      studyArea = studyArea,
+      destinationPath = NFDB_pointPath,
+      useSAcrs = TRUE,
+      omitArgs = c("NFDB_pointPath", "overwrite")
     )
   } else {
     print("NFDB present. Loading...") # put prepInputs here

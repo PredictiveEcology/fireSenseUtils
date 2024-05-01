@@ -1,6 +1,6 @@
 globalVariables(c(
   "age", "B", "BperClass", "FuelClass", "foo", "Leading", "LeaderValue",
-  "totalBiomass", "NspeciesWithMaxB"
+  "maxAge", "NspeciesWithMaxB", "pixelIndex", "totalBiomass"
 ))
 
 #' Classify `pixelGroups` by flammability
@@ -9,21 +9,20 @@ globalVariables(c(
 #' @template pixelGroupMap
 #' @template sppEquiv
 #' @template sppEquivCol
-#' @param yearCohort the year the `cohortData` represents
-#' @param landcoverDT optional table of nonforest landcovers and pixel indices. It will override
-#' pixel values in `cohortData`, if supplied.
+#' @param landcoverDT Optional table of nonforest landcovers and pixel indices.
+#'                    It will override pixel values in `cohortData`, if supplied.
 #' @template flammableRTM
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
-#' @param fuelClassCol the column in sppEquiv that describes unique fuel classes
+#' @param fuelClassCol the column in `sppEquiv` that describes unique fuel classes
 #'
-#' @return a terra SpatRaster of fuel classes defined by leading species and `sppEquiv$fuelClass`
+#' @return a `SpatRaster` of biomass by fuel class as determined by `fuelClassCol` and `cohortData`
 #'
 #' @export
 #' @importFrom data.table copy setkey
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom terra values rast
 #'
-cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammableRTM, landcoverDT = NULL,
+cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landcoverDT = NULL,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
   cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
@@ -32,30 +31,16 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
   # data.table needs an argument for which column names are kept during join
 
-  cD[age <= cutoffForYoungAge, FuelClass := "youngAge"]
-  if (!"totalBiomass" %in% names(cD)) {
-    cD[, totalBiomass := asInteger(sum(B)), by = c("pixelGroup")]
-  }
+  cD[, maxAge := max(age), .(pixelGroup)]
+  cD[maxAge <= cutoffForYoungAge, FuelClass := "youngAge"]
+  cD[, maxAge := NULL]
 
-  cD[, BperClass := sum(B), by = c("FuelClass", "pixelGroup")]
+  cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
+
+  # youngAge is better treated as a binary cover variable than continuous measure of biomass
+  cD[FuelClass == "youngAge", BperClass := 1]
 
   # Fix zero age, zero biomass
-  cD[, Leading := BperClass == max(BperClass), .(pixelGroup)]
-  cD <- unique(cD[Leading == TRUE, .(FuelClass, pixelGroup)]) # unique due to species
-  cD[, NspeciesWithMaxB := .N, .(pixelGroup)]
-
-  # In the event of a tie, we randomly pick a fuel class
-  ties <- cD[NspeciesWithMaxB > 1]
-  noTies <- cD[NspeciesWithMaxB == 1]
-  if (nrow(ties) > 1) {
-    ties$foo <- sample(x = 1:nrow(ties), size = nrow(ties))
-    setkey(ties, foo)
-    ties <- ties[!duplicated(ties[, .(pixelGroup)])]
-    ties[, foo := NULL]
-    cD <- rbind(ties, noTies)
-  } else {
-    cD <- noTies
-  }
   classes <- sort(unique(cD$FuelClass))
   classList <- lapply(classes, makeRastersFromCD,
     flammableRTM = flammableRTM,
@@ -66,11 +51,11 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
   classList <- rast(classList)
 
   if (!is.null(landcoverDT)) {
-    #find rows that aren't empty i.e. have non-forest landcover
+    # find rows that aren't empty i.e. have non-forest landcover
     landcoverDT[, foo := rowSums(.SD), .SD = setdiff(names(landcoverDT), "pixelID")]
-    #terra needs protection from zero-length index
-    if (nrow(landcoverDT[foo > 0,]) > 0) {
-      classList[landcoverDT[foo > 0]$pixelID] <- 0 #must be 0
+    # terra needs protection from zero-length index
+    if (nrow(landcoverDT[foo > 0, ]) > 0) {
+      classList[landcoverDT[foo > 0]$pixelID] <- 0 # must be 0
     }
     landcoverDT[, foo := NULL]
   }
@@ -85,19 +70,16 @@ cohortsToFuelClasses <- function(cohortData, yearCohort, pixelGroupMap, flammabl
 #' @template flammableRTM
 #' @template pixelGroupMap
 #' @template cohortData
-#' @return a SpatRaster
+#' @return a SpatRaster with values equal to `class` biomass (B)
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom data.table data.table
 #' @importFrom terra values setValues rast
 makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
-
-  cohortDataub <- copy(cohortData)
-  cohortDataub <- cohortDataub[FuelClass == class, ]
-  cohortDataub[, LeaderValue := 1]
+  cohortDataFB <- cohortData[FuelClass == class, ]
   ras <- rasterizeReduced(
-    reduced = cohortDataub,
+    reduced = cohortDataFB,
     fullRaster = pixelGroupMap,
-    newRasterCols = "LeaderValue",
+    newRasterCols = "BperClass",
     mapcode = "pixelGroup"
   )
   # fuel class is 0 and not NA if absent entirely
@@ -107,4 +89,23 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
   rasVals[!is.na(flamVals) & is.na(rasVals)] <- 0
   ras <- setValues(x = ras, values = rasVals)
   return(ras)
+}
+
+#' Modify cohortData with burn column
+#'
+#' @param year length-two vector giving temporal period used to subset firePolys. Closed interval
+#' @param pixelGroupMap either a `SpatRaster` with `pixelGroups` or list of `SpatRasters` named by year
+#' @param cohortData either a `cohortData` object or list of `cohortData` objects named by year
+#' @param firePolys the output of `fireSenseUtils::getFirePolys` with `YEAR` column
+#' @return cohortData modified with burn status
+#' @importFrom LandR addPixels2CohortData
+#' @importFrom terra rasterize
+buildCohortBurnHistory <- function(cohortData, pixelGroupMap, firePolys, year) {
+  # build fire raster
+  firePolys <- do.call(rbind, firePolys)
+  firePolys <- firePolys[firePolys$YEAR >= min(year) & firePolys$YEAR <= max(year), ]
+  fireRas <- rasterize(firePolys, pixelGroupMap, field = "YEAR", fun = min)
+  cdLong <- addPixels2CohortData(cohortData, pixelGroupMap)
+  cdLong[, burned := fireRas[pixelIndex]]
+  return(cdLong)
 }

@@ -4,20 +4,17 @@
 \alias{getFirePolygons}
 \title{Download and prepare fire data from National Fire Database}
 \usage{
-getFirePolygons(years, studyArea, destinationPath, useInnerCache = FALSE)
+getFirePolygons(years, useInnerCache = FALSE, ...)
 }
 \arguments{
 \item{years}{years to filter fire polygons by}
 
-\item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
-passed to \code{\link[reproducible]{prepInputs}}.}
+\item{useInnerCache}{logical indicating whether to cache the \code{prepInputs} call}
 
-\item{destinationPath}{the directory where the fire polys will be stored}
-
-\item{useInnerCache}{cache the prepInputs call}
+\item{...}{additional arguments passed to \code{\link[=prepInputs]{prepInputs()}}}
 }
 \value{
-DESCRIPTION NEEDED
+list of fire polygons by year
 }
 \description{
 Download and prepare fire data from National Fire Database

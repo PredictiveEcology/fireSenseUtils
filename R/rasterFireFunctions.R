@@ -30,17 +30,20 @@ utils::globalVariables(c(
 #' @importFrom parallelly availableCores
 rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRaster, areaMultiplier,
                                minSize = 5000, verb = 1, cores = 1) {
-
   maxCores <- parallelly::availableCores(constraints = "connections", omit = 1)
   cores <- min(min(length(years), cores), maxCores)
   if (cores > 1) {
-    out <- parallel::mclapply(years, FUN = makeFireIDs, fireRaster = fireRaster,
-                              flammableRTM = flammableRTM, bufferForFireRaster = bufferForFireRaster,
-                              areaMultiplier = areaMultiplier, minSize = minSize, verb = verb)
+    out <- parallel::mclapply(years,
+      FUN = makeFireIDs, fireRaster = fireRaster,
+      flammableRTM = flammableRTM, bufferForFireRaster = bufferForFireRaster,
+      areaMultiplier = areaMultiplier, minSize = minSize, verb = verb
+    )
   } else {
-    fireBufferListDT <- lapply(years, makeFireIDs, fireRaster = fireRaster, flammableRTM = flammableRTM,
-                               bufferForFireRaster = bufferForFireRaster,
-                               areaMultiplier = areaMultiplier, minSize = minSize, verb = verb)
+    fireBufferListDT <- lapply(years, makeFireIDs,
+      fireRaster = fireRaster, flammableRTM = flammableRTM,
+      bufferForFireRaster = bufferForFireRaster,
+      areaMultiplier = areaMultiplier, minSize = minSize, verb = verb
+    )
   }
   names(fireBufferListDT) <- paste0("year", years)
   return(fireBufferListDT)
@@ -62,29 +65,30 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
 #' @importFrom data.table rbindlist data.table set setcolorder
 #' @importFrom terra buffer patches
 makeFireIDs <- function(year, fireRaster, flammableRTM, bufferForFireRaster, areaMultiplier, minSize = 5000, verb = 1) {
-
-  #identify this year's fires
+  # identify this year's fires
   origIndex <- which(fireRaster[] == year)
   if (length(origIndex) == 0) {
-    return(NULL) #TODO: what should happen here? empty data.table
-  } else{
+    return(NULL) # TODO: what should happen here? empty data.table
+  } else {
     fireRaster[] <- NA
     fireRaster[origIndex] <- 1
-    #classify into discrete fires via buffer
+    # classify into discrete fires via buffer
     fireRaster <- buffer(fireRaster, width = bufferForFireRaster, background = NA)
-    #TODO: doublecheck that no patches are lost... why are patch values greater than # of patches
+    # TODO: doublecheck that no patches are lost... why are patch values greater than # of patches
     fireRaster <- terra::patches(fireRaster)
     fireIDs <- fireRaster[origIndex]
 
-    #mask to the original pixels
+    # mask to the original pixels
     fireRaster[] <- NA
     fireRaster[origIndex] <- fireIDs
-    fireBufferDT <- bufferToAreaRast(fireIDraster = fireRaster,
-                                     flammableRTM = flammableRTM,
-                                     areaMultiplier = areaMultiplier,
-                                     minSize = minSize,
-                                     verb = verb)
-    #match the polygonal order
+    fireBufferDT <- bufferToAreaRast(
+      fireIDraster = fireRaster,
+      flammableRTM = flammableRTM,
+      areaMultiplier = areaMultiplier,
+      minSize = minSize,
+      verb = verb
+    )
+    # match the polygonal order
     setcolorder(fireBufferDT, c("pixelID", "buffer", "ids"))
     return(fireBufferDT)
   }
@@ -100,7 +104,7 @@ makeFireIDs <- function(year, fireRaster, flammableRTM, bufferForFireRaster, are
 #'  `0` is none. `TRUE` or `1` is some. `2` is much more.
 #' @return a data.table with fire ID, buffer status, and pixelID
 #' @export
-#' @importFrom data.table rbindlist data.table set setnames
+#' @importFrom data.table data.table rbindlist set setnames
 #' @importFrom terra buffer res values
 #' @importFrom SpaDES.tools spread
 bufferToAreaRast <- function(fireIDraster, areaMultiplier, minSize, flammableRTM, verb = 1) {
@@ -137,9 +141,10 @@ bufferToAreaRast <- function(fireIDraster, areaMultiplier, minSize, flammableRTM
       dups <- duplicated(loci)
       df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq_along(ids[!dups]))
       r1 <- SpaDES.tools::spread(fireIDraster,
-                                 loci = df$loci, iterations = 1,
-                                 spreadProb = flammableRTM, quick = TRUE,
-                                 returnIndices = TRUE)
+        loci = df$loci, iterations = 1,
+        spreadProb = flammableRTM, quick = TRUE,
+        returnIndices = TRUE
+      )
       df <- df[r1, on = "id"]
       simSizes <- df[, list(simSize = .N), by = "ids"]
       simSizes <- fireSize[simSizes, on = "ids"]
@@ -210,17 +215,16 @@ bufferToAreaRast <- function(fireIDraster, areaMultiplier, minSize, flammableRTM
 #' @importFrom sf st_nearest_points st_centroid st_multipoint st_crs  "st_crs<-" st_as_sf
 #' @importFrom data.table as.data.table
 rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
-
   if (inherits(flammableRTM, "RasterLayer")) {
     flammableRTM <- rast(flammableRTM)
   }
 
-  burnedPoints <- fireBufferDT[buffer == 1,]
+  burnedPoints <- fireBufferDT[buffer == 1, ]
   burnLocs <- xyFromCell(flammableRTM, cell = burnedPoints$pixelID)
   burnLocs <- as.data.table(burnLocs)
   burnLocs$ids <- burnedPoints$ids
 
-  #TODO - we can use st_centroid without the need to join if we are able to
+  # TODO - we can use st_centroid without the need to join if we are able to
   burnPoints <- st_as_sf(burnLocs, coords = c("x", "y"))
   st_crs(burnPoints) <- st_crs(flammableRTM)
 
@@ -229,23 +233,23 @@ rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
   burnCentroids <- st_as_sf(burnCentroidDT, coords = c("x", "y"))
   st_crs(burnCentroids) <- st_crs(flammableRTM)
 
-  #there is likely a faster way?
+  # there is likely a faster way?
   ids <- unique(burnCentroidDT$id)
-  firePoints <- lapply(ids, FUN = function(x, p = burnPoints, c = burnCentroids){
-    p <- p[p$ids == x,]
-    c <- c[c$ids == x,]
-    #gives nearest y to each x - so nearest point to each centroid
+  firePoints <- lapply(ids, FUN = function(x, p = burnPoints, c = burnCentroids) {
+    p <- p[p$ids == x, ]
+    c <- c[c$ids == x, ]
+    # gives nearest y to each x - so nearest point to each centroid
     nearest <- sf::st_nearest_feature(x = c, y = p)
-    p <- p[nearest,]
+    p <- p[nearest, ]
     return(p)
   })
 
   firePoints <- rbindlist(firePoints)
-  #calculate size in hectares
-  multiplier <- prod(res(flammableRTM))/10000
-  burnSizes <-fireBufferDT[buffer == 1, .(POLY_HA = .N * multiplier, size = .N), .(ids)]
+  # calculate size in hectares
+  multiplier <- prod(res(flammableRTM)) / 10000
+  burnSizes <- fireBufferDT[buffer == 1, .(POLY_HA = .N * multiplier, size = .N), .(ids)]
   firePoints <- firePoints[burnSizes, on = c("ids")]
-  setnames(firePoints, old = "ids", new = "FIRE_ID") #following fireSenseUtils::makeLociList
+  setnames(firePoints, old = "ids", new = "FIRE_ID") # following fireSenseUtils::makeLociList
   firePoints <- st_as_sf(firePoints)
   return(firePoints)
 }
