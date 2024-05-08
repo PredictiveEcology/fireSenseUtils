@@ -186,6 +186,9 @@ runDEoptim <- function(landscape,
           }
 
           if (!"Require" %in% rownames(utils::installed.packages())) {
+            if (!require("remotes")) {
+              install.packages("remotes")
+            }
             remotes::install_github("PredictiveEcology/Require@development")
           } else if (packageVersion("Require") < "0.1.0.9000") {
             remotes::install_github("PredictiveEcology/Require@development")
@@ -207,7 +210,7 @@ runDEoptim <- function(landscape,
             ),
             upgrade = FALSE
           )
-        }
+          }
       )
       parallel::stopCluster(cl)
     }
