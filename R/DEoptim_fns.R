@@ -153,6 +153,7 @@ runDEoptim <- function(landscape,
     #     multiple times per machine, if not all 'localhost'
     revtunnel <- FALSE
     if (!identical("localhost", unique(cores))) {
+
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
       coresUnique <- setdiff(unique(cores), "localhost")
@@ -191,6 +192,9 @@ runDEoptim <- function(landscape,
             }
             remotes::install_github("PredictiveEcology/Require@development")
           } else if (packageVersion("Require") < "0.1.0.9000") {
+            if (!require("remotes")) {
+              install.packages("remotes")
+            }
             remotes::install_github("PredictiveEcology/Require@development")
           }
 
@@ -205,12 +209,12 @@ runDEoptim <- function(landscape,
           Require::Require(
             c(
               "dqrng",
-              paste0("PredictiveEcology/SpaDES.tools (>=", packageVersionST, ")"),
-              paste0("PredictiveEcology/fireSenseUtils (>=", packageVersionFSU, ")")
+              paste0("PredictiveEcology/SpaDES.tools@development (>=", packageVersionST, ")"),
+              paste0("PredictiveEcology/fireSenseUtils@development (>=", packageVersionFSU, ")")
             ),
             upgrade = FALSE
           )
-          }
+        }
       )
       parallel::stopCluster(cl)
     }
