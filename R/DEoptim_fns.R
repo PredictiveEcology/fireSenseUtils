@@ -187,12 +187,12 @@ runDEoptim <- function(landscape,
           }
 
           if (!"Require" %in% rownames(utils::installed.packages())) {
-            if (!require("remotes")) {
+            if (!requireNamespace("remotes", quietly = TRUE)) {
               install.packages("remotes")
             }
             remotes::install_github("PredictiveEcology/Require@development")
           } else if (packageVersion("Require") < "0.1.0.9000") {
-            if (!require("remotes")) {
+            if (!requireNamespace("remotes", quietly = TRUE)) {
               install.packages("remotes")
             }
             remotes::install_github("PredictiveEcology/Require@development")
