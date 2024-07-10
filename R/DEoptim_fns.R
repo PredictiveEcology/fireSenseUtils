@@ -187,15 +187,11 @@ runDEoptim <- function(landscape,
           }
 
           if (!"Require" %in% rownames(utils::installed.packages())) {
-            if (!requireNamespace("remotes", quietly = TRUE)) {
-              install.packages("remotes")
-            }
-            remotes::install_github("PredictiveEcology/Require@development")
-          } else if (packageVersion("Require") < "0.1.0.9000") {
-            if (!requireNamespace("remotes", quietly = TRUE)) {
-              install.packages("remotes")
-            }
-            remotes::install_github("PredictiveEcology/Require@development")
+            repos <- c("predictiveecology.r-universe.dev", getOption("repos"))
+            install.packages("Require", repos = repos)
+          } else if (packageVersion("Require") < "0.3.1.9098") {
+            repos <- c("predictiveecology.r-universe.dev", getOption("repos"))
+            install.packages("Require", repos = repos)
           }
 
           ## Use the binary packages for install if Ubuntu & Linux
