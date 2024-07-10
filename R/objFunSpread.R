@@ -402,7 +402,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
   spreadOutEnough <- sdSP / medSP > 0.025
   ret <- list()
-  minLik <- 1e-19 # min(emp$lik[emp$lik > 0])
+  minLik <- 1e-29 # min(emp$lik[emp$lik > 0])
   loci <- annualFires$cells
   summ <- summary(nonEdgeValues)
   lowSPLowEnough <- summ[2] < lanscape1stQuantileThresh
@@ -424,8 +424,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
   }
 
-  # att <- try(if (medSPRight && spreadOutEnough) { "hi" })
-  # if (is(att, "try-error")) browser()
   if (medSPRight && spreadOutEnough && lowSPLowEnough) {
     if (verbose) {
       ww <- if (isTRUE(weighted)) "weighted" else "unweighted"
@@ -443,6 +441,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     minSize <- 100
     if (doAssertions || plot.it) {
       tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
+      tableOfBufferedMaps <- tableOfBufferedMaps[annualFires, on = "ids"]
+      setnames(tableOfBufferedMaps, old = "cells", new = "initialPixels")
       minSizes <- tableOfBufferedMaps$numAvailPixels
       minSize <- quantile(minSizes, 0.3)
       if (minSize < 2000) {
@@ -463,17 +463,20 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       maxSizes <- maxSizes[!dups]
       loci <- annualFires$cells[!dups]
     }
-    spreadState <- lapply(seq_len(Nreps), function(i) {
+    st <- system.time(spreadState <- lapply(seq_len(Nreps), function(i) {
       SpaDES.tools::spread(
+        # SpaDES.tools::spread2(
         landscape = r,
         maxSize = maxSizes,
+        # start = loci,
         loci = loci,
         spreadProb = cells,
+        # asRaster = FALSE,
         returnIndices = TRUE,
         allowOverlap = FALSE,
         skipChecks = TRUE
       )
-    })
+    }))
     if (isTRUE(plot.it)) {
       par(
         mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
@@ -492,11 +495,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
 
     spreadState <- rbindlist(spreadState, idcol = "rep")
+    if ("indices" %in% colnames(spreadState))
+      setnames(spreadState, old = "indices", "pixels")
+    if ("initialLocus" %in% colnames(spreadState) )
+      setnames(spreadState, old = "initialLocus", "initialPixels")
     if (isTRUE(doSNLL_FSTest)) {
       emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
       emp <- emp[annualFires, on = c("initialLocus" = "cells")]
       if (plot.it) {
-        emp <- tableOfBufferedMaps[emp, on = c("ids"), nomatch = NULL] # should be on = initialLocus
+        colsToKeep <- c(setdiff(colnames(tableOfBufferedMaps), colnames(emp)), "initialPixels")
+        emp <- tableOfBufferedMaps[, ..colsToKeep][emp, on = c("initialPixels"), nomatch = NULL]
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
         emp <- setorderv(emp, c("size"), order = -1L)
         numLargest <- 4
@@ -512,7 +520,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         } else {
           uniqueEmpIds
         }
-
         emp[ids %in% sam,
           {
             dat <- round(log(N))
