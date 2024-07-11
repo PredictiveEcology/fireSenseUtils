@@ -72,5 +72,5 @@ Language: en-CA
 LazyData: true
 License: GPL-3
 BugReports: https://github.com/PredictiveEcology/fireSenseUtils/issues
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Roxygen: list(markdown = TRUE)

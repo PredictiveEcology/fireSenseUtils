@@ -196,8 +196,8 @@ runDEoptim <- function(landscape,
                 ## This will install the versions of SpaDES.tools and fireSenseUtils that are on the main machine
                 Require::Require(c("dqrng", "SpaDES.tools", "fireSenseUtils"), repos = repos)
               }
-
             }
+          }
         )
         pkgsNeeded <- unique(Require::extractPkgName(unname(unlist(aa))))
         out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
