@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom SpaDES.tools distanceFromEachPoint
-#' @importFrom data.table data.table as.data.table
+#' @importFrom data.table as.data.table is.data.table data.table
 #' @importFrom sf st_as_sf st_crs
 #' @importFrom terra extract xyFromCell
 cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
