@@ -1,6 +1,7 @@
 utils::globalVariables(c(
-  "..colsToUse", ".N", "buffer", "burned", "burnedClass", "id", "ids", "initialLocus",
-  "N", "numAvailPixels", "pixelID", "prob", "simFireSize", "size", "spreadProb"
+  "..colsToKeep", "..colsToUse", ".N", "buffer", "burned", "burnedClass",
+  "id", "ids", "initialLocus", "N", "numAvailPixels", "pixelID", "prob",
+  "simFireSize", "size", "spreadProb"
 ))
 
 #' Objective function for `fireSense_spreadFit` module
@@ -331,7 +332,6 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   D <- C * z
   return(D)
 }
-
 
 objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         annualFires, nonAnnualDTx1000, annualFireBufferedDT,

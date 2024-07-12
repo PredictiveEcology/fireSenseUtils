@@ -15,12 +15,13 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom SpaDES.tools distanceFromEachPoint
-#' @importFrom data.table data.table as.data.table
+#' @importFrom data.table as.data.table is.data.table data.table
 #' @importFrom sf st_as_sf st_crs
 #' @importFrom terra extract xyFromCell
 cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
-  if (is.data.table(bufferDT))
+  if (!is.data.table(bufferDT)) {
     bufferDT <- as.data.table(bufferDT)
+  }
   FlamPoints <- as.data.table(extract(flammableRTM, firePoints, cells = TRUE))
   setnames(FlamPoints, c("ID", "isFlammable", "cells"))
   FlamPoints[, isFlammable := as.numeric(as.character(isFlammable))] # otherwise factor = 1 and 2
