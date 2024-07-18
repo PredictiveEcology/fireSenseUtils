@@ -19,7 +19,8 @@ makeFireIDs(
 
 \item{fireRaster}{a \code{SpatRaster} with values representing fire years}
 
-\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 
 \item{bufferForFireRaster}{buffer size used to group discrete patches of burned pixels as
 belonging to the same fire}

@@ -23,7 +23,8 @@ and \code{sumB}.}
 \item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
 
-\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 
 \item{landcoverDT}{Optional table of nonforest landcovers and pixel indices.
 It will override pixel values in \code{cohortData}, if supplied.}

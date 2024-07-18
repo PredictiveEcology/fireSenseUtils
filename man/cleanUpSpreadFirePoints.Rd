@@ -12,7 +12,8 @@ cleanUpSpreadFirePoints(firePoints, bufferDT, flammableRTM)
 
 \item{bufferDT}{a data.table of burned cells, output from \code{bufferToArea}}
 
-\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 }
 \value{
 a list of harmonized points and polygons

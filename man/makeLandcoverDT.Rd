@@ -9,7 +9,8 @@ makeLandcoverDT(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups)
 \arguments{
 \item{rstLCC}{landcover raster}
 
-\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 
 \item{forestedLCC}{vector of values representing forested landcover classes in \code{rstLCC}}
 
