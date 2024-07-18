@@ -13,7 +13,8 @@ makeRastersFromCD(class, cohortData, flammableRTM, pixelGroupMap)
 \code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
 and \code{sumB}.}
 
-\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 
 \item{pixelGroupMap}{A \code{RasterLayer} with pixel values equal to a pixel group
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}

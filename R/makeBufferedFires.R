@@ -250,3 +250,21 @@ bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
   names(ignitionDT) <- paste0("year", years)
   return(ignitionDT)
 }
+
+
+#' remove buffered fires in fireBufferedListDT that are outside RTM
+#'
+#'
+#' @param fireBufferedDT data.table containing indices for buffered annual fires
+#' @template flammableRTM
+#' @return fireBufferedDT excluding fires with indices (burned or unburned) outside flammableRTM
+#'
+#' @export
+#' @rdname removeBufferedFiresOutsideRTM
+removeBufferedFiresOutsideRTM <- function(fireBufferedDT, flammableRTM) {
+  fireBufferedDT[, flammable := flammableRTM[fireBufferedDT$pixelID]]
+  toExclude <- fireBufferedDT[is.na(flammable)]$ids
+  fireBufferedDT <- fireBufferedDT[!ids %in% toExclude]
+  fireBufferedDT[, flammable := NULL]
+  return(fireBufferedDT)
+}
