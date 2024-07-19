@@ -442,7 +442,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     if (doAssertions || plot.it) {
       tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
       tableOfBufferedMaps <- tableOfBufferedMaps[annualFires, on = "ids"]
-      setnames(tableOfBufferedMaps, old = "cells", new = "initialPixels")
+      setnames(tableOfBufferedMaps, old = "cells", new = "initialLocus")
       minSizes <- tableOfBufferedMaps$numAvailPixels
       minSize <- quantile(minSizes, 0.3)
       if (minSize < 2000) {
@@ -495,16 +495,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
 
     spreadState <- rbindlist(spreadState, idcol = "rep")
-    if ("indices" %in% colnames(spreadState))
-      setnames(spreadState, old = "indices", "pixels")
-    if ("initialLocus" %in% colnames(spreadState) )
-      setnames(spreadState, old = "initialLocus", "initialPixels")
     if (isTRUE(doSNLL_FSTest)) {
       emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
       emp <- emp[annualFires, on = c("initialLocus" = "cells")]
       if (plot.it) {
-        colsToKeep <- c(setdiff(colnames(tableOfBufferedMaps), colnames(emp)), "initialPixels")
-        emp <- tableOfBufferedMaps[, ..colsToKeep][emp, on = c("initialPixels"), nomatch = NULL]
+        colsToKeep <- c(setdiff(colnames(tableOfBufferedMaps), colnames(emp)), "initialLocus")
+        emp <- tableOfBufferedMaps[, ..colsToKeep][emp, on = c("initialLocus"), nomatch = NULL]
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
         emp <- setorderv(emp, c("size"), order = -1L)
         numLargest <- 4
