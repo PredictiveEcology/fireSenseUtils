@@ -64,9 +64,9 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
                        gsub(x = rev(fireYears), "year", "")[1])
   message(paste0("between ", firePeriod, " there were ", totalFires, " escaped fires",
                  " and ", totalFires-firesRemaining, " were replaced for bordering the studyArea border"))
-  #ensure year derived from name, not data.table itself
   fireBufferedListDT <- lapply(fireBufferedListDT, function(x) {x[, Year := NULL]})
-  names(fireBufferedListDT) <- newYears
+  #ensure year derived from name, not data.table itself
+  names(fireBufferedListDT) <- newYears$Year
 
   harmonized <- harmonizeBufferAndPoints(
     cent = spreadFirePoints,
@@ -76,7 +76,6 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   )
 
   ## ensure mismatched (e.g. points w/ no polys) and now missing years actually removed.
-  ## TODO: move this check code into the corresponding fireSenseUtils functions
   emptyYearsPoints <- which(vapply(harmonized, is.null, logical(1))) |> names()
   emptyYearsPolys <- which(vapply(fireBufferedListDT, function(x) nrow(x) == 0, logical(1))) |> names()
   stopifnot(emptyYearsPoints == emptyYearsPolys)
@@ -86,18 +85,19 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
     fireBufferedListDT[[emptyYears]] <- NULL
   }
 
+  #make sure that cleanUpSpreadFirePoints removes points with no polygons
   harmonized <- Map(f = cleanUpSpreadFirePoints,
                     firePoints = harmonized,
                     bufferDT = fireBufferedListDT,
                     MoreArgs = list(flammableRTM = flammableRTM)) |>
     purrr::transpose()
 
-  #one last safety check - ensuring points have correpsonding fires
+  #one last safety check - ensuring points have corresponding fires
   nfires_poly <- sapply(harmonized$FireBuffered, FUN = function(x){nrow(x[, .N, .(ids)])})
-  nfires_point <- sapply(harmonized$SpatialPoints, FUN = nrow)
-
+  #polygons can have multiple ignition points, but the reverse is not true due to table structure
+  nfires_point <- sapply(harmonized$SpatialPoints, FUN = function(x){length(unique(x$FIRE_ID))})
   if (!identical(nfires_poly, nfires_point)) {
-    stop('spread fire point and poly harmonization error in dataPrepFit. Please debug harmonzieFireData')
+    stop('spread fire point and poly harmonization error in dataPrepFit. Please debug harmonizeFireData')
   }
 
   #fire polys should be cleaned too - though at this point it stops being used.
