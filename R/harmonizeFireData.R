@@ -56,6 +56,7 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
 
   fireBufferedListDT <- lapply(fireBufferedListDT, FUN = removeBufferedFiresOutsideRTM,
                                flammableRTM = flammableRTM)
+  fireBufferedListDT <- fireBufferedListDT[sapply(fireBufferedListDT, nrow) > 0]
   newYears <- rbindlist(fireBufferedListDT)[, .N, .(Year)]
 
   firesRemaining = nrow(rbindlist(fireBufferedListDT)[, .N, .(Year, ids)])
@@ -68,6 +69,10 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   #ensure year derived from name, not data.table itself
   names(fireBufferedListDT) <- newYears$Year
 
+  #if an entire year is lost from buffered fires outside SA, the points must be updated
+  spreadFirePoints <- spreadFirePoints[newYears$Year]
+
+  #this function ensures spread point is within buffer and flammable
   harmonized <- harmonizeBufferAndPoints(
     cent = spreadFirePoints,
     buff = fireBufferedListDT,
@@ -78,7 +83,7 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   ## ensure mismatched (e.g. points w/ no polys) and now missing years actually removed.
   emptyYearsPoints <- which(vapply(harmonized, is.null, logical(1))) |> names()
   emptyYearsPolys <- which(vapply(fireBufferedListDT, function(x) nrow(x) == 0, logical(1))) |> names()
-  stopifnot(emptyYearsPoints == emptyYearsPolys)
+  stopifnot(emptyYearsPoints == emptyYearsPolys) #prevents errors in spreadFit - should be addressed upstream
   emptyYears <- unique(c(emptyYearsPoints, emptyYearsPolys))
   if (length(emptyYears > 0)) {
     harmonized[[emptyYears]] <- NULL
