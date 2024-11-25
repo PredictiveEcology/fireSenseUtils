@@ -28,10 +28,10 @@ jobs:
           - {os: windows-latest, r: 'release'}
           - {os: windows-latest, r: 'oldrel/1'}
           - {os: windows-latest, r: 'oldrel/2'}
-          - {os: ubuntu-20.04,   r: 'devel'}
-          - {os: ubuntu-20.04,   r: 'release'}
-          - {os: ubuntu-20.04,   r: 'oldrel/1'}
-          - {os: ubuntu-20.04,   r: 'oldrel/2'}
+          - {os: ubuntu-latest,   r: 'devel'}
+          - {os: ubuntu-latest,   r: 'release'}
+          - {os: ubuntu-latest,   r: 'oldrel/1'}
+          - {os: ubuntu-latest,   r: 'oldrel/2'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
