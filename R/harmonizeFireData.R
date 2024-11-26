@@ -20,7 +20,8 @@ utils::globalVariables(c(
 #' @importFrom purrr transpose
 #' @importFrom data.table rbindlist
 harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
-                              areaMultiplier, minSize, pointsIDcolumn = "FIRE_ID") {
+                              areaMultiplier, minSize, pointsIDcolumn = "FIRE_ID",
+                              cores = 1) {
   ## safety to ensure missing years actually removed
   spreadFirePoints[is.na(names(spreadFirePoints))] <- NULL
 
@@ -28,6 +29,7 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   fireBufferedListDT <- bufferToArea(
     poly = firePolys,
     polyName = fireYears,
+    cores = cores,
     rasterToMatch = flammableRTM,
     verb = TRUE,
     areaMultiplier = areaMultiplier,
@@ -54,10 +56,16 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   })
   totalFires <- nrow(rbindlist(fireBufferedListDT)[, .N, .(Year, ids)])
 
-  fireBufferedListDT <- lapply(fireBufferedListDT, FUN = removeBufferedFiresOutsideRTM,
+  fireBufferedListDT1 <- lapply(fireBufferedListDT, FUN = removeBufferedFiresOutsideRTM,
                                flammableRTM = flammableRTM)
-  fireBufferedListDT <- fireBufferedListDT[sapply(fireBufferedListDT, nrow) > 0]
-  newYears <- rbindlist(fireBufferedListDT)[, .N, .(Year)]
+  whKept <- which(sapply(fireBufferedListDT1, nrow) > 0)
+  fireBufferedListDT2 <- fireBufferedListDT1[whKept]
+  newYears <- rbindlist(fireBufferedListDT2)[, .N, .(Year)]
+  if (!identical(length(fireBufferedListDT2), length(fireBufferedListDT1))) {
+    message("One or more fire years had fires only in the buffer; dropping \n",
+            setdiff(fireYears, newYears$Year))
+  }
+  fireBufferedListDT <- fireBufferedListDT2
 
   firesRemaining = nrow(rbindlist(fireBufferedListDT)[, .N, .(Year, ids)])
   #messaging
@@ -105,9 +113,10 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
     stop('spread fire point and poly harmonization error in dataPrepFit. Please debug harmonizeFireData')
   }
 
+
   #fire polys should be cleaned too - though at this point it stops being used.
 
   return(list(fireBufferedListDT = harmonized$FireBuffered,
-              firePolys = firePolys, #should be returned because some years may have been converted to NULL
+              firePolys = firePolys[newYears$Year], #should be returned because some years may have been converted to NULL
               spreadFirePoints = harmonized$SpatialPoints))
 }
