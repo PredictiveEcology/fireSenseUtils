@@ -155,7 +155,7 @@ utils::globalVariables(c(
   ## can't fit fires for years with no data; drop these years
   omitYears <- names(historicalFiresAboveMin[which(lapply(historicalFiresAboveMin, nrow) == 0)])
   if (length(omitYears > 0)) {
-    historicalFiresAboveMin[[omitYears]] <- NULL
+    historicalFiresAboveMin[omitYears] <- NULL
   }
 
   lowerSpreadProb <- 0.13
