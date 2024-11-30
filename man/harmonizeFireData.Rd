@@ -15,7 +15,8 @@ harmonizeFireData(
   spreadFirePoints,
   areaMultiplier,
   minSize,
-  pointsIDcolumn = "FIRE_ID"
+  pointsIDcolumn = "FIRE_ID",
+  cores = 1
 )
 }
 \arguments{
