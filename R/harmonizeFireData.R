@@ -109,6 +109,12 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   nfires_poly <- sapply(harmonized$FireBuffered, FUN = function(x){nrow(x[, .N, .(ids)])})
   #polygons can have multiple ignition points, but the reverse is not true due to table structure
   nfires_point <- sapply(harmonized$SpatialPoints, FUN = function(x){length(unique(x$FIRE_ID))})
+
+  # Remove all the fires that were eliminated because they crossed outside of studyArea buffer
+  firePolys <- Map(fp = firePolys, fb = harmonized$FireBuffered, function(fp, fb) {
+    fp[fp[[pointsIDcolumn]] %in% fb$ids, ]
+  })
+
   if (!identical(nfires_poly, nfires_point)) {
     stop('spread fire point and poly harmonization error in dataPrepFit. Please debug harmonizeFireData')
   }
