@@ -160,21 +160,39 @@ runDEoptim <- function(landscape,
       repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
 
       aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
-                                     "PredictiveEcology/fireSenseUtils@development", "qs", "RCurl", neededPkgs)), recursive = TRUE)
+                                     "PredictiveEcology/fireSenseUtils@development", "qs",
+                                     "RCurl", neededPkgs)), recursive = TRUE)
       pkgsNeeded <- unique(Require::extractPkgName(unname(unlist(aa))))
 
       revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
 
       coresUnique <- setdiff(unique(cores), "localhost")
-      message(
-        "copying packages to: ",
-        paste(coresUnique, collapse = ", ")
-      )
+      message("copying packages to: ", paste(coresUnique, collapse = ", "))
+
+      # RscriptPath = "/usr/local/bin/Rscript"
+
+      # st <- system.time(
+      #   cl <- mirai::make_cluster(
+      #     n = length(coresUnique),
+      #     url = "tcp://localhost:5563",
+      #     remote = mirai::ssh_config(
+      #       remotes = paste0("ssh://", coresUnique),
+      #       tunnel = TRUE,
+      #       timeout = 1,
+      #       rscript = RscriptPath
+      #     )
+      #   )
+      # )
       st <- system.time({
-        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath)
+        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath
+                                           # , rscript = c("nice", RscriptPath)
+                                           )
       })
       clusterExport(cl, list("libPath", "logPath", "repos", "pkgsNeeded"),
                     envir = environment())
+
+      # Missing `dqrng` and `sitmo`
+      Require::Install(pkgsNeeded, libPaths = libPath)
 
       parallel::clusterEvalQ(cl, {
         # If this is first time that packages need to be installed for this user on this machine
@@ -184,15 +202,26 @@ runDEoptim <- function(landscape,
         }
       })
 
+      message("Setting up packages on the cluster...")
       out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
-
         rsync <- Sys.which("rsync")
         if (!nzchar(rsync)) stop()
         system(paste0(rsync, " -aruv --update ", paste(file.path(libPath, pkgsNeeded), collapse = " "),
                       " ", ip, ":", libPath))
       })
 
+      parallel::clusterEvalQ(cl, {
+        # If this is first time that packages need to be installed for this user on this machine
+        #   there won't be a folder present that is writable
+        if (tryCatch(packageVersion("Require") < "1.0.1", error = function() TRUE))
+          install.packages("Require", lib = libPath)
+        library(Require, lib.loc = libPath)
+        dir.create(dirname(logPath), recursive = TRUE)
+        out <- Require::Install(pkgsNeeded, libPaths = libPath)
+      })
+
       GDALversions <- parallel::clusterEvalQ(cl, {
+        .libPaths(libPath)
         return(sf::sf_extSoftVersion()["GDAL"])
       })
 
@@ -201,13 +230,28 @@ runDEoptim <- function(landscape,
 
       ## Now make full cluster with one worker per core listed in "cores"
       message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
-                                 collapse = ", "
-      ), " clusters")
+                                 collapse = ", "), " clusters")
       message("Starting main parallel cluster ...")
+      # sshCores <- paste0("ssh//", grep('localhost', cores, invert = TRUE, value = TRUE))
+      # nonsshCores <- grep('localhost', cores, value = TRUE)
+      # coresForMirai <- c(nonsshCores, sshCores)
+
       st <- system.time({
+        # cl <- mirai::make_cluster(
+        #   length(coresForMirai),
+        #   # url = "tcp://localhost:5555",
+        #   remote = ssh_config(
+        #     remotes = coresForMirai,
+        #     # tunnel = TRUE,
+        #     timeout = 1,
+        #     rscript = RscriptPath
+        #   )
+        # )
+
         cl <- parallelly::makeClusterPSOCK(cores,
                                            revtunnel = revtunnel,
                                            outfile = logPath, rscript_libs = libPath
+                                           # , rscript = c("nice", RscriptPath)
         )
       })
 
@@ -240,7 +284,9 @@ runDEoptim <- function(landscape,
           })
           out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
             rsync <- Sys.which("rsync")
-            st1 <- system.time(system(paste0(rsync, " -a ", filenameForTransfer, " ", ip, ":", filenameForTransfer)))
+            st1 <- system.time(system(paste0(rsync, " -av ",
+                                             filenameForTransfer, " ", ip, ":",
+                                             filenameForTransfer)))
           })
           out <- clusterEvalQ(cl, {
             out <- qs::qread(file = filenameForTransfer)
@@ -291,6 +337,9 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
+  browser()
+  termsInDEoptim(sim$fireSense_spreadFormula, mod$thresh)
+
   DE <- # Cache(
     DEoptimIterative(
       itermax = itermax, lower = lower,
@@ -308,9 +357,9 @@ runDEoptim <- function(landscape,
       doObjFunAssertions = doObjFunAssertions,
       visualizeDEoptim = visualizeDEoptim,
       .plotSize = .plotSize,
-      # cachePath = cachePath,
       iterStep = iterStep,
       thresh = thresh,
+      # cachePath = cachePath,
       # omitArgs = c("verbose")
     ) # ,
   # cacheId = "cd495b412420ad4a") # iteration 201 to 300
@@ -396,7 +445,7 @@ DEoptimIterative <- function(itermax,
     )]
 
     if (TRUE) {
-      st1 <- system.time(DE[[iter]] <- # Cache(
+      st1 <- system.time(DE[[iter]] <- Cache(
         DEoptimForCache(
           fireSenseUtils::.objfunSpreadFit,
           lower = lower,
@@ -413,9 +462,9 @@ DEoptimIterative <- function(itermax,
           controlForCache = controlForCache,
           objFunCoresInternal = objFunCoresInternal,
           thresh = thresh,
-          verbose = .verbose # ,
-          # omitArgs = c("verbose", "control")
-        ))
+          verbose = .verbose
+          , omitArgs = c("verbose", "control")
+        )))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
@@ -423,14 +472,14 @@ DEoptimIterative <- function(itermax,
       }
 
       st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-        fn,
-        lower = lower,
-        upper = upper,
-        mutuallyExclusive = mutuallyExclusive,
-        controlForCache = controlForCache,
-        control = control,
-        omitArgs = c("verbose", "control"),
-        x = x1
+                                             fn,
+                                             lower = lower,
+                                             upper = upper,
+                                             mutuallyExclusive = mutuallyExclusive,
+                                             controlForCache = controlForCache,
+                                             control = control,
+                                             omitArgs = c("verbose", "control"),
+                                             x = x1
       ))
     }
 
@@ -468,4 +517,18 @@ DEoptimForCache <- function(...) {
   dots <- list(...)
   dots["controlForCache"] <- NULL
   do.call(DEoptim, dots)
+}
+
+#' @export
+#' @param fireSense_spreadFormula The formula to be submitted to the DEoptim,
+#'                                from e.g., sim$fireSense_spreadFormula
+#' @param threshhold The threshhold for accepting fits; e.g., from mod$thresh. See
+#'
+termsInDEoptim <- function(fireSense_spreadFormula, threshhold) {
+  termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
+  logitNumParams <- length(P(sim)$lower) - length(termsInForm)
+  message("Using a ", logitNumParams, " parameter logistic equation")
+  message("  There will be ", length(P(sim)$lower), " terms: ")
+  message("  ", paste(c(paste0("logit", seq(logitNumParams)), termsInForm), collapse = ", "))
+  message("  objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
 }
