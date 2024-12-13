@@ -4,32 +4,21 @@
 \alias{predictIgnition}
 \title{Predictions from ignition model}
 \usage{
-predictIgnition(
-  model,
-  data,
-  coefs,
-  rescaleFactor,
-  lambdaRescaleFactor,
-  linkinv
-)
+predictIgnition(model, data, rescaleFactor, lambdaRescaleFactor)
 }
 \arguments{
-\item{model}{formula of fitted model (\code{sim$fireSense_IgnitionFitted[["formula"]][-2]})}
+\item{model}{the model used to fit ingition data - must have a predict method}
 
 \item{data}{data for prediction}
 
-\item{coefs}{model coefficients (\code{sim$fireSense_IgnitionFitted$coef})}
-
 \item{rescaleFactor}{spatial rescaling factor when predicted and fitted data are at different scales.
-Calculaed as: (predResolution/fitResolution)^2}
+Calculated as: (predResolution/fitResolution)^2}
 
 \item{lambdaRescaleFactor}{If the data for fitting has been sampled for pseudo-absences,
 this imposes a new baseline probability of fire occurrences, hence predictions need to be adjusted.
 If the  original fire prob. is (total no. fires)/(total no. fires + total no. absences), and the fire
 probability imposed by sampling is (total no. fires)/(total no. fires + no. sampled pseudo-absences), to
 adjust predicted values, one needs to multiply them by (total no. fires + no. sampled pseudo-absences/(total no. fires + total no. absences)}
-
-\item{linkinv}{family link function (\code{sim$fireSense_IgnitionFitted$family$linkinv})}
 }
 \value{
 vector of predicted values.
