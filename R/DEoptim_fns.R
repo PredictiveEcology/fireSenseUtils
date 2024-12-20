@@ -337,8 +337,7 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
-  browser()
-  termsInDEoptim(sim$fireSense_spreadFormula, mod$thresh)
+  termsInDEoptim(sim$fireSense_spreadFormula, mod$thresh, length(P(sim)$lower))
 
   DE <- # Cache(
     DEoptimIterative(
@@ -524,11 +523,11 @@ DEoptimForCache <- function(...) {
 #'                                from e.g., sim$fireSense_spreadFormula
 #' @param threshhold The threshhold for accepting fits; e.g., from mod$thresh. See
 #'
-termsInDEoptim <- function(fireSense_spreadFormula, threshhold) {
+termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
   termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
-  logitNumParams <- length(P(sim)$lower) - length(termsInForm)
+  logitNumParams <- length(numParams) - length(termsInForm)
   message("Using a ", logitNumParams, " parameter logistic equation")
-  message("  There will be ", length(P(sim)$lower), " terms: ")
+  message("  There will be ", logitNumParams, " terms: ")
   message("  ", paste(c(paste0("logit", seq(logitNumParams)), termsInForm), collapse = ", "))
   message("  objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
 }
