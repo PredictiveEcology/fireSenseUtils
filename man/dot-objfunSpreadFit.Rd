@@ -62,7 +62,7 @@ Default 0.28, which is overly generous unless there are many non-flammable pixel
 \item{minFireSize}{DESCRIPTION NEEDED}
 
 \item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
-Default: \code{"mad"}.}
+Default: \code{"snll_fs"}.}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
@@ -80,7 +80,8 @@ is non-zero.}
 for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
 take some small amount of time.}
 
-\item{plot.it}{DESCRIPTION NEEDED}
+\item{plot.it}{Passed to \code{SpaDES.core::Plots}, so will show (TRUE or "screen") or save files
+of several plots, using \code{ggplot2}}
 
 \item{objFunCoresInternal}{Internally, this function can use \code{mcmapply} to run multiple
 parallel \code{spread} function calls. This should only be >1L if there are spare threads.
