@@ -128,7 +128,7 @@ utils::globalVariables(c(
   if (is(FS_formula, "formula")) {
     stop("FS_formula must be provided as a charater string because it takes too much RAM otherwise.")
   }
-  FS_formula <- as.formula(FS_formula)
+  FS_formula <- as.formula(FS_formula, env = .GlobalEnv)
   colsToUse <- attributes(terms(FS_formula))[["term.labels"]]
   # How many of the parameters belong to the model?
   parsModel <- length(colsToUse)
