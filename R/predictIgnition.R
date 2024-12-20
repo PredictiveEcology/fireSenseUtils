@@ -16,10 +16,12 @@
 
 predictIgnition <- function(model, data, rescaleFactor, lambdaRescaleFactor) {
 
-  ignitions <- predict(model, newdata = data)
-  ignitions <- ignitions * rescaleFactor * lambdaRescaleFactor
-  return(ignitions)
+  ignitions <- predict(model, newdata = data, se.fit = FALSE, re.form = NA,
+                       type = "response")
 
+  ignitions <- ignitions * rescaleFactor * lambdaRescaleFactor
+
+  #old method
   # mm <- model.matrix(model, data)
   # pred <- mm %*% coefs
   # pred <- drop(pred)
@@ -27,4 +29,5 @@ predictIgnition <- function(model, data, rescaleFactor, lambdaRescaleFactor) {
   # pred <- pred * rescaleFactor
   # pred * lambdaRescaleFactor
 
+  return(ignitions)
 }
