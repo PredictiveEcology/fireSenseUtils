@@ -34,9 +34,10 @@ utils::globalVariables(c(
 #'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
 #' @param tests One or more of `"mad"`, `"adTest"`, `"SNLL"`, or `"SNLL_FS"`.
-#'              Default: `"mad"`.
+#'              Default: `"snll_fs"`.
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
-#' @param plot.it DESCRIPTION NEEDED
+#' @param plot.it Passed to `SpaDES.core::Plots`, so will show (TRUE or "screen") or save files
+#'   of several plots, using `ggplot2`
 #' @param objFunCoresInternal Internally, this function can use `mcmapply` to run multiple
 #'   parallel `spread` function calls. This should only be >1L if there are spare threads.
 #'   It is highly likely that there won't be. However, sometimes the `DEoptim` is
@@ -340,6 +341,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = TRUE) {
+  if (isTRUE(plot.it)) plot.it <- "screen"
+
   # needed because data.table objects were recovered from disk
   # Rescale to numerics and /1000
   # setDT(nonAnnDTx1000)
@@ -362,6 +365,14 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       dt = shortAnnDTx1000,
       mutuallyExclusiveCols = mutuallyExclusive
     )
+  }
+  if (SpaDES.core::anyPlotting(plot.it)) {
+    suppressMessages(Require::Require("tidyr"))
+    a <- gather(as.data.frame(mat)) |> ggplot(aes(value)) +
+      geom_histogram(bins = 10) +
+      facet_wrap(~key, scales = 'free_y')
+    Plots(a)
+    sapply(as.data.frame(mat), hist)
   }
   mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
   if (doAssertions) {
@@ -439,7 +450,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
     setDT(annualFireBufferedDT)
     minSize <- 100
-    if (doAssertions || plot.it) {
+    if (doAssertions || SpaDES.core::anyPlotting(plot.it)) {
       tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
       tableOfBufferedMaps <- tableOfBufferedMaps[annualFires, on = "ids"]
       setnames(tableOfBufferedMaps, old = "cells", new = "initialLocus")
@@ -477,7 +488,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         skipChecks = TRUE
       )
     }))
-    if (isTRUE(plot.it)) {
+    if (SpaDES.core::anyPlotting(plot.it)) {
       par(
         mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
         mai = c(0.2, 0.3, 0.4, 0.1)
@@ -498,7 +509,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     if (isTRUE(doSNLL_FSTest)) {
       emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
       emp <- emp[annualFires, on = c("initialLocus" = "cells")]
-      if (plot.it) {
+      if (SpaDES.core::anyPlotting(plot.it)) {
         colsToKeep <- c(setdiff(colnames(tableOfBufferedMaps), colnames(emp)), "initialLocus")
         emp <- tableOfBufferedMaps[, ..colsToKeep][emp, on = c("initialLocus"), nomatch = NULL]
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
@@ -567,7 +578,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       fireSizes <- round(spreadState[, .N, .(initialLocus)][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
       ret <- append(ret, list(fireSizes = fireSizes))
     }
-    if (isTRUE(plot.it)) { # THIS IS PLOTTING STUFF
+    if (SpaDES.core::anyPlotting(plot.it)) { # THIS IS PLOTTING STUFF
       # if (isTRUE(doSNLLTest)) {
 
       burnedProb <- spreadState[, .N, by = "indices"]
