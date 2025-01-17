@@ -23,19 +23,24 @@ and \code{sumB}.}
 
 \item{rstLCC}{a landcover map}
 
-\item{nonflammableLCC}{nonflammable landcover in rstLCC}
+\item{nonflammableLCC}{nonflammable landcover in \code{rstLCC}}
 
-\item{fires}{a single sf or SpatVector object of fire polygons containing a YEAR coumn}
+\item{fires}{a single \code{sf} or \code{SpatVector} object of fire polygons containing a \code{YEAR} column}
 
 \item{yearRange}{the range of years represented by this landscape}
 }
 \value{
-a data.table with cell, biomass, tree species or lcc for non-forest, and year of fire
+\code{data.table} with cell, biomass, tree species or lcc for non-forest, and year of fire
 }
 \description{
 Calculate proportional burn of landcover and tree species
 }
 \examples{
-fuelclassPrep(sim$pixelGroupMap2011, sim$cohortData2011, sim$rstLCC2011,
-              nonflammableLCC = P(sim)$nonflammableLCC< yearRange = c(2012, 2020))
+# fuelClassPrep(
+#   sim$pixelGroupMap2011, sim$cohortData2011, sim$rstLCC2011,
+#   nonflammableLCC = P(sim)$nonflammableLCC,
+#   fires = TODO,
+#   yearRange = c(2012, 2020)
+# )
+
 }

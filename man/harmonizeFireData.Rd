@@ -2,12 +2,7 @@
 % Please edit documentation in R/harmonizeFireData.R
 \name{harmonizeFireData}
 \alias{harmonizeFireData}
-\title{Outer wrapper on spread fire polygon data munging that does several things:
-\enumerate{
-\item ensure buffered fires are entirely in studyArea
-\item ensure every fire has a corresponding ignition point, and vice versa
-\item ensure these points are flammable
-}}
+\title{Harmonize fire data}
 \usage{
 harmonizeFireData(
   firePolys,
@@ -20,7 +15,7 @@ harmonizeFireData(
 )
 }
 \arguments{
-\item{firePolys}{the semi-processed fire polys, with field matching pointsIDcolumn}
+\item{firePolys}{the semi-processed fire polys, with field matching \code{pointsIDcolumn}}
 
 \item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
 and NA no data}
@@ -30,16 +25,18 @@ and NA no data}
 \item{areaMultiplier}{Either a scalar that will buffer \code{areaMultiplier * fireSize}
 or a function of \code{fireSize}. See \code{?fireSenseUtils::bufferToArea}.}
 
-\item{minSize}{an alternative to areaMultiplier, typically used when fires are small}
+\item{minSize}{an alternative to \code{areaMultiplier}, typically used when fires are small}
 
 \item{pointsIDcolumn}{the name of the column denoting fire ids in both
-spreadFirePoints and firePolys}
+\code{spreadFirePoints} and \code{firePolys}}
+
+\item{cores}{Positive integer.Number of CPU cores (threads) to use for parallel operations.}
 }
 \description{
 Outer wrapper on spread fire polygon data munging that does several things:
 \enumerate{
-\item ensure buffered fires are entirely in studyArea
-\item ensure every fire has a corresponding ignition point, and vice versa
-\item ensure these points are flammable
+\item ensure buffered fires are entirely in \code{studyArea};
+\item ensure every fire has a corresponding ignition point, and vice versa;
+\item ensure these points are flammable.
 }
 }

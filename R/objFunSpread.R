@@ -1,7 +1,7 @@
 utils::globalVariables(c(
   "..colsToKeep", "..colsToUse", ".N", "buffer", "burned", "burnedClass",
   "id", "ids", "initialLocus", "N", "numAvailPixels", "pixelID", "prob",
-  "simFireSize", "size", "spreadProb"
+  "simFireSize", "size", "spreadProb", "value"
 ))
 
 #' Objective function for `fireSense_spreadFit` module
@@ -334,6 +334,11 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   return(D)
 }
 
+#' @keywords internal
+#'
+#' @importFrom ggplot2 aes facet_wrap geom_histogram ggplot
+#' @importFrom SpaDES.core Plots
+#' @importFrom tidyr gather
 objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         annualFires, nonAnnualDTx1000, annualFireBufferedDT,
                         indexNonAnnual, colsToUse, covMinMax, mutuallyExclusive,

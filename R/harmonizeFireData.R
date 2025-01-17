@@ -2,19 +2,28 @@ utils::globalVariables(c(
   ".N", "ids", "Year"
 ))
 
-#' Outer wrapper on spread fire polygon data munging that does several things:
-#' 1. ensure buffered fires are entirely in studyArea
-#' 2. ensure every fire has a corresponding ignition point, and vice versa
-#' 3. ensure these points are flammable
+#' Harmonize fire data
 #'
-#' @param firePolys the semi-processed fire polys, with field matching pointsIDcolumn
+#' Outer wrapper on spread fire polygon data munging that does several things:
+#' 1. ensure buffered fires are entirely in `studyArea`;
+#' 2. ensure every fire has a corresponding ignition point, and vice versa;
+#' 3. ensure these points are flammable.
+#'
+#' @param firePolys the semi-processed fire polys, with field matching `pointsIDcolumn`
+#'
 #' @template flammableRTM
+#'
 #' @param spreadFirePoints the ignition points corresponding to `firePolys`
+#'
 #' @param areaMultiplier Either a scalar that will buffer `areaMultiplier * fireSize`
 #' or a function of `fireSize`. See `?fireSenseUtils::bufferToArea`.
-#' @param minSize an alternative to areaMultiplier, typically used when fires are small
+#'
+#' @param minSize an alternative to `areaMultiplier`, typically used when fires are small
+#'
 #' @param pointsIDcolumn the name of the column denoting fire ids in both
-#' spreadFirePoints and firePolys
+#' `spreadFirePoints` and `firePolys`
+#'
+#' @param cores Positive integer.Number of CPU cores (threads) to use for parallel operations.
 #'
 #' @export
 #' @importFrom purrr transpose

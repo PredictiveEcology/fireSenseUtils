@@ -3,6 +3,7 @@
 \name{runDEoptim}
 \alias{runDEoptim}
 \alias{DEoptimIterative}
+\alias{termsInDEoptim}
 \title{Wrapper around \code{DEoptim} call}
 \usage{
 runDEoptim(
@@ -58,6 +59,8 @@ DEoptimIterative(
   .verbose,
   .plotSize = list(height = 1600, width = 2000)
 )
+
+termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
 }
 \arguments{
 \item{landscape}{A \code{RasterLayer} which has the correct metadata associated with
@@ -136,7 +139,7 @@ is non-zero.}
 
 \item{Nreps}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
-\item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.}
+\item{thresh}{The threshold for accepting fits; e.g., from \code{mod$thresh}.}
 
 \item{.verbose}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
@@ -146,6 +149,11 @@ is non-zero.}
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
 
 \item{control}{DESCRIPTION NEEDED}
+
+\item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
+from e.g., \code{sim$fireSense_spreadFormula}.}
+
+\item{numParams}{The number of parameters (TODO: improve description)}
 }
 \value{
 DESCRIPTION NEEDED

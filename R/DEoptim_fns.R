@@ -65,6 +65,7 @@ utils::globalVariables(c(
 #' @importFrom parallelly makeClusterPSOCK
 #' @importFrom qs qread qsave
 #' @importFrom reproducible Cache checkPath
+#' @importFrom SpaDES.core P
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
 #' @importFrom utils install.packages installed.packages packageVersion
 runDEoptim <- function(landscape,
@@ -518,11 +519,17 @@ DEoptimForCache <- function(...) {
   do.call(DEoptim, dots)
 }
 
-#' @export
-#' @param fireSense_spreadFormula The formula to be submitted to the DEoptim,
-#'                                from e.g., sim$fireSense_spreadFormula
-#' @param threshhold The threshhold for accepting fits; e.g., from mod$thresh. See
+#' `termsInDEoptim`
 #'
+#' @param fireSense_spreadFormula The formula to be submitted to [DEoptim::DEoptim()],
+#'                                from e.g., `sim$fireSense_spreadFormula`.
+#'
+#' @param thresh The threshold for accepting fits; e.g., from `mod$thresh`.
+#'
+#' @param numParams The number of parameters (TODO: improve description)
+#'
+#' @export
+#' @rdname runDEoptim
 termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
   termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
   logitNumParams <- length(numParams) - length(termsInForm)
