@@ -1,3 +1,7 @@
+globalVariables(c(
+ "YEAR", "cell", "lcc", "pixelIndex"
+))
+
 #' Calculate proportional burn of landcover and tree species
 #'
 #' @template pixelGroupMap
@@ -32,6 +36,9 @@ fuelClassPrep <- function(pixelGroupMap, cohortData, rstLCC, nonflammableLCC, fi
 
   # Merge fires data with landscape data
   landscapeData <- firesSubset[landscapeData, on = c("cell" = "pixelIndex")]
+  landscapeData[, burned := ifelse(is.na(YEAR), 0, 1)]
+  landscapeData[is.na(speciesCode), speciesCode := paste0("LCC", lcc)]
+  landscapeData[, year := yearRange[1]]
 
   return(landscapeData)
 }
