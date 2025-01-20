@@ -187,7 +187,7 @@ runDEoptim <- function(landscape,
       st <- system.time({
         cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath
                                            # , rscript = c("nice", RscriptPath)
-                                           )
+        )
       })
       clusterExport(cl, list("libPath", "logPath", "repos", "pkgsNeeded"),
                     envir = environment())
@@ -338,9 +338,9 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
-  termsInDEoptim(sim$fireSense_spreadFormula, mod$thresh, length(P(sim)$lower))
+  termsInDEoptim(FS_formula, thresh, length(lower))
 
-  DE <- # Cache(
+  DE <- Cache(
     DEoptimIterative(
       itermax = itermax, lower = lower,
       upper = upper,
@@ -361,8 +361,9 @@ runDEoptim <- function(landscape,
       thresh = thresh,
       # cachePath = cachePath,
       # omitArgs = c("verbose")
-    ) # ,
-  # cacheId = "cd495b412420ad4a") # iteration 201 to 300
+    )#,
+    # cacheId = "cd495b412420ad4a"
+  ) # iteration 201 to 300
   DE
 }
 
@@ -461,10 +462,10 @@ DEoptimIterative <- function(itermax,
           plot.it = FALSE,
           controlForCache = controlForCache,
           objFunCoresInternal = objFunCoresInternal,
-          thresh = thresh,
-          verbose = .verbose
-          , omitArgs = c("verbose", "control")
-        )))
+          thresh = thresh),
+        verbose = .verbose,
+        omitArgs = c("verbose", "control")
+      ))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
