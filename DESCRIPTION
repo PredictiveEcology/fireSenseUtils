@@ -23,6 +23,7 @@ Imports:
     EnvStats,
     fastDummies,
     ggplot2,
+    ggpubr,
     kSamples,
     LandR (>= 1.1.0.9066),
     mclust,

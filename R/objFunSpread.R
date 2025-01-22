@@ -232,6 +232,7 @@ utils::globalVariables(c(
 
       if (isTRUE(doADTest)) {
         if (ii == 2) {
+          browser()
           historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
           simulatedFires <- unlist(results$fireSizes)
           adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
@@ -337,6 +338,7 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
 #' @keywords internal
 #'
 #' @importFrom ggplot2 aes facet_wrap geom_histogram ggplot
+#' @importFrom ggpubr ggarrange
 #' @importFrom SpaDES.core Plots
 #' @importFrom tidyr gather
 objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
@@ -370,14 +372,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       dt = shortAnnDTx1000,
       mutuallyExclusiveCols = mutuallyExclusive
     )
-  }
-  if (SpaDES.core::anyPlotting(plot.it)) {
-    suppressMessages(Require::Require("tidyr"))
-    a <- gather(as.data.frame(mat)) |> ggplot(aes(value)) +
-      geom_histogram(bins = 10) +
-      facet_wrap(~key, scales = 'free_y')
-    Plots(a)
-    sapply(as.data.frame(mat), hist)
   }
   mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
   if (doAssertions) {
@@ -493,28 +487,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         skipChecks = TRUE
       )
     }))
-    if (SpaDES.core::anyPlotting(plot.it)) {
-      par(
-        mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
-        mai = c(0.2, 0.3, 0.4, 0.1)
-      )
-
-      lapply(colnames(mat), function(cn) hist(mat[, cn], main = cn))
-      mtext(side = 3, "Histograms of distribution of rescaled variables", outer = TRUE, line = -1)
-      hist(nonEdgeValues, main = "spreadProb")
-      sam <- sample(NROW(mat), NROW(mat) / 100)
-      val <- mat[sam, ] %*% covPars
-      plot(val, shortAnnDTx1000$spreadProb[sam],
-        pch = ".",
-        main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", "))
-      )
-    }
 
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
       emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
       emp <- emp[annualFires, on = c("initialLocus" = "cells")]
       if (SpaDES.core::anyPlotting(plot.it)) {
+        browser()
         colsToKeep <- c(setdiff(colnames(tableOfBufferedMaps), colnames(emp)), "initialLocus")
         emp <- tableOfBufferedMaps[, ..colsToKeep][emp, on = c("initialLocus"), nomatch = NULL]
         maxX <- log(max(c(annualFires$size, emp$N, emp$numAvailPixels)))
@@ -585,85 +564,20 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     if (SpaDES.core::anyPlotting(plot.it)) { # THIS IS PLOTTING STUFF
       # if (isTRUE(doSNLLTest)) {
+      suppressMessages(Require::Require("tidyr"))
+      a <- gather(as.data.frame(mat)) |> ggplot(aes(value)) +
+        geom_histogram(bins = 10) +
+        facet_wrap(~key, scales = 'free')
+      # Plots(a, types = "screen")
+      # sapply(as.data.frame(mat), hist)
 
-      burnedProb <- spreadState[, .N, by = "indices"]
-      setnames(burnedProb, "indices", "pixelID")
-      out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
+      prev <- Plots(fn = plotHistogramsOfData, prevGG = a, data = mat, nonEdgeValues = nonEdgeValues, covPars = covPars,
+            shortAnnDTx1000 = shortAnnDTx1000, logisticPars = logisticPars, type = "screen", year = yr)
 
-      # fix the out
-      # 1 -- set pixels that had not simulated fires to N = 0
-      out[is.na(N), N := 0]
-      # 2 -- rescale probability surface between 0.001 and 0.99
-      #      so probabilities can be calculated
-      out[, prob := pmin(out$N / Nreps + 0.001, 0.99)]
-      # 3 -- convert buffer (which has 1 in buffer) to burned = 1 - buffer
-      out[, burned := buffer]
-      # 4 -- Set initial pixels to burned = 2 -- is a work around for cases where "initial pixels" are not actually burned in
-      #   the polygon database
-      out[, burnedClass := burned]
-      out[pixelID %in% annualFires$cell, burnedClass := 2]
-      bigFire1 <- rast(r)
-      bigFire1[out$pixelID] <- out$ids
-      keepFire <- tail(sort(table(out$ids)), 4)
-      setDT(annualFires)
-      theseFires <- annualFires[ids %in% names(keepFire)]
-      # clearPlot()
-      firesToDo <- theseFires$ids
-      names(firesToDo) <- firesToDo
-      out2 <- lapply(firesToDo, function(id) {
-        keepFire <- as.numeric(id)
-        # keepFire <- 65
-        bigFire <- bigFire1
-        bigFire[bigFire != keepFire] <- NA
-        bf <- trim(bigFire)
-        ex <- ext(bf)
+      prev <- Plots(fn = plotMapsOfFires, spreadState = spreadState, annualFireBufferedDT = annualFireBufferedDT,
+            Nreps = Nreps, buffer = buffer, annualFires = annualFires,
+            r = r, cells = cells, par = par, types = "screen")
 
-        thisFire <- annualFires[ids == keepFire]
-
-        r <- rast(r)
-        r[out$pixelID] <- out$prob
-
-        predictedFireProb <- crop(r, ex)
-        # clearPlot();Plot(r)
-        actualFire <- rast(r)
-        actualFire[out$pixelID] <- out$burnedClass
-        actualFire <- crop(actualFire, ex)
-        levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
-
-        predictedLiklihood <- dbinom(
-          prob = out$prob,
-          size = 1,
-          x = out$burned,
-          log = TRUE
-        )
-        spreadProbMap <- rast(r)
-        spreadProbMap[out$pixelID] <- cells[out$pixelID]
-        spreadProbMap <- crop(spreadProbMap, ex)
-        spreadProbMap[spreadProbMap >= par[1]] <- par[1]
-        ccc <- cells[out$pixelID]
-        ccc <- ccc[ccc > 0]
-        lowerLim <- quantile(ccc, 0.05)
-        ccc <- ccc[ccc > lowerLim]
-        spreadProbMap[spreadProbMap <= lowerLim] <- lowerLim
-        predLiklihood <- rast(r)
-        predLiklihood[out$pixelID] <- predictedLiklihood
-        predLiklihood <- crop(predLiklihood, ex)
-        spIgnits <- terra::vect(xyFromCell(r, thisFire$cells))
-        spIgnits <- buffer(spIgnits, width = 5000)
-        spIgnits <- crop(spIgnits, ex)
-        list(
-          spIgnits = spIgnits, predictedFireProb = predictedFireProb,
-          predLiklihood = predLiklihood,
-          spreadProbMap = spreadProbMap
-        )
-      })
-      out3 <- purrr::transpose(out2)
-      notSp <- grep("spIgnits", names(out3), value = TRUE, invert = TRUE)
-
-      out4 <- unlist(out3[notSp], recursive = FALSE)
-      # clearPlot()
-      clearPlot()
-      a <- Plot(out4, cols = "Paired", new = TRUE, visualSqueeze = 0.85)
       # nn <- lapply(names(out3$spIgnits), function(id) {
       #   spDat <- out3$spIgnits[[id]]
       #   Plot(spDat,
@@ -704,4 +618,122 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   }
 
   return(ret)
+}
+
+
+plotHistogramsOfData <- function(mat, nonEdgeValues, covPars, shortAnnDTx1000, logisticPars, prevGG, year) {
+  nams <- colnames(mat)
+  a <- Map(nam = nams, function(nam) {
+    gather(as.data.frame(mat[, nam])) |> ggplot(aes(value)) +
+      geom_histogram(bins = 10) +
+      ggtitle(nam)
+  })
+  b <- gather(as.data.frame(nonEdgeValues)) |> ggplot(aes(value)) +
+    geom_histogram(bins = 10) +
+    ggtitle("spreadProb")
+  sam <- sample(NROW(mat), NROW(mat) / 100)
+  val <- mat[sam, ] %*% covPars
+  xlab <- "covs_times_pars"
+  valDF <- data.frame(as.data.frame(val) |> setNames(xlab),
+                      spreadProb = shortAnnDTx1000$spreadProb[sam])
+  d <- valDF |> ggplot(aes_string(x = xlab, y = "spreadProb")) +
+    geom_line() +
+    ggtitle(paste0("logits: ", paste(round(logisticPars, 2), collapse = ", ")))
+
+  e <- ggarrange(plotlist = append(a, list(b, d)) )
+  ff <- annotate_figure(e, top = text_grob(paste0(year, ": Histograms of distribution of rescaled variables"),
+                                     color = "red", face = "bold", size = 14))
+  ff
+}
+
+plotMapsOfFires <- function(spreadState, annualFireBufferedDT, Nreps, buffer,
+                            annualFires, r, cells, par) {
+  burnedProb <- spreadState[, .N, by = "indices"]
+  setnames(burnedProb, "indices", "pixelID")
+  out <- burnedProb[annualFireBufferedDT, on = "pixelID"]
+
+  # fix the out
+  # 1 -- set pixels that had not simulated fires to N = 0
+  out[is.na(N), N := 0]
+  # 2 -- rescale probability surface between 0.001 and 0.99
+  #      so probabilities can be calculated
+  out[, prob := pmin(out$N / Nreps + 0.001, 0.99)]
+  # 3 -- convert buffer (which has 1 in buffer) to burned = 1 - buffer
+  out[, burned := buffer]
+  # 4 -- Set initial pixels to burned = 2 -- is a work around for cases where "initial pixels" are not actually burned in
+  #   the polygon database
+  out[, burnedClass := burned]
+  out[pixelID %in% annualFires$cell, burnedClass := 2]
+  bigFire1 <- rast(r)
+  bigFire1[out$pixelID] <- out$ids
+  keepFire <- tail(sort(table(out$ids)), 4)
+  setDT(annualFires)
+  theseFires <- annualFires[ids %in% names(keepFire)]
+  # clearPlot()
+  firesToDo <- theseFires$ids
+  names(firesToDo) <- firesToDo
+  out2 <- lapply(firesToDo, function(id) {
+    keepFire <- as.numeric(id)
+    # keepFire <- 65
+    bigFire <- bigFire1
+    bigFire[bigFire != keepFire] <- NA
+    bf <- trim(bigFire)
+    ex <- ext(bf)
+
+    thisFire <- annualFires[ids == keepFire]
+
+    r <- rast(r)
+    out2 <- out[ids == keepFire]
+    r[out2$pixelID] <- out2$prob
+
+    predictedFireProb <- crop(r, ex)
+    # clearPlot();Plot(r)
+    actualFire <- rast(r)
+    actualFire[out2$pixelID] <- out2$burnedClass
+    actualFire <- crop(actualFire, ex)
+    levels(actualFire) <- data.frame(ID = 0:2, class = c("unburned", "burned", "ignited"))
+
+    predictedLiklihood <- dbinom(
+      prob = out2$prob,
+      size = 1,
+      x = out2$burned,
+      log = TRUE
+    )
+    spreadProbMap <- rast(r)
+    spreadProbMap[out2$pixelID] <- cells[out2$pixelID]
+    spreadProbMap <- crop(spreadProbMap, ex)
+    spreadProbMap[spreadProbMap >= par[1]] <- par[1]
+    ccc <- cells[out2$pixelID]
+    ccc <- ccc[ccc > 0]
+    lowerLim <- quantile(ccc, 0.05)
+    ccc <- ccc[ccc > lowerLim]
+    spreadProbMap[spreadProbMap <= lowerLim] <- lowerLim
+    predLiklihood <- rast(r)
+    predLiklihood[out2$pixelID] <- predictedLiklihood
+    predLiklihood <- crop(predLiklihood, ex)
+    spIgnits <- terra::vect(xyFromCell(r, thisFire$cells))
+    spIgnits <- buffer(spIgnits, width = 5000)
+    spIgnits <- crop(spIgnits, ex)
+    list(
+      spIgnits = spIgnits, predictedFireProb = predictedFireProb,
+      predLiklihood = predLiklihood,
+      spreadProbMap = spreadProbMap
+    )
+  })
+  out3 <- purrr::transpose(out2)
+  notSp <- grep("spIgnits", names(out3), value = TRUE, invert = TRUE)
+
+  out4 <- unlist(out3[notSp], recursive = FALSE)
+  # out5 <- Map(x = out4, function(x) ggplot() + geom_spatraster(data = x) +
+  #               tidyterra::scale_fill_whitebox_c(
+  #                 palette = "pi_y_g", # direction = -1,
+  #                 # labels = scales::label_number(suffix = "º"),
+  #                 n.breaks = 5
+  #               ) +
+  #               theme_minimal())
+  # ggarrange(plotlist = append(prevGG, out5), ncol = 4, nrow = 6)
+  # clearPlot()
+  clearPlot()
+  a <- Plot(out4, cols = "Paired", new = TRUE, visualSqueeze = 0.85)
+  invisible(a)
 }
