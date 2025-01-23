@@ -111,14 +111,15 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   origNames <- as.character(levels(nfData$lcc))
   coefsToSort <- coefficients(nf_glms)
   names(coefsToSort) <- origNames
+  hasMissingForest <- FALSE
+  if ("missingForest" %in% names(coefsToSort)) {
+    hasMissingForest <- TRUE
+    coefsToSort <- coefsToSort[setdiff(names(coefsToSort), "missingForest")]
+  }
   nf_classes <- kmeans(x = coefsToSort, centers = targetNonForestClasses)
   nf_classes <- nf_classes$cluster
 
   #remove missing forest as it must be different
-  missingForest <- nf_classes["missingForest"]
-
-  nf_classes <- nf_classes[!names(nf_classes) %in% "missingForest"]
-  missingForestFriends <- names(nf_classes)[nf_classes == missingForest]
   #there must be another way to do this?....
   nf_groups <- lapply(unique(nf_classes), FUN = function(class) {
     names(nf_classes)[nf_classes == class]
@@ -129,20 +130,19 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   names(nf_vals) <- nf_groups
 
   #sort missingForest - it either gets grouped with others, or is alone
-  if (length(missingForestFriends) > 0) {
-    whichName <- sapply(nf_vals, function(x){
-      all(x %in% as.numeric(missingForestFriends))})
-    missingForest <- names(nf_vals)[whichName]
+  if (hasMissingForest) {
+    origCoefs <- coefficients(nf_glms)
+    names(origCoefs) <- origNames
+    missingCoef <- origCoefs["missingForest"]
+    other  <- origCoefs[names(origCoefs) != "missingForest"]
+    other <- abs(other - missingCoef)
+    coefMatch <- names(other)[which(other == min(other))]
+    missingForest <- names(nf_vals)[grep(pattern = as.numeric(coefMatch), x = nf_vals )]
+    #essentially - give it the new class name for whichever landcover it was closet to
   } else {
-    #missingForest is in a class all of its own
-    #TODO: should this be allowed? it seems it will frequently occur
-    # but only because burned pixels are more likely to be absent from landR
-    # due to the fact they have no biomass
-    missingForest <- "missingForest"
-    nf_vals["missingForest"] <- -1 #new class that is not possible in a sane LCC
-    #this should in theory be possible
+    #this doesn't matter as there is none but return something
+    missingForest <- names(nf_vals)[1]
   }
-
 
   #####sort the forested fuel classes (i.e. tree species)####
   landscape$B_MgHa <- landscape$B/100
