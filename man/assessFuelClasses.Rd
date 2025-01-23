@@ -4,7 +4,16 @@
 \alias{assessFuelClasses}
 \title{Semi-automated selection of fuel classed based on GLMs}
 \usage{
-assessFuelClasses(landscape, fuelCol, sppEquiv, sppEquivCol, targetFuelClasses)
+assessFuelClasses(
+  landscape,
+  fuelCol,
+  sppEquiv,
+  sppEquivCol,
+  targetNonForestClasses = 2,
+  targetFuelClasses = 5,
+  nonforestLCC,
+  pValue = 0.001
+)
 }
 \arguments{
 \item{landscape}{data.table created by \code{prepFuelClasses}}
@@ -19,12 +28,21 @@ If not provided and \code{mixedType == 2}, will attempt to use
 
 \item{sppEquivCol}{the column name to use from \code{sppEquiv}.}
 
-\item{rstLCC}{a landcover map}
+\item{targetNonForestClasses}{the number of non-forest fuel classes to generate}
 
-\item{yearRange}{the range of years represented by this landscape}
+\item{targetFuelClasses}{target number of treed fuel classes to generate}
+
+\item{nonforestLCC}{vector or list of vectors of non-forest fuel classes}
+
+\item{pValue}{for glm coef significance when deciding to merge fuel classes}
 }
 \value{
-a data.table with assigned fuel classes for each species
+a list of three objects:
+\enumerate{
+\item modSppEquiv, a data.table with assigned fuel classes for each tree species
+\item nonForestedLCCGroups, a named list of non-forest landcovers grouped by fuel class
+\item missingLCCgroup, the class in nonForestLCCGroups to assign forested pixels missing from cohortData
+}
 }
 \description{
 Semi-automated selection of fuel classed based on GLMs

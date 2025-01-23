@@ -10,6 +10,7 @@ fuelClassPrep(
   rstLCC,
   nonflammableLCC,
   fires,
+  nonforestLCC,
   yearRange
 )
 }
@@ -27,6 +28,8 @@ and \code{sumB}.}
 
 \item{fires}{a single \code{sf} or \code{SpatVector} object of fire polygons containing a \code{YEAR} column}
 
+\item{nonforestLCC}{vector or list of vectors of flammable nonforest LCC}
+
 \item{yearRange}{the range of years represented by this landscape}
 }
 \value{
@@ -38,8 +41,9 @@ Calculate proportional burn of landcover and tree species
 \examples{
 # fuelClassPrep(
 #   sim$pixelGroupMap2011, sim$cohortData2011, sim$rstLCC2011,
+#   rstLCC = sim$rstLCC2011, nonForestLCC = sim$nonForestLCCGroups,
 #   nonflammableLCC = P(sim)$nonflammableLCC,
-#   fires = TODO,
+#   fires = do.call(rbind, sim$spreadFirePolys),
 #   yearRange = c(2012, 2020)
 # )
 

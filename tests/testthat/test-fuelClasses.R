@@ -12,7 +12,7 @@ test_that("combine_fuel_classes behaves reasonably", {
 
    #birch and aspen will be combined, fir will not be combined with Picea
    out <- combine_fuel_classes(tempDF)
-   expect_true("PopBrch" %in% out$assignedFuelClass)
+   expect_true("Bt_p.Pp_t" %in% out$assignedFuelClass)
    expect_true("Abie_las" %in% out$assignedFuelClass)
 
    #with birch positive instead of negative
@@ -41,7 +41,7 @@ test_that("combine_fuel_classes behaves reasonably", {
   #Abie_las should NOT be combined
   out <- combine_fuel_classes(tempDF3)
   expect_true("Abie_las" %in% out$assignedFuelClass)
-  expect_true("LdJkPine" %in% out$assignedFuelClass)
-  expect_true("PopBrch" %in% out$assignedFuelClass)
+  expect_true("Pn_b.Pn_c" %in% out$assignedFuelClass)
+  expect_true("Bt_p.Pp_t" %in% out$assignedFuelClass)
 
 })

@@ -1,21 +1,17 @@
 utils::globalVariables(c(
-  "burned", "burnprob", "cell", "lcc", "pixelIndex", "speciesCode", "YEAR", "yearRange",
-  "absCoef", "possGroups", "propB", "pvalue", "sig", "sim", "species", "above10PctRelB",
-  "assignedFuelClass", "B_MgHa", "coef"
+  "above10PctRelB", "absCoef", "assignedFuelClass", "B_MgHa", "burned", "burnprob",
+  "cell", "coef", "lcc", "pixelIndex", "newName", "possGroups", "propB",
+  "pvalue", "sig", "sim", "species","speciesCode", "YEAR", "yearRange"
 ))
 
 #' Calculate proportional burn of landcover and tree species
 #'
 #' @template pixelGroupMap
-#'
 #' @template cohortData
-#'
 #' @param rstLCC a landcover map
-#'
 #' @param nonflammableLCC nonflammable landcover in `rstLCC`
-#'
+#' @param nonforestLCC vector or list of vectors of flammable nonforest LCC
 #' @param fires a single `sf` or `SpatVector` object of fire polygons containing a `YEAR` column
-#'
 #' @param yearRange  the range of years represented by this landscape
 #'
 #' @return `data.table` with cell, biomass, tree species or lcc for non-forest, and year of fire
@@ -23,8 +19,9 @@ utils::globalVariables(c(
 #' @examples
 #' # fuelClassPrep(
 #' #   sim$pixelGroupMap2011, sim$cohortData2011, sim$rstLCC2011,
+#' #   rstLCC = sim$rstLCC2011, nonForestLCC = sim$nonForestLCCGroups,
 #' #   nonflammableLCC = P(sim)$nonflammableLCC,
-#' #   fires = TODO,
+#' #   fires = do.call(rbind, sim$spreadFirePolys),
 #' #   yearRange = c(2012, 2020)
 #' # )
 #'
@@ -65,6 +62,7 @@ fuelClassPrep <- function(pixelGroupMap, cohortData, rstLCC,
 #'
 #' @param fuel vector of tree species or lcc in landscape by which to subset
 #' @param landscape created by `fuelClassPrep`
+#' @param form the formula to use - as a character
 #' @importFrom stats glm binomial
 makeGLM <- function(fuel, landscape, form) {
 
@@ -76,12 +74,12 @@ makeGLM <- function(fuel, landscape, form) {
 #'
 #' @param landscape data.table created by `prepFuelClasses`
 #' @param fuelCol the column in `sppEquiv` with default fuel classes
-#' @param rstLCC a landcover map
 #' @template sppEquiv
 #' @template sppEquivCol
 #' @param targetNonForestClasses the number of non-forest fuel classes to generate
-#' @param targetFuelClasses target number of fuel classes to generate
-#' @param yearRange  the range of years represented by this landscape
+#' @param targetFuelClasses target number of treed fuel classes to generate
+#' @param nonforestLCC vector or list of vectors of non-forest fuel classes
+#' @param pValue for glm coef significance when deciding to merge fuel classes
 #' @importFrom data.table melt
 #' @importFrom stats coefficients binomial glm kmeans
 #' @export

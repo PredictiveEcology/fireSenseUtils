@@ -10,6 +10,8 @@ makeGLM(fuel, landscape, form)
 \item{fuel}{vector of tree species or lcc in landscape by which to subset}
 
 \item{landscape}{created by \code{fuelClassPrep}}
+
+\item{form}{the formula to use - as a character}
 }
 \description{
 wrapper on GLM that creates separate GLMs for each item in fuel
