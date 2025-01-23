@@ -31,7 +31,8 @@ utils::globalVariables(c(
 #' @export
 #' @importFrom data.table as.data.table
 #'
-fuelClassPrep <- function(pixelGroupMap, cohortData, rstLCC, nonflammableLCC, fires, yearRange) {
+fuelClassPrep <- function(pixelGroupMap, cohortData, rstLCC,
+                          nonflammableLCC, fires, nonforestLCC, yearRange) {
   ## Filter fires by year range
   firesSubset <- fires[fires$YEAR >= yearRange[1] & fires$YEAR <= yearRange[2], ] |>
     rasterize(pixelGroupMap, field = "YEAR", fun = "min") |>
@@ -51,21 +52,24 @@ fuelClassPrep <- function(pixelGroupMap, cohortData, rstLCC, nonflammableLCC, fi
   ## Merge fires data with landscape data
   landscapeData <- firesSubset[landscapeData, on = c("cell" = "pixelIndex")]
   landscapeData[, burned := ifelse(is.na(YEAR), 0, 1)]
-  landscapeData[is.na(speciesCode), speciesCode := paste0("LCC", lcc)]
+
+  #lcc must supersede
+  landscapeData[lcc %in% unlist(nonforestLCC), speciesCode := NA]
   landscapeData[, year := yearRange[1]]
 
   return(landscapeData)
 }
 
 
-#' wrapper on GLM
+#' wrapper on GLM that creates separate GLMs for each item in fuel
 #'
-#' @param species tree species in landscape$speciesCode
+#' @param fuel vector of tree species or lcc in landscape by which to subset
 #' @param landscape created by `fuelClassPrep`
 #' @importFrom stats glm binomial
-makeGLM <- function(species, landscape) {
-  landscape <- landscape[speciesCode == species,]
-  out <- glm(data = landscape, formula = burned ~ B_MgHa, family = binomial(link = "logit"))
+makeGLM <- function(fuel, landscape, form) {
+
+  landscape <- landscape[speciesCode == fuel,]
+  out <- glm(data = landscape, formula = as.formula(form), family = binomial(link = "logit"))
 }
 
 #' Semi-automated selection of fuel classed based on GLMs
@@ -75,50 +79,85 @@ makeGLM <- function(species, landscape) {
 #' @param rstLCC a landcover map
 #' @template sppEquiv
 #' @template sppEquivCol
+#' @param targetNonForestClasses the number of non-forest fuel classes to generate
+#' @param targetFuelClasses target number of fuel classes to generate
 #' @param yearRange  the range of years represented by this landscape
 #' @importFrom data.table melt
-#' @importFrom stats coefficients binomial glm
+#' @importFrom stats coefficients binomial glm kmeans
 #' @export
-#' @return a data.table with assigned fuel classes for each species
+#' @return a list of three objects:
+#' 1. modSppEquiv, a data.table with assigned fuel classes for each tree species
+#' 2. nonForestedLCCGroups, a named list of non-forest landcovers grouped by fuel class
+#' 3. missingLCCgroup, the class in nonForestLCCGroups to assign forested pixels missing from cohortData
 
-assessFuelClasses <- function(landscape, fuelCol, sppEquiv,
-                              sppEquivCol, targetFuelClasses) {
+assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
+                              targetNonForestClasses = 2,
+                              targetFuelClasses = 5, nonforestLCC, pValue = 0.001) {
 
+  ####sort non-forest classes###
+  nfData <- landscape[is.na(B)]
+  #this will assume there is always missing landcover
+  #TODO: review this assumption when everything is NTEMS-ified. Does it matter?
+  nfData[!lcc %in% nonforestLCC, .N, .(lcc)]
+  nfData[, lcc := as.character(lcc)]
+  nfData[!lcc %in% nonforestLCC, lcc := "missingForest"]
+  nfData[, lcc := as.factor(lcc)]
+  #do it this way in case some lcc is not present
+
+  #the makeGLM function will subset by values in species column, so copy lcc over
+  nf_glms <- glm(data = nfData, formula = burned ~ 0 + lcc)
+  #kmeans
+  nfData[, .N, .(lcc)]
+
+  #for ease later, keep these as character
+  origNames <- as.character(levels(nfData$lcc))
+  coefsToSort <- coefficients(nf_glms)
+  names(coefsToSort) <- origNames
+  nf_classes <- kmeans(x = coefsToSort, centers = targetNonForestClasses)
+  nf_classes <- nf_classes$cluster
+
+  #remove missing forest as it must be different
+  missingForest <- nf_classes["missingForest"]
+
+  nf_classes <- nf_classes[!names(nf_classes) %in% "missingForest"]
+  missingForestFriends <- names(nf_classes)[nf_classes == missingForest]
+  #there must be another way to do this?....
+  nf_groups <- lapply(unique(nf_classes), FUN = function(class) {
+    names(nf_classes)[nf_classes == class]
+  })
+  nf_vals <- lapply(nf_groups, as.numeric) #coerce back to lcc classes
+  nf_groups <- sapply(nf_groups, paste, collapse = "_") |>
+    lapply(FUN = function(x){ paste0("nfLCC_", x)})
+  names(nf_vals) <- nf_groups
+
+  #sort missingForest - it either gets grouped with others, or is alone
+  if (length(missingForestFriends) > 0) {
+    whichName <- sapply(nf_vals, function(x){
+      all(x %in% as.numeric(missingForestFriends))})
+    missingForest <- names(nf_vals)[whichName]
+  } else {
+    #missingForest is in a class all of its own
+    #TODO: should this be allowed? it seems it will frequently occur
+    # but only because burned pixels are more likely to be absent from landR
+    # due to the fact they have no biomass
+    missingForest <- "missingForest"
+    nf_vals["missingForest"] <- -1 #new class that is not possible in a sane LCC
+    #this should in theory be possible
+  }
+
+
+  #####sort the forested fuel classes (i.e. tree species)####
   landscape$B_MgHa <- landscape$B/100
+  treeSpecies <- unique(landscape[!is.na(B)]$speciesCode)
+  #in the event forested wetland should remain non-forest,
+  #this allows forested wetland biomass without it counting towards flammability
+  landscape <- landscape[!lcc %in% nonforestLCC & !is.na(B)]
 
-
-  actualSpecies <- unique(landscape[!is.na(B),]$speciesCode)
-  fuelGLMs <- lapply(actualSpecies, makeGLM, landscape = landscape)
-  names(fuelGLMs) <- actualSpecies
+  fuelGLMs <- lapply(treeSpecies, makeGLM, landscape = landscape, form = "burned ~ B_MgHa")
+  names(fuelGLMs) <- treeSpecies
   coeffs <- sapply(fuelGLMs, coefficients)
   pvalues <- sapply(fuelGLMs, FUN = function(x){summary(x)$coefficients[2,4]})
   speciesStats <- data.table(species = names(fuelGLMs), coef = coeffs[2,], pvalue = pvalues)
-
-
-  #diagnostic plots
-  Bmeans <- landscape[speciesCode %in% actualSpecies, .(meanB = as.integer(mean(B_MgHa)),
-                                                        maxB = as.integer(max(B_MgHa))),
-                      .(speciesCode)]
-  Bmeans <- melt(Bmeans, id.vars = "speciesCode", value.name = "B_MgHa")
-  preds <- lapply(actualSpecies, function(spec, GLM = fuelGLMs,
-                                          toJoin = Bmeans) {
-
-    GLM <- GLM[[spec]]
-    df <- data.table(B_MgHa = seq(0, max(toJoin$B_MgHa), 2),
-                     speciesCode = spec)
-    #make sure mean and max are in pred frame, for plotting
-    toJoin <- toJoin[speciesCode %in% spec, .(B_MgHa, speciesCode)]
-    df <- rbind(toJoin, df, fill = TRUE)
-    df[, burnprob := predict(GLM, newdata = df)]
-    return(df)
-  })
-  preds <- rbindlist(preds)
-  predsOfNote <- preds[Bmeans, on = c("speciesCode", "B_MgHa")]
-  #TODO: decide whether this is helpful
-  # ggplot(preds, aes(x = B_MgHa, y = burnprob, col = speciesCode)) +
-  #          geom_line() +
-  #          labs(x = "B (Mg/ha)", y = "burn pred") +
-  #   geom_point(data = predsOfNote, aes(x = B_MgHa, y = burnprob, shape = variable))
 
   ####TODO: figure out what to do next - probably plot these predictions by biomass.
   forest <- landscape[!is.na(B),]
@@ -130,24 +169,17 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv,
   forestPix <- nrow(forest[, .N, .(cell, year)]) #this is the only way because cells change between years
   selectCols <- c("speciesCode", fuelCol)
   above10PctRelB <- forest[propB > 0.1, .(above10PctRelB = .N/forestPix), by = c("speciesCode", fuelCol)]
-  speciesStats[, sig := pvalue < 0.001]
+  speciesStats[, sig := pvalue < pValue]
   speciesStats[, sign := ifelse(coef > 0, "positive", "negative")]
   speciesStats[sig == FALSE, sign := "neutral"]
   speciesStats <- speciesStats[, .(species, coef, pvalue, sign)][above10PctRelB, on = c("species" = "speciesCode")]
-  #   1. start by identifying species that have <5% of pixels with >10% biomass for merging
-  #   2. Only species that are named in same FBPS class can be merged (we need to look at that now)... e.g., Pinu_con and Pinu_ban
-  #   3. Ensure these are fitting within "negatives", "positives", and "neutrals"
-  #   So, totally unrelated ones can't be merged, but otherwise allows merging of e.g. pines
-  #   These would only be merged if they fulfill Criterion 1 above. Otherwise merged.
-  #   if there is a small amount of some species left over after all merging, then put it in one of:
-  #   "other positive", "other negative",
-  #   If the species is allowed to be merged based on the Potential Fuel Class column,
-  #   Revisit this classification if there are >5 classes, starting with higher thresholds for "Criterion 1"
 
-  # Function to assign NewFuelClass
 
-  out <- combine_fuel_classes(df = speciesStats, targetFuelClasses = targetFuelClasses)
-  return(out)
+  modSppEquiv <- combine_fuel_classes(df = speciesStats, targetFuelClasses = targetFuelClasses)
+
+  return(list(modSppEquiv = modSppEquiv,
+              nonForestedLCCGroups = nf_vals,
+              missingLCCgroup = missingForest))
 }
 
 
@@ -207,5 +239,18 @@ combine_fuel_classes <- function(df, targetFuelClasses = 5) {
   } else {
     df[, assignedFuelClass := species]
   }
+
+  #fix the names in the event the original fuel classes aren't accurate
+  #(e.g. SprcFrLrch may not contain Fir and/or Larch)
+  if (any(df$species != df$assignedFuelClass)) {
+    needsNewNames <- df[assignedFuelClass != species, .(assignedFuelClass, species)]
+    needsNewNames[, newName := abbreviate(species)]
+    needsNewNames[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
+    needsNewNames <- needsNewNames[, .(species, newName)]
+    df <- needsNewNames[df, on = c("species")]
+    df[!is.na(newName), assignedFuelClass := newName]
+    df[, newName := NULL]
+  }
+
   return(df[])
 }

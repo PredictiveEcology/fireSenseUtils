@@ -2,15 +2,15 @@
 % Please edit documentation in R/fuelClassPrep.R
 \name{makeGLM}
 \alias{makeGLM}
-\title{wrapper on GLM}
+\title{wrapper on GLM that creates separate GLMs for each item in fuel}
 \usage{
-makeGLM(species, landscape)
+makeGLM(fuel, landscape, form)
 }
 \arguments{
-\item{species}{tree species in landscape$speciesCode}
+\item{fuel}{vector of tree species or lcc in landscape by which to subset}
 
 \item{landscape}{created by \code{fuelClassPrep}}
 }
 \description{
-wrapper on GLM
+wrapper on GLM that creates separate GLMs for each item in fuel
 }
