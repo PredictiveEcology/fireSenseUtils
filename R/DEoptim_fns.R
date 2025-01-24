@@ -533,7 +533,7 @@ DEoptimForCache <- function(...) {
 #' @rdname runDEoptim
 termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
   termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
-  logitNumParams <- length(numParams) - length(termsInForm)
+  logitNumParams <- numParams - length(termsInForm)
   message("Using a ", logitNumParams, " parameter logistic equation")
   message("  There will be ", logitNumParams, " terms: ")
   message("  ", paste(c(paste0("logit", seq(logitNumParams)), termsInForm), collapse = ", "))
