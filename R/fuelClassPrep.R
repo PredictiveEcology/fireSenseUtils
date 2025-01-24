@@ -146,10 +146,10 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
 
   #####sort the forested fuel classes (i.e. tree species)####
   landscape$B_MgHa <- landscape$B/100
-  treeSpecies <- unique(landscape[!is.na(B)]$speciesCode)
   #in the event forested wetland should remain non-forest,
   #this allows forested wetland biomass without it counting towards flammability
   landscape <- landscape[!lcc %in% nonforestLCC & !is.na(B)]
+  treeSpecies <- unique(landscape[!is.na(B)]$speciesCode)
 
   fuelGLMs <- lapply(treeSpecies, makeGLM, landscape = landscape, form = "burned ~ B_MgHa")
   names(fuelGLMs) <- treeSpecies
@@ -159,7 +159,7 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
 
   ####TODO: figure out what to do next - probably plot these predictions by biomass.
   forest <- landscape[!is.na(B),]
-  fuels <-  sppEquiv[, .SD, .SDcols = c(sppEquivCol, fuelCol)]
+  fuels <-  unique(sppEquiv[, .SD, .SDcols = c(sppEquivCol, fuelCol)])
 
   setnames(fuels, old = sppEquivCol, new = "speciesCode")
   forest <- fuels[forest, on = c("speciesCode")]
