@@ -489,7 +489,7 @@ DEoptimIterative <- function(itermax,
     )]
 
     if (TRUE) {
-      st1 <- system.time(DE[[iter]] <- Cache(
+      DE[[iter]] <- Cache(
         DEoptimForCache(
           fireSenseUtils::.objfunSpreadFit,
           lower = lower,
@@ -510,10 +510,10 @@ DEoptimIterative <- function(itermax,
         .functionName = paste0("DEoptimForCache_", rep),
         verbose = .verbose,
         omitArgs = c("verbose", "control")
-      ))
+      )
       if (!isUpdated(DE[[iter]]))
         message(paste(round(unname(DE[[iter]]$optim$bestmem), 4), collapse = " "))
-      message("Iteration ", iter)
+      message(cli::col_green("Iteration ", iter, " done!"))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
@@ -534,46 +534,34 @@ DEoptimIterative <- function(itermax,
 
     control$initialpop <- DE[[iter]]$member$pop
     if (!isFALSE(visualizeDEoptim) && (isUpdated(DE[[iter]]))) { # i.e., should be a path
-      # if (!isRstudioServer()) {
-      #   png(
-      #     filename = file.path(visualizeDEoptim, "fireSense_SpreadFit", paste0("DE_pars_iter_", iter, "_", as.character(Sys.time()), "_",
-      #                                                                          Sys.getpid(), ".png")),
-      #     width = .plotSize$width, height = .plotSize$height
-      #   )
-      # }
       terms <- suppressMessages(termsInDEoptim(FS_formula, thresh, length(lower)))
       nVars <- NCOL(DE[[iter]]$member$pop)
       if (length(terms) != nVars )
         terms <- c(terms, paste0("V", seq(nVars - length(terms))))
-      # suppressMessages(gg <- visualizeDE(DE[[iter]], cachePath,
-      #                                    titles = terms,
-      #                                    lower = lower, upper = upper))
-
       dfForGGplot <- visualizeDEoptimLines(DE, terms = terms)
       dfForGGplotAllPoints <- visualizeDEoptimLines(DE, terms = terms, allPoints = TRUE)
-
-
+      withCallingHandlers({
       Plots(dfForGGplotAllPoints, ggPlotFnMeansAllPoints, types = .plots,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_mean_AllPoints_"))
-
-
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_mean_AllPoints_"))
       Plots(dfForGGplot, ggPlotFnMeans, types = .plots,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_mean_"))
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_mean_"))
       Plots(dfForGGplot, ggPlotFnVars, types = .plots, ,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_variance_"))
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_variance_"))
       Plots(fn = visualizeDE, DE = DE[[iter]], cachePath = cachePath,
             titles = terms, lower = lower, upper = upper, types = .plots,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "DE_hists_", time = TRUE))
+              filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "hists_", time = TRUE))
+      }, message = function(m) {
+        if (any(grepl("Saving|geom", m$message))) {
+          browser()
+          invokeRestart("muffleMessage")
+        }
 
-      # ggplot2::ggsave(plot = gg, filename = file.path(visualizeDEoptim, "fireSense_SpreadFit",
-      #                                                 paste0("DE_pars_iter_", iter, "_", as.character(Sys.time()), "_",
-      #                                                        Sys.getpid(), ".png")),
-      #                 width = .plotSize$width, height = .plotSize$height, units = "px")
-      # if (!isRstudioServer()) {
-      #   dev.off()
-      # }
+      })
     }
   }
+
+
+  browser()
 
   DE1 <- tail(DE, 1)[[1]]
   if (iter > 1) {
@@ -692,7 +680,7 @@ ggPlotFnMeansAllPoints <- function(b) {
 ggDEoptimFilename <- function(visualizeDEoptim, rep, iter = NULL, text = "DE_hists_", time = FALSE) {
   file.path(visualizeDEoptim,
             "fireSense_SpreadFit",
-            paste0(text, "rep", rep,
+            paste0("DE_", "rep", rep, "_", text,
                    ifelse(is.null(iter), "", paste0("_iter", iter)), "_", Sys.getpid(), 
                    ifelse(isTRUE(time), paste0("_", as.character(round(Sys.time(), 0))), ""), ".png"))
 }
