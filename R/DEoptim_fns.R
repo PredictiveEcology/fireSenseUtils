@@ -98,8 +98,10 @@ runDEoptim <- function(landscape,
                        Nreps,
                        thresh = 550,
                        .verbose,
-                       visualizeDEoptim,
-                       .plotSize = list(height = 1600, width = 2000)) {
+                       visualizeDEoptim = logPath,
+                       .plots = "screen",
+                       .plotSize = list(height = 1600, width = 2000),
+                       rep = 1L) {
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -134,6 +136,7 @@ runDEoptim <- function(landscape,
     "mutuallyExclusive"
   )
 
+  if (is.null(cores)) cores <- "localhost"
   if (!is.null(cores)) {
     logPath <- file.path(
       logPath,
@@ -356,12 +359,14 @@ runDEoptim <- function(landscape,
       mutuallyExclusive = mutuallyExclusive,
       doObjFunAssertions = doObjFunAssertions,
       visualizeDEoptim = visualizeDEoptim,
+      .plots = .plots,
       .plotSize = .plotSize,
       iterStep = iterStep,
       thresh = thresh,
-      # cachePath = cachePath,
-      # omitArgs = c("verbose")
-    )#,
+      rep = rep),
+    cachePath = cachePath,
+    omitArgs = c("verbose")
+    #,
     # cacheId = "cd495b412420ad4a"
   ) # iteration 201 to 300
   DE
@@ -378,7 +383,7 @@ runDEoptim <- function(landscape,
 #' @importFrom graphics hist par
 #' @importFrom reproducible loadFromCache showCache
 #' @importFrom utils tail
-visualizeDE <- function(DE, cachePath) {
+visualizeDE <- function(DE, cachePath, titles, lower, upper) {
   if (missing(DE)) {
     if (missing(cachePath)) {
       stop("Must provide either DE or cachePath")
@@ -392,12 +397,29 @@ visualizeDE <- function(DE, cachePath) {
     DE <- tail(DE, 1)[[1]]
   }
 
-  aa <- as.data.table(t(DE$member$pop))
-  aa[, pars := paste0("par", 1:NROW(aa))]
-  dim1 <- floor(sqrt(NROW(aa)))
-  dim2 <- NROW(aa) / dim1
-  par(mfrow = c(dim1, dim2))
-  aa[, hist(t(.SD), main = as.character(.BY))[[2]], by = pars]
+  cc <- as.data.table(DE$member$pop)
+  setnames(cc, titles)
+  suppressWarnings(bb <- melt(cc))
+  ff <- lapply(titles, function(p) {
+    ggplot(bb[variable == p], aes(value)) +
+      geom_histogram(bins = 15) + coord_cartesian(xlim = c(lower[p],upper[p])) +
+      ggtitle(p) + xlab(NULL) +
+      theme_minimal()
+    # geom_smooth(se = TRUE) +
+    # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
+    # facet_wrap(facets = "variable", scales = "free")
+  })
+  invisible(ggarrange(plotlist = ff))
+  #
+  #
+  #
+  #   aa <- as.data.table(t(DE$member$pop))
+  #   melt(aa, id.vars = )
+  #   aa[, pars := paste0("par", 1:NROW(aa))]
+  #   dim1 <- floor(sqrt(NROW(aa)))
+  #   dim2 <- NROW(aa) / dim1
+  #   par(mfrow = c(dim1, dim2))
+  #   aa[, hist(t(.SD), main = as.character(.BY))[[2]], by = pars]
 }
 
 #' @param control DESCRIPTION NEEDED
@@ -423,20 +445,41 @@ DEoptimIterative <- function(itermax,
                              maxFireSpread,
                              Nreps,
                              visualizeDEoptim,
+                             figPath,
                              cachePath,
                              mutuallyExclusive,
                              doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                              iterStep = 25,
                              thresh = 550,
                              .verbose,
-                             .plotSize = list(height = 1600, width = 2000)) {
+                             .plots = "screen",
+                             .plotSize = list(height = 1600, width = 2000),
+                             rep = 1L) {
   data.table::setDTthreads(1)
-  message("starting DEoptimIterative at ", Sys.time())
+  message("starting DEoptimIFterative at ", Sys.time())
   x1 <- rnorm(1e2, 1, 2) # this is for debugging below
   DE <- list()
-  for (iter in seq_len(ceiling(itermax / iterStep))) {
+
+  itersToDo <- seq_len(ceiling(itermax / iterStep))
+  # if (isRstudioServer() || any(grepl("positron", search()))) browser()
+  cacheIds <- rep(NA_real_, itermax)
+
+  if (FALSE) {
+    sc <- showCache(Function = "DEoptimForCache")
+    sc <- sc[tagKey == "function"]
+    sc[, time := as.POSIXct(createdDate)]
+    setorder(sc, time)
+    cacheIdsFromCache <- unique(sc$cacheId)#[-(1:3)]
+    cacheIds[seq_along(cacheIdsFromCache)] <- cacheIdsFromCache
+    cacheIds <- na.omit(cacheIds)
+    itersToDo <- min( (sum(!is.na(cacheIds))), itermax):itermax
+  }
+
+  for (iter in itersToDo) {
+    # if (iter == 484) browser()
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
     control$storepopfrom <- control$itermax + 1
+    control$reltol <- 0.1
 
     controlArgs <- do.call("DEoptim.control", control)
     controlForCache <- controlArgs[c(
@@ -463,9 +506,14 @@ DEoptimIterative <- function(itermax,
           controlForCache = controlForCache,
           objFunCoresInternal = objFunCoresInternal,
           thresh = thresh),
+        cacheId = cacheIds[iter],
+        .functionName = paste0("DEoptimForCache_", rep),
         verbose = .verbose,
         omitArgs = c("verbose", "control")
       ))
+      if (!isUpdated(DE[[iter]]))
+        message(paste(round(unname(DE[[iter]]$optim$bestmem), 4), collapse = " "))
+      message("Iteration ", iter)
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
@@ -485,17 +533,45 @@ DEoptimIterative <- function(itermax,
     }
 
     control$initialpop <- DE[[iter]]$member$pop
-    if (isTRUE(visualizeDEoptim)) {
-      if (!isRstudioServer()) {
-        png(
-          filename = paste0("DE_pars", as.character(Sys.time()), "_", Sys.getpid(), ".png"),
-          width = .plotSize$width, height = .plotSize$height
-        )
-      }
-      visualizeDE(DE[[iter]], cachePath)
-      if (!isRstudioServer()) {
-        dev.off()
-      }
+    if (!isFALSE(visualizeDEoptim) && (isUpdated(DE[[iter]]))) { # i.e., should be a path
+      # if (!isRstudioServer()) {
+      #   png(
+      #     filename = file.path(visualizeDEoptim, "fireSense_SpreadFit", paste0("DE_pars_iter_", iter, "_", as.character(Sys.time()), "_",
+      #                                                                          Sys.getpid(), ".png")),
+      #     width = .plotSize$width, height = .plotSize$height
+      #   )
+      # }
+      terms <- suppressMessages(termsInDEoptim(FS_formula, thresh, length(lower)))
+      nVars <- NCOL(DE[[iter]]$member$pop)
+      if (length(terms) != nVars )
+        terms <- c(terms, paste0("V", seq(nVars - length(terms))))
+      # suppressMessages(gg <- visualizeDE(DE[[iter]], cachePath,
+      #                                    titles = terms,
+      #                                    lower = lower, upper = upper))
+
+      dfForGGplot <- visualizeDEoptimLines(DE, terms = terms)
+      dfForGGplotAllPoints <- visualizeDEoptimLines(DE, terms = terms, allPoints = TRUE)
+
+
+      Plots(dfForGGplotAllPoints, ggPlotFnMeansAllPoints, types = .plots,
+            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_mean_AllPoints_"))
+
+
+      Plots(dfForGGplot, ggPlotFnMeans, types = .plots,
+            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_mean_"))
+      Plots(dfForGGplot, ggPlotFnVars, types = .plots, ,
+            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_variance_"))
+      Plots(fn = visualizeDE, DE = DE[[iter]], cachePath = cachePath,
+            titles = terms, lower = lower, upper = upper, types = .plots,
+            filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "DE_hists_", time = TRUE))
+
+      # ggplot2::ggsave(plot = gg, filename = file.path(visualizeDEoptim, "fireSense_SpreadFit",
+      #                                                 paste0("DE_pars_iter_", iter, "_", as.character(Sys.time()), "_",
+      #                                                        Sys.getpid(), ".png")),
+      #                 width = .plotSize$width, height = .plotSize$height, units = "px")
+      # if (!isRstudioServer()) {
+      #   dev.off()
+      # }
     }
   }
 
@@ -535,7 +611,88 @@ termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
   termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
   logitNumParams <- numParams - length(termsInForm)
   message("Using a ", logitNumParams, " parameter logistic equation")
-  message("  There will be ", logitNumParams, " terms: ")
+  message("  There will be ", logitNumParams, " logit terms & ", numParams, " terms in all:")
   message("  ", paste(c(paste0("logit", seq(logitNumParams)), termsInForm), collapse = ", "))
   message("  objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
+  c(paste0("logit", seq(logitNumParams)), termsInForm)
+}
+
+
+
+
+visualizeDEoptimLines <- function(d, terms, allPoints = FALSE) {
+  iter <- length(d)
+  se <- seq(iter)
+  # this commented code will use "all the population
+  if (isTRUE(allPoints)) {
+    b <- lapply(d, function(dr) as.data.frame(dr$member$pop))
+    b <- rbindlist(b, idcol = "iter")#
+    setnames(b, old = grep("^V", colnames(b), value = TRUE),  terms)
+
+  } else {
+    b <- do.call(rbind, lapply(d, function(dr) colMeans(dr$member$pop))) |> as.data.table()
+    setnames(b, terms)
+    blower <- do.call(rbind, lapply(d, function(dr)
+      sapply(seq(NCOL(dr$member$pop)), function(x) quantile(dr$member$pop[, x], 0.025)))) |>
+      as.data.table()
+    bupper <- do.call(rbind, lapply(d, function(dr)
+      sapply(seq(NCOL(dr$member$pop)), function(x) quantile(dr$member$pop[, x], 0.975)))) |>
+      as.data.table()
+    setnames(blower, names(b))
+    setnames(bupper, names(b))
+    b[, iter := se]
+    blower[, iter := se]
+    bupper[, iter := se]
+    blower <- melt(blower, id.vars = "iter")
+    setnames(blower, old = "value", new = "lower95")
+    bupper <- melt(bupper, id.vars = "iter")
+    setnames(bupper, old = "value", new = "upper95")
+
+  }
+
+  b <- melt(b, id.vars = "iter")
+  if (isTRUE(allPoints)) {
+    bmerged <- b
+  } else {
+    bmerged <- b[blower, on = c("iter", "variable")][bupper, on = c("iter", "variable")]
+    bmerged[, dif := upper95 - lower95]
+  }
+  bmerged[]
+}
+
+
+ggPlotFnMeans <- function(bmerged) {
+  ggplot(bmerged, aes(iter, value)) +
+    geom_point() +
+    geom_smooth(se = TRUE) +
+    # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
+    facet_wrap(facets = "variable", scales = "free")
+}
+
+ggPlotFnVars <- function(bmerged) {
+  ggplot(bmerged, aes(iter, dif)) +
+  geom_point() +
+  geom_smooth(se = TRUE) +
+  # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
+  facet_wrap(facets = "variable", scales = "free")
+}
+
+
+ggPlotFnMeansAllPoints <- function(b) {
+  ggplot(b, aes(iter, value)) +
+  # geom_point() +
+  geom_jitter(size = 0.05, width = 0.2, col = "grey") +
+  geom_smooth(se = TRUE) +
+  # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
+  facet_wrap(facets = "variable", scales = "free")
+}
+
+
+
+ggDEoptimFilename <- function(visualizeDEoptim, rep, iter = NULL, text = "DE_hists_", time = FALSE) {
+  file.path(visualizeDEoptim,
+            "fireSense_SpreadFit",
+            paste0(text, "rep", rep,
+                   ifelse(is.null(iter), "", paste0("_iter", iter)), "_", Sys.getpid(), 
+                   ifelse(isTRUE(time), paste0("_", as.character(round(Sys.time(), 0))), ""), ".png"))
 }

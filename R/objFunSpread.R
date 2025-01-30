@@ -298,7 +298,7 @@ utils::globalVariables(c(
     objFunRes <- sum(unlist(bb$objFunRes))
   }
   if (length(objFunResList) > 1) {
-    print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; SNLL Final: ", round(objFunRes, 0)))
+    print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; Objective Final: ", round(objFunRes, 0)))
   }
   ## Figure out what we want from these.
   ## This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
@@ -371,15 +371,21 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       mutuallyExclusiveCols = mutuallyExclusive
     )
   }
-  if (SpaDES.core::anyPlotting(plot.it)) {
-    suppressMessages(Require::Require("tidyr"))
-    a <- gather(as.data.frame(mat)) |> ggplot(aes(value)) +
-      geom_histogram(bins = 10) +
-      facet_wrap(~key, scales = 'free_y')
-    Plots(a)
-    sapply(as.data.frame(mat), hist)
-  }
   mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
+  if (SpaDES.core::anyPlotting(plot.it)) {
+    par(
+      mfrow = c(5, 6), omi = c(0.5, 0, 0, 0),
+      mai = c(0.2, 0.3, 0.4, 0.1)
+    )
+
+    # suppressMessages(Require::Require("tidyr"))
+    # a <- gather(as.data.frame(mat)) |> ggplot(aes(value)) +
+    #   geom_histogram(bins = 10) +
+    #   facet_wrap(~key, scales = 'free_y')
+    # Plots(a)
+    # Map(dat = as.data.frame(mat), nam = colnames(mat), function(dat, nam) {
+    #   hist(dat, main = nam)})
+  }
   if (doAssertions) {
     test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
     test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
@@ -444,7 +450,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     if (verbose) {
       ww <- if (isTRUE(weighted)) "weighted" else "unweighted"
       print(paste0(
-        "    ",
+        " ",
         Sys.getpid(), ": ", yr, ", ", ww, ", spreadProbs: ",
         paste(names(summ), round(summ, 3), collapse = ", ")
       ))
@@ -494,10 +500,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       )
     }))
     if (SpaDES.core::anyPlotting(plot.it)) {
-      par(
-        mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
-        mai = c(0.2, 0.3, 0.4, 0.1)
-      )
+      # par(
+      #   mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),
+      #   mai = c(0.2, 0.3, 0.4, 0.1)
+      # )
 
       lapply(colnames(mat), function(cn) hist(mat[, cn], main = cn))
       mtext(side = 3, "Histograms of distribution of rescaled variables", outer = TRUE, line = -1)
@@ -522,16 +528,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         numLargest <- 4
         numHists <- 49 - numLargest - length(par) - 12 - 1 # 12 for rasters
         uniqueEmpIds <- unique(emp$initialLocus)
-        sam <- if (length(uniqueEmpIds) >= (numHists)) {
-          try(c(
-            unique(emp$ids)[1:numLargest],
-            sample(unique(emp$initialLocus)[-(1:numLargest)],
-              size = min(length(unique(emp$initialLocus)) - numLargest, numHists)
-            )
-          ))
-        } else {
-          uniqueEmpIds
-        }
+        sam <- # if (length(uniqueEmpIds) >= (numHists)) {
+          # try(c(
+            unique(emp$ids)[1:numLargest]#,
+            #sample(unique(emp$initialLocus)[-(1:numLargest)],
+            #  size = min(length(unique(emp$initialLocus)) - numLargest, numHists)
+            #)
+        #   ))
+        # } else {
+        #   uniqueEmpIds
+        # }
         emp[ids %in% sam,
           {
             dat <- round(log(N))
@@ -661,9 +667,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       notSp <- grep("spIgnits", names(out3), value = TRUE, invert = TRUE)
 
       out4 <- unlist(out3[notSp], recursive = FALSE)
+      lapply(out4, function(x) terra::plot(x, col = RColorBrewer::brewer.pal(9, "Paired")))
       # clearPlot()
-      clearPlot()
-      a <- Plot(out4, cols = "Paired", new = TRUE, visualSqueeze = 0.85)
+      # clearPlot()
+      # a <- Plot(out4, cols = "Paired", new = TRUE, visualSqueeze = 0.85)
       # nn <- lapply(names(out3$spIgnits), function(id) {
       #   spDat <- out3$spIgnits[[id]]
       #   Plot(spDat,
