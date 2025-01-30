@@ -480,6 +480,7 @@ DEoptimIterative <- function(itermax,
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
     control$storepopfrom <- control$itermax + 1
     control$reltol <- 0.1
+    control$c <- 0.5
 
     controlArgs <- do.call("DEoptim.control", control)
     controlForCache <- controlArgs[c(
@@ -552,7 +553,6 @@ DEoptimIterative <- function(itermax,
               filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "hists_", time = TRUE))
       }, message = function(m) {
         if (any(grepl("Saving|geom", m$message))) {
-          browser()
           invokeRestart("muffleMessage")
         }
 
