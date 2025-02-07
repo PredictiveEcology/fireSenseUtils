@@ -97,6 +97,7 @@ runDEoptim <- function(landscape,
                        maxFireSpread,
                        Nreps,
                        thresh = 550,
+                       .c = 0.5,
                        .verbose,
                        visualizeDEoptim = logPath,
                        .plots = "screen",
@@ -360,6 +361,7 @@ runDEoptim <- function(landscape,
       doObjFunAssertions = doObjFunAssertions,
       visualizeDEoptim = visualizeDEoptim,
       .plots = .plots,
+      .c = .c,
       .plotSize = .plotSize,
       iterStep = iterStep,
       thresh = thresh,
@@ -409,7 +411,7 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
     # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
     # facet_wrap(facets = "variable", scales = "free")
   })
-  invisible(ggarrange(plotlist = ff))
+  invisible(ggpubr::ggarrange(plotlist = ff))
   #
   #
   #
@@ -451,6 +453,7 @@ DEoptimIterative <- function(itermax,
                              doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
                              iterStep = 25,
                              thresh = 550,
+                             .c = 0.5,
                              .verbose,
                              .plots = "screen",
                              .plotSize = list(height = 1600, width = 2000),
@@ -461,7 +464,6 @@ DEoptimIterative <- function(itermax,
   DE <- list()
 
   itersToDo <- seq_len(ceiling(itermax / iterStep))
-  # if (isRstudioServer() || any(grepl("positron", search()))) browser()
   cacheIds <- rep(NA_real_, itermax)
 
   if (FALSE) {
@@ -476,11 +478,10 @@ DEoptimIterative <- function(itermax,
   }
 
   for (iter in itersToDo) {
-    # if (iter == 484) browser()
     control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
     control$storepopfrom <- control$itermax + 1
     control$reltol <- 0.1
-    control$c <- 0.5
+    control$c <- .c
 
     controlArgs <- do.call("DEoptim.control", control)
     controlForCache <- controlArgs[c(
