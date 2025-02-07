@@ -535,6 +535,51 @@ DEoptimIterative <- function(itermax,
     }
 
     control$initialpop <- DE[[iter]]$member$pop
+
+    rng <- 25; # do 25 iteration steps, i.e., 1:100, 25:125
+    dataRunToUse <- 125 # this will do the lm on this many items
+    numSegments <- (length(DE) - dataRunToUse) / rng + 1# (length(DE) - dataRunToUse + 1) / rng
+    pvals <- c(0,0)
+    if (numSegments > 1) {
+      isNewSegment <- numSegments %% 1 == 0
+      if (isNewSegment) {
+        pvals <- numeric(floor(numSegments))
+        iters <- list()
+        s <- list()
+        l <- list()
+        segmentSeq <- seq_len(floor(numSegments))
+        # if (!exists("dfForGGplotSimple", inherits = FALSE))
+        dfForGGplotSimple <- DEoptimToDataFrame(DE)
+        gg1 <- ggPlotFnSimple(dfForGGplotSimple)
+        for (i in segmentSeq) {
+          col <- "black"
+          if (i == tail(segmentSeq, 2)[1]) col <- "blue"
+          if (i == tail(segmentSeq, 1)[1]) col <- "red"
+          iters[[i]] <- seq_len(dataRunToUse) + (i-1) * rng;
+          # message(cli::col_yellow(paste(range(iters), collapse = ":")));
+          a <- data.table(iter = seq_along(DE), val = sapply(DE, function(x) x$member$bestvalit))
+          l[[i]] <- lm(val ~ iter, data = a[iters[[i]]]);
+          s[[i]] <- summary(l[[i]]);
+          pvals[i] <- round(s[[i]]$coefficients[2, 4], 4)
+
+          newdat <- data.table(iter = iters[[i]])
+          set(newdat, NULL, "pred", predict(l[[i]], newdata = newdat))
+          int <- s[[i]]$coefficients[1, 1]
+          slop <- s[[i]]$coefficients[2, 1]
+          # gg1 <- gg1 + geom_line(data = newdat,
+          #                           aes(x = iter, y = pred), #, xend = tail(iter, 1), yend = tail(pred, 1)),
+          #                           col = col)
+          gg1 <- gg1 + geom_abline(intercept = int, slope = slop,
+                                   #                        aes(x = iter, y = pred), #, xend = tail(iter, 1), yend = tail(pred, 1)),
+                                   col = col)
+        }
+        pvalDT <- data.table(dataRange = sapply(segmentSeq, function(x) paste(range(iters[[x]]), collapse = ":")),
+                             pvals = pvals)
+        # Plots(gg1, types = .plots,
+              # filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "objFun/"))
+        messageDF(pvalDT, colour = "yellow")
+      }
+    }
     if (!isFALSE(visualizeDEoptim) && (isUpdated(DE[[iter]]))) { # i.e., should be a path
       terms <- suppressMessages(termsInDEoptim(FS_formula, thresh, length(lower)))
       nVars <- NCOL(DE[[iter]]$member$pop)
@@ -542,40 +587,38 @@ DEoptimIterative <- function(itermax,
         terms <- c(terms, paste0("V", seq(nVars - length(terms))))
       dfForGGplot <- visualizeDEoptimLines(DE, terms = terms)
       dfForGGplotAllPoints <- visualizeDEoptimLines(DE, terms = terms, allPoints = TRUE)
+      dfForGGplotSimple <- DEoptimToDataFrame(DE)
 
 
-      Plots(dfForGGplotAllPoints, ggPlotFnMeansAllPoints, types = .plots,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_mean_AllPoints_"))
+      withCallingHandlers({
+        Plots(gg1, types = .plots,
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "objFun/"))
+        #Plots(dfForGGplotSimple, ggPlotFnSimple, types = .plots,
+        #      filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "objFun/"))
+        Plots(dfForGGplotAllPoints, ggPlotFnMeansAllPoints, types = .plots,
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_mean_AllPoints/"));
+        Plots(dfForGGplot, ggPlotFnMeans, types = .plots,
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_mean/"))
+        Plots(dfForGGplot, ggPlotFnDif, types = .plots, ,
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_dif/"))
+        Plots(dfForGGplot, ggPlotFnVars, types = .plots, ,
+              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_variance/"))
+        Plots(fn = visualizeDE, DE = DE[[iter]], cachePath = cachePath,
+              titles = terms, lower = lower, upper = upper, types = .plots,
+              filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "hists/", time = TRUE))
+      }, message = function(m) {
+        if (any(grepl("geom_smooth|Saving", m$message)))
+          invokeRestart("muffleMessage")
+      })
+
+    }
 
 
-      Plots(dfForGGplot, ggPlotFnMeans, types = .plots,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_mean_"))
-      Plots(dfForGGplot, ggPlotFnVars, types = .plots, ,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "DE_lines_variance_"))
-      Plots(fn = visualizeDE, DE = DE[[iter]], cachePath = cachePath,
-            titles = terms, lower = lower, upper = upper, types = .plots,
-            filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "DE_hists_", time = TRUE))
-
-      # ggplot2::ggsave(plot = gg, filename = file.path(visualizeDEoptim, "fireSense_SpreadFit",
-      #                                                 paste0("DE_pars_iter_", iter, "_", as.character(Sys.time()), "_",
-      #                                                        Sys.getpid(), ".png")),
-      #                 width = .plotSize$width, height = .plotSize$height, units = "px")
-      # if (!isRstudioServer()) {
-      #   dev.off()
-      # }
+    # Break out if the last N segments are "non-significant slope at p == 0.1 i.e., conservative
+    if (all(tail(pvals, 2) > 0.1)) {
+      break
     }
   }
-
-  DE1 <- tail(DE, 1)[[1]]
-  if (iter > 1) {
-    bestvals <- which.min(unlist(lapply(DE, function(x) x$optim$bestval)))
-    DE1$optim$bestmem <- DE[[bestvals]]$optim$bestmem
-    DE1$optim$bestval <- DE[[bestvals]]$optim$bestval
-    DE1$optim$iter <- sum(unlist(lapply(DE, function(x) x$optim$iter)))
-    DE1$member$bestmemit <- as.matrix(rbindlist(lapply(DE, function(x) as.data.table(x$member$bestmemit))))
-    DE1$member$bestvalit <- rbindlist(lapply(DE, function(x) as.data.table(x$member$bestvalit)))[[1]]
-  }
-  # DE1$member <- as.matrix(rbindlist(lapply(DE, function(x) as.data.table(x$member$bestmemit))))
 
   DE
 }
@@ -609,7 +652,11 @@ termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
 }
 
 
-
+DEoptimToDataFrame <- function(d, item = "bestvalit") {
+  b <- lapply(d, function(dr) as.data.frame(dr$member[[item]]) |> setNames("bestValue"))
+  b <- rbindlist(b, idcol = "iter")
+  b
+}
 
 visualizeDEoptimLines <- function(d, terms, allPoints = FALSE) {
   iter <- length(d)
@@ -629,15 +676,23 @@ visualizeDEoptimLines <- function(d, terms, allPoints = FALSE) {
     bupper <- do.call(rbind, lapply(d, function(dr)
       sapply(seq(NCOL(dr$member$pop)), function(x) quantile(dr$member$pop[, x], 0.975)))) |>
       as.data.table()
+    bvar <- do.call(rbind, lapply(d, function(dr)
+      sapply(seq(NCOL(dr$member$pop)), function(x) var(dr$member$pop[, x])))) |>
+      as.data.table()
     setnames(blower, names(b))
     setnames(bupper, names(b))
+    setnames(bvar, names(b))
     b[, iter := se]
     blower[, iter := se]
     bupper[, iter := se]
+    bvar[, iter := se]
     blower <- melt(blower, id.vars = "iter")
     setnames(blower, old = "value", new = "lower95")
     bupper <- melt(bupper, id.vars = "iter")
     setnames(bupper, old = "value", new = "upper95")
+    bvar <- melt(bvar, id.vars = "iter")
+    setnames(bvar, old = "value", new = "var")
+
 
   }
 
@@ -645,7 +700,8 @@ visualizeDEoptimLines <- function(d, terms, allPoints = FALSE) {
   if (isTRUE(allPoints)) {
     bmerged <- b
   } else {
-    bmerged <- b[blower, on = c("iter", "variable")][bupper, on = c("iter", "variable")]
+    ons <- c("iter", "variable")
+    bmerged <- b[blower, on = ons][bupper, on = ons][bvar, on = ons]
     bmerged[, dif := upper95 - lower95]
   }
   bmerged[]
@@ -660,8 +716,22 @@ ggPlotFnMeans <- function(bmerged) {
     facet_wrap(facets = "variable", scales = "free")
 }
 
-ggPlotFnVars <- function(bmerged) {
+ggPlotFnSimple <- function(bmerged) {
+  ggplot(bmerged, aes(iter, bestValue)) +
+    geom_point() +
+    geom_smooth(se = TRUE)
+}
+
+ggPlotFnDif <- function(bmerged) {
   ggplot(bmerged, aes(iter, dif)) +
+    geom_point() +
+    geom_smooth(se = TRUE) +
+    # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
+    facet_wrap(facets = "variable", scales = "free")
+}
+
+ggPlotFnVars <- function(bmerged) {
+  ggplot(bmerged, aes(iter, var)) +
   geom_point() +
   geom_smooth(se = TRUE) +
   # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
@@ -683,7 +753,7 @@ ggPlotFnMeansAllPoints <- function(b) {
 ggDEoptimFilename <- function(visualizeDEoptim, rep, iter = NULL, text = "DE_hists_", time = FALSE) {
   file.path(visualizeDEoptim,
             "fireSense_SpreadFit",
-            paste0(text, "rep", rep,
-                   ifelse(is.null(iter), "", paste0("_iter", iter)), "_", Sys.getpid(), 
+            paste0(text, "rep", paddedFloatToChar(rep, padL = 3),
+                   ifelse(is.null(iter), "", paste0("_iter", iter)), "_", Sys.getpid(),
                    ifelse(isTRUE(time), paste0("_", as.character(round(Sys.time(), 0))), ""), ".png"))
 }
