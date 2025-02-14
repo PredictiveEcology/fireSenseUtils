@@ -1,7 +1,8 @@
 utils::globalVariables(c(
-  "above10PctRelB", "absCoef", "assignedFuelClass", "B_MgHa", "burned", "burnprob",
-  "cell", "coef", "lcc", "pixelIndex", "newName", "possGroups", "propB",
-  "pvalue", "sig", "sim", "species","speciesCode", "YEAR", "yearRange"
+  "above10PctRelB", "absCoef", "assignedFuelClass", "B_MgHa", "burned",
+  "burnprob", "cell", "coef", "dominantSign",  "genus", "lcc", "pixelIndex",
+  "newName", "possGroups", "propB", "pvalue", "sig", "sim", "spec",
+  "species","speciesCode", "tempSign", "YEAR", "yearRange"
 ))
 
 #' Calculate proportional burn of landcover and tree species
@@ -185,13 +186,51 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
 #'
 #' @param df created during `assessFuelClasses`
 #' @param targetFuelClasses the number of classes at which to stop further merging
+#' @param lowThreshold species with above10PctRelB below this threshold will be merged with like
+#' fuel classes, when available, regardless of coefficient
 #' @return a data.table with assigned fuel classes for each species
-combine_fuel_classes <- function(df, targetFuelClasses = 5) {
+combine_fuel_classes <- function(df, targetFuelClasses = 5, lowThreshold = 0.05) {
   # Sort by FuelClass, sign, and above10PctRelB in ascending order for consistent processing
   df <- copy(df)
+  df[, assignedFuelClass := character(0)]
   nSpecies <- nrow(df)
-  neededJoins <- nSpecies - targetFuelClasses
+
+  df[, N := .N, .(FuelClass)]
+  df[, dominantSign := sign]
+  df_Sparse <- df[above10PctRelB < lowThreshold & N > 1]
+
+  ##1. merge these sparse ones first -
+  #   because DEoptim will struggle with small sample size
+  if (nrow(df_Sparse) > 0) {
+    for (i in 1:nrow(df_Sparse)) {
+
+      df_Friends <- df[FuelClass %in% df_Sparse[i, ]$FuelClass,]
+      df_Friends <- df_Friends[!species %in% df_Sparse$species,]
+      #if multiple of same class are in sparse these will be merged in 2
+      # keeping them in results in errors
+      #order by fuel class, sign, and abundance
+      #ensure the sign is prioritized
+      df_Friends[, tempSign := sign]
+      #ensure setting key by sign yields like sign at top, alphabetically
+      df_Friends[sign == df_Sparse[i,]$sign, sign := paste0("a-", sign)]
+      setkey(df_Friends, FuelClass, sign, above10PctRelB)
+      #merge both
+      df[species %in% df_Sparse[i,]$species, assignedFuelClass := FuelClass]
+      #merge with the 2nd least abundant
+      #TODO: this 2nd subset won't be correct if sign is different.
+      df[species %in% df_Friends[1,]$species, assignedFuelClass := FuelClass]
+      df[species %in% df_Sparse[i,]$species, dominantSign := df_Friends[1, ]$dominantSign]
+
+      df_Friends[, sign := tempSign]
+      df_Friends[, tempSign := NULL]
+    }
+  }
+
+  neededJoins <- nSpecies - targetFuelClasses - nrow(df_Sparse) #already joined
+  ##. 2 join according to sign compatibility, then similar coefficient value,
+  #     in order of increasing biomass
   if (neededJoins > 0) {
+
     df[, possGroups := .N, .(FuelClass)]
     #if each fuel class is unique no merge is possible
     #of course may not be able to merge due to sign either
@@ -201,7 +240,12 @@ combine_fuel_classes <- function(df, targetFuelClasses = 5) {
 
     uniques <- df[possGroups == 1,]
     possMerge <- df[!species %in% uniques$species]
-    setkey(possMerge, above10PctRelB)
+
+    #if none were merged above, create this column
+    if (is.null(possMerge$assignedFuelClass)) {
+      possMerge[, assignedFuelClass := character(0)]
+    }
+    setkey(possMerge, assignedFuelClass, above10PctRelB)
     #least biomass is now at the top
     joined <- 0
     attemptedJoins <- 0
@@ -235,20 +279,42 @@ combine_fuel_classes <- function(df, targetFuelClasses = 5) {
     df[is.na(assignedFuelClass), assignedFuelClass := species]
 
   } else {
-    df[, assignedFuelClass := species]
+    df[is.na(assignedFuelClass), assignedFuelClass := species]
   }
 
   #fix the names in the event the original fuel classes aren't accurate
   #(e.g. SprcFrLrch may not contain Fir and/or Larch)
   if (any(df$species != df$assignedFuelClass)) {
     needsNewNames <- df[assignedFuelClass != species, .(assignedFuelClass, species)]
-    needsNewNames[, newName := abbreviate(species)]
+    #if there is an underscore assume it separates genus/species
+    hasUnderscore <- needsNewNames[grep("_", species)]
+
+    myFun <- function(STRING, placement){
+      out <- strsplit(STRING, split = "_")
+      sapply(out, "[[", placement)
+    }
+    hasUnderscore[, genus := abbreviate(species)]
+    hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcol = "genus"]
+    hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcol = "species"]
+    hasUnderscore[, spec := substr(spec, start = 1, stop = 2)]
+    hasUnderscore[, newName := paste0(genus, "_", spec)]
+    hasUnderscore[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
+    hasUnderscore <- hasUnderscore[, .(assignedFuelClass, species, newName)]
+
+    #else
+    needsNewNames <- needsNewNames[!species %in% hasUnderscore$species]
+    needsNewNames[, newName := abbreviate(species, minlength = 5, strict = TRUE)]
     needsNewNames[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
+    #join
+    needsNewNames <- rbind(hasUnderscore, needsNewNames)
     needsNewNames <- needsNewNames[, .(species, newName)]
+
+
     df <- needsNewNames[df, on = c("species")]
     df[!is.na(newName), assignedFuelClass := newName]
     df[, newName := NULL]
   }
+  df[, N := .N, .(assignedFuelClass)]
 
   return(df[])
 }
