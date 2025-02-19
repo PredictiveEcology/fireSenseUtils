@@ -518,7 +518,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 
     spreadState <- rbindlist(spreadState, idcol = "rep")
     if (isTRUE(doSNLL_FSTest)) {
-      emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
+      emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")] # N is "size of simulated fire"
       emp <- emp[annualFires, on = c("initialLocus" = "cells")]
       if (SpaDES.core::anyPlotting(plot.it)) {
         colsToKeep <- c(setdiff(colnames(tableOfBufferedMaps), colnames(emp)), "initialLocus")
@@ -570,7 +570,18 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       # only use fires that escaped --> i.e., greater than 1 pixel
       # print(quantile(emp$size))
       ## TODO: occasional errors during fitting because `obs` < 2; suggests N <2 (#8)
-      emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = sqrt(N))), by = "ids"]
+      # Eliot: If this errors, it means that only one simulated fire had 2 pixels (i.e., N>1); if only one
+      #   fire has 2+ pixels, need more fires, or call it a fail
+      emp <- emp[N > 1, list(size = size[1],
+                             lik = if(.N > 1) {
+                                          EnvStats::demp(x = size[1], obs = sqrt(N))
+                             } else {
+                               0
+                             }), by = "ids"]
+      # emp <- emp[N > 1, list(size = size[1],
+      #                            lik = ifelse(.N > 1,
+      #                                         EnvStats::demp(x = size[1], obs = sqrt(N)),
+      #                                         0)), by = "ids"]
       # emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
       if (isTRUE(weighted)) {
         set(emp, NULL, "lik", log(pmax(minLik, emp$lik * log(emp$size))))
