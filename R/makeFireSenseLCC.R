@@ -18,7 +18,7 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea,
                              nonflammableLCC = c(20, 31, 32, 33),
                              flammabilityThreshold = 0.1, writeTo = NULL,
                              destinationPath) {
-  browser()
+
   #1. NA the non-flammable
   #2. reproject the landcover for fireSense
   #3. make a flammableMap from the original resolution
