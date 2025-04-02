@@ -18,6 +18,7 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea,
                              nonflammableLCC = c(20, 31, 32, 33),
                              flammabilityThreshold = 0.1, writeTo = NULL,
                              destinationPath) {
+  browser()
   #1. NA the non-flammable
   #2. reproject the landcover for fireSense
   #3. make a flammableMap from the original resolution
@@ -27,6 +28,7 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea,
   rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
                                      disturbedCode = 240,
                                      overwrite = TRUE,
+                                     destinationPath = destinationPath,
                                      cropTo = rasterToMatch,
                                      maskTo = studyArea)
   #we want the mode of non-NA pixels but that is not an option
@@ -42,7 +44,7 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea,
 
   allFlam[nonFlam < flammabilityThreshold] <- 0 #for nonflammable
   if (!is.null(writeTo)) {
-    allFlam <- writeRaster(allFlam, filename = file.path(destinationPath, writeTo))
+    allFlam <- writeRaster(allFlam, filename = file.path(destinationPath, writeTo), overwrite = TRUE)
   }
 
   return(allFlam)
