@@ -1,52 +1,130 @@
-#' Retrieve NTEMS LCC with relevant nonflammable cover corrected to flammable classes during
-#' reprojection from native resolution to that fo rasterToMatch.
+#' Prepare NTEMS Land Cover Data for Fire Simulation Models
 #'
-#' @param neededYear year of NTEMS LCC
-#' @param writeTo optional filename for output raster
-#' @template studyArea
+#' Processes NTEMS Land Cover Classification (LCC) data for a specific year,
+#' adjusting non-flammable classes based on a flammability threshold during
+#' reprojection to a target raster's resolution and extent.
+#'
+#' @details
+#' This function performs several steps:
+#' 1. Downloads and prepares NTEMS LCC data for the specified `neededYear` using
+#'    `LandR::prepInputs_NTEMS_LCC_FAO`, cropping and masking to the target extent.
+#' 2. Identifies the dominant *flammable* land cover class within each pixel of
+#'    `rasterToMatch`. This is done by temporarily masking non-flammable classes
+#'    (defined in `nonflammableLCC`) to NA in the source raster and then
+#'    reprojecting using the 'mode' method.
+#' 3. Calculates the proportion of *flammable* cover within each pixel of
+#'    `rasterToMatch` by reprojecting a binary (1=flammable, 0=non-flammable)
+#'    version of the source raster using the 'average' method.
+#' 4. Creates the final raster: Pixels where the proportion of flammable cover
+#'    (calculated in step 3) is below the `flammabilityThreshold` are assigned
+#'    a value of 0 (representing non-flammable). Otherwise, pixels retain the
+#'    dominant flammable LCC code identified in step 2.
+#'
+#' @param neededYear Numeric. The specific year required for the NTEMS Land
+#'   Cover Classification (LCC) data.
 #' @template rasterToMatch
-#' @param nonflammableLCC nonflammable cover values
-#' @param destinationPath passed to `prepInputs`. Directory to store downloaded file
-#' @param flammabilityThreshold the flammability threshold, below which pixels become NA
+#' @template studyArea
+#' @param nonflammableLCC Numeric vector. LCC codes representing non-flammable
+#'   land cover types (e.g., water, rock, urban). Defaults to `c(20, 31, 32, 33)`.
+#'   Pixels with these values are initially masked or converted for thresholding.
+#' @param flammabilityThreshold Numeric. A value between 0 and 1. Target pixels
+#'   where the proportion of underlying *flammable* source pixels is below this
+#'   threshold will be reclassified to 0 (non-flammable) in the output raster.
+#'   Defaults to 0.1.
+#' @param writeTo Character string or `NULL`. Optional filename for the output
+#'   raster, relative to `destinationPath`. If `NULL` (default), the raster is
+#'   not written to disk by this function.
+#' @param destinationPath Character string. Directory path where source NTEMS data
+#'   will be downloaded/loaded (via `prepInputs_NTEMS_LCC_FAO`) and where the
+#'   output raster will be written if `writeTo` is specified.
 #'
-#' @importFrom terra mask
-#' @returns a landcover raster where pixels below mean flammabilityThreshold are converted to 0,
-#' otherwise the nearest flammable landcover is returned at the resolution of rasterToMatch
+#' @return A `terra::SpatRaster` object with the processed land cover
+#'   classification at the resolution, extent, and CRS of `rasterToMatch`.
+#'   Values represent the modal flammable LCC code, or 0 if the pixel is below
+#'   the `flammabilityThreshold`.
+#'
+#' @importFrom terra project values `values<-` writeRaster classify
+#' @importFrom LandR prepInputs_NTEMS_LCC_FAO
 #' @export
 #'
+#' @examples
+#' \dontrun{
+#'   # Requires terra and potentially LandR installed
+#'   # Need example rasterToMatch and studyArea objects
+#'   library(terra)
+#'
+#'   # Create dummy rasterToMatch and studyArea
+#'   ras <- rast(xmin = 0, xmax = 10, ymin = 0, ymax = 10, res = 1)
+#'   values(ras) <- 1
+#'   crs(ras) <- "EPSG:4326" # Example CRS
+#'   sa <- ext(ras) |> as.polygons() |> vect()
+#'   crs(sa) <- crs(ras)
+#'
+#'   # Define a destination path (replace with a real path)
+#'   destPath <- tempdir()
+#'
+#'   # Run the function (will likely try to download data)
+#'   # Note: prepInputs_NTEMS_LCC_FAO might require specific setup or data sources
+#'   # This example might fail if data download/access isn't configured
+#'   # fireLCC <- makeFireSenseLCC(neededYear = 2011, # Example year
+#'   #                            rasterToMatch = ras,
+#'   #                            studyArea = sa,
+#'   #                            destinationPath = destPath)
+#'   # plot(fireLCC)
+#' }
 makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea,
                              nonflammableLCC = c(20, 31, 32, 33),
                              flammabilityThreshold = 0.1, writeTo = NULL,
                              destinationPath) {
-
-  #1. NA the non-flammable
-  #2. reproject the landcover for fireSense
-  #3. make a flammableMap from the original resolution
-  #4. burn the non-flammable pixels (below thresh) into the LCC from 2
-
-
+  # 1. Retrieve and prepare base NTEMS LCC data for the specified year
+  #    - Crops to the extent of rasterToMatch
+  #    - Masks to the studyArea polygon(s)
+  message("Preparing base NTEMS LCC data...")
   rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
-                                     disturbedCode = 240,
-                                     overwrite = TRUE,
+                                     disturbedCode = 240, # Optional: specify disturbed code if needed
+                                     overwrite = TRUE,    # Consider parameterizing overwrite?
                                      destinationPath = destinationPath,
                                      cropTo = rasterToMatch,
                                      maskTo = studyArea)
-  #we want the mode of non-NA pixels but that is not an option
-  allFlam <- terra::mask(rstLCC, rstLCC, maskvalue = nonflammableLCC, updatevalue = NA) |>
-    project(y = rasterToMatch, method = "mode")
-  #these are the values that will be assigned
 
-  #you can probably make the inverse of allFlam, focal that to get the amount of non-flammable cover, and then burn in the
-  #non flam into allFlam
-  nonFlam <- terra::mask(rstLCC, rstLCC, updatevalue = 0, maskvalues = nonflammableLCC)
-  nonFlam[nonFlam > 0] <- 1
-  nonFlam <- terra::project(nonFlam, rasterToMatch, method = "average")
+  # 2. Determine the dominant *flammable* LCC code at the target resolution
+  #    - Mask non-flammable codes to NA in the source resolution LCC
+  #    - Project to the target resolution using 'mode' aggregation. This finds
+  #      the most frequent flammable LCC code among the source pixels
+  #      contributing to each target pixel.
+  message("Calculating dominant flammable LCC at target resolution...")
+  allFlam <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(NA, length(nonflammableLCC))), ncol = 2)) |>
+  terra::project(y = rasterToMatch, method = "mode")
 
-  allFlam[nonFlam < flammabilityThreshold] <- 0 #for nonflammable
+  # 3. Calculate the proportion of *flammable* cover at the target resolution
+  #    - Create a binary raster at source resolution: 1 = flammable, 0 = non-flammable
+  #    - Project this binary raster to the target resolution using 'average'
+  #      aggregation. The result represents the proportion of flammable source
+  #      pixels within each target pixel.
+  message("Calculating proportion of flammable cover...")
+  # Create binary raster: 0 where LCC is non-flammable, keep original LCC otherwise
+  nonFlamMap <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(0, length(nonflammableLCC))), ncol = 2))
+
+  # Convert remaining LCC codes (flammable ones) to 1
+  nonFlamMap[nonFlamMap > 0] <- 1 # Now 1 = flammable, 0 = non-flammable
+
+  # Project using average to get proportion of flammable pixels
+  flammableProp <- terra::project(nonFlamMap, rasterToMatch, method = "average")
+
+  # 4. Apply flammability threshold
+  #    - Where the proportion of flammable cover is less than the threshold,
+  #      set the LCC value in the result raster ('allFlam') to 0 (non-flammable).
+  message("Applying flammability threshold...")
+  allFlam[flammableProp < flammabilityThreshold] <- 0
+
+  # 5. Optionally write the result to disk
   if (!is.null(writeTo)) {
-    allFlam <- writeRaster(allFlam, filename = file.path(destinationPath, writeTo), overwrite = TRUE)
+    outPath <- file.path(destinationPath, writeTo)
+    message("Writing output raster to: ", outPath)
+    # Ensure data type supports 0 if original LCC didn't (though usually integer, so fine)
+    allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = TRUE)
   }
 
+  message("Processing complete.")
   return(allFlam)
-
 }
