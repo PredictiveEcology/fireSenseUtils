@@ -1,13 +1,15 @@
 utils::globalVariables(c(
-  ".BY", ".SD", "pars"
+  ".BY", ".SD", "bestValue", "value", "iter", "lower95", "upper95", "var",
+  "dif", "variable", "pred"
 ))
+
 
 #' Wrapper around `DEoptim` call
 #'
 #' Does the multiple cluster connections. This will only work if
 #' ssh keys are correctly made between machines (if using multiple machines).
 #'
-#' @param landscape A `RasterLayer` which has the correct metadata associated with
+#' @param landscape A `SpatRaster` which has the correct metadata associated with
 #'   the `pixelID` and cells of other objects in this function call
 #' @param annualDTx1000 A list of data.table objects. Each list element will be from 1
 #'   year, and it must be the same length as `fireBufferedListDT` and `historicalFires`.
@@ -21,11 +23,18 @@ utils::globalVariables(c(
 #'   `annualDTx1000`, with same names. Each element is a `data.table` with columns:
 #'   `buff`...TODO: INCOMPLETE
 #' @param historicalFires DESCRIPTION NEEDED
-#' @param itermax Passed to `DEoptim.control`
-#' @param initialpop DESCRIPTION NEEDED
-#' @param NP DESCRIPTION NEEDED
-#' @param trace Passed to `DEoptim.control`
-#' @param strategy Passed to `DEoptim.control`
+#' @param itermax Maximum number of iterations for the DEoptim algorithm. Passed to
+#'   `DEoptim.control`.
+#' @param initialpop Optional. A matrix or vector specifying the initial population
+#'   for DEoptim. If `NULL`, DEoptim generates one. Passed to `DEoptim.control`.
+#'   See `?DEoptim::DEoptim.control`.
+#' @param NP Optional. The number of population members (individuals) in DEoptim.
+#'   If `NULL`, DEoptim sets a default. Passed to `DEoptim.control`.
+#'   See `?DEoptim::DEoptim.control`.
+#' @param trace Integer or Logical. Controls the level of tracing information
+#'   printed by DEoptim during optimization. Passed to `DEoptim.control`.
+#' @param strategy Integer (1-10). Defines the DEoptim strategy variant to use.
+#'   Passed to `DEoptim.control`. See `?DEoptim::DEoptim.control`.
 #' @param cores A numeric (for running on localhost only) or a character vector of
 #'   machine names (including possibly "localhost"), where
 #'   the length of the vector indicates how many cores should be used on that machine.
@@ -41,11 +50,13 @@ utils::globalVariables(c(
 #'   the `itermax` iterations in `ceiling(itermax / iterStep)` steps. At the end of
 #'   each step, this function will plot, optionally, the parameter histograms (if
 #'   `visualizeDEoptim` is `TRUE`)
-#' @param lower Passed to `DEoptim`
-#' @param upper Passed to `DEoptim`
+#' @param lower Numeric vector. Lower bounds for the parameters being optimized. Passed to `DEoptim`.
+#' @param upper Numeric vector. Upper bounds for the parameters being optimized. Passed to `DEoptim`.
 #' @template mutuallyExclusive
 #' @param FS_formula Passed to `DEoptim`
-#' @param objFunCoresInternal DESCRIPTION NEEDED
+#' @param objFunCoresInternal Integer. The number of cores to use for potential
+#'   parallelization *within* a single call to the objective function (`fireSenseUtils::.objfunSpreadFit`).
+#'   This is distinct from the parallelization managed by `DEoptim` across population members.
 #' @param covMinMax Passed to `fireSenseUtils::.objfunSpreadFit`
 #' @param tests Passed to `fireSenseUtils::.objfunSpreadFit`
 #' @param maxFireSpread Passed to `fireSenseUtils::.objfunSpreadFit`
@@ -56,7 +67,9 @@ utils::globalVariables(c(
 #'   `DEoptim` outputs.
 #' @param .plotSize List specifying plot `height` and `width`, in pixels.
 #'
-#' @return DESCRIPTION NEEDED
+#' @return The result of the `DEoptimIterative` call. This is typically a list where
+#' each element contains the `DEoptim` object state after a block of `iterStep` iterations.
+#' The final element represents the state after `itermax` iterations or upon early stopping.
 #'
 #' @export
 #' @importFrom crayon blurred
@@ -379,12 +392,16 @@ runDEoptim <- function(landscape,
 #' @param DE An object from a `DEoptim` call
 #' @param cachePath A `cacheRepo` to pass to `showCache` and
 #'        `loadFromCache` if `DE` is missing.
+#' @param titles titles of plots
+#' @param lower lower limit on x axis
+#' @param upper upper limit on x axis
 #'
 #' @export
 #' @importFrom data.table as.data.table
 #' @importFrom graphics hist par
 #' @importFrom reproducible loadFromCache showCache
 #' @importFrom utils tail
+#' @importFrom ggplot2 coord_cartesian ggtitle xlab theme_minimal
 visualizeDE <- function(DE, cachePath, titles, lower, upper) {
   if (missing(DE)) {
     if (missing(cachePath)) {
@@ -424,24 +441,33 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
   #   aa[, hist(t(.SD), main = as.character(.BY))[[2]], by = pars]
 }
 
-#' @param control DESCRIPTION NEEDED
-#' @template mutuallyExclusive
+
+#' Iterative DEoptim Runner with Caching and Visualization
 #'
+#' Internal function called by `runDEoptim`. Runs `DEoptim` in steps,
+#' caching results and optionally visualizing progress after each step.
+#' @param rep Integer. An identifier for the replication number of this optimization run.
+#'   Used in cache tags and plot filenames. Default 1L.
+#' @param .plots Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
+#'   Passed to internal plotting functions (likely via `quickPlot::Plots` or `SpaDES.plotting::Plot`). Default "screen".
+#' @template mutuallyExclusive
+#' @param .c #DESCRIPTION NEEDED
+#' @param figPath directory where figures will be saved, if relevant
+#' @param rep #DESCRIPTION NEEDED
 #' @export
+
+#' @importFrom crayon green
 #' @importFrom data.table rbindlist setDTthreads
 #' @importFrom DEoptim DEoptim DEoptim.control
+#' @importFrom reproducible Cache messageDF isUpdated
 #' @importFrom grDevices dev.off png
+#' @importFrom ggplot2 geom_abline
 #' @importFrom quickPlot isRstudioServer
-#' @importFrom reproducible Cache
 #' @importFrom stats dnorm rnorm
 #' @importFrom utils tail
 #' @rdname runDEoptim
-DEoptimIterative <- function(itermax,
-                             lower,
-                             upper,
-                             control,
-                             FS_formula,
-                             covMinMax,
+DEoptimIterative <- function(itermax, lower, upper,
+                             control, FS_formula, covMinMax,
                              tests = c("SNLL", "adTest"),
                              objFunCoresInternal,
                              maxFireSpread,
@@ -515,7 +541,7 @@ DEoptimIterative <- function(itermax,
       )
       if (!isUpdated(DE[[iter]]))
         message(paste(round(unname(DE[[iter]]$optim$bestmem), 4), collapse = " "))
-      message(cli::col_green("Iteration ", iter, " done!"))
+      message(crayon::green("Iteration ", iter, " done!"))
     } else {
       # This is for testing --> it is fast
       fn <- function(par, x) {
@@ -556,7 +582,6 @@ DEoptimIterative <- function(itermax,
           if (i == tail(segmentSeq, 2)[1]) col <- "blue"
           if (i == tail(segmentSeq, 1)[1]) col <- "red"
           iters[[i]] <- seq_len(dataRunToUse) + (i-1) * rng;
-          # message(cli::col_yellow(paste(range(iters), collapse = ":")));
           a <- data.table(iter = seq_along(DE), val = sapply(DE, function(x) x$member$bestvalit))
           l[[i]] <- lm(val ~ iter, data = a[iters[[i]]]);
           s[[i]] <- summary(l[[i]]);
@@ -651,7 +676,7 @@ termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
   c(paste0("logit", seq(logitNumParams)), termsInForm)
 }
 
-
+#' @importFrom stats setNames
 DEoptimToDataFrame <- function(d, item = "bestvalit") {
   b <- lapply(d, function(dr) as.data.frame(dr$member[[item]]) |> setNames("bestValue"))
   b <- rbindlist(b, idcol = "iter")
@@ -716,12 +741,14 @@ ggPlotFnMeans <- function(bmerged) {
     facet_wrap(facets = "variable", scales = "free")
 }
 
+#' @importFrom ggplot2 geom_point geom_smooth
 ggPlotFnSimple <- function(bmerged) {
   ggplot(bmerged, aes(iter, bestValue)) +
     geom_point() +
     geom_smooth(se = TRUE)
 }
 
+#' @importFrom ggplot2 geom_point geom_smooth
 ggPlotFnDif <- function(bmerged) {
   ggplot(bmerged, aes(iter, dif)) +
     geom_point() +
@@ -730,6 +757,7 @@ ggPlotFnDif <- function(bmerged) {
     facet_wrap(facets = "variable", scales = "free")
 }
 
+#' @importFrom ggplot2 geom_point geom_smooth
 ggPlotFnVars <- function(bmerged) {
   ggplot(bmerged, aes(iter, var)) +
   geom_point() +
@@ -738,7 +766,7 @@ ggPlotFnVars <- function(bmerged) {
   facet_wrap(facets = "variable", scales = "free")
 }
 
-
+#' @importFrom ggplot2 geom_smooth geom_jitter ggplot
 ggPlotFnMeansAllPoints <- function(b) {
   ggplot(b, aes(iter, value)) +
   # geom_point() +
@@ -749,7 +777,7 @@ ggPlotFnMeansAllPoints <- function(b) {
 }
 
 
-
+#' @importFrom reproducible paddedFloatToChar
 ggDEoptimFilename <- function(visualizeDEoptim, rep, iter = NULL, text = "DE_hists_", time = FALSE) {
   file.path(visualizeDEoptim,
             "fireSense_SpreadFit",

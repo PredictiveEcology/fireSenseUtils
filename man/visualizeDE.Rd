@@ -4,13 +4,19 @@
 \alias{visualizeDE}
 \title{Make histograms of \code{DEoptim} object \code{pars}}
 \usage{
-visualizeDE(DE, cachePath)
+visualizeDE(DE, cachePath, titles, lower, upper)
 }
 \arguments{
 \item{DE}{An object from a \code{DEoptim} call}
 
 \item{cachePath}{A \code{cacheRepo} to pass to \code{showCache} and
 \code{loadFromCache} if \code{DE} is missing.}
+
+\item{titles}{titles of plots}
+
+\item{lower}{lower limit on x axis}
+
+\item{upper}{upper limit on x axis}
 }
 \description{
 Make histograms of \code{DEoptim} object \code{pars}

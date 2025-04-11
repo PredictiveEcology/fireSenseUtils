@@ -2,8 +2,7 @@
 % Please edit documentation in R/makeFireSenseLCC.R
 \name{makeFireSenseLCC}
 \alias{makeFireSenseLCC}
-\title{Retrieve NTEMS LCC with relevant nonflammable cover corrected to flammable classes during
-reprojection from native resolution to that fo rasterToMatch.}
+\title{Prepare NTEMS Land Cover Data for Fire Simulation Models}
 \usage{
 makeFireSenseLCC(
   neededYear,
@@ -16,7 +15,8 @@ makeFireSenseLCC(
 )
 }
 \arguments{
-\item{neededYear}{year of NTEMS LCC}
+\item{neededYear}{Numeric. The specific year required for the NTEMS Land
+Cover Classification (LCC) data.}
 
 \item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
 raster operations (i.e., the one used throughout the simulation).}
@@ -24,19 +24,75 @@ raster operations (i.e., the one used throughout the simulation).}
 \item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
 passed to \code{\link[reproducible]{prepInputs}}.}
 
-\item{nonflammableLCC}{nonflammable cover values}
+\item{nonflammableLCC}{Numeric vector. LCC codes representing non-flammable
+land cover types (e.g., water, rock, urban). Defaults to \code{c(20, 31, 32, 33)}.
+Pixels with these values are initially masked or converted for thresholding.}
 
-\item{flammabilityThreshold}{the flammability threshold, below which pixels become NA}
+\item{flammabilityThreshold}{Numeric. A value between 0 and 1. Target pixels
+where the proportion of underlying \emph{flammable} source pixels is below this
+threshold will be reclassified to 0 (non-flammable) in the output raster.
+Defaults to 0.1.}
 
-\item{writeTo}{optional filename for output raster}
+\item{writeTo}{Character string or \code{NULL}. Optional filename for the output
+raster, relative to \code{destinationPath}. If \code{NULL} (default), the raster is
+not written to disk by this function.}
 
-\item{destinationPath}{passed to \code{prepInputs}. Directory to store downloaded file}
+\item{destinationPath}{Character string. Directory path where source NTEMS data
+will be downloaded/loaded (via \code{prepInputs_NTEMS_LCC_FAO}) and where the
+output raster will be written if \code{writeTo} is specified.}
 }
 \value{
-a landcover raster where pixels below mean flammabilityThreshold are converted to 0,
-otherwise the nearest flammable landcover is returned at the resolution of rasterToMatch
+A \code{terra::SpatRaster} object with the processed land cover
+classification at the resolution, extent, and CRS of \code{rasterToMatch}.
+Values represent the modal flammable LCC code, or 0 if the pixel is below
+the \code{flammabilityThreshold}.
 }
 \description{
-Retrieve NTEMS LCC with relevant nonflammable cover corrected to flammable classes during
-reprojection from native resolution to that fo rasterToMatch.
+Processes NTEMS Land Cover Classification (LCC) data for a specific year,
+adjusting non-flammable classes based on a flammability threshold during
+reprojection to a target raster's resolution and extent.
+}
+\details{
+This function performs several steps:
+\enumerate{
+\item Downloads and prepares NTEMS LCC data for the specified \code{neededYear} using
+\code{LandR::prepInputs_NTEMS_LCC_FAO}, cropping and masking to the target extent.
+\item Identifies the dominant \emph{flammable} land cover class within each pixel of
+\code{rasterToMatch}. This is done by temporarily masking non-flammable classes
+(defined in \code{nonflammableLCC}) to NA in the source raster and then
+reprojecting using the 'mode' method.
+\item Calculates the proportion of \emph{flammable} cover within each pixel of
+\code{rasterToMatch} by reprojecting a binary (1=flammable, 0=non-flammable)
+version of the source raster using the 'average' method.
+\item Creates the final raster: Pixels where the proportion of flammable cover
+(calculated in step 3) is below the \code{flammabilityThreshold} are assigned
+a value of 0 (representing non-flammable). Otherwise, pixels retain the
+dominant flammable LCC code identified in step 2.
+}
+}
+\examples{
+\dontrun{
+  # Requires terra and potentially LandR installed
+  # Need example rasterToMatch and studyArea objects
+  library(terra)
+
+  # Create dummy rasterToMatch and studyArea
+  ras <- rast(xmin = 0, xmax = 10, ymin = 0, ymax = 10, res = 1)
+  values(ras) <- 1
+  crs(ras) <- "EPSG:4326" # Example CRS
+  sa <- ext(ras) |> as.polygons() |> vect()
+  crs(sa) <- crs(ras)
+
+  # Define a destination path (replace with a real path)
+  destPath <- tempdir()
+
+  # Run the function (will likely try to download data)
+  # Note: prepInputs_NTEMS_LCC_FAO might require specific setup or data sources
+  # This example might fail if data download/access isn't configured
+  # fireLCC <- makeFireSenseLCC(neededYear = 2011, # Example year
+  #                            rasterToMatch = ras,
+  #                            studyArea = sa,
+  #                            destinationPath = destPath)
+  # plot(fireLCC)
+}
 }
