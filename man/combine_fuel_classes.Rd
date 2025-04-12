@@ -4,12 +4,15 @@
 \alias{combine_fuel_classes}
 \title{merging and assignment of fuel classes}
 \usage{
-combine_fuel_classes(df, targetFuelClasses = 5)
+combine_fuel_classes(df, targetFuelClasses = 5, lowThreshold = 0.05)
 }
 \arguments{
 \item{df}{created during \code{assessFuelClasses}}
 
 \item{targetFuelClasses}{the number of classes at which to stop further merging}
+
+\item{lowThreshold}{species with above10PctRelB below this threshold will be merged with like
+fuel classes, when available, regardless of coefficient}
 }
 \value{
 a data.table with assigned fuel classes for each species

@@ -34,9 +34,12 @@ runDEoptim(
   maxFireSpread,
   Nreps,
   thresh = 550,
+  .c = 0.5,
   .verbose,
-  visualizeDEoptim,
-  .plotSize = list(height = 1600, width = 2000)
+  visualizeDEoptim = logPath,
+  .plots = "screen",
+  .plotSize = list(height = 1600, width = 2000),
+  rep = 1L
 )
 
 DEoptimIterative(
@@ -51,19 +54,23 @@ DEoptimIterative(
   maxFireSpread,
   Nreps,
   visualizeDEoptim,
+  figPath,
   cachePath,
   mutuallyExclusive,
   doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
   iterStep = 25,
   thresh = 550,
+  .c = 0.5,
   .verbose,
-  .plotSize = list(height = 1600, width = 2000)
+  .plots = "screen",
+  .plotSize = list(height = 1600, width = 2000),
+  rep = 1L
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
 }
 \arguments{
-\item{landscape}{A \code{RasterLayer} which has the correct metadata associated with
+\item{landscape}{A \code{SpatRaster} which has the correct metadata associated with
 the \code{pixelID} and cells of other objects in this function call}
 
 \item{annualDTx1000}{A list of data.table objects. Each list element will be from 1
@@ -82,15 +89,22 @@ All covariates must be integers, and must be 1000x their actual values.}
 
 \item{historicalFires}{DESCRIPTION NEEDED}
 
-\item{itermax}{Passed to \code{DEoptim.control}}
+\item{itermax}{Maximum number of iterations for the DEoptim algorithm. Passed to
+\code{DEoptim.control}.}
 
-\item{initialpop}{DESCRIPTION NEEDED}
+\item{initialpop}{Optional. A matrix or vector specifying the initial population
+for DEoptim. If \code{NULL}, DEoptim generates one. Passed to \code{DEoptim.control}.
+See \code{?DEoptim::DEoptim.control}.}
 
-\item{NP}{DESCRIPTION NEEDED}
+\item{NP}{Optional. The number of population members (individuals) in DEoptim.
+If \code{NULL}, DEoptim sets a default. Passed to \code{DEoptim.control}.
+See \code{?DEoptim::DEoptim.control}.}
 
-\item{trace}{Passed to \code{DEoptim.control}}
+\item{trace}{Integer or Logical. Controls the level of tracing information
+printed by DEoptim during optimization. Passed to \code{DEoptim.control}.}
 
-\item{strategy}{Passed to \code{DEoptim.control}}
+\item{strategy}{Integer (1-10). Defines the DEoptim strategy variant to use.
+Passed to \code{DEoptim.control}. See \code{?DEoptim::DEoptim.control}.}
 
 \item{cores}{A numeric (for running on localhost only) or a character vector of
 machine names (including possibly "localhost"), where
@@ -113,9 +127,9 @@ the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At th
 each step, this function will plot, optionally, the parameter histograms (if
 \code{visualizeDEoptim} is \code{TRUE})}
 
-\item{lower}{Passed to \code{DEoptim}}
+\item{lower}{Numeric vector. Lower bounds for the parameters being optimized. Passed to \code{DEoptim}.}
 
-\item{upper}{Passed to \code{DEoptim}}
+\item{upper}{Numeric vector. Upper bounds for the parameters being optimized. Passed to \code{DEoptim}.}
 
 \item{mutuallyExclusive}{If there are any covariates, e.g,. youngAge, that should be
 considered mutually exclusive, i.e., "if youngAge is non-zero, should vegPC2 be set to zero", then
@@ -129,7 +143,9 @@ is non-zero.}
 
 \item{FS_formula}{Passed to \code{DEoptim}}
 
-\item{objFunCoresInternal}{DESCRIPTION NEEDED}
+\item{objFunCoresInternal}{Integer. The number of cores to use for potential
+parallelization \emph{within} a single call to the objective function (\code{fireSenseUtils::.objfunSpreadFit}).
+This is distinct from the parallelization managed by \code{DEoptim} across population members.}
 
 \item{covMinMax}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
@@ -141,14 +157,21 @@ is non-zero.}
 
 \item{thresh}{The threshold for accepting fits; e.g., from \code{mod$thresh}.}
 
+\item{.c}{#DESCRIPTION NEEDED}
+
 \item{.verbose}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of
 \code{DEoptim} outputs.}
 
+\item{.plots}{Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
+Passed to internal plotting functions (likely via \code{quickPlot::Plots} or \code{SpaDES.plotting::Plot}). Default "screen".}
+
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
 
-\item{control}{DESCRIPTION NEEDED}
+\item{rep}{#DESCRIPTION NEEDED}
+
+\item{figPath}{directory where figures will be saved, if relevant}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
@@ -156,9 +179,14 @@ from e.g., \code{sim$fireSense_spreadFormula}.}
 \item{numParams}{The number of parameters (TODO: improve description)}
 }
 \value{
-DESCRIPTION NEEDED
+The result of the \code{DEoptimIterative} call. This is typically a list where
+each element contains the \code{DEoptim} object state after a block of \code{iterStep} iterations.
+The final element represents the state after \code{itermax} iterations or upon early stopping.
 }
 \description{
 Does the multiple cluster connections. This will only work if
 ssh keys are correctly made between machines (if using multiple machines).
+
+Internal function called by \code{runDEoptim}. Runs \code{DEoptim} in steps,
+caching results and optionally visualizing progress after each step.
 }
