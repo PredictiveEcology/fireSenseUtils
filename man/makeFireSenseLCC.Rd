@@ -7,7 +7,7 @@
 makeFireSenseLCC(
   neededYear,
   rasterToMatch,
-  studyArea,
+  studyArea = NULL,
   nonflammableLCC = c(20, 31, 32, 33),
   flammabilityThreshold = 0.1,
   writeTo = NULL,

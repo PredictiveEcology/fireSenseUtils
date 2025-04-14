@@ -72,7 +72,7 @@
 #'   #                            destinationPath = destPath)
 #'   # plot(fireLCC)
 #' }
-makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea,
+makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea = NULL,
                              nonflammableLCC = c(20, 31, 32, 33),
                              flammabilityThreshold = 0.1, writeTo = NULL,
                              destinationPath) {
@@ -80,12 +80,18 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea,
   #    - Crops to the extent of rasterToMatch
   #    - Masks to the studyArea polygon(s)
   message("Preparing base NTEMS LCC data...")
+
+  maskToArg <- if (is.null(studyArea)) {
+    rasterToMatch } else {
+      studyArea
+    }
+
   rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
                                      disturbedCode = 240, # Optional: specify disturbed code if needed
                                      overwrite = TRUE,    # Consider parameterizing overwrite?
                                      destinationPath = destinationPath,
                                      cropTo = rasterToMatch,
-                                     maskTo = studyArea)
+                                     maskTo = maskToArg)
 
   # 2. Determine the dominant *flammable* LCC code at the target resolution
   #    - Mask non-flammable codes to NA in the source resolution LCC
