@@ -454,6 +454,7 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
 #' @param .c #DESCRIPTION NEEDED
 #' @param figPath directory where figures will be saved, if relevant
 #' @param rep #DESCRIPTION NEEDED
+#' @param control passed to DEoptim.control
 #' @export
 
 #' @importFrom crayon green

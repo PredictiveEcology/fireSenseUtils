@@ -171,6 +171,8 @@ Passed to internal plotting functions (likely via \code{quickPlot::Plots} or \co
 
 \item{rep}{#DESCRIPTION NEEDED}
 
+\item{control}{passed to DEoptim.control}
+
 \item{figPath}{directory where figures will be saved, if relevant}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
