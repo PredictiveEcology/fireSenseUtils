@@ -32,19 +32,21 @@
 #'   threshold will be reclassified to 0 (non-flammable) in the output raster.
 #'   Defaults to 0.1.
 #' @param writeTo Character string or `NULL`. Optional filename for the output
-#'   raster, relative to `destinationPath`. If `NULL` (default), the raster is
+#'   LCC raster, relative to `destinationPath`. If `NULL` (default), the raster is
 #'   not written to disk by this function.
 #' @param destinationPath Character string. Directory path where source NTEMS data
 #'   will be downloaded/loaded (via `prepInputs_NTEMS_LCC_FAO`) and where the
 #'   output raster will be written if `writeTo` is specified.
 #'
-#' @return A `terra::SpatRaster` object with the processed land cover
-#'   classification at the resolution, extent, and CRS of `rasterToMatch`.
-#'   Values represent the modal flammable LCC code, or 0 if the pixel is below
-#'   the `flammabilityThreshold`.
+#' @return A list of two  `SpatRaster` objects:
+#'   1) the processed land cover classification at the resolution, extent,
+#'   and CRS of `rasterToMatch` with  values representing either the modal flammable
+#'   LCC code or 0 if the pixel is below the `flammabilityThreshold`, and
+#'   2) the proportion of each pixel that is flammable in the native resolution
 #'
 #' @importFrom terra project values `values<-` writeRaster classify
 #' @importFrom LandR prepInputs_NTEMS_LCC_FAO
+#' @importFrom reproducible .suffix
 #' @export
 #'
 #' @examples
@@ -123,14 +125,19 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea = NULL,
   message("Applying flammability threshold...")
   allFlam[flammableProp < flammabilityThreshold] <- 0
 
+
+
   # 5. Optionally write the result to disk
   if (!is.null(writeTo)) {
     outPath <- file.path(destinationPath, writeTo)
+    propFlamPath <- .suffix(outPath, "_propFlam")
     message("Writing output raster to: ", outPath)
     # Ensure data type supports 0 if original LCC didn't (though usually integer, so fine)
     allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = TRUE)
+    flammableProp <- writeRaster(flammableProp, filename = propFlamPath, overwrite = TRUE)
   }
 
-  message("Processing complete.")
-  return(allFlam)
+  output <- list("lcc" = allFlam, "flammableProp" = flammableProp)
+
+  return(output)
 }
