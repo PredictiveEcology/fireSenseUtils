@@ -7,7 +7,7 @@
 makeFireSenseLCC(
   neededYear,
   rasterToMatch,
-  studyArea,
+  studyArea = NULL,
   nonflammableLCC = c(20, 31, 32, 33),
   flammabilityThreshold = 0.1,
   writeTo = NULL,
@@ -34,7 +34,7 @@ threshold will be reclassified to 0 (non-flammable) in the output raster.
 Defaults to 0.1.}
 
 \item{writeTo}{Character string or \code{NULL}. Optional filename for the output
-raster, relative to \code{destinationPath}. If \code{NULL} (default), the raster is
+LCC raster, relative to \code{destinationPath}. If \code{NULL} (default), the raster is
 not written to disk by this function.}
 
 \item{destinationPath}{Character string. Directory path where source NTEMS data
@@ -42,10 +42,13 @@ will be downloaded/loaded (via \code{prepInputs_NTEMS_LCC_FAO}) and where the
 output raster will be written if \code{writeTo} is specified.}
 }
 \value{
-A \code{terra::SpatRaster} object with the processed land cover
-classification at the resolution, extent, and CRS of \code{rasterToMatch}.
-Values represent the modal flammable LCC code, or 0 if the pixel is below
-the \code{flammabilityThreshold}.
+A list of two  \code{SpatRaster} objects:
+\enumerate{
+\item the processed land cover classification at the resolution, extent,
+and CRS of \code{rasterToMatch} with  values representing either the modal flammable
+LCC code or 0 if the pixel is below the \code{flammabilityThreshold}, and
+\item the proportion of each pixel that is flammable in the native resolution
+}
 }
 \description{
 Processes NTEMS Land Cover Classification (LCC) data for a specific year,

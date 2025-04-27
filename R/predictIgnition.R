@@ -31,3 +31,21 @@ predictIgnition <- function(model, data, rescaleFactor, lambdaRescaleFactor) {
 
   return(ignitions)
 }
+
+
+#' Rescale a `data.table` according to a named vector of rescalers
+#'
+#' @param dt a `data.table` of covariates
+#' @param rescalers a named vector of rescalers
+#'
+#' @returns the `data.table` with rescaled values
+#' @export
+#'
+rescaleVarsByMagnitude <- function(dt, rescalers) {
+  cols <- names(rescalers)
+  dt[, (cols) := mapply(FUN = function(x, vec) {x / vec},
+                        x = .SD, vec = rescalers,
+                        SIMPLIFY = FALSE),
+     .SDcols = cols]
+  dt[]
+}
