@@ -92,13 +92,13 @@ runDEoptim <- function(landscape,
                        trace,
                        strategy,
                        cores = NULL,
+                       paths,
                        libPath = .libPaths()[1],
                        logPath = tempfile(sprintf(
                          "fireSense_SpreadFit_%s_",
                          format(Sys.time(), "%Y-%m-%d_%H%M%S")
                        ), fileext = ".log"),
                        doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
-                       cachePath,
                        iterStep = 25,
                        lower,
                        upper,
@@ -131,16 +131,6 @@ runDEoptim <- function(landscape,
   ####################################################################
   #  Cluster
   ####################################################################
-  control <- list(itermax = itermax, trace = trace, strategy = strategy)
-
-  if (!is.null(initialpop)) {
-    control$initialpop <- initialpop
-  }
-
-  if (!is.null(NP)) {
-    control$NP <- NP
-  }
-
   objsNeeded <- list(
     "landscape",
     "annualDTx1000",
@@ -150,215 +140,239 @@ runDEoptim <- function(landscape,
     "mutuallyExclusive"
   )
 
-  if (is.null(cores)) cores <- "localhost"
-  if (!is.null(cores)) {
-    logPath <- file.path(
-      logPath,
-      paste0(
-        "fireSense_SpreadFit_", format(Sys.time(), "%Y-%m-%d_%H%M%S"),
-        "_pid", Sys.getpid(), ".log"
-      )
-    )
-    message(paste0(
-      "Starting parallel model fitting for ",
-      "fireSense_SpreadFit. Log: ", logPath
-    ))
-
-    # Make sure logPath can be written in the workers -- need to create the dir
-
-    if (is.numeric(cores)) cores <- rep("localhost", cores)
-
-    ## Make cluster with just one worker per machine --> don't need to do these steps
-    #     multiple times per machine, if not all 'localhost'
-    revtunnel <- FALSE
-    neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
+  neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
                     "SpaDES.tools", "fireSenseUtils", "sf")
 
-    if (!identical("localhost", unique(cores))) {
-      repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
+  browser()
+  control <- clusters::clusterSetup(messagePrefix = as.character(rep), # .runName,
+                          strategy = strategy, itermax = itermax,
+                          cores = cores, # logPath = file.path(dataPath(sim)),
+                          libPath = libPath[1], NP = NP,
+                          logPath = logPath,
+                          objsNeeded = objsNeeded,
+                          pkgsNeeded = neededPkgs)
 
-      aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
-                                     "PredictiveEcology/fireSenseUtils@development", "qs",
-                                     "RCurl", neededPkgs)), recursive = TRUE)
-      pkgsNeeded <- unique(Require::extractPkgName(unname(unlist(aa))))
+  # control <- list(itermax = itermax, trace = trace, strategy = strategy)
 
-      revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
-
-      coresUnique <- setdiff(unique(cores), "localhost")
-      message("copying packages to: ", paste(coresUnique, collapse = ", "))
-
-      # RscriptPath = "/usr/local/bin/Rscript"
-
-      # st <- system.time(
-      #   cl <- mirai::make_cluster(
-      #     n = length(coresUnique),
-      #     url = "tcp://localhost:5563",
-      #     remote = mirai::ssh_config(
-      #       remotes = paste0("ssh://", coresUnique),
-      #       tunnel = TRUE,
-      #       timeout = 1,
-      #       rscript = RscriptPath
-      #     )
-      #   )
-      # )
-      st <- system.time({
-        cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath
-                                           # , rscript = c("nice", RscriptPath)
-        )
-      })
-      clusterExport(cl, list("libPath", "logPath", "repos", "pkgsNeeded"),
-                    envir = environment())
-
-      # Missing `dqrng` and `sitmo`
-      Require::Install(pkgsNeeded, libPaths = libPath)
-
-      parallel::clusterEvalQ(cl, {
-        # If this is first time that packages need to be installed for this user on this machine
-        #   there won't be a folder present that is writable
-        if (!dir.exists(libPath)) {
-          dir.create(libPath, recursive = TRUE)
-        }
-      })
-
-      message("Setting up packages on the cluster...")
-      out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
-        rsync <- Sys.which("rsync")
-        if (!nzchar(rsync)) stop()
-        system(paste0(rsync, " -aruv --update ", paste(file.path(libPath, pkgsNeeded), collapse = " "),
-                      " ", ip, ":", libPath))
-      })
-
-      parallel::clusterEvalQ(cl, {
-        # If this is first time that packages need to be installed for this user on this machine
-        #   there won't be a folder present that is writable
-        if (tryCatch(packageVersion("Require") < "1.0.1", error = function() TRUE))
-          install.packages("Require", lib = libPath)
-        library(Require, lib.loc = libPath)
-        dir.create(dirname(logPath), recursive = TRUE)
-        out <- Require::Install(pkgsNeeded, libPaths = libPath)
-      })
-
-      GDALversions <- parallel::clusterEvalQ(cl, {
-        .libPaths(libPath)
-        return(sf::sf_extSoftVersion()["GDAL"])
-      })
-
-      stopifnot(length(unique(sf::sf_extSoftVersion()["GDAL"], GDALversions)) == 1)
-      parallel::stopCluster(cl)
-
-      ## Now make full cluster with one worker per core listed in "cores"
-      message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
-                                 collapse = ", "), " clusters")
-      message("Starting main parallel cluster ...")
-      # sshCores <- paste0("ssh//", grep('localhost', cores, invert = TRUE, value = TRUE))
-      # nonsshCores <- grep('localhost', cores, value = TRUE)
-      # coresForMirai <- c(nonsshCores, sshCores)
-
-      st <- system.time({
-        # cl <- mirai::make_cluster(
-        #   length(coresForMirai),
-        #   # url = "tcp://localhost:5555",
-        #   remote = ssh_config(
-        #     remotes = coresForMirai,
-        #     # tunnel = TRUE,
-        #     timeout = 1,
-        #     rscript = RscriptPath
-        #   )
-        # )
-
-        cl <- parallelly::makeClusterPSOCK(cores,
-                                           revtunnel = revtunnel,
-                                           outfile = logPath, rscript_libs = libPath
-                                           # , rscript = c("nice", RscriptPath)
-        )
-      })
-
-      on.exit(stopCluster(cl))
-      message(
-        "it took ", round(st[3], 2), "s to start ",
-        paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads"
-      )
-      message("Moving objects to each node in cluster")
-
-      stMoveObjects <- try({
-        system.time({
-          objsToCopy <- mget(unlist(objsNeeded))
-          objsToCopy <- lapply(objsToCopy, FUN = function(x) {
-            if (inherits(x, "SpatRaster")) {
-              x <- terra::wrap(x)
-            } else {
-              x
-            }
-            x
-          })
-          filenameForTransfer <- normalizePath(tempfile(fileext = ".qs"), mustWork = FALSE, winslash = "/")
-          dir.create(dirname(filenameForTransfer), recursive = TRUE, showWarnings = FALSE) # during development, this was deleted accidentally
-          qs::qsave(objsToCopy, file = filenameForTransfer)
-          stExport <- system.time({
-            outExp <- clusterExport(cl, varlist = "filenameForTransfer", envir = environment())
-          })
-          out11 <- clusterEvalQ(cl, {
-            dir.create(dirname(filenameForTransfer), recursive = TRUE, showWarnings = FALSE)
-          })
-          out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
-            rsync <- Sys.which("rsync")
-            st1 <- system.time(system(paste0(rsync, " -av ",
-                                             filenameForTransfer, " ", ip, ":",
-                                             filenameForTransfer)))
-          })
-          out <- clusterEvalQ(cl, {
-            out <- qs::qread(file = filenameForTransfer)
-            out <- lapply(out, FUN = function(x) {
-              if (inherits(x, "PackedSpatRaster")) {
-                x <- terra::unwrap(x)
-              } else {
-                x
-              }
-              x
-            })
-            list2env(out, envir = .GlobalEnv)
-          })
-          # Delete the file
-          out <- clusterEvalQ(cl, {
-            if (dir.exists(dirname(filenameForTransfer))) {
-              try(unlink(dirname(filenameForTransfer), recursive = TRUE), silent = TRUE)
-            }
-          })
-        })
-      })
-
-      if (is(stMoveObjects, "try-error")) {
-        message("The attempt to move objects to cluster using rsync and qs failed; trying clusterExport")
-        stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
-        list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
-      }
-      message("it took ", round(stMoveObjects[3], 2), "s to move objects to nodes")
-      message("loading packages in cluster nodes")
-
-      clusterExport(cl, "neededPkgs", envir = environment())
-      stPackages <- system.time(parallel::clusterEvalQ(
-        cl,
-        {
-          for (i in neededPkgs) {
-            library(i, character.only = TRUE)
-          }
-          message("loading ", i, " at ", Sys.time())
-        }
-      ))
-      message("it took ", round(stPackages[3], 2), "s to load packages")
-
-      control$cluster <- cl
-    } else {
-      list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
-    }
-  }
+  # if (!is.null(initialpop)) {
+  #   control$initialpop <- initialpop
+  # }
+  #
+  # if (!is.null(NP)) {
+  #   control$NP <- NP
+  # }
+  # # if (is.null(cores)) cores <- "localhost"
+  # if (!is.null(cores)) {
+  #   logPath <- file.path(
+  #     logPath,
+  #     paste0(
+  #       "fireSense_SpreadFit_", format(Sys.time(), "%Y-%m-%d_%H%M%S"),
+  #       "_pid", Sys.getpid(), ".log"
+  #     )
+  #   )
+  #   message(paste0(
+  #     "Starting parallel model fitting for ",
+  #     "fireSense_SpreadFit. Log: ", logPath
+  #   ))
+  #
+  #   # Make sure logPath can be written in the workers -- need to create the dir
+  #
+  #   if (is.numeric(cores)) cores <- rep("localhost", cores)
+  #
+  #   ## Make cluster with just one worker per machine --> don't need to do these steps
+  #   #     multiple times per machine, if not all 'localhost'
+  #   revtunnel <- FALSE
+  #   neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
+  #                   "SpaDES.tools", "fireSenseUtils", "sf")
+  #
+  #   if (!identical("localhost", unique(cores))) {
+  #     repos <- c("https://predictiveecology.r-universe.dev", getOption("repos"))
+  #
+  #     aa <- Require::pkgDep(unique(c("dqrng", "PredictiveEcology/SpaDES.tools@development",
+  #                                    "PredictiveEcology/fireSenseUtils@development", "qs",
+  #                                    "RCurl", neededPkgs)), recursive = TRUE)
+  #     pkgsNeeded <- unique(Require::extractPkgName(unname(unlist(aa))))
+  #
+  #     revtunnel <- ifelse(all(cores == "localhost"), FALSE, TRUE)
+  #
+  #     coresUnique <- setdiff(unique(cores), "localhost")
+  #     message("copying packages to: ", paste(coresUnique, collapse = ", "))
+  #
+  #     # RscriptPath = "/usr/local/bin/Rscript"
+  #
+  #     # st <- system.time(
+  #     #   cl <- mirai::make_cluster(
+  #     #     n = length(coresUnique),
+  #     #     url = "tcp://localhost:5563",
+  #     #     remote = mirai::ssh_config(
+  #     #       remotes = paste0("ssh://", coresUnique),
+  #     #       tunnel = TRUE,
+  #     #       timeout = 1,
+  #     #       rscript = RscriptPath
+  #     #     )
+  #     #   )
+  #     # )
+  #     st <- system.time({
+  #       cl <- parallelly::makeClusterPSOCK(coresUnique, revtunnel = revtunnel, rscript_libs = libPath
+  #                                          # , rscript = c("nice", RscriptPath)
+  #       )
+  #     })
+  #     clusterExport(cl, list("libPath", "logPath", "repos", "pkgsNeeded"),
+  #                   envir = environment())
+  #
+  #     # Missing `dqrng` and `sitmo`
+  #     Require::Install(pkgsNeeded, libPaths = libPath)
+  #
+  #     parallel::clusterEvalQ(cl, {
+  #       # If this is first time that packages need to be installed for this user on this machine
+  #       #   there won't be a folder present that is writable
+  #       if (!dir.exists(libPath)) {
+  #         dir.create(libPath, recursive = TRUE)
+  #       }
+  #     })
+  #
+  #     message("Setting up packages on the cluster...")
+  #     out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
+  #       rsync <- Sys.which("rsync")
+  #       if (!nzchar(rsync)) stop()
+  #       system(paste0(rsync, " -aruv --update ", paste(file.path(libPath, pkgsNeeded), collapse = " "),
+  #                     " ", ip, ":", libPath))
+  #     })
+  #
+  #     parallel::clusterEvalQ(cl, {
+  #       # If this is first time that packages need to be installed for this user on this machine
+  #       #   there won't be a folder present that is writable
+  #       if (tryCatch(packageVersion("Require") < "1.0.1", error = function() TRUE))
+  #         install.packages("Require", lib = libPath)
+  #       library(Require, lib.loc = libPath)
+  #       dir.create(dirname(logPath), recursive = TRUE)
+  #       out <- Require::Install(pkgsNeeded, libPaths = libPath)
+  #     })
+  #
+  #     GDALversions <- parallel::clusterEvalQ(cl, {
+  #       .libPaths(libPath)
+  #       return(sf::sf_extSoftVersion()["GDAL"])
+  #     })
+  #
+  #     stopifnot(length(unique(sf::sf_extSoftVersion()["GDAL"], GDALversions)) == 1)
+  #     parallel::stopCluster(cl)
+  #
+  #     ## Now make full cluster with one worker per core listed in "cores"
+  #     message("Starting ", paste(paste(names(table(cores))), "x", table(cores),
+  #                                collapse = ", "), " clusters")
+  #     message("Starting main parallel cluster ...")
+  #     # sshCores <- paste0("ssh//", grep('localhost', cores, invert = TRUE, value = TRUE))
+  #     # nonsshCores <- grep('localhost', cores, value = TRUE)
+  #     # coresForMirai <- c(nonsshCores, sshCores)
+  #
+  #     st <- system.time({
+  #       # cl <- mirai::make_cluster(
+  #       #   length(coresForMirai),
+  #       #   # url = "tcp://localhost:5555",
+  #       #   remote = ssh_config(
+  #       #     remotes = coresForMirai,
+  #       #     # tunnel = TRUE,
+  #       #     timeout = 1,
+  #       #     rscript = RscriptPath
+  #       #   )
+  #       # )
+  #
+  #       cl <- parallelly::makeClusterPSOCK(cores,
+  #                                          revtunnel = revtunnel,
+  #                                          outfile = logPath, rscript_libs = libPath
+  #                                          # , rscript = c("nice", RscriptPath)
+  #       )
+  #     })
+  #
+  #     on.exit(stopCluster(cl))
+  #     message(
+  #       "it took ", round(st[3], 2), "s to start ",
+  #       paste(paste(names(table(cores))), "x", table(cores), collapse = ", "), " threads"
+  #     )
+  #     message("Moving objects to each node in cluster")
+  #
+  #     stMoveObjects <- try({
+  #       system.time({
+  #         objsToCopy <- mget(unlist(objsNeeded))
+  #         objsToCopy <- lapply(objsToCopy, FUN = function(x) {
+  #           if (inherits(x, "SpatRaster")) {
+  #             x <- terra::wrap(x)
+  #           } else {
+  #             x
+  #           }
+  #           x
+  #         })
+  #         filenameForTransfer <- normalizePath(tempfile(fileext = ".qs"), mustWork = FALSE, winslash = "/")
+  #         dir.create(dirname(filenameForTransfer), recursive = TRUE, showWarnings = FALSE) # during development, this was deleted accidentally
+  #         qs::qsave(objsToCopy, file = filenameForTransfer)
+  #         stExport <- system.time({
+  #           outExp <- clusterExport(cl, varlist = "filenameForTransfer", envir = environment())
+  #         })
+  #         out11 <- clusterEvalQ(cl, {
+  #           dir.create(dirname(filenameForTransfer), recursive = TRUE, showWarnings = FALSE)
+  #         })
+  #         out <- lapply(setdiff(unique(cores), "localhost"), function(ip) {
+  #           rsync <- Sys.which("rsync")
+  #           st1 <- system.time(system(paste0(rsync, " -av ",
+  #                                            filenameForTransfer, " ", ip, ":",
+  #                                            filenameForTransfer)))
+  #         })
+  #         out <- clusterEvalQ(cl, {
+  #           out <- qs::qread(file = filenameForTransfer)
+  #           out <- lapply(out, FUN = function(x) {
+  #             if (inherits(x, "PackedSpatRaster")) {
+  #               x <- terra::unwrap(x)
+  #             } else {
+  #               x
+  #             }
+  #             x
+  #           })
+  #           list2env(out, envir = .GlobalEnv)
+  #         })
+  #         # Delete the file
+  #         out <- clusterEvalQ(cl, {
+  #           if (dir.exists(dirname(filenameForTransfer))) {
+  #             try(unlink(dirname(filenameForTransfer), recursive = TRUE), silent = TRUE)
+  #           }
+  #         })
+  #       })
+  #     })
+  #
+  #     if (is(stMoveObjects, "try-error")) {
+  #       message("The attempt to move objects to cluster using rsync and qs failed; trying clusterExport")
+  #       stMoveObjects <- system.time(clusterExport(cl, objsNeeded, envir = environment()))
+  #       list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
+  #     }
+  #     message("it took ", round(stMoveObjects[3], 2), "s to move objects to nodes")
+  #     message("loading packages in cluster nodes")
+  #
+  #     clusterExport(cl, "neededPkgs", envir = environment())
+  #     stPackages <- system.time(parallel::clusterEvalQ(
+  #       cl,
+  #       {
+  #         for (i in neededPkgs) {
+  #           library(i, character.only = TRUE)
+  #         }
+  #         message("loading ", i, " at ", Sys.time())
+  #       }
+  #     ))
+  #     message("it took ", round(stPackages[3], 2), "s to load packages")
+  #
+  #     control$cluster <- cl
+  #   } else {
+  #     list2env(mget(unlist(objsNeeded), envir = environment()), envir = .GlobalEnv)
+  #   }
+  # }
   #####################################################################
   # DEOptim call
   #####################################################################
   termsInDEoptim(FS_formula, thresh, length(lower))
 
+  browser()
   DE <- Cache(
-    DEoptimIterative(
+    clusters::DEoptimIterative2(
+  # DE <- Cache(
+  #   DEoptimIterative(
       itermax = itermax, lower = lower,
       upper = upper,
       control = do.call("DEoptim.control", control),
@@ -379,7 +393,7 @@ runDEoptim <- function(landscape,
       iterStep = iterStep,
       thresh = thresh,
       rep = rep),
-    cachePath = cachePath,
+    cachePath = paths$cachePath,
     omitArgs = c("verbose")
     #,
     # cacheId = "cd495b412420ad4a"
@@ -518,6 +532,7 @@ DEoptimIterative <- function(itermax, lower, upper,
     )]
 
     if (TRUE) {
+      browser()
       DE[[iter]] <- Cache(
         DEoptimForCache(
           fireSenseUtils::.objfunSpreadFit,
@@ -564,9 +579,15 @@ DEoptimIterative <- function(itermax, lower, upper,
     control$initialpop <- DE[[iter]]$member$pop
 
     rng <- 25; # do 25 iteration steps, i.e., 1:100, 25:125
-    dataRunToUse <- 125 # this will do the lm on this many items
+    dataRunToUse <- 150 # this will do the lm on this many items
     numSegments <- (length(DE) - dataRunToUse) / rng + 1# (length(DE) - dataRunToUse + 1) / rng
     pvals <- c(0,0)
+
+
+    # Do these here because we need them for both sections below
+    dfForGGplotSimple <- DEoptimToDataFrame(DE)
+    gg1 <- ggPlotFnSimple(dfForGGplotSimple)
+
     if (numSegments > 1) {
       isNewSegment <- numSegments %% 1 == 0
       if (isNewSegment) {
@@ -576,8 +597,6 @@ DEoptimIterative <- function(itermax, lower, upper,
         l <- list()
         segmentSeq <- seq_len(floor(numSegments))
         # if (!exists("dfForGGplotSimple", inherits = FALSE))
-        dfForGGplotSimple <- DEoptimToDataFrame(DE)
-        gg1 <- ggPlotFnSimple(dfForGGplotSimple)
         for (i in segmentSeq) {
           col <- "black"
           if (i == tail(segmentSeq, 2)[1]) col <- "blue"
@@ -633,15 +652,18 @@ DEoptimIterative <- function(itermax, lower, upper,
               titles = terms, lower = lower, upper = upper, types = .plots,
               filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "hists/", time = TRUE))
       }, message = function(m) {
-        if (any(grepl("geom_smooth|Saving", m$message)))
+        if (any(grepl("geom_smooth|SavingSaved", m$message)))
           invokeRestart("muffleMessage")
       })
+      reproducible::messageColoured(colour = "green",
+                                    "5 Figures saved to: ", dirname(ggDEoptimFilename("~", 1, text = "")),
+                                    verbose = .verbose)
 
     }
 
 
     # Break out if the last N segments are "non-significant slope at p == 0.1 i.e., conservative
-    if (all(tail(pvals, 2) > 0.1)) {
+    if (all(tail(pvals, 2) > 0.1) && length(DE) > 349) {
       break
     }
   }
