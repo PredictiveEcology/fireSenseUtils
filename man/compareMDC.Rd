@@ -2,7 +2,7 @@
 % Please edit documentation in R/compareMDC.R
 \name{compareMDC}
 \alias{compareMDC}
-\title{Download and prepare fire data from National Fire Database}
+\title{Plot the historical and projected MDC for a flammable land surface}
 \usage{
 compareMDC(
   historicalMDC,
@@ -30,7 +30,7 @@ compareMDC(
 a ggplot object
 }
 \description{
-Download and prepare fire data from National Fire Database
+Plot the historical and projected MDC for a flammable land surface
 }
 \examples{
 \dontrun{

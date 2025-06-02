@@ -18,11 +18,11 @@ runDEoptim(
   trace,
   strategy,
   cores = NULL,
+  cachePath,
   libPath = .libPaths()[1],
   logPath = tempfile(sprintf("fireSense_SpreadFit_\%s_", format(Sys.time(),
     "\%Y-\%m-\%d_\%H\%M\%S")), fileext = ".log"),
   doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
-  cachePath,
   iterStep = 25,
   lower,
   upper,
@@ -110,6 +110,8 @@ Passed to \code{DEoptim.control}. See \code{?DEoptim::DEoptim.control}.}
 machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
 
+\item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
+
 \item{libPath}{A character string indicating an R package library directory. This
 location must exist on each machine, though the function will make sure it
 does internally.}
@@ -119,8 +121,6 @@ does internally.}
 does internally.}
 
 \item{doObjFunAssertions}{logical indicating whether to do assertions.}
-
-\item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
 
 \item{iterStep}{Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
 the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
