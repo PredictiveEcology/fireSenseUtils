@@ -88,13 +88,13 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea = NULL,
       studyArea
     }
 
+  # if (exists("aaaa", envir = .GlobalEnv)) browser()
   rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
                                      disturbedCode = 240, # Optional: specify disturbed code if needed
                                      overwrite = TRUE,    # Consider parameterizing overwrite?
                                      destinationPath = destinationPath,
                                      cropTo = rasterToMatch,
                                      maskTo = maskToArg)
-
   # 2. Determine the dominant *flammable* LCC code at the target resolution
   #    - Mask non-flammable codes to NA in the source resolution LCC
   #    - Project to the target resolution using 'mode' aggregation. This finds
@@ -102,7 +102,7 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea = NULL,
   #      contributing to each target pixel.
   message("Calculating dominant flammable LCC at target resolution...")
   allFlam <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(NA, length(nonflammableLCC))), ncol = 2)) |>
-  terra::project(y = rasterToMatch, method = "mode")
+    terra::project(y = rasterToMatch, method = "mode")
 
   # 3. Calculate the proportion of *flammable* cover at the target resolution
   #    - Create a binary raster at source resolution: 1 = flammable, 0 = non-flammable
@@ -124,8 +124,6 @@ makeFireSenseLCC <- function(neededYear, rasterToMatch, studyArea = NULL,
   #      set the LCC value in the result raster ('allFlam') to 0 (non-flammable).
   message("Applying flammability threshold...")
   allFlam[flammableProp < flammabilityThreshold] <- 0
-
-
 
   # 5. Optionally write the result to disk
   if (!is.null(writeTo)) {
