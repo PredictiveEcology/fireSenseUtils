@@ -2,7 +2,7 @@ utils::globalVariables(c(
   "stat"
 ))
 
-#' Download and prepare fire data from National Fire Database
+#' Plot the historical and projected MDC for a flammable land surface
 #'
 #' @param historicalMDC raster stack of historical MDC
 #' @param projectedMDC raster stack of projected MDC
@@ -15,6 +15,7 @@ utils::globalVariables(c(
 #' @export
 #' @importFrom data.table data.table rbindlist
 #' @importFrom stats median
+#' @importFrom ggplot2 geom_line geom_smooth ggplot coord_cartesian
 #' @importFrom terra ncell nlyr rast values
 #'
 #' @examples
@@ -66,9 +67,9 @@ compareMDC <- function(historicalMDC, projectedMDC, flammableRTM = NULL, Ylimits
     hist$year <- hist$year + firstHistoricalYear - 1
     hist$stat <- "historical"
     MDC <- rbind(hist, proj)
-    ggplot2::ggplot(data = MDC, ggplot2::aes(y = MDC, x = year, color = stat)) +
-      ggplot2::geom_line() +
-      ggplot2::geom_smooth() +
-      ggplot2::coord_cartesian(ylim = Ylimits)
+    ggplot(data = MDC, aes(y = MDC, x = year, color = stat)) +
+      geom_line() +
+      geom_smooth() +
+      coord_cartesian(ylim = Ylimits)
   }
 }

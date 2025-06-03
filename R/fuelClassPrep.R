@@ -158,7 +158,7 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   pvalues <- sapply(fuelGLMs, FUN = function(x){summary(x)$coefficients[2,4]})
   speciesStats <- data.table(species = names(fuelGLMs), coef = coeffs[2,], pvalue = pvalues)
 
-  ####TODO: figure out what to do next - probably plot these predictions by biomass.
+
   forest <- landscape[!is.na(B),]
   fuels <-  unique(sppEquiv[, .SD, .SDcols = c(sppEquivCol, fuelCol)])
 

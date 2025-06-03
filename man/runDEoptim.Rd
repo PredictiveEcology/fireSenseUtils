@@ -18,7 +18,7 @@ runDEoptim(
   trace,
   strategy,
   cores = NULL,
-  paths,
+  path,
   libPath = .libPaths()[1],
   logPath = tempfile(sprintf("fireSense_SpreadFit_\%s_", format(Sys.time(),
     "\%Y-\%m-\%d_\%H\%M\%S")), fileext = ".log"),
@@ -110,6 +110,9 @@ Passed to \code{DEoptim.control}. See \code{?DEoptim::DEoptim.control}.}
 machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
 
+\item{path}{see \code{SpaDES.core::paths} - list of paths containing the \code{cachePath} to store cache.
+Should likely be \code{cachePath(sim)}}
+
 \item{libPath}{A character string indicating an R package library directory. This
 location must exist on each machine, though the function will make sure it
 does internally.}
@@ -172,8 +175,6 @@ Passed to internal plotting functions (likely via \code{quickPlot::Plots} or \co
 \item{control}{passed to DEoptim.control}
 
 \item{figPath}{directory where figures will be saved, if relevant}
-
-\item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
