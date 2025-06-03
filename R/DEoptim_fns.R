@@ -53,7 +53,7 @@ utils::globalVariables(c(
 #' @param lower Numeric vector. Lower bounds for the parameters being optimized. Passed to `DEoptim`.
 #' @param upper Numeric vector. Upper bounds for the parameters being optimized. Passed to `DEoptim`.
 #' @template mutuallyExclusive
-#' @param FS_formula Passed to `DEoptim`
+#' @param formulaToFit Passed to `DEoptim`
 #' @param objFunCoresInternal Integer. The number of cores to use for potential
 #'   parallelization *within* a single call to the objective function (`fireSenseUtils::.objfunSpreadFit`).
 #'   This is distinct from the parallelization managed by `DEoptim` across population members.
@@ -103,7 +103,7 @@ runDEoptim <- function(landscape,
                        lower,
                        upper,
                        mutuallyExclusive,
-                       FS_formula,
+                       formulaToFit,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
                        tests = c("SNLL", "adTest"),
@@ -140,17 +140,18 @@ runDEoptim <- function(landscape,
     "mutuallyExclusive"
   )
 
-  neededPkgs <- c("kSamples", "magrittr", "raster", "data.table",
-                    "SpaDES.tools", "fireSenseUtils", "sf")
+  neededPkgs <- c("kSamples", "magrittr", "raster", "data.table", "SpaDES.core",
+                    "SpaDES.tools", "fireSenseUtils", "sf", "mirai", "munsell")
 
-  browser()
   control <- clusters::clusterSetup(messagePrefix = as.character(rep), # .runName,
                           strategy = strategy, itermax = itermax,
                           cores = cores, # logPath = file.path(dataPath(sim)),
                           libPath = libPath[1], NP = NP,
                           logPath = logPath,
                           objsNeeded = objsNeeded,
-                          pkgsNeeded = neededPkgs)
+                          pkgsNeeded = neededPkgs, envir = environment())
+  cl <<- control$cluster # This is to test whether it is actually closed
+  # on.exit(parallel::stopCluster(control$cluster), add = TRUE)
 
   # control <- list(itermax = itermax, trace = trace, strategy = strategy)
 
@@ -366,27 +367,29 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
-  termsInDEoptim(FS_formula, thresh, length(lower))
+  termsInDEoptim(formulaToFit, thresh, length(lower))
 
-  browser()
   DE <- Cache(
-    clusters::DEoptimIterative2(
-  # DE <- Cache(
-  #   DEoptimIterative(
-      itermax = itermax, lower = lower,
+    clusters:::DEoptimIterative2(
+      fn = fireSenseUtils::.objfunSpreadFit,
+      # DE <- Cache(
+      #   DEoptimIterative(
+      itermax = itermax,
+      lower = lower,
       upper = upper,
       control = do.call("DEoptim.control", control),
-      FS_formula = FS_formula,
+      formulaToFit = formulaToFit,
       covMinMax = covMinMax,
       # tests = c("mad", "SNLL_FS"),
       tests = tests,
+      figurePath = visualizeDEoptim,
       maxFireSpread = maxFireSpread,
       objFunCoresInternal = objFunCoresInternal,
       Nreps = Nreps,
       .verbose = .verbose,
       mutuallyExclusive = mutuallyExclusive,
-      doObjFunAssertions = doObjFunAssertions,
-      visualizeDEoptim = visualizeDEoptim,
+      doAssertions = doObjFunAssertions,
+      # visualizeDEoptim = visualizeDEoptim,
       .plots = .plots,
       .c = .c,
       .plotSize = .plotSize,
@@ -394,7 +397,7 @@ runDEoptim <- function(landscape,
       thresh = thresh,
       rep = rep),
     cachePath = paths$cachePath,
-    omitArgs = c("verbose")
+    omitArgs = c(".verbose")
     #,
     # cacheId = "cd495b412420ad4a"
   ) # iteration 201 to 300
@@ -482,7 +485,7 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
 #' @importFrom utils tail
 #' @rdname runDEoptim
 DEoptimIterative <- function(itermax, lower, upper,
-                             control, FS_formula, covMinMax,
+                             control, formulaToFit, covMinMax,
                              tests = c("SNLL", "adTest"),
                              objFunCoresInternal,
                              maxFireSpread,
@@ -532,14 +535,13 @@ DEoptimIterative <- function(itermax, lower, upper,
     )]
 
     if (TRUE) {
-      browser()
       DE[[iter]] <- Cache(
         DEoptimForCache(
           fireSenseUtils::.objfunSpreadFit,
           lower = lower,
           upper = upper,
           control = controlArgs,
-          FS_formula = FS_formula,
+          formulaToFit = formulaToFit,
           covMinMax = covMinMax,
           tests = tests,
           maxFireSpread = maxFireSpread,
@@ -626,7 +628,7 @@ DEoptimIterative <- function(itermax, lower, upper,
       }
     }
     if (!isFALSE(visualizeDEoptim) && (isUpdated(DE[[iter]]))) { # i.e., should be a path
-      terms <- suppressMessages(termsInDEoptim(FS_formula, thresh, length(lower)))
+      terms <- suppressMessages(termsInDEoptim(formulaToFit, thresh, length(lower)))
       nVars <- NCOL(DE[[iter]]$member$pop)
       if (length(terms) != nVars )
         terms <- c(terms, paste0("V", seq(nVars - length(terms))))

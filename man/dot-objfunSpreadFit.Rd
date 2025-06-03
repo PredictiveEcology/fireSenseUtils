@@ -9,7 +9,7 @@
   landscape,
   annualDTx1000,
   nonAnnualDTx1000,
-  FS_formula,
+  formulaToFit,
   historicalFires,
   fireBufferedListDT,
   covMinMax = NULL,
@@ -24,7 +24,8 @@
   lanscape1stQuantileThresh = 0.265,
   thresh = 550,
   weighted = TRUE,
-  verbose = TRUE
+  verbose = 2,
+  ...
 )
 }
 \arguments{
@@ -42,7 +43,7 @@ used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_year
 xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
 The columns are variables that are used for more than 1 year.}
 
-\item{FS_formula}{Formula, put provided as a character string, not class \code{formula}.
+\item{formulaToFit}{Formula, put provided as a character string, not class \code{formula}.
 (if it is provided as a class \code{formula}, then it invariably will have an
 enormous amount of data hidden in the formula environment; this is bad for DEoptim)}
 
@@ -106,7 +107,9 @@ Too high a threshold, and more years will be run and it will take longer to find
 \item{weighted}{Logical. Should empirical likelihood be weighted by log of the actual fire size?
 This will give large fires more influence on the SNLL.}
 
-\item{verbose}{DESCRIPTION NEEDED}
+\item{verbose}{If >= 2, then this will show more information about spreadProb fitting.}
+
+\item{...}{This is not used here, but allows for extraneous arguments to not break this function}
 }
 \value{
 Attempting a weighted likelihood,

@@ -16,7 +16,7 @@ utils::globalVariables(c(
 #'   used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_yearzzzz" where the
 #'   xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
 #'   The columns are variables that are used for more than 1 year.
-#' @param FS_formula Formula, put provided as a character string, not class `formula`.
+#' @param formulaToFit Formula, put provided as a character string, not class `formula`.
 #'   (if it is provided as a class `formula`, then it invariably will have an
 #'   enormous amount of data hidden in the formula environment; this is bad for DEoptim)
 #' @param historicalFires DESCRIPTION NEEDED
@@ -57,7 +57,8 @@ utils::globalVariables(c(
 #'   this `spreadProb`, then it will bail.
 #' @param weighted Logical. Should empirical likelihood be weighted by log of the actual fire size?
 #'    This will give large fires more influence on the SNLL.
-#' @param verbose DESCRIPTION NEEDED
+#' @param verbose If >= 2, then this will show more information about spreadProb fitting.
+#' @param ... This is not used here, but allows for extraneous arguments to not break this function
 #'
 #' @return
 #' Attempting a weighted likelihood,
@@ -80,7 +81,7 @@ utils::globalVariables(c(
                              landscape,
                              annualDTx1000,
                              nonAnnualDTx1000,
-                             FS_formula, # loci, sizes,
+                             formulaToFit, # loci, sizes,
                              historicalFires,
                              fireBufferedListDT,
                              covMinMax = NULL,
@@ -96,7 +97,8 @@ utils::globalVariables(c(
                              thresh = 550,
                              weighted = TRUE,
                              # bufferedRealHistoricalFiresList,
-                             verbose = TRUE) { # fireSense_SpreadFitRaster
+                             verbose = 2,
+                             ...) { # fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
 
@@ -125,11 +127,11 @@ utils::globalVariables(c(
   lapply(nonAnnualDTx1000, setDT)
   # lapply(fireBufferedListDT, setDT)
   # dtThreadsOrig <- data.table::setDTthreads(1)
-  if (is(FS_formula, "formula")) {
-    stop("FS_formula must be provided as a charater string because it takes too much RAM otherwise.")
+  if (is(formulaToFit, "formula")) {
+    stop("formulaToFit must be provided as a charater string because it takes too much RAM otherwise.")
   }
-  FS_formula <- as.formula(FS_formula, env = .GlobalEnv)
-  colsToUse <- attributes(terms(FS_formula))[["term.labels"]]
+  formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
+  colsToUse <- attributes(terms(formulaToFit))[["term.labels"]]
   # How many of the parameters belong to the model?
   parsModel <- length(colsToUse)
   ncells <- ncell(landscape)
@@ -345,7 +347,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
-                        plot.it, verbose = TRUE) {
+                        plot.it, verbose = 2) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -429,7 +431,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   summ <- summary(nonEdgeValues)
   lowSPLowEnough <- summ[2] < lanscape1stQuantileThresh
 
-  if (verbose) {
+  if (verbose > 1) {
     if (isTRUE(!spreadOutEnough)) {
       print(paste0(
         "  ",
@@ -447,7 +449,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   }
 
   if (medSPRight && spreadOutEnough && lowSPLowEnough) {
-    if (verbose) {
+    if (verbose > 1) {
       ww <- if (isTRUE(weighted)) "weighted" else "unweighted"
       print(paste0(
         " ",

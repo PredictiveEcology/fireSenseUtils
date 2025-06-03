@@ -18,16 +18,16 @@ runDEoptim(
   trace,
   strategy,
   cores = NULL,
+  paths,
   libPath = .libPaths()[1],
   logPath = tempfile(sprintf("fireSense_SpreadFit_\%s_", format(Sys.time(),
     "\%Y-\%m-\%d_\%H\%M\%S")), fileext = ".log"),
   doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
-  cachePath,
   iterStep = 25,
   lower,
   upper,
   mutuallyExclusive,
-  FS_formula,
+  formulaToFit,
   objFunCoresInternal,
   covMinMax = covMinMax,
   tests = c("SNLL", "adTest"),
@@ -47,7 +47,7 @@ DEoptimIterative(
   lower,
   upper,
   control,
-  FS_formula,
+  formulaToFit,
   covMinMax,
   tests = c("SNLL", "adTest"),
   objFunCoresInternal,
@@ -120,8 +120,6 @@ does internally.}
 
 \item{doObjFunAssertions}{logical indicating whether to do assertions.}
 
-\item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
-
 \item{iterStep}{Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
 the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
 each step, this function will plot, optionally, the parameter histograms (if
@@ -141,7 +139,7 @@ the name of that list element is non-zero. Default is \code{list("youngAge" = li
 meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
 is non-zero.}
 
-\item{FS_formula}{Passed to \code{DEoptim}}
+\item{formulaToFit}{Passed to \code{DEoptim}}
 
 \item{objFunCoresInternal}{Integer. The number of cores to use for potential
 parallelization \emph{within} a single call to the objective function (\code{fireSenseUtils::.objfunSpreadFit}).
@@ -174,6 +172,8 @@ Passed to internal plotting functions (likely via \code{quickPlot::Plots} or \co
 \item{control}{passed to DEoptim.control}
 
 \item{figPath}{directory where figures will be saved, if relevant}
+
+\item{cachePath}{The \code{cachePath} to store cache in. Should likely be \code{cachePath(sim)}}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
