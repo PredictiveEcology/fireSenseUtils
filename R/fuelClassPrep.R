@@ -285,36 +285,73 @@ combine_fuel_classes <- function(df, targetFuelClasses = 5, lowThreshold = 0.05)
   #fix the names in the event the original fuel classes aren't accurate
   #(e.g. SprcFrLrch may not contain Fir and/or Larch)
   if (any(df$species != df$assignedFuelClass)) {
-    needsNewNames <- df[assignedFuelClass != species, .(assignedFuelClass, species)]
-    #if there is an underscore assume it separates genus/species
-    hasUnderscore <- needsNewNames[grep("_", species)]
-
-    myFun <- function(STRING, placement){
-      out <- strsplit(STRING, split = "_")
-      sapply(out, "[[", placement)
-    }
-    hasUnderscore[, genus := abbreviate(species)]
-    hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcol = "genus"]
-    hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcol = "species"]
-    hasUnderscore[, spec := substr(spec, start = 1, stop = 2)]
-    hasUnderscore[, newName := paste0(genus, "_", spec)]
-    hasUnderscore[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
-    hasUnderscore <- hasUnderscore[, .(assignedFuelClass, species, newName)]
-
-    #else
-    needsNewNames <- needsNewNames[!species %in% hasUnderscore$species]
-    needsNewNames[, newName := abbreviate(species, minlength = 5, strict = TRUE)]
-    needsNewNames[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
-    #join
-    needsNewNames <- rbind(hasUnderscore, needsNewNames)
-    needsNewNames <- needsNewNames[, .(species, newName)]
-
-
-    df <- needsNewNames[df, on = c("species")]
-    df[!is.na(newName), assignedFuelClass := newName]
-    df[, newName := NULL]
+    df <- abbreviateSpNames(df)
+    # needsNewNames <- df[assignedFuelClass != species, .(assignedFuelClass, species)]
+    # #if there is an underscore assume it separates genus/species
+    # hasUnderscore <- needsNewNames[grep("_", species)]
+    #
+    # myFun <- function(STRING, placement){
+    #   out <- strsplit(STRING, split = "_")
+    #   sapply(out, "[[", placement)
+    # }
+    # hasUnderscore[, genus := abbreviate(species)]
+    # hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcol = "genus"]
+    # hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcol = "species"]
+    # hasUnderscore[, spec := substr(spec, start = 1, stop = 2)]
+    # hasUnderscore[, newName := paste0(genus, "_", spec)]
+    # hasUnderscore[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
+    # hasUnderscore <- hasUnderscore[, .(assignedFuelClass, species, newName)]
+    #
+    # #else
+    # needsNewNames <- needsNewNames[!species %in% hasUnderscore$species]
+    # needsNewNames[, newName := abbreviate(species, minlength = 5, strict = TRUE)]
+    # needsNewNames[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
+    # #join
+    # needsNewNames <- rbind(hasUnderscore, needsNewNames)
+    # needsNewNames <- needsNewNames[, .(species, newName)]
+    #
+    #
+    # df <- needsNewNames[df, on = c("species")]
+    # df[!is.na(newName), assignedFuelClass := newName]
+    # df[, newName := NULL]
   }
   df[, N := .N, .(assignedFuelClass)]
 
   return(df[])
+}
+
+
+#' Abbreviate species names for fuel classes
+abbreviateSpNames <- function(df) {
+  afcName <- "assignedFuelClass"
+  if (is.null(df[[afcName]]))
+    set(df, NULL, afcName, sapply(seq(NROW(df)), function(x) basename(tempfile())))
+  needsNewNames <- df[assignedFuelClass != species, .(assignedFuelClass, species)]
+  #if there is an underscore assume it separates genus/species
+  hasUnderscore <- needsNewNames[grep("_", species)]
+
+  myFun <- function(STRING, placement){
+    out <- strsplit(STRING, split = "_")
+    sapply(out, "[[", placement)
+  }
+  hasUnderscore[, genus := abbreviate(species)]
+  hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcol = "genus"]
+  hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcol = "species"]
+  hasUnderscore[, spec := substr(spec, start = 1, stop = 2)]
+  hasUnderscore[, newName := paste0(genus, "_", spec)]
+  hasUnderscore[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
+  hasUnderscore <- hasUnderscore[, .(assignedFuelClass, species, newName)]
+
+  #else
+  needsNewNames <- needsNewNames[!species %in% hasUnderscore$species]
+  needsNewNames[, newName := abbreviate(species, minlength = 5, strict = TRUE)]
+  needsNewNames[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
+  #join
+  needsNewNames <- rbind(hasUnderscore, needsNewNames)
+  needsNewNames <- needsNewNames[, .(species, newName)]
+
+
+  df <- needsNewNames[df, on = c("species")]
+  df[!is.na(newName), assignedFuelClass := newName]
+  df[, newName := NULL]
 }
