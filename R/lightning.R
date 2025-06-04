@@ -75,6 +75,7 @@ readLightningData <- function(filename, ...) {
   } else {
     dims <- dim(a)
     ldsv <- terra::vect(ld)
+    crsToUse <- "+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
     ld2 <- postProcess(ldsv, projectTo = crsToUse, field = ldName)
     ext <- round(terra::ext(ld2), digits = -4)
     rtm10k <- rast(ext, res = as.integer(res10k), vals = 1, crs = crsToUse)
