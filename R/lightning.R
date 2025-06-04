@@ -11,6 +11,8 @@
 #'   default to resolution of `10000` m (10kmx10km).
 #'
 #' @export
+#' @importFrom data.table fread dcast
+#' @importFrom terra res rast rasterize aggregate focal
 #' @details
 #' Please publication: https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117#d1e886
 #'
