@@ -45,7 +45,7 @@ utils::globalVariables(c(
 #'   `dirname(logPath)` must exist on each machine, though the function will make sure it
 #'   does internally.
 #' @param doObjFunAssertions logical indicating whether to do assertions.
-#' @param path see `SpaDES.core::paths` - list of paths containing the `cachePath` to store cache.
+#' @param paths see `SpaDES.core::paths` - list of paths containing the `cachePath` to store cache.
 #'    Should likely be `cachePath(sim)`
 #' @param iterStep Integer. Must be less than `itermax`. This will cause `DEoptim` to run
 #'   the `itermax` iterations in `ceiling(itermax / iterStep)` steps. At the end of
@@ -93,7 +93,7 @@ runDEoptim <- function(landscape,
                        trace,
                        strategy,
                        cores = NULL,
-                       path,
+                       paths,
                        libPath = .libPaths()[1],
                        logPath = tempfile(sprintf(
                          "fireSense_SpreadFit_%s_",
