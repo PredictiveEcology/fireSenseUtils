@@ -28,8 +28,13 @@ library(reproducible)
 crsToUse <- "+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
 ras <- rast(ext(-1115000, -376750, 7267000, 7874000), res = 250, vals = 1,
             crs = crsToUse)
-lightningDensity <-
-  prepInputs(url = '12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr',
-             fun = readLightningData(targetFile, to = ras))
+# folder: https://drive.google.com/drive/folders/1ftpKKUO8BZcJ9ba4LDWcmF5uQkpRGmku?usp=drive_link
+data <- list(lightningDays = "1jeKJquhVJsesoNk2EPP1QZkttX3Zwp5c",
+             lightningDensity = "12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr" ,
+             positiveCG = "1bn6cQ23tvPicFLHn1tz4Z3AqDzJI4r60",
+             positiveCGdensity = "1GNixhXj1Ex1jT0tWXfhmxef-dX3ze1a4")
+lightning <- Map(url = data, function(url)
+  prepInputs(url = url,
+             fun = readLightningData(targetFile, to = ras)))
 
 }
