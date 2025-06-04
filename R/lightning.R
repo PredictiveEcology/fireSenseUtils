@@ -2,6 +2,8 @@
 #'
 #' Data is not publicly available. It is currently stored in a User Access Controlled
 #' location. Data comes from William Burrows. Please contact him to obtain data.
+#' This function will get the data (which is in a .txt format) and do all the necessary
+#' sequence of calculations to create a SpatRaster. By default, it will
 #'
 #' @param filename The local filename to read with `data.table::fread`
 #' @param ... Passed to `postProcess`, e.g., `to`, `maskTo`
@@ -47,10 +49,10 @@ readLightningData <- function(filename, ...) {
   ld = sf::st_as_sf(d[, -"plotID"], coords = c("Long", "Lat"),
                     crs = 4326, agr = "constant")
   dots <- list(...)
+  res10k <- 1e4
 
-  if (!is.null(dots)) {
+  if (length(dots)) {
     ld <- postProcess(ld, ...)
-    res10k <- 1e4
     # if (length(to) > 1) {
     gridded <- mapply(x = dots, function(x) isGridded(x), SIMPLIFY = TRUE)
     # area <- sapply(dots, SpaDES.project:::areas, USE.NAMES = TRUE)
@@ -70,6 +72,14 @@ readLightningData <- function(filename, ...) {
 
     ld <- postProcess(ld, ...) # bring it back to resolution of to if supplied
 
+  } else {
+    dims <- dim(a)
+    ldsv <- terra::vect(ld)
+    ld2 <- postProcess(ldsv, projectTo = crsToUse, field = ldName)
+    ext <- round(terra::ext(ld2), digits = -4)
+    rtm10k <- rast(ext, res = as.integer(res10k), vals = 1, crs = crsToUse)
+    b <- terra::rasterize(ld2, rtm10k, field = ldName)
+    ld <- terra::focal(b, 3, "mean", na.policy="only")
   }
   ld
 }
