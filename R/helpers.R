@@ -31,6 +31,32 @@ logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par4
 }
 
+
+#' @param par4 DESCRIPTION NEEDED
+#' @export
+#' @rdname logistic
+logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb) {
+  if (length(logisticPars) == 4) {
+    stop("logistic with 4 parameters not tested yet")
+    logistic4p(mat %*% covPars, logisticPars)
+  } else if (length(logisticPars) == 3) {
+    logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb)
+  } else if (length(logisticPars) == 2) {
+    logistic2p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb)
+  }
+}
+
+# logisticAll <- function(logisticPars, covsDT, mat, covPars, lowerSpreadProb) {
+#   if (length(logisticPars) == 4) {
+#     stop("logistic with 4 parameters not tested yet")
+#     set(covsDT, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
+#   } else if (length(logisticPars) == 3) {
+#     set(covsDT, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
+#   } else if (length(logisticPars) == 2) {
+#     set(covsDT, NULL, "spreadProb", logistic2p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb, par4 = 0.5))
+#   }
+# }
+
 #' Replace `NA`s in a `data.table` with zeros
 #'
 #' @param DT DESCRIPTION NEEDED
@@ -183,3 +209,25 @@ rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
 }
 
 asInteger <- function(x) as.integer(floor(x + 0.5))
+
+
+
+paramsSeparate <- function(par, parsModel) {
+  covPars <- tail(x = par, n = parsModel)
+  logisticPars <- head(x = par, n = length(par) - parsModel)
+  list(covPars = covPars, logisticPars = logisticPars)
+}
+
+
+
+#' Log with a minimum
+#'
+#' This is used for transforming Biomass to the log scale
+#' @export
+#' @param x Any value to be adjusted with log and a minimum B
+#' @return The original vector, logged with a minimum
+logMinB <- function(x) {
+  minimumB <- exp(log(100) - 1)
+  x[x < minimumB] <- minimumB
+  x <- log(x)
+}
