@@ -211,7 +211,19 @@ rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
 asInteger <- function(x) as.integer(floor(x + 0.5))
 
 
-
+#' Split the character vector of parameters into covPars and logisticPars
+#'
+#' DEoptim does not differentiate between the logistic parameters and the covariates.
+#' This splits the vector into the correct components. The split is based on the
+#' number of covariates. Therefore the number of logistic parameters is deduced
+#' from `length(pars) - parsModel`.
+#'
+#' @param par Numeric vector of all parameters. The covariate parameters must be the
+#'   second group.
+#' @param parsModel Integer. The number of covariates.
+#' @return list of 2 numeric vectors `covPars` and `logisticPars`, representing the
+#'   parameters for the covariates and the logistic equation, respectively.
+#' @export
 paramsSeparate <- function(par, parsModel) {
   covPars <- tail(x = par, n = parsModel)
   logisticPars <- head(x = par, n = length(par) - parsModel)
