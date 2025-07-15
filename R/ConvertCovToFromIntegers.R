@@ -48,6 +48,15 @@ covsX1000AndSetDF <- function(annualList, nonAnnualList, fireBufferedList, fireL
 }
 
 
+#' Convert numeric values to integers x 1000
+#'
+#' This simply converts to integers times 1000 so that the values can be saved
+#' more quickly to disk, for example.
+#'
+#' @param lst a data.frame of (at least some) numeric columns
+#' @param omitCols character A vector of column names to not convert
+#' @return The same data.frame, but with columns converted to integer and times 1000
+#' @export
 toX1000 <- function(lst, omitCols = "pixelID") {
   annualDTx1000 <- lapply(lst, function(dt) {
     setDT(dt)
