@@ -342,7 +342,8 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
 #' @importFrom SpaDES.core Plots
 #' @importFrom tidyr gather
 objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
-                        annualFires, nonAnnualDTx1000, annualFireBufferedDT,
+                        annualFires, nonAnnualDTx1000, shortAnnDTx1000 = NULL,
+                        annualFireBufferedDT,
                         indexNonAnnual, colsToUse, covMinMax, mutuallyExclusive,
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
                         weighted,
@@ -353,27 +354,73 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   # needed because data.table objects were recovered from disk
   # Rescale to numerics and /1000
   # setDT(nonAnnDTx1000)
-  setDT(annDTx1000)
-  shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
-  if (!is.null(covMinMax)) {
-    for (cn in colnames(covMinMax)) {
-      set(
-        shortAnnDTx1000, NULL, cn,
-        rescaleKnown2(
-          shortAnnDTx1000[[cn]], 0, 1000,
-          covMinMax[[cn]][1] * 1000,
-          covMinMax[[cn]][2] * 1000
-        )
-      )
-    }
-  }
-  if (!is.null(mutuallyExclusive)) {
-    shortAnnDTx1000 <- makeMutuallyExclusive(
-      dt = shortAnnDTx1000,
-      mutuallyExclusiveCols = mutuallyExclusive
-    )
-  }
-  mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
+  # matrix multiplication
+  parsList <- paramsSeparate(par, parsModel)
+  logisticPars <- parsList[["logisticPars"]]
+  covPars <- parsList[["covPars"]]
+
+  browser()
+  shortAnnDTx1000 <-
+    spreadProbFromIntegerCovs(shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
+             indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
+             doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb)
+
+  set(shortAnnDTx1000, NULL, "spreadProb",
+      logisticAll(logisticPars, mat = as.matrix(shortAnnDTx1000[, ..colsToUse]), covPars, lowerSpreadProb))
+
+
+  # shortAnnDTx1000 <- rescaleAllCovsFromX1000(annDTx1000 = annDTx1000,
+  #                                   nonAnnualDTx1000 = nonAnnualDTx1000,
+  #                                   indexNonAnnual = indexNonAnnual,
+  #                                   yr = yr, covMinMax = covMinMax,
+  #                                   mutuallyExclusive = mutuallyExclusive,
+  #                                   colsToUse = colsToUse)
+  # setDT(annDTx1000)
+  # if (is.null(shortAnnDTx1000))
+  #   shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
+  # if (!is.null(covMinMax)) {
+  #   for (cn in colnames(covMinMax)) {
+  #     set(
+  #       shortAnnDTx1000, NULL, cn,
+  #       rescaleKnown2(
+  #         shortAnnDTx1000[[cn]], 0, 1000,
+  #         covMinMax[[cn]][1] * 1000,
+  #         covMinMax[[cn]][2] * 1000
+  #       )
+  #     )
+  #   }
+  # }
+  # if (!is.null(mutuallyExclusive)) {
+  #   shortAnnDTx1000 <- makeMutuallyExclusive(
+  #     dt = shortAnnDTx1000,
+  #     mutuallyExclusiveCols = mutuallyExclusive
+  #   )
+  # }
+  # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
+  # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse])
+  # if (doAssertions) {
+  #   test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
+  #   test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
+  #   if (!all(test1, test2)) {
+  #     stop("Covariates are not all between 0 and 1, which they should be")
+  #   }
+  # }
+  # # matrix multiplication
+  # parsList <- paramsSeparate(par, parsModel)
+  # logisticPars <- parsList[["logisticPars"]]
+  # covPars <- parsList[["covPars"]]
+  #
+  # # covPars <- tail(x = par, n = parsModel)
+  # # logisticPars <- head(x = par, n = length(par) - parsModel)
+  # if (logisticPars[1] > maxFireSpread) {
+  #   warning(
+  #     "The first parameter of the logistic is > ", maxFireSpread, ".",
+  #     "The parameter should be lowered."
+  #   )
+  # }
+  #
+  # set(shortAnnDTx1000, NULL, "spreadProb", logisticAll(logisticPars, mat, covPars, lowerSpreadProb))
+
   if (SpaDES.core::anyPlotting(plot.it)) {
     par(
       mfrow = c(5, 6), omi = c(0.5, 0, 0, 0),
@@ -388,30 +435,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # Map(dat = as.data.frame(mat), nam = colnames(mat), function(dat, nam) {
     #   hist(dat, main = nam)})
   }
-  if (doAssertions) {
-    test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
-    test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
-    if (!all(test1, test2)) {
-      stop("Covariates are not all between 0 and 1, which they should be")
-    }
-  }
-  # matrix multiplication
-  covPars <- tail(x = par, n = parsModel)
-  logisticPars <- head(x = par, n = length(par) - parsModel)
-  if (logisticPars[1] > maxFireSpread) {
-    warning(
-      "The first parameter of the logistic is > ", maxFireSpread, ".",
-      "The parameter should be lowered."
-    )
-  }
-  if (length(logisticPars) == 4) {
-    stop("logistic with 4 parameters not tested yet")
-    set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
-  } else if (length(logisticPars) == 3) {
-    set(shortAnnDTx1000, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
-  } else if (length(logisticPars) == 2) {
-    set(shortAnnDTx1000, NULL, "spreadProb", logistic2p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb, par4 = 0.5))
-  }
+
+  # shortAnnDTx1000 <- logisticAll(logisticPars, shortAnnDTx1000, mat, covPars, lowerSpreadProb)
+  # if (length(logisticPars) == 4) {
+  #   stop("logistic with 4 parameters not tested yet")
+  #   set(shortAnnDTx1000, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
+  # } else if (length(logisticPars) == 3) {
+  #   set(shortAnnDTx1000, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
+  # } else if (length(logisticPars) == 2) {
+  #   set(shortAnnDTx1000, NULL, "spreadProb", logistic2p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb, par4 = 0.5))
+  # }
   # logistic multiplication
   # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
   # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
@@ -507,11 +540,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       #   mai = c(0.2, 0.3, 0.4, 0.1)
       # )
 
-      lapply(colnames(mat), function(cn) hist(mat[, cn], main = cn))
+      lapply(colsToUse, function(cn) hist(shortAnnDTx1000[[cn]], main = cn))
       mtext(side = 3, "Histograms of distribution of rescaled variables", outer = TRUE, line = -1)
       hist(nonEdgeValues, main = "spreadProb")
-      sam <- sample(NROW(mat), NROW(mat) / 100)
-      val <- mat[sam, ] %*% covPars
+      sam <- sample(NROW(shortAnnDTx1000), NROW(shortAnnDTx1000) / 100)
+      val <- as.matrix(shortAnnDTx1000[sam, ..colsToUse]) %*% covPars
+      # val <- mat[sam, ] %*% covPars
       plot(val, shortAnnDTx1000$spreadProb[sam],
         pch = ".",
         main = paste0("logits: ", paste(round(logisticPars, 2), collapse = ", "))
@@ -725,3 +759,68 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 
   return(ret)
 }
+
+
+
+#' Convert covariates from their x1000 Integer to useable by spread
+#' @export
+spreadProbFromIntegerCovs <-
+  function(shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
+           indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
+           doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb) {
+    # rescaleA <- function(annDTx1000, shortAnnDTx1000, nonAnnualDTx1000, indexNonAnnual,
+    #                      yr, covMinMax, mutuallyExclusive, colsToUse, doAssertions, logisticPars, maxFireSpread, covPars, lowerSpreadProb) {
+
+    if (!missing(annDTx1000))
+      setDT(annDTx1000)
+    if (is.null(shortAnnDTx1000))
+      shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
+    if (!is.null(covMinMax)) {
+      for (cn in colnames(covMinMax)) {
+        set(
+          shortAnnDTx1000, NULL, cn,
+          rescaleKnown2(
+            shortAnnDTx1000[[cn]], 0, 1000,
+            covMinMax[[cn]][1] * 1000,
+            covMinMax[[cn]][2] * 1000
+          )
+        )
+      }
+    }
+    if (!is.null(mutuallyExclusive)) {
+      shortAnnDTx1000 <- makeMutuallyExclusive(
+        dt = shortAnnDTx1000,
+        mutuallyExclusiveCols = mutuallyExclusive
+      )
+    }
+    # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
+    for (cn2 in colsToUse)
+      set(shortAnnDTx1000, NULL, cn2, shortAnnDTx1000[[cn2]] / 1000)
+
+    if (doAssertions) {
+      test1 <- sum(apply(round(shortAnnDTx1000[, ..colsToUse], 3), 2, min) < 0) == 0
+      test2 <- sum(apply(round(shortAnnDTx1000[, ..colsToUse], 3), 2, max) > 1) == 0
+
+      # test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
+      # test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
+      if (!all(test1, test2)) {
+        stop("Covariates are not all between 0 and 1, which they should be")
+      }
+      if (logisticPars[1] > maxFireSpread) {
+        warning(
+          "The first parameter of the logistic is > ", maxFireSpread, ".",
+          "The parameter should be lowered."
+        )
+      }
+
+    }
+
+    # covPars <- tail(x = par, n = parsModel)
+    # logisticPars <- head(x = par, n = length(par) - parsModel)
+    shortAnnDTx1000
+  }
+
+
+
+
+
