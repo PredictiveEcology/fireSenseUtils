@@ -19,7 +19,7 @@
 #' Please publication: https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117#d1e886
 #'
 #' @examples
-#' library(reproducible)
+#' library(reproducible); library(terra)
 #' crsToUse <- "+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
 #' ras <- rast(ext(-1115000, -376750, 7267000, 7874000), res = 250, vals = 1,
 #'             crs = crsToUse)

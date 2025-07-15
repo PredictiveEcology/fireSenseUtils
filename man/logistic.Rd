@@ -5,6 +5,7 @@
 \alias{logistic5p}
 \alias{logistic3p}
 \alias{logistic2p}
+\alias{logisticAll}
 \title{Four- and five-parameter logistic functions}
 \usage{
 logistic4p(x, par)
@@ -14,6 +15,8 @@ logistic5p(x, par)
 logistic3p(x, par, par1 = 0.1)
 
 logistic2p(x, par, par1 = 0.1, par4 = 0.5)
+
+logisticAll(logisticPars, mat, covPars, lowerSpreadProb)
 }
 \arguments{
 \item{x}{DESCRIPTION NEEDED}

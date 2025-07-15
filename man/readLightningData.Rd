@@ -19,12 +19,14 @@ default to resolution of \code{10000} m (10kmx10km).
 \description{
 Data is not publicly available. It is currently stored in a User Access Controlled
 location. Data comes from William Burrows. Please contact him to obtain data.
+This function will get the data (which is in a .txt format) and do all the necessary
+sequence of calculations to create a SpatRaster. By default, it will
 }
 \details{
 Please publication: https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117#d1e886
 }
 \examples{
-library(reproducible)
+library(reproducible); library(terra)
 crsToUse <- "+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
 ras <- rast(ext(-1115000, -376750, 7267000, 7874000), res = 250, vals = 1,
             crs = crsToUse)
