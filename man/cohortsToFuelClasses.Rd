@@ -26,7 +26,7 @@ number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}
 \item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
 and NA no data}
 
-\item{landcoverDT}{Optional table of nonforest landcovers and pixel indices.
+\item{landcoverDT}{Optional table of non-forest land cover classes and pixel indices.
 It will override pixel values in \code{cohortData}, if supplied.}
 
 \item{sppEquiv}{table with species name equivalencies between the kNN and final naming formats.
@@ -42,7 +42,7 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{fuelClassCol}{the column in \code{sppEquiv} that describes unique fuel classes}
 }
 \value{
-a \code{SpatRaster} of biomass by fuel class as determined by \code{fuelClassCol} and \code{cohortData}
+a \code{SpatRaster} of biomass by fuel class as determined by \code{fuelClassCol} and \code{cohortData}.
 }
 \description{
 Classify \code{pixelGroups} by flammability

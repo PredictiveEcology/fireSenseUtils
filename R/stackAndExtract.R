@@ -1,11 +1,10 @@
 utils::globalVariables(c(
-  "nFires", "cell"
+  "cell", "nFires"
 ))
 
-
-#' prepare covariate table with ignition year, fuel class, climate value, and land cover
+#' Prepare covariate table with ignition year, fuel class, climate value, and land cover
 #'
-#' @param years character vector of fire years with FS notation e.g. year2002
+#' @param years character vector of fire years with FS notation e.g. `"year2002"`
 #' @param fuel raster brick of aggregated fuel classes
 #' @param LCC raster brick of aggregated LCC classes
 #' @param climate list of raster layers named by climate variable

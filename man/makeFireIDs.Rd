@@ -2,7 +2,7 @@
 % Please edit documentation in R/rasterFireFunctions.R
 \name{makeFireIDs}
 \alias{makeFireIDs}
-\title{identify each year's individual fires and buffer them accordingly}
+\title{Identify each year's individual fires and buffer them accordingly}
 \usage{
 makeFireIDs(
   year,
@@ -27,15 +27,15 @@ belonging to the same fire}
 
 \item{areaMultiplier}{A scalar that will buffer \code{areaMultiplier * fireSize}}
 
-\item{minSize}{The absolute minimum size of the buffer & non-buffer together. This will
-be imposed after \code{areaMultiplier}.}
+\item{minSize}{The absolute minimum size of the buffer & non-buffer together.
+This will be imposed after \code{areaMultiplier}.}
 
 \item{verb}{Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
 }
 \value{
-a data.table with fire ID, buffer status, and pixelID
+a data.table with fire ID, buffer status, and \code{pixelID}
 }
 \description{
-identify each year's individual fires and buffer them accordingly
+Identify each year's individual fires and buffer them accordingly
 }

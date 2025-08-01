@@ -15,15 +15,11 @@ utils::globalVariables(c(
 #' @param plotAUC Logical. Should the plot of the AUC be made.
 #'
 #' @details
-#' This was inspired by reading here:
+#' This was inspired by reading
 #' <https://www.datanovia.com/en/blog/types-of-clustering-methods-overview-and-quick-start-r-code/>
-#' and here:
-#' <https://www.datanovia.com/en/lessons/model-based-clustering-essentials/>, with
-#' citation here:
-#' Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering,
-#' classification and density estimation using Gaussian finite mixture models,
-#' The R Journal, 8/1, pp. 205-233.
-#' <https://journal.r-project.org/archive/2016/RJ-2016-021/RJ-2016-021.pdf>
+#' and
+#' <https://www.datanovia.com/en/lessons/model-based-clustering-essentials/>,
+#' based on Scrucca et al. (2016).
 #'
 #' @section The algorithm:
 #' The basic solution is to take all covariates, including the binary "not burned", "burned"
@@ -42,27 +38,33 @@ utils::globalVariables(c(
 #'
 #' @section How much data to include:
 #' This has not been tested yet; however, I believe that having a relatively similar
-#' number of "burned" and "unburned" pixels (within 3x either way), is probably a good idea.
+#' number of "burned" and "unburned" pixels (within `3x` either way), is probably a good idea.
 #' In other words, if there are 100,000 burned data points, there should be between 30,000 and
 #' 300,000 unburned data points. If there are already buffers around the burned polygons that
-#' include unburned pixels, then these buffers can be used as part of the unburned
-#' content.
+#' include unburned pixels, then these buffers can be used as part of the unburned content.
 #'
 #' @return
 #' A list with 2 elements, first the `model`, which comes from `mclust::Mclust`,
 #' and second the Area Under the Curve or AUC as an indicator of the overall goodness of fit.
 #'
-#' @rdname burnClass
+#' @references Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering,
+#' classification and density estimation using Gaussian finite mixture models,
+#' The R Journal, 8/1, pp. 205-233.
+#' <https://journal.r-project.org/archive/2016/RJ-2016-021/RJ-2016-021.pdf>
+#'
+#' @author Eliot McIntire
+#' @export
 #' @importFrom mclust Mclust mclustBIC
 #' @importFrom pROC roc
 #' @importFrom utils modifyList
-#' @author Eliot McIntire
-#' @export
+#' @rdname burnClass
+#'
 #' @examples
 #' \dontrun{
 #' #################################
 #' # Use own data; here is a generated set for reprex
-#' library("data.table")
+#' withr::local_package("data.table")
+#'
 #' N <- 1e5
 #' DT <- list()
 #' for (i in c("train", "test")) {
@@ -89,6 +91,9 @@ utils::globalVariables(c(
 #' # predict -- add Burn Class to object
 #' set(DT[["test"]], NULL, "burnClass", burnClassPredict(bc$model, df = DT[["test"]]))
 #' prob <- burnProbFromClass(bc$model, DT[["test"]])
+#'
+#' ## cleanup
+#' withr::deferred_run()
 #' }
 burnClassGenerator <- function(df, numClasses = 4:9, AUC = TRUE, plotAUC = FALSE) {
   df <- as.data.table(df)

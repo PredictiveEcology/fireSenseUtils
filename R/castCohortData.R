@@ -14,7 +14,7 @@ globalVariables(c(
 #' @param cutoffForYoungAge Numeric. Default is 15. This is the age below which the pixel is considered
 #'   "young" --> `youngAge` column will be 1 if `age <= 15`
 #'
-#' @return a trimmed `cohortData` with wide-layout and rows for every pixel in lcc
+#' @return a trimmed `cohortData` with wide-layout and rows for every pixel in `lcc`
 #'
 #' @export
 #' @importFrom terra rast values

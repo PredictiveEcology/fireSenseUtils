@@ -1,5 +1,6 @@
-require("terra")
 test_that("makeLandcoverDT works", {
+  withr::local_package("terra")
+
   flammableRTM <- terra::rast(xmin = 0, xmax = 15, ymin = 0, ymax = 15, res = c(1, 1))
   flammableRTM[] <- sample(0:1, ncell(flammableRTM), replace = TRUE)
   rstLCC <- terra::rast(xmin = 0, xmax = 20, ymin = 0, ymax = 20, res = c(1, 1))
@@ -12,4 +13,7 @@ test_that("makeLandcoverDT works", {
     nonForestedLCCGroups = nonForestLCCgroups
   )
   expect_true(sum(flammableRTM[]) == nrow(out))
+
+  ## cleanup
+  withr::deferred_run()
 })

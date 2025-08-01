@@ -40,15 +40,11 @@ and second the Area Under the Curve or AUC as an indicator of the overall goodne
 Generate, Summarize, Predict Burn Classes from Covariates
 }
 \details{
-This was inspired by reading here:
+This was inspired by reading
 \url{https://www.datanovia.com/en/blog/types-of-clustering-methods-overview-and-quick-start-r-code/}
-and here:
-\url{https://www.datanovia.com/en/lessons/model-based-clustering-essentials/}, with
-citation here:
-Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering,
-classification and density estimation using Gaussian finite mixture models,
-The R Journal, 8/1, pp. 205-233.
-\url{https://journal.r-project.org/archive/2016/RJ-2016-021/RJ-2016-021.pdf}
+and
+\url{https://www.datanovia.com/en/lessons/model-based-clustering-essentials/},
+based on Scrucca et al. (2016).
 }
 \section{The algorithm}{
 
@@ -72,18 +68,18 @@ E.g., For land cover, wetland class can be converted to a column "wetland" with
 \section{How much data to include}{
 
 This has not been tested yet; however, I believe that having a relatively similar
-number of "burned" and "unburned" pixels (within 3x either way), is probably a good idea.
+number of "burned" and "unburned" pixels (within \verb{3x} either way), is probably a good idea.
 In other words, if there are 100,000 burned data points, there should be between 30,000 and
 300,000 unburned data points. If there are already buffers around the burned polygons that
-include unburned pixels, then these buffers can be used as part of the unburned
-content.
+include unburned pixels, then these buffers can be used as part of the unburned content.
 }
 
 \examples{
 \dontrun{
 #################################
 # Use own data; here is a generated set for reprex
-library("data.table")
+withr::local_package("data.table")
+
 N <- 1e5
 DT <- list()
 for (i in c("train", "test")) {
@@ -110,7 +106,16 @@ bc <- burnClassGenerator(DT[["train"]], 4:8)
 # predict -- add Burn Class to object
 set(DT[["test"]], NULL, "burnClass", burnClassPredict(bc$model, df = DT[["test"]]))
 prob <- burnProbFromClass(bc$model, DT[["test"]])
+
+## cleanup
+withr::deferred_run()
 }
+}
+\references{
+Scrucca L., Fop M., Murphy T. B. and Raftery A. E. (2016) mclust 5: clustering,
+classification and density estimation using Gaussian finite mixture models,
+The R Journal, 8/1, pp. 205-233.
+\url{https://journal.r-project.org/archive/2016/RJ-2016-021/RJ-2016-021.pdf}
 }
 \author{
 Eliot McIntire

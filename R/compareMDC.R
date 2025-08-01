@@ -5,17 +5,23 @@ utils::globalVariables(c(
 #' Plot the historical and projected MDC for a flammable land surface
 #'
 #' @param historicalMDC raster stack of historical MDC
+#'
 #' @param projectedMDC raster stack of projected MDC
-#' @param flammableRTM an optional raster of flammable pixels to subset data
+#'
+#' @template flammableRTM
+#'
 #' @param Ylimits the upper and lower MDC range for the plot
+#'
 #' @param firstHistoricalYear the earliest year of historical data
+#'
 #' @param firstProjectedYear the earliest year of projected data
-#' @return a ggplot object
+#'
+#' @return a `ggplot` object
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist
 #' @importFrom stats median
-#' @importFrom ggplot2 geom_line geom_smooth ggplot coord_cartesian
+#' @importFrom ggplot2 coord_cartesian geom_line geom_smooth ggplot
 #' @importFrom terra ncell nlyr rast values
 #'
 #' @examples

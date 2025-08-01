@@ -2,7 +2,7 @@
 % Please edit documentation in R/rasterFireFunctions.R
 \name{bufferToAreaRast}
 \alias{bufferToAreaRast}
-\title{create a variable sized buffer around a set of pixels belonging to the same fire ID}
+\title{Create a variable sized buffer around a set of pixels belonging to the same fire ID}
 \usage{
 bufferToAreaRast(fireIDraster, areaMultiplier, minSize, flammableRTM, verb = 1)
 }
@@ -11,17 +11,18 @@ bufferToAreaRast(fireIDraster, areaMultiplier, minSize, flammableRTM, verb = 1)
 
 \item{areaMultiplier}{A scalar that will buffer \code{areaMultiplier * fireSize}}
 
-\item{minSize}{The absolute minimum size of the buffer & non-buffer together. This will
-be imposed after \code{areaMultiplier}.}
+\item{minSize}{The absolute minimum size of the buffer & non-buffer together.
+This will be imposed after \code{areaMultiplier}.}
 
-\item{flammableRTM}{@template flammableRTM}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 
 \item{verb}{Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
 }
 \value{
-a data.table with fire ID, buffer status, and pixelID
+a data.table with fire ID, buffer status, and \code{pixelID}
 }
 \description{
-create a variable sized buffer around a set of pixels belonging to the same fire ID
+Create a variable sized buffer around a set of pixels belonging to the same fire ID
 }

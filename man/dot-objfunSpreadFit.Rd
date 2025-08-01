@@ -31,49 +31,51 @@
 \arguments{
 \item{par}{parameters}
 
-\item{landscape}{A SpatRaster with extent, res, proj used for SpaDES.tools::spread2}
+\item{landscape}{A \code{SpatRaster} with extent, resolution, and projection (crs) used for
+\link[SpaDES.tools:spread2]{SpaDES.tools::spread2}.}
 
 \item{annualDTx1000}{A list of data.table class objects. Each list element is
-data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
-year. The columns in the data.table must integers, that are 1000x their actual values as
-this function will divide by 1000.}
+data from a single calendar year, and whose name takes the form \code{"yearxxxx"},
+where \code{xxxx} is the four-digit year. The columns in the data.table must integers,
+that are \verb{1000x} their actual values as this function will divide by 1000.}
 
 \item{nonAnnualDTx1000}{Like \code{annualDTx1000}, but with where each list element will be
-used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_yearzzzz" where the
-xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
+used for >1 year. The names of the list elements must be of the form
+\code{"yearxxxx_yearyyyy_yearzzzz"} where \code{xxxx}, \code{yyyy}, and \code{zzzz} represent the four-digit
+calendar years for which that list element should be used.
 The columns are variables that are used for more than 1 year.}
 
 \item{formulaToFit}{Formula, put provided as a character string, not class \code{formula}.
 (if it is provided as a class \code{formula}, then it invariably will have an
-enormous amount of data hidden in the formula environment; this is bad for DEoptim)}
+enormous amount of data hidden in the formula environment; this is bad for \link[DEoptim:DEoptim]{DEoptim::DEoptim})}
 
-\item{historicalFires}{DESCRIPTION NEEDED}
+\item{historicalFires}{TODO: DESCRIPTION NEEDED}
 
-\item{fireBufferedListDT}{DESCRIPTION NEEDED}
+\item{fireBufferedListDT}{TODO: DESCRIPTION NEEDED}
 
 \item{covMinMax}{This is a 2 row by multiple column data.frame indicating
-the minimum and maximum values of the original covariate data values. These will
-be used to rescale the covariates internally so that they are all between 0 and 1. It is important
-to not simply rescale internally here because only 1 year is run at a time; all years
-must be rescaled for a given covariate by the same amount.}
+the minimum and maximum values of the original covariate data values.
+These will be used to rescale the covariates internally so that they are all between 0 and 1.
+It is important to not simply rescale internally here because only 1 year is run at a time;
+all years must be rescaled for a given covariate by the same amount.}
 
 \item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
 Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
 
-\item{minFireSize}{DESCRIPTION NEEDED}
+\item{minFireSize}{TODO: DESCRIPTION NEEDED}
 
-\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"SNLL_FS"}.
-Default: \code{"snll_fs"}.}
+\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
-\item{mutuallyExclusive}{If there are any covariates, e.g,. youngAge, that should be
-considered mutually exclusive, i.e., "if youngAge is non-zero, should vegPC2 be set to zero", then
-this can be done here. A named list, where the name of the list element must be a single
-covariate column name in either \code{annualDTx1000} or \code{nonAnnualDTx1000}. The list
-content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
-The values of all column names that match the grep value will be set to \code{0}, whenever
-the name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
+\item{mutuallyExclusive}{If there are any covariates, e.g,. \code{youngAge}, that should be
+considered mutually exclusive, then this can be done here
+(i.e., "if \code{youngAge} is non-zero, should \code{vegPC2} be set to zero").
+A named list, where the name of the list element must be a single covariate column name
+in either \code{annualDTx1000} or \code{nonAnnualDTx1000}.
+The list content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
+The values of all column names that match the grep value will be set to \code{0}, whenever the
+name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
 meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
 is non-zero.}
 
@@ -81,40 +83,40 @@ is non-zero.}
 for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
 take some small amount of time.}
 
-\item{plot.it}{Passed to \code{SpaDES.core::Plots}, so will show (TRUE or "screen") or save files
-of several plots, using \code{ggplot2}}
+\item{plot.it}{Passed to \code{\link[SpaDES.core:Plots]{SpaDES.core::Plots()}}, so will show (TRUE or "screen") or save files
+of several plots, using \pkg{ggplot2}.}
 
 \item{objFunCoresInternal}{Internally, this function can use \code{mcmapply} to run multiple
-parallel \code{spread} function calls. This should only be >1L if there are spare threads.
-It is highly likely that there won't be. However, sometimes the \code{DEoptim} is
+parallel \code{spread} function calls. This should only be > \code{1L} if there are spare threads.
+It is highly likely that there won't be. However, sometimes the \link[DEoptim:DEoptim]{DEoptim::DEoptim} is
 particularly inefficient, it starts X cores, and immediately several of them are
-stopped inside this function because the parameters are so bad, only 2 year are attempted.
-Then the core will stay idle until all other cores for the \code{DEoptim} iteration are complete.
-Similarly, if only physical cores are used for \code{DEoptim}, the additional use of
-hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).}
+stopped inside this function because the parameters are so bad, only two years are attempted.
+Then the core will stay idle until all other cores for the \link[DEoptim:DEoptim]{DEoptim::DEoptim} iteration are complete.
+Similarly, if only physical cores are used for \link[DEoptim:DEoptim]{DEoptim::DEoptim}, the additional use of
+hyperthreaded cores here, internally will speed things up (i.e., this maybe could be \code{2L} or \code{3L}).}
 
 \item{lanscape1stQuantileThresh}{A \code{spreadProb} value that represents a threshold for the
 1st quantile of the \code{spreadProbs} on the landscape; if that quantile is above this
 number, then the \code{.objFunSpredFit} will bail because it is "too burny" a landscape.
-Default = \code{0.265}, meaning if only 25\% of the pixels on the landscape are below
+Default 0.265, meaning if only 25\%\% of the pixels on the landscape are below
 this \code{spreadProb}, then it will bail.}
 
-\item{thresh}{Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
+\item{thresh}{Threshold multiplier used in SNLL fire size (\code{"snll_fs"}) test. Default 550.
 Lowering the threshold value will be more restrictive, but being too restrictive will result
-in \code{DEoptim} rejecting more tests and using the "fail value" of 10000.
+in \link[DEoptim:DEoptim]{DEoptim::DEoptim} rejecting more tests and using the "fail value" of 10000.
 Too high a threshold, and more years will be run and it will take longer to find values.}
 
 \item{weighted}{Logical. Should empirical likelihood be weighted by log of the actual fire size?
 This will give large fires more influence on the SNLL.}
 
-\item{verbose}{If >= 2, then this will show more information about spreadProb fitting.}
+\item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 
-\item{...}{This is not used here, but allows for extraneous arguments to not break this function}
+\item{...}{This is not used here, but allows for extraneous arguments to not break this function.}
 }
 \value{
 Attempting a weighted likelihood,
 \url{https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation}.
-With log(fireSize) * likelihood for each fire.
+With \code{log(fireSize) * likelihood} for each fire.
 }
 \description{
 Objective function for \code{fireSense_spreadFit} module

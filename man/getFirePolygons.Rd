@@ -11,7 +11,7 @@ getFirePolygons(years, useInnerCache = FALSE, ...)
 
 \item{useInnerCache}{logical indicating whether to cache the \code{prepInputs} call}
 
-\item{...}{additional arguments passed to \code{\link[=prepInputs]{prepInputs()}}}
+\item{...}{additional arguments passed to \code{\link[reproducible:prepInputs]{reproducible::prepInputs()}}}
 }
 \value{
 list of fire polygons by year

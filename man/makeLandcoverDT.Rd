@@ -2,7 +2,7 @@
 % Please edit documentation in R/makeLandcoverDT.R
 \name{makeLandcoverDT}
 \alias{makeLandcoverDT}
-\title{Create landcoverDT object to classify and track non-forest lcc}
+\title{Create \code{landcoverDT} object to classify and track non-forest land cover classes}
 \usage{
 makeLandcoverDT(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups)
 }
@@ -17,8 +17,8 @@ and NA no data}
 \item{nonForestedLCCGroups}{a named list of non-forested flammable landcover groups}
 }
 \value{
-a data.table with columns for pixelID and binary presence of landcover
+a data.table with columns for \code{pixelID} and binary presence of landcover
 }
 \description{
-Create landcoverDT object to classify and track non-forest lcc
+Create \code{landcoverDT} object to classify and track non-forest land cover classes
 }

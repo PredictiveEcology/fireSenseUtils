@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{paramsSeparate}
 \alias{paramsSeparate}
-\title{Split the character vector of parameters into covPars and logisticPars}
+\title{Split the character vector of parameters into \code{covPars} and \code{logisticPars}}
 \usage{
 paramsSeparate(par, parsModel)
 }
@@ -17,8 +17,8 @@ list of 2 numeric vectors \code{covPars} and \code{logisticPars}, representing t
 parameters for the covariates and the logistic equation, respectively.
 }
 \description{
-DEoptim does not differentiate between the logistic parameters and the covariates.
-This splits the vector into the correct components. The split is based on the
-number of covariates. Therefore the number of logistic parameters is deduced
-from \code{length(pars) - parsModel}.
+\link[DEoptim:DEoptim]{DEoptim::DEoptim} does not differentiate between the logistic parameters and the covariates.
+This splits the vector into the correct components.
+The split is based on the number of covariates.
+Therefore the number of logistic parameters is deduced from \code{length(pars) - parsModel}.
 }

@@ -12,7 +12,7 @@
 
 <meta name="author" content="Ian Eddy, Eliot McIntire, Steve Cumming, Alex Chubaty" />
 
-<meta name="date" content="2024-04-11" />
+<meta name="date" content="2025-08-01" />
 
 <title>fireSense LCC flammability analysis</title>
 
@@ -51,7 +51,7 @@ overflow: visible;
 </style>
 <style type="text/css" data-origin="pandoc">
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -62,7 +62,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
 { counter-reset: source-line 0; }
@@ -341,7 +341,7 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <h1 class="title toc-ignore">fireSense LCC flammability analysis</h1>
 <h4 class="author">Ian Eddy, Eliot McIntire, Steve Cumming, Alex
 Chubaty</h4>
-<h4 class="date">2024-04-11</h4>
+<h4 class="date">2025-08-01</h4>
 
 
 
@@ -383,11 +383,11 @@ Chubaty</h4>
 </div>
 <div id="plot" class="section level2">
 <h2>Plot</h2>
-<p>From the plot above (and based on descripitons of each class) we
+<p>From the plot above (and based on descriptions of each class) we
 determine the following non-flammable classes:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="do">## original fireSense_dataPrepFit defaults</span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>LCC2005_nonFlam <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">25</span>, <span class="dv">30</span>, <span class="dv">33</span>, <span class="dv">36</span>, <span class="dv">37</span>, <span class="dv">38</span>, <span class="dv">39</span>)</span></code></pre></div>
-<p>And for fireSense categories:</p>
+<p>And for <code>fireSense</code> categories:</p>
 <ul>
 <li><strong>non-forest high-flammability:</strong></li>
 <li><strong>non-forest low-flammability:</strong></li>

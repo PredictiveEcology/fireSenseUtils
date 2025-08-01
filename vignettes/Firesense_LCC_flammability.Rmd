@@ -73,15 +73,14 @@ ggplot(data = burnCalc, aes(x = lcc, y = percentBurned)) +
   theme_bw()
 ```
 
-From the plot above (and based on descripitons of each class) we determine the following non-flammable classes:
+From the plot above (and based on descriptions of each class) we determine the following non-flammable classes:
 
 ```{r eval = FALSE}
 ## original fireSense_dataPrepFit defaults
 LCC2005_nonFlam <- c(0, 25, 30, 33, 36, 37, 38, 39)
 ```
 
-And for fireSense categories:
+And for `fireSense` categories:
 
 - **non-forest high-flammability:**
 - **non-forest low-flammability:**
-

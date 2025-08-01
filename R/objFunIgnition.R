@@ -33,16 +33,23 @@ extractSpecial <- function(v, k) {
 
 #' Objective function when no piecewise model is used
 #'
-#' @param params DESCRIPTION NEEDED
-#' @param linkinv the link function
-#' @param nll the log-likelihood function
-#' @param sm scaling matrix
-#' @param nx number of covariates
-#' @param mm model matrix containing data
-#' @param mod_env the environment containing params - can be a data.frame
-#' @param offset DESCRIPTION NEEDED
+#' @param params TODO: DESCRIPTION NEEDED
 #'
-#' @return DESCRIPTION NEEDED
+#' @param linkinv the link function
+#'
+#' @param nll the log-likelihood function
+#'
+#' @param sm scaling matrix
+#'
+#' @param nx number of covariates
+#'
+#' @param mm model matrix containing data
+#'
+#' @param mod_env the environment containing parameters - can be a data.frame
+#'
+#' @param offset TODO: DESCRIPTION NEEDED
+#'
+#' @return TODO: DESCRIPTION NEEDED
 #'
 #' @export
 #' @rdname objFunIgnition

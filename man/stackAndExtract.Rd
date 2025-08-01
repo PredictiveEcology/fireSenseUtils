@@ -2,12 +2,12 @@
 % Please edit documentation in R/stackAndExtract.R
 \name{stackAndExtract}
 \alias{stackAndExtract}
-\title{prepare covariate table with ignition year, fuel class, climate value, and land cover}
+\title{Prepare covariate table with ignition year, fuel class, climate value, and land cover}
 \usage{
 stackAndExtract(years, fuel, LCC, climate, fires)
 }
 \arguments{
-\item{years}{character vector of fire years with FS notation e.g. year2002}
+\item{years}{character vector of fire years with FS notation e.g. \code{"year2002"}}
 
 \item{fuel}{raster brick of aggregated fuel classes}
 
@@ -22,5 +22,5 @@ with raster layer names matching \code{years}}
 a data.frame with cell numbers, ignitions, and covariates for each year
 }
 \description{
-prepare covariate table with ignition year, fuel class, climate value, and land cover
+Prepare covariate table with ignition year, fuel class, climate value, and land cover
 }

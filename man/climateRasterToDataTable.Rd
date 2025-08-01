@@ -9,7 +9,7 @@ climateRasterToDataTable(historicalClimateRasters, Index = NULL)
 \arguments{
 \item{historicalClimateRasters}{named list of \code{SpatRaster} objects}
 
-\item{Index}{optional list of \code{data.table} objects named by fireYear and
+\item{Index}{optional list of \code{data.table} objects named by \code{fireYear} and
 containing fire buffer indices}
 }
 \value{

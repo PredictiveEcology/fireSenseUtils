@@ -2,7 +2,7 @@
 % Please edit documentation in R/timeSinceDisturbance.R
 \name{calcYoungAge}
 \alias{calcYoungAge}
-\title{Iteratively calculate \code{youngAge} column  in FS covariates}
+\title{Iteratively calculate \code{youngAge} column in FS covariates}
 \usage{
 calcYoungAge(
   years,
@@ -15,18 +15,18 @@ calcYoungAge(
 \arguments{
 \item{years}{the years over which to iterate}
 
-\item{annualCovariates}{list of data.table objects with pixelID}
+\item{annualCovariates}{list of data.table objects with \code{pixelID}}
 
 \item{standAgeMap}{template \code{SpatRaster}}
 
-\item{fireBufferedListDT}{data.table containing non-annual burn and buffer pixelIDs}
+\item{fireBufferedListDT}{data.table containing non-annual burn and buffer \code{pixelID}s}
 
 \item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
 "young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
 }
 \value{
-a raster layer with unified standAge and time-since-disturbance values
+a raster layer with unified stand age and time-since-disturbance values
 }
 \description{
-Iteratively calculate \code{youngAge} column  in FS covariates
+Iteratively calculate \code{youngAge} column in FS covariates
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/fuelClassPrep.R
 \name{combine_fuel_classes}
 \alias{combine_fuel_classes}
-\title{merging and assignment of fuel classes}
+\title{Merging and assignment of fuel classes}
 \usage{
 combine_fuel_classes(df, targetFuelClasses = 5, lowThreshold = 0.05)
 }
@@ -11,12 +11,12 @@ combine_fuel_classes(df, targetFuelClasses = 5, lowThreshold = 0.05)
 
 \item{targetFuelClasses}{the number of classes at which to stop further merging}
 
-\item{lowThreshold}{species with above10PctRelB below this threshold will be merged with like
+\item{lowThreshold}{species with \code{above10PctRelB} below this threshold will be merged with like
 fuel classes, when available, regardless of coefficient}
 }
 \value{
 a data.table with assigned fuel classes for each species
 }
 \description{
-merging and assignment of fuel classes
+Merging and assignment of fuel classes
 }

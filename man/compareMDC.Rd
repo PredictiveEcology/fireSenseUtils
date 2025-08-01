@@ -18,7 +18,8 @@ compareMDC(
 
 \item{projectedMDC}{raster stack of projected MDC}
 
-\item{flammableRTM}{an optional raster of flammable pixels to subset data}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 
 \item{Ylimits}{the upper and lower MDC range for the plot}
 
@@ -27,7 +28,7 @@ compareMDC(
 \item{firstProjectedYear}{the earliest year of projected data}
 }
 \value{
-a ggplot object
+a \code{ggplot} object
 }
 \description{
 Plot the historical and projected MDC for a flammable land surface

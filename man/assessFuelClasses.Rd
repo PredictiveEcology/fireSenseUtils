@@ -34,14 +34,14 @@ If not provided and \code{mixedType == 2}, will attempt to use
 
 \item{nonforestLCC}{vector or list of vectors of non-forest fuel classes}
 
-\item{pValue}{for glm coef significance when deciding to merge fuel classes}
+\item{pValue}{for glm coefficient significance when deciding to merge fuel classes}
 }
 \value{
 a list of three objects:
 \enumerate{
-\item modSppEquiv, a data.table with assigned fuel classes for each tree species
-\item nonForestedLCCGroups, a named list of non-forest landcovers grouped by fuel class
-\item missingLCCgroup, the class in nonForestLCCGroups to assign forested pixels missing from cohortData
+\item \code{modSppEquiv}, a data.table with assigned fuel classes for each tree species;
+\item \code{nonForestedLCCGroups}, a named list of non-forest land cover classes grouped by fuel class;
+\item \code{missingLCCgroup}, the class in \code{nonForestLCCGroups} to assign forested pixels missing from \code{cohortData};
 }
 }
 \description{

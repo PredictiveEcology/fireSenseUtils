@@ -2,7 +2,7 @@
 % Please edit documentation in R/makeBufferedFires.R
 \name{removeBufferedFiresOutsideRTM}
 \alias{removeBufferedFiresOutsideRTM}
-\title{remove buffered fires in fireBufferedListDT that are outside RTM}
+\title{Remove buffered fires in \code{fireBufferedListDT} that are outside \code{flammableRTM}}
 \usage{
 removeBufferedFiresOutsideRTM(fireBufferedDT, flammableRTM)
 }
@@ -13,8 +13,8 @@ removeBufferedFiresOutsideRTM(fireBufferedDT, flammableRTM)
 and NA no data}
 }
 \value{
-fireBufferedDT excluding fires with indices (burned or unburned) outside flammableRTM
+\code{fireBufferedDT} excluding fires with indices (burned or unburned) outside \code{flammableRTM}
 }
 \description{
-remove buffered fires in fireBufferedListDT that are outside RTM
+Remove buffered fires in \code{fireBufferedListDT} that are outside \code{flammableRTM}
 }

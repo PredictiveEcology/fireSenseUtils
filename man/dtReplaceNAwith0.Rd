@@ -7,12 +7,12 @@
 dtReplaceNAwith0(DT, colsToUse = NULL)
 }
 \arguments{
-\item{DT}{DESCRIPTION NEEDED}
+\item{DT}{TODO: DESCRIPTION NEEDED}
 
-\item{colsToUse}{DESCRIPTION NEEDED}
+\item{colsToUse}{TODO: DESCRIPTION NEEDED}
 }
 \value{
-DESCRIPTION NEEDED
+TODO: DESCRIPTION NEEDED
 }
 \description{
 Replace \code{NA}s in a \code{data.table} with zeros

@@ -3,76 +3,96 @@ utils::globalVariables(c(
   "dif", "variable", "pred"
 ))
 
-
-#' Wrapper around `DEoptim` call
+#' Run `DEoptim`
 #'
-#' Does the multiple cluster connections. This will only work if
-#' ssh keys are correctly made between machines (if using multiple machines).
+#' Provides a wrapper around [DEoptim::DEoptim], setting up the multiple cluster connections.
+#' This will only work if ssh keys are preconfigured on all machines (if using multiple machines).
 #'
 #' @param landscape A `SpatRaster` which has the correct metadata associated with
-#'   the `pixelID` and cells of other objects in this function call
+#'   the `pixelID` and cells of other objects in this function call.
+#'
 #' @param annualDTx1000 A list of data.table objects. Each list element will be from 1
 #'   year, and it must be the same length as `fireBufferedListDT` and `historicalFires`.
-#'   All covariates must be integers, and must be 1000x their actual values.
+#'   All covariates must be integers, and must be `1000x` their actual values.
+#'
 #' @param nonAnnualDTx1000 A list of data.table objects. Each list element must be named
 #'   with a concatenated sequence of names from `names(annualDTx1000)`,
 #'   e.g., `1991_1992_1993`.
 #'   It should contain all the years in `names(annualDTx1000)`.
-#'   All covariates must be integers, and must be 1000x their actual values.
+#'   All covariates must be integers, and must be `1000x` their actual values.
+#'
 #' @param fireBufferedListDT A list of data.table objects. It must be same length as
 #'   `annualDTx1000`, with same names. Each element is a `data.table` with columns:
 #'   `buff`...TODO: INCOMPLETE
-#' @param historicalFires DESCRIPTION NEEDED
-#' @param itermax Maximum number of iterations for the DEoptim algorithm. Passed to
-#'   `DEoptim.control`.
+#'
+#' @param historicalFires TODO: DESCRIPTION NEEDED
+#'
+#' @param itermax Maximum number of iterations for the [DEoptim::DEoptim] algorithm.
+#'   Passed to [DEoptim::DEoptim.control].
+#'
 #' @param initialpop Optional. A matrix or vector specifying the initial population
-#'   for DEoptim. If `NULL`, DEoptim generates one. Passed to `DEoptim.control`.
-#'   See `?DEoptim::DEoptim.control`.
-#' @param NP Optional. The number of population members (individuals) in DEoptim.
-#'   If `NULL`, DEoptim sets a default. Passed to `DEoptim.control`.
-#'   See `?DEoptim::DEoptim.control`.
+#'   for [DEoptim::DEoptim]. If `NULL`, [DEoptim::DEoptim] generates one.
+#'   Passed to [DEoptim::DEoptim.control].
+#'
+#' @param NP Optional. The number of population members (individuals) in [DEoptim::DEoptim].
+#'   If `NULL`, [DEoptim::DEoptim] sets a default. [DEoptim::DEoptim.control].
+#'
 #' @param trace Integer or Logical. Controls the level of tracing information
-#'   printed by DEoptim during optimization. Passed to `DEoptim.control`.
-#' @param strategy Integer (1-10). Defines the DEoptim strategy variant to use.
-#'   Passed to `DEoptim.control`. See `?DEoptim::DEoptim.control`.
+#'   printed by [DEoptim::DEoptim] during optimization. Passed to [DEoptim::DEoptim.control].
+#'
+#' @param strategy Integer `[1,10]`. Defines the [DEoptim::DEoptim] strategy variant to use.
+#'   Passed to [DEoptim::DEoptim.control].
+#'
 #' @param cores A numeric (for running on localhost only) or a character vector of
 #'   machine names (including possibly "localhost"), where
 #'   the length of the vector indicates how many cores should be used on that machine.
-#' @param libPath A character string indicating an R package library directory. This
-#'   location must exist on each machine, though the function will make sure it
+#'
+#' @param libPath A character string indicating an R package library directory.
+#'   This location must exist on each machine, though the function will make sure it
 #'   does internally.
+#'
 #' @param logPath A character string indicating what file to write logs to. This
 #'   `dirname(logPath)` must exist on each machine, though the function will make sure it
 #'   does internally.
+#'
 #' @param doObjFunAssertions logical indicating whether to do assertions.
-#' @param paths see `SpaDES.core::paths` - list of paths containing the `cachePath` to store cache.
-#'    Should likely be `cachePath(sim)`
-#' @param iterStep Integer. Must be less than `itermax`. This will cause `DEoptim` to run
+#'
+#' @param paths list of paths containing the `cachePath` to store cache.
+#'    Should likely be `cachePath(sim)`. See [SpaDES.core::paths].
+#'
+#' @param iterStep Integer. Must be less than `itermax`. This will cause [DEoptim::DEoptim] to run
 #'   the `itermax` iterations in `ceiling(itermax / iterStep)` steps. At the end of
 #'   each step, this function will plot, optionally, the parameter histograms (if
 #'   `visualizeDEoptim` is `TRUE`)
-#' @param lower Numeric vector. Lower bounds for the parameters being optimized. Passed to `DEoptim`.
-#' @param upper Numeric vector. Upper bounds for the parameters being optimized. Passed to `DEoptim`.
+#'
+#' @param lower Numeric vector. Lower bounds for the parameters being optimized.
+#'   Passed to [DEoptim::DEoptim].
+#'
+#' @param upper Numeric vector. Upper bounds for the parameters being optimized.
+#'   Passed to [DEoptim::DEoptim].
+#'
 #' @template mutuallyExclusive
-#' @param formulaToFit Passed to `DEoptim`
+#'
+#' @param formulaToFit Passed to [DEoptim::DEoptim]
+#'
 #' @param objFunCoresInternal Integer. The number of cores to use for potential
-#'   parallelization *within* a single call to the objective function (`fireSenseUtils::.objfunSpreadFit`).
-#'   This is distinct from the parallelization managed by `DEoptim` across population members.
-#' @param covMinMax Passed to `fireSenseUtils::.objfunSpreadFit`
-#' @param tests Passed to `fireSenseUtils::.objfunSpreadFit`
-#' @param maxFireSpread Passed to `fireSenseUtils::.objfunSpreadFit`
-#' @param Nreps Passed to `fireSenseUtils::.objfunSpreadFit`
-#' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
-#' @param .verbose Passed to `fireSenseUtils::.objfunSpreadFit`
-#' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of
-#'   `DEoptim` outputs.
+#'   parallelization *within* a single call to the objective function ([.objfunSpreadFit()]).
+#'   This is distinct from the parallelization managed by [DEoptim::DEoptim] across population members.
+#'
+#' @param covMinMax,tests,maxFireSpread,Nreps,.verbose Passed to [.objfunSpreadFit()].
+#'
+#' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
+#'
+#' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of [DEoptim::DEoptim] outputs.
+#'
 #' @param .plotSize List specifying plot `height` and `width`, in pixels.
 #'
-#' @return The result of the `DEoptimIterative` call. This is typically a list where
-#' each element contains the `DEoptim` object state after a block of `iterStep` iterations.
+#' @return The result of the [DEoptimIterative()] call. This is typically a list where
+#' each element contains the [DEoptim::DEoptim] object state after a block of `iterStep` iterations.
 #' The final element represents the state after `itermax` iterations or upon early stopping.
 #'
 #' @export
+#' @importFrom clusters clusterSetup
 #' @importFrom crayon blurred
 #' @importFrom data.table rbindlist as.data.table set
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
@@ -142,15 +162,17 @@ runDEoptim <- function(landscape,
   )
 
   neededPkgs <- c("kSamples", "magrittr", "raster", "data.table", "SpaDES.core",
-                    "SpaDES.tools", "fireSenseUtils", "sf", "mirai", "munsell")
+                  "SpaDES.tools", "fireSenseUtils", "sf", "mirai", "munsell")
 
-  control <- clusters::clusterSetup(messagePrefix = as.character(rep), # .runName,
-                          strategy = strategy, itermax = itermax,
-                          cores = cores, # logPath = file.path(dataPath(sim)),
-                          libPath = libPath[1], NP = NP,
-                          logPath = logPath,
-                          objsNeeded = objsNeeded,
-                          pkgsNeeded = neededPkgs, envir = environment())
+  control <- clusters::clusterSetup(
+    messagePrefix = as.character(rep), # .runName,
+    strategy = strategy, itermax = itermax,
+    cores = cores, # logPath = file.path(dataPath(sim)),
+    libPath = libPath[1], NP = NP,
+    logPath = logPath,
+    objsNeeded = objsNeeded,
+    pkgsNeeded = neededPkgs, envir = environment()
+  )
   cl <<- control$cluster # This is to test whether it is actually closed
   # on.exit(parallel::stopCluster(control$cluster), add = TRUE)
 
@@ -407,9 +429,8 @@ runDEoptim <- function(landscape,
 
 #' Make histograms of `DEoptim` object `pars`
 #'
-#' @param DE An object from a `DEoptim` call
-#' @param cachePath A `cacheRepo` to pass to `showCache` and
-#'        `loadFromCache` if `DE` is missing.
+#' @param DE An object from a [DEoptim::DEoptim] call
+#' @param cachePath A `cacheRepo` to pass to `showCache` and `loadFromCache` if `DE` is missing.
 #' @param titles titles of plots
 #' @param lower lower limit on x axis
 #' @param upper upper limit on x axis
@@ -459,29 +480,38 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
   #   aa[, hist(t(.SD), main = as.character(.BY))[[2]], by = pars]
 }
 
-
-#' Iterative DEoptim Runner with Caching and Visualization
+#' Iterative `DEoptim` Runner with Caching and Visualization
 #'
-#' Internal function called by `runDEoptim`. Runs `DEoptim` in steps,
+#' Internal function called by `runDEoptim`. Runs [DEoptim::DEoptim] in steps,
 #' caching results and optionally visualizing progress after each step.
+#'
 #' @param rep Integer. An identifier for the replication number of this optimization run.
 #'   Used in cache tags and plot filenames. Default 1L.
+#'
 #' @param .plots Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
-#'   Passed to internal plotting functions (likely via `quickPlot::Plots` or `SpaDES.plotting::Plot`). Default "screen".
+#'   Passed to internal plotting functions (likely via [SpaDES.core::Plots()]).
+#'   Default "screen".
+#'
 #' @template mutuallyExclusive
-#' @param .c #DESCRIPTION NEEDED
+#'
+#' @param .c TODO: DESCRIPTION NEEDED
+#'
 #' @param figPath directory where figures will be saved, if relevant
-#' @param rep #DESCRIPTION NEEDED
-#' @param control passed to DEoptim.control
+#'
+#' @param rep TODO: DESCRIPTION NEEDED
+#'
+#' @param control passed to [DEoptim::DEoptim.control]
+#'
+#' @param cachePath A `cacheRepo` (see [reproducible::Cache()]).
+#'
 #' @export
-
 #' @importFrom crayon green
 #' @importFrom data.table rbindlist setDTthreads
 #' @importFrom DEoptim DEoptim DEoptim.control
-#' @importFrom reproducible Cache messageDF isUpdated
 #' @importFrom grDevices dev.off png
 #' @importFrom ggplot2 geom_abline
 #' @importFrom quickPlot isRstudioServer
+#' @importFrom reproducible Cache isUpdated messageDF
 #' @importFrom stats dnorm rnorm
 #' @importFrom utils tail
 #' @rdname runDEoptim

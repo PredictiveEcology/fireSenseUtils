@@ -2,7 +2,7 @@
 % Please edit documentation in R/timeSinceDisturbance.R
 \name{makeTSD}
 \alias{makeTSD}
-\title{preparing a time since disturbance map from stand age and fire data}
+\title{Prepare a time since disturbance map from stand age and fire data}
 \usage{
 makeTSD(
   year,
@@ -14,16 +14,16 @@ makeTSD(
 )
 }
 \arguments{
-\item{year}{the year represented by \code{standAge}}
+\item{year}{the year represented by \code{standAge}.}
 
 \item{firePolys}{list of \code{spatialPolygon} objects comprising annual fires.
-fireRaster will supersede firePolys if provided}
+\code{fireRaster} will supersede \code{firePolys} if provided.}
 
-\item{fireRaster}{a \code{RasterLayer} with values representing fire years}
+\item{fireRaster}{a \code{RasterLayer} with values representing fire years.}
 
 \item{standAgeMap}{initial stand age map}
 
-\item{lcc}{\code{data.table} with landcover values - \code{landcoverDT}}
+\item{lcc}{\code{data.table} with landcover values, i.e., \code{landcoverDT}.}
 
 \item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
 "young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
@@ -32,5 +32,5 @@ fireRaster will supersede firePolys if provided}
 a \code{SpatRaster} with values representing time since disturbance
 }
 \description{
-preparing a time since disturbance map from stand age and fire data
+Prepare a time since disturbance map from stand age and fire data
 }

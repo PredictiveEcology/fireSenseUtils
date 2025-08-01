@@ -49,18 +49,26 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
   return(fireBufferListDT)
 }
 
-#' identify each year's individual fires and buffer them accordingly
+#' Identify each year's individual fires and buffer them accordingly
+#'
 #' @param year numeric fire year
+#'
 #' @param fireRaster a `SpatRaster` with values representing fire years
+#'
 #' @template flammableRTM
+#'
 #' @param bufferForFireRaster buffer size used to group discrete patches of burned pixels as
-#' belonging to the same fire
+#'   belonging to the same fire
+#'
 #' @param areaMultiplier A scalar that will buffer `areaMultiplier * fireSize`
+#'
 #' @param verb Logical or numeric related to how much verbosity is printed. `FALSE` or
 #'   `0` is none. `TRUE` or `1` is some. `2` is much more.
-#' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
-#'   be imposed after `areaMultiplier`.
-#' @return a data.table with fire ID, buffer status, and pixelID
+#' @param minSize The absolute minimum size of the buffer & non-buffer together.
+#'   This will be imposed after `areaMultiplier`.
+#'
+#' @return a data.table with fire ID, buffer status, and `pixelID`
+#'
 #' @export
 #' @importFrom data.table rbindlist data.table set setcolorder
 #' @importFrom terra buffer patches
@@ -94,19 +102,27 @@ makeFireIDs <- function(year, fireRaster, flammableRTM, bufferForFireRaster, are
   }
 }
 
-#' create a variable sized buffer around a set of pixels belonging to the same fire ID
+#' Create a variable sized buffer around a set of pixels belonging to the same fire ID
+#'
 #' @param fireIDraster a `SpatRaster` with values representing distinct fires in a year
-#' @param flammableRTM @template flammableRTM
+#'
+#' @template flammableRTM
+#'
 #' @param areaMultiplier A scalar that will buffer `areaMultiplier * fireSize`
-#' @param minSize The absolute minimum size of the buffer & non-buffer together. This will
-#'   be imposed after `areaMultiplier`.
+#'
+#' @param minSize The absolute minimum size of the buffer & non-buffer together.
+#'   This will be imposed after `areaMultiplier`.
+#'
 #' @param verb Logical or numeric related to how much verbosity is printed. `FALSE` or
 #'  `0` is none. `TRUE` or `1` is some. `2` is much more.
-#' @return a data.table with fire ID, buffer status, and pixelID
+#'
+#' @return a data.table with fire ID, buffer status, and `pixelID`
+#'
 #' @export
 #' @importFrom data.table data.table rbindlist set setnames
-#' @importFrom terra buffer res values
+#' @importFrom LandR asInteger
 #' @importFrom SpaDES.tools spread
+#' @importFrom terra buffer res values
 bufferToAreaRast <- function(fireIDraster, areaMultiplier, minSize, flammableRTM, verb = 1) {
   if (requireNamespace("raster", quietly = TRUE)) {
     am <- if (is(areaMultiplier, "function")) {
@@ -204,16 +220,19 @@ bufferToAreaRast <- function(fireIDraster, areaMultiplier, minSize, flammableRTM
   }
 }
 
-#' create a list of annual ignition points based on fire raster
+#' Create a list of annual ignition points based on fire raster
+#'
 #' @param fireBufferDT a `data.table` with columns `buffer` (1 = burned),
 #' `id` (unique fire ID), and `pixelID`
+#'
 #' @param flammableRTM @template flammableRTM
+#'
 #' @return a list of `sf` point objects
+#'
 #' @export
-#' @importFrom data.table rbindlist data.table set
+#' @importFrom data.table as.data.table data.table rbindlist set
 #' @importFrom terra xyFromCell rast res
-#' @importFrom sf st_nearest_points st_centroid st_multipoint st_crs  "st_crs<-" st_as_sf
-#' @importFrom data.table as.data.table
+#' @importFrom sf st_as_sf st_centroid st_crs  st_crs<- st_multipoint st_nearest_feature
 rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
   if (inherits(flammableRTM, "RasterLayer")) {
     flammableRTM <- rast(flammableRTM)
@@ -224,7 +243,7 @@ rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
   burnLocs <- as.data.table(burnLocs)
   burnLocs$ids <- burnedPoints$ids
 
-  # TODO - we can use st_centroid without the need to join if we are able to
+  ## TODO - we can use st_centroid without the need to join if we are able to
   burnPoints <- st_as_sf(burnLocs, coords = c("x", "y"))
   st_crs(burnPoints) <- st_crs(flammableRTM)
 
@@ -233,23 +252,23 @@ rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
   burnCentroids <- st_as_sf(burnCentroidDT, coords = c("x", "y"))
   st_crs(burnCentroids) <- st_crs(flammableRTM)
 
-  # there is likely a faster way?
+  ## there is likely a faster way?
   ids <- unique(burnCentroidDT$id)
   firePoints <- lapply(ids, FUN = function(x, p = burnPoints, c = burnCentroids) {
     p <- p[p$ids == x, ]
     c <- c[c$ids == x, ]
-    # gives nearest y to each x - so nearest point to each centroid
+    ## gives nearest y to each x - so nearest point to each centroid
     nearest <- sf::st_nearest_feature(x = c, y = p)
     p <- p[nearest, ]
     return(p)
   })
 
   firePoints <- rbindlist(firePoints)
-  # calculate size in hectares
+  ## calculate size in hectares
   multiplier <- prod(res(flammableRTM)) / 10000
   burnSizes <- fireBufferDT[buffer == 1, .(POLY_HA = .N * multiplier, size = .N), .(ids)]
   firePoints <- firePoints[burnSizes, on = c("ids")]
-  setnames(firePoints, old = "ids", new = "FIRE_ID") # following fireSenseUtils::makeLociList
+  setnames(firePoints, old = "ids", new = "FIRE_ID") ## following fireSenseUtils::makeLociList
   firePoints <- st_as_sf(firePoints)
   return(firePoints)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/objFunSpread.R
 \name{spreadProbFromIntegerCovs}
 \alias{spreadProbFromIntegerCovs}
-\title{Convert covariates from their x1000 Integer to useable by spread}
+\title{Convert covariates from their \code{x1000} integer to usable by spread}
 \usage{
 spreadProbFromIntegerCovs(
   shortAnnDTx1000 = NULL,
@@ -20,6 +20,56 @@ spreadProbFromIntegerCovs(
   lowerSpreadProb
 )
 }
+\arguments{
+\item{shortAnnDTx1000}{TODO: DESCRIPTION NEEDED}
+
+\item{annDTx1000}{TODO: use description of \code{annualDTx1000} parameter in \code{.objfunSpreadFit}}
+
+\item{nonAnnualDTx1000}{Like \code{annualDTx1000}, but with where each list element will be
+used for >1 year. The names of the list elements must be of the form
+\code{"yearxxxx_yearyyyy_yearzzzz"} where \code{xxxx}, \code{yyyy}, and \code{zzzz} represent the four-digit
+calendar years for which that list element should be used.
+The columns are variables that are used for more than 1 year.}
+
+\item{indexNonAnnual}{TODO: DESCRIPTION NEEDED}
+
+\item{covMinMax}{This is a 2 row by multiple column data.frame indicating
+the minimum and maximum values of the original covariate data values.
+These will be used to rescale the covariates internally so that they are all between 0 and 1.
+It is important to not simply rescale internally here because only 1 year is run at a time;
+all years must be rescaled for a given covariate by the same amount.}
+
+\item{mutuallyExclusive}{If there are any covariates, e.g,. \code{youngAge}, that should be
+considered mutually exclusive, then this can be done here
+(i.e., "if \code{youngAge} is non-zero, should \code{vegPC2} be set to zero").
+A named list, where the name of the list element must be a single covariate column name
+in either \code{annualDTx1000} or \code{nonAnnualDTx1000}.
+The list content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
+The values of all column names that match the grep value will be set to \code{0}, whenever the
+name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
+meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
+is non-zero.}
+
+\item{colsToUse}{TODO: DESCRIPTION NEEDED}
+
+\item{doAssertions}{Logical. If \code{TRUE}, the default, the function will test a few minor things
+for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
+take some small amount of time.}
+
+\item{logisticPars}{TODO: DESCRIPTION NEEDED}
+
+\item{covPars}{TODO: DESCRIPTION NEEDED}
+
+\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
+Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
+
+\item{lowerSpreadProb}{TODO: DESCRIPTION NEEDED}
+
+\item{description}{yr TODO: DESCRIPTION NEEDED}
+}
+\value{
+TODO: DESCRIPTION NEEDED
+}
 \description{
-Convert covariates from their x1000 Integer to useable by spread
+Convert covariates from their \code{x1000} integer to usable by spread
 }

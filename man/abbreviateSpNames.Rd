@@ -6,6 +6,12 @@
 \usage{
 abbreviateSpNames(df)
 }
+\arguments{
+\item{df}{data.table}
+}
+\value{
+data.table
+}
 \description{
 Abbreviate species names for fuel classes
 }

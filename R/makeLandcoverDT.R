@@ -2,12 +2,17 @@ globalVariables(c(
   ".SD", ".SDcols", "..dontWant", "year", "flammable"
 ))
 
-#' Create landcoverDT object to classify and track non-forest lcc
+#' Create `landcoverDT` object to classify and track non-forest land cover classes
+#'
 #' @param rstLCC landcover raster
+#'
 #' @template flammableRTM
+#'
 #' @param forestedLCC vector of values representing forested landcover classes in `rstLCC`
+#'
 #' @param nonForestedLCCGroups a named list of non-forested flammable landcover groups
-#' @return a data.table with columns for pixelID and binary presence of landcover
+#'
+#' @return a data.table with columns for `pixelID` and binary presence of landcover
 #'
 #' @export
 #' @importFrom data.table data.table set setDT
@@ -19,7 +24,7 @@ globalVariables(c(
 #' @rdname makeLandcoverDT
 makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGroups) {
   if (!compareGeom(rstLCC, flammableRTM, stopOnError = FALSE)) {
-    # assume flammableRTM is correct
+    ## assume flammableRTM is correct
     rstLCC <- postProcess(rstLCC,
       cropTo = flammableRTM,
       projectTo = flammableRTM
@@ -40,17 +45,17 @@ makeLandcoverDT <- function(rstLCC, flammableRTM, forestedLCC, nonForestedLCCGro
     .data = lcc,
     select_columns = "lcc",
     remove_selected_columns = TRUE,
-    remove_first_dummy = FALSE, # no need if all forest LC is removed anyway
+    remove_first_dummy = FALSE, ## no need if all forest LC is removed anyway
     ignore_na = TRUE
   )
-  #
+
   forestedLCC <- paste0("lcc_", forestedLCC)
   forestedLCC <- colnames(lcc)[colnames(lcc) %in% forestedLCC]
-  set(lcc, NULL, j = forestedLCC, NULL) # removes columns of forested LCC
+  set(lcc, NULL, j = forestedLCC, NULL) ## removes columns of forested LCC
 
-  # Group dummy columns into similar landcovers
+  ## Group dummy columns into similar landcovers
   lccColsPreGroup <- colnames(lcc)[!colnames(lcc) %in% c("pixelID")]
-  setDT(lcc) # pre-allocate space for new columns
+  setDT(lcc) ## pre-allocate space for new columns
 
   for (i in names(nonForestedLCCGroups)) {
     classes <- paste0("lcc_", nonForestedLCCGroups[[i]])

@@ -2,22 +2,22 @@
 % Please edit documentation in R/classifyCohorts.R
 \name{buildCohortBurnHistory}
 \alias{buildCohortBurnHistory}
-\title{Modify cohortData with burn column}
+\title{Modify \code{cohortData} with burn column}
 \usage{
 buildCohortBurnHistory(cohortData, pixelGroupMap, firePolys, year)
 }
 \arguments{
-\item{cohortData}{either a \code{cohortData} object or list of \code{cohortData} objects named by year}
+\item{cohortData}{either a \code{cohortData} object or list of \code{cohortData} objects named by year.}
 
-\item{pixelGroupMap}{either a \code{SpatRaster} with \code{pixelGroups} or list of \code{SpatRasters} named by year}
+\item{pixelGroupMap}{either a \code{SpatRaster} with \code{pixelGroups} or list of \code{SpatRasters} named by year.}
 
-\item{firePolys}{the output of \code{fireSenseUtils::getFirePolys} with \code{YEAR} column}
+\item{firePolys}{the output of \code{\link[=getFirePolygons]{getFirePolygons()}} with \code{YEAR} column.}
 
-\item{year}{length-two vector giving temporal period used to subset firePolys. Closed interval}
+\item{year}{length-two vector giving temporal period used to subset \code{firePolys}. Closed interval.}
 }
 \value{
-cohortData modified with burn status
+\code{cohortData} modified with burn status
 }
 \description{
-Modify cohortData with burn column
+Modify \code{cohortData} with burn column
 }
