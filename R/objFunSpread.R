@@ -793,7 +793,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 #'
 #' @param indexNonAnnual TODO: DESCRIPTION NEEDED
 #'
-#' @param description yr TODO: DESCRIPTION NEEDED
+#' @param yr TODO: DESCRIPTION NEEDED
 #'
 #' @template mutuallyExclusive
 #'

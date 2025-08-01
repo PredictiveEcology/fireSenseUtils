@@ -33,6 +33,8 @@ The columns are variables that are used for more than 1 year.}
 
 \item{indexNonAnnual}{TODO: DESCRIPTION NEEDED}
 
+\item{yr}{TODO: DESCRIPTION NEEDED}
+
 \item{covMinMax}{This is a 2 row by multiple column data.frame indicating
 the minimum and maximum values of the original covariate data values.
 These will be used to rescale the covariates internally so that they are all between 0 and 1.
@@ -64,8 +66,6 @@ take some small amount of time.}
 Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
 
 \item{lowerSpreadProb}{TODO: DESCRIPTION NEEDED}
-
-\item{description}{yr TODO: DESCRIPTION NEEDED}
 }
 \value{
 TODO: DESCRIPTION NEEDED
