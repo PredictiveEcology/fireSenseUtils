@@ -7,7 +7,7 @@
 .objFunIgnition(params, linkinv, nll, sm, nx, mm, mod_env, offset)
 }
 \arguments{
-\item{params}{DESCRIPTION NEEDED}
+\item{params}{TODO: DESCRIPTION NEEDED}
 
 \item{linkinv}{the link function}
 
@@ -19,12 +19,12 @@
 
 \item{mm}{model matrix containing data}
 
-\item{mod_env}{the environment containing params - can be a data.frame}
+\item{mod_env}{the environment containing parameters - can be a data.frame}
 
-\item{offset}{DESCRIPTION NEEDED}
+\item{offset}{TODO: DESCRIPTION NEEDED}
 }
 \value{
-DESCRIPTION NEEDED
+TODO: DESCRIPTION NEEDED
 }
 \description{
 Objective function when no piecewise model is used

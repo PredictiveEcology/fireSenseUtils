@@ -15,11 +15,12 @@ compareClimate(
 )
 }
 \arguments{
-\item{historicalClimate}{SpatRaster of historical climate variable}
+\item{historicalClimate}{\code{SpatRaster} of historical climate variable}
 
-\item{projectedClimate}{SpatRaster of projected climate variable}
+\item{projectedClimate}{\code{SpatRaster} of projected climate variable}
 
-\item{flammableRTM}{an optional raster of flammable pixels to subset data}
+\item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
+and NA no data}
 
 \item{Ylimits}{the upper and lower MDC range for the plot}
 
@@ -27,10 +28,10 @@ compareClimate(
 
 \item{firstProjectedYear}{the earliest year of projected data}
 
-\item{climVar}{the name of the climate variable - for axis label}
+\item{climVar}{the name of the climate variable for axis label}
 }
 \value{
-a ggplot object
+a \code{ggplot} object
 }
 \description{
 Plot the historical and projected climate values for flammable land surface

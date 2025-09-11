@@ -14,25 +14,25 @@ covsX1000AndSetDF(
 )
 }
 \arguments{
-\item{annualList}{Named list of \code{data.table}s of covariates that vary annually. Must
-have a \code{pixelID} column. List name is year.}
+\item{annualList}{Named list of \code{data.table}s of covariates that vary annually.
+Must have a \code{pixelID} column. List name is year.}
 
-\item{nonAnnualList}{Named list of \code{data.table}s of covariates that do not vary each year. Must
-have a \code{pixelID} column. List name is a concatenated set of years separated by underscore.}
+\item{nonAnnualList}{Named list of \code{data.table}s of covariates that do not vary each year.
+Must have a \code{pixelID} column. List name is a concatenated set of years separated by underscore.}
 
-\item{fireBufferedList}{Named list of \code{data.table}s of buffered perimeters with pixelID. Must
-have a \code{pixelID} column. List name is \code{yearXXXX} where \code{XXXX} is the 4 digit year. Column
-names must be \code{pixelID}, \code{buffer} with every row a \code{1} or \code{0} as to whether that pixel
-is in or outside the buffer (\code{1} is in the buffer!), and \code{ids} with a unique indentifier
+\item{fireBufferedList}{Named list of \code{data.table}s of buffered perimeters with \code{pixelID}.
+Must have a \code{pixelID} column. List name is \code{yearXXXX} where \code{XXXX} is the 4 digit year.
+Column names must be \code{pixelID}, \code{buffer} with every row a \code{1} or \code{0} as to whether that pixel
+is in or outside the buffer (\code{1} is in the buffer!), and \code{ids} with a unique identifier
 for each fire.}
 
 \item{fireLociList}{Named list of \code{data.table} of \code{pixelID} columns where fires occurred.
 Columns are \code{size} which is number of pixels in the fire}
 
-\item{toX1000Integer}{Logical. If \code{TRUE}, then it multiples by 1000 and coerces to integer.
-If \code{FALSE}, then it does the inverse}
+\item{paramOrder}{Character vector of the order of covariates that will be used.}
 
-\item{param}{Order Character vector of the order of covariates that will be used.}
+\item{toX1000Integer}{Logical. If \code{TRUE}, then it multiples by 1000 and coerces to integer.
+If \code{FALSE}, then it does the inverse.}
 }
 \value{
 a data.table with relevant columns made mutually exclusive

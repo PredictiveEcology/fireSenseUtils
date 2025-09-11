@@ -10,8 +10,8 @@ logMinB(x)
 \item{x}{Any value to be adjusted with log and a minimum B}
 }
 \value{
-The original vector, logged with a minimum
+The original vector, logged with a minimum.
 }
 \description{
-This is used for transforming Biomass to the log scale
+Used for transforming Biomass to the log scale
 }

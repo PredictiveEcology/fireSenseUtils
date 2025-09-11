@@ -89,6 +89,7 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 
 #' @export
 #' @importFrom data.table data.table rbindlist setorderv
+#' @importFrom LandR asInteger
 #' @importFrom terra rasterize values
 #' @importFrom sf st_crs st_transform
 #' @importFrom SpaDES.tools spread2
@@ -197,28 +198,29 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
 
 #' multiplier
 #'
-#' DESCRIPTION NEEDED
+#' TODO: DESCRIPTION NEEDED
 #'
-#' @param size DESCRIPTION NEEDED
-#' @param minSize DESCRIPTION NEEDED
-#' @param baseMultiplier DESCRIPTION NEEDED
+#' @param size TODO: DESCRIPTION NEEDED
+#' @param minSize TODO: DESCRIPTION NEEDED
+#' @param baseMultiplier TODO: DESCRIPTION NEEDED
 #'
 #' @export
 multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
   pmax(minSize, round(pmax(baseMultiplier, 14 - log(size)) * size, 0))
 }
 
-#' buffer ignition points to create non-ignitions for model
+#' Buffer ignition points to create non-ignitions for model
 #'
+#' @param ignitionPoints `sf` points with year of ignition
 #'
-#' @param ignitionPoints SpatialPolygonsDataFrame with year of ignition
 #' @param rtm a template raster
+#'
 #' @param bufferSize the size of the buffers
 #'
 #' @return a list of data.tables containing indices inside buffered area of each year's ignitions
 #'
-#' @importFrom terra buffer rast set.values extract rasterize
 #' @importFrom sf st_as_sf
+#' @importFrom terra buffer rast set.values extract rasterize
 #' @export
 #' @rdname bufferIgnitionPoints
 bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
@@ -251,16 +253,15 @@ bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
   return(ignitionDT)
 }
 
-
-#' remove buffered fires in fireBufferedListDT that are outside RTM
-#'
+#' Remove buffered fires in `fireBufferedListDT` that are outside `flammableRTM`
 #'
 #' @param fireBufferedDT data.table containing indices for buffered annual fires
+#'
 #' @template flammableRTM
-#' @return fireBufferedDT excluding fires with indices (burned or unburned) outside flammableRTM
+#'
+#' @return `fireBufferedDT` excluding fires with indices (burned or unburned) outside `flammableRTM`
 #'
 #' @export
-#' @rdname removeBufferedFiresOutsideRTM
 removeBufferedFiresOutsideRTM <- function(fireBufferedDT, flammableRTM) {
   fireBufferedDT[, flammable := flammableRTM[fireBufferedDT$pixelID]]
   toExclude <- unique(fireBufferedDT[is.na(flammable)]$ids)

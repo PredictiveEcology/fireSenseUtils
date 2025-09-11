@@ -7,18 +7,20 @@
 predictIgnition(model, data, rescaleFactor, lambdaRescaleFactor)
 }
 \arguments{
-\item{model}{the model used to fit ingition data - must have a predict method}
+\item{model}{the model used to fit ignition data (must have a \code{predict} method)}
 
 \item{data}{data for prediction}
 
 \item{rescaleFactor}{spatial rescaling factor when predicted and fitted data are at different scales.
-Calculated as: (predResolution/fitResolution)^2}
+Calculated as: \code{(predResolution/fitResolution)^2}}
 
 \item{lambdaRescaleFactor}{If the data for fitting has been sampled for pseudo-absences,
 this imposes a new baseline probability of fire occurrences, hence predictions need to be adjusted.
-If the  original fire prob. is (total no. fires)/(total no. fires + total no. absences), and the fire
-probability imposed by sampling is (total no. fires)/(total no. fires + no. sampled pseudo-absences), to
-adjust predicted values, one needs to multiply them by (total no. fires + no. sampled pseudo-absences/(total no. fires + total no. absences)}
+If the  original fire prob. is (total no. fires)/(total no. fires + total no. absences),
+and the fire probability imposed by sampling is
+(total no. fires)/(total no. fires + no. sampled pseudo-absences),
+to adjust predicted values, one needs to multiply them by
+(total no. fires + no. sampled pseudo-absences/(total no. fires + total no. absences).}
 }
 \value{
 vector of predicted values.

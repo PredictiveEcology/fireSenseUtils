@@ -7,63 +7,84 @@ utils::globalVariables(c(
 #' Objective function for `fireSense_spreadFit` module
 #'
 #' @param par parameters
-#' @param landscape A SpatRaster with extent, res, proj used for SpaDES.tools::spread2
+#'
+#' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
+#'   [SpaDES.tools::spread2].
+#'
 #' @param annualDTx1000 A list of data.table class objects. Each list element is
-#'   data from a single calendar year, and whose name is "yearxxxx" where xxxx is the 4 number
-#'   year. The columns in the data.table must integers, that are 1000x their actual values as
-#'   this function will divide by 1000.
+#'   data from a single calendar year, and whose name takes the form `"yearxxxx"`,
+#'   where `xxxx` is the four-digit year. The columns in the data.table must integers,
+#'   that are `1000x` their actual values as this function will divide by 1000.
+#'
 #' @param nonAnnualDTx1000 Like `annualDTx1000`, but with where each list element will be
-#'   used for >1 year. The names of the list elements must be "yearxxxx_yearyyyy_yearzzzz" where the
-#'   xxxx, yyyy, or zzzz represent the calendar years for which that list element should be used.
+#'   used for >1 year. The names of the list elements must be of the form
+#'   `"yearxxxx_yearyyyy_yearzzzz"` where `xxxx`, `yyyy`, and `zzzz` represent the four-digit
+#'   calendar years for which that list element should be used.
 #'   The columns are variables that are used for more than 1 year.
+#'
 #' @param formulaToFit Formula, put provided as a character string, not class `formula`.
 #'   (if it is provided as a class `formula`, then it invariably will have an
-#'   enormous amount of data hidden in the formula environment; this is bad for DEoptim)
-#' @param historicalFires DESCRIPTION NEEDED
-#' @param fireBufferedListDT DESCRIPTION NEEDED
+#'   enormous amount of data hidden in the formula environment; this is bad for [DEoptim::DEoptim])
+#'
+#' @param historicalFires TODO: DESCRIPTION NEEDED
+#'
+#' @param fireBufferedListDT TODO: DESCRIPTION NEEDED
+#'
 #' @param covMinMax This is a 2 row by multiple column data.frame indicating
-#'   the minimum and maximum values of the original covariate data values. These will
-#'   be used to rescale the covariates internally so that they are all between 0 and 1. It is important
-#'   to not simply rescale internally here because only 1 year is run at a time; all years
-#'   must be rescaled for a given covariate by the same amount.
+#'   the minimum and maximum values of the original covariate data values.
+#'   These will be used to rescale the covariates internally so that they are all between 0 and 1.
+#'   It is important to not simply rescale internally here because only 1 year is run at a time;
+#'   all years must be rescaled for a given covariate by the same amount.
+#'
 #' @param maxFireSpread A value for `spreadProb` that is considered impossible to go above.
 #'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
-#' @param minFireSize DESCRIPTION NEEDED
+#'
+#' @param minFireSize TODO: DESCRIPTION NEEDED
+#'
 #' @template mutuallyExclusive
+#'
 #' @param doAssertions Logical. If `TRUE`, the default, the function will test a few minor things
 #'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
-#' @param tests One or more of `"mad"`, `"adTest"`, `"SNLL"`, or `"SNLL_FS"`.
-#'              Default: `"snll_fs"`.
+#'
+#' @param tests One or more of `"mad"`, `"adTest"`, `"SNLL"`, or `"snll_fs"`. Default: `"snll_fs"`.
+#'
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
-#' @param plot.it Passed to `SpaDES.core::Plots`, so will show (TRUE or "screen") or save files
-#'   of several plots, using `ggplot2`
+#'
+#' @param plot.it Passed to [SpaDES.core::Plots()], so will show (TRUE or "screen") or save files
+#'   of several plots, using \pkg{ggplot2}.
+#'
 #' @param objFunCoresInternal Internally, this function can use `mcmapply` to run multiple
-#'   parallel `spread` function calls. This should only be >1L if there are spare threads.
-#'   It is highly likely that there won't be. However, sometimes the `DEoptim` is
+#'   parallel `spread` function calls. This should only be > `1L` if there are spare threads.
+#'   It is highly likely that there won't be. However, sometimes the [DEoptim::DEoptim] is
 #'   particularly inefficient, it starts X cores, and immediately several of them are
-#'   stopped inside this function because the parameters are so bad, only 2 year are attempted.
-#'   Then the core will stay idle until all other cores for the `DEoptim` iteration are complete.
-#'   Similarly, if only physical cores are used for `DEoptim`, the additional use of
-#'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be 2L or 3L).
-#' @param thresh Threshold multiplier used in SNLL fire size (SNLL_FS) test. Default 550.
+#'   stopped inside this function because the parameters are so bad, only two years are attempted.
+#'   Then the core will stay idle until all other cores for the [DEoptim::DEoptim] iteration are complete.
+#'   Similarly, if only physical cores are used for [DEoptim::DEoptim], the additional use of
+#'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be `2L` or `3L`).
+#'
+#' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
 #'   Lowering the threshold value will be more restrictive, but being too restrictive will result
-#'   in `DEoptim` rejecting more tests and using the "fail value" of 10000.
+#'   in [DEoptim::DEoptim] rejecting more tests and using the "fail value" of 10000.
 #'   Too high a threshold, and more years will be run and it will take longer to find values.
+#'
 #' @param lanscape1stQuantileThresh A `spreadProb` value that represents a threshold for the
 #'   1st quantile of the `spreadProbs` on the landscape; if that quantile is above this
 #'   number, then the `.objFunSpredFit` will bail because it is "too burny" a landscape.
-#'   Default = `0.265`, meaning if only 25% of the pixels on the landscape are below
+#'   Default 0.265, meaning if only 25%% of the pixels on the landscape are below
 #'   this `spreadProb`, then it will bail.
+#'
 #' @param weighted Logical. Should empirical likelihood be weighted by log of the actual fire size?
 #'    This will give large fires more influence on the SNLL.
-#' @param verbose If >= 2, then this will show more information about spreadProb fitting.
-#' @param ... This is not used here, but allows for extraneous arguments to not break this function
+#'
+#' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
+#'
+#' @param ... This is not used here, but allows for extraneous arguments to not break this function.
 #'
 #' @return
 #' Attempting a weighted likelihood,
 #' <https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation>.
-#' With log(fireSize) * likelihood for each fire.
+#' With `log(fireSize) * likelihood` for each fire.
 #'
 #' @export
 #' @importFrom data.table := rbindlist set setDT setDTthreads setnames setorderv
@@ -338,8 +359,10 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
 
 #' @keywords internal
 #'
+#' @importFrom data.table set setDT
 #' @importFrom ggplot2 aes facet_wrap geom_histogram ggplot
-#' @importFrom SpaDES.core Plots
+#' @importFrom SpaDES.core anyPlotting Plots
+#' @importFrom SpaDES.tools spread
 #' @importFrom tidyr gather
 objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         annualFires, nonAnnualDTx1000, shortAnnDTx1000 = NULL,
@@ -360,14 +383,14 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   covPars <- parsList[["covPars"]]
 
   browser()
-  shortAnnDTx1000 <-
-    spreadProbFromIntegerCovs(shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
-             indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
-             doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb)
+  shortAnnDTx1000 <- spreadProbFromIntegerCovs(
+    shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
+    indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
+    doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb
+  )
 
   set(shortAnnDTx1000, NULL, "spreadProb",
       logisticAll(logisticPars, mat = as.matrix(shortAnnDTx1000[, ..colsToUse]), covPars, lowerSpreadProb))
-
 
   # shortAnnDTx1000 <- rescaleAllCovsFromX1000(annDTx1000 = annDTx1000,
   #                                   nonAnnualDTx1000 = nonAnnualDTx1000,
@@ -760,67 +783,83 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   return(ret)
 }
 
-
-
-#' Convert covariates from their x1000 Integer to useable by spread
+#' Convert covariates from their `x1000` integer to usable by spread
+#'
+#' @inheritParams .objfunSpreadFit
+#'
+#' @param shortAnnDTx1000 TODO: DESCRIPTION NEEDED
+#'
+#' @param annDTx1000 TODO: use description of `annualDTx1000` parameter in `.objfunSpreadFit`
+#'
+#' @param indexNonAnnual TODO: DESCRIPTION NEEDED
+#'
+#' @param yr TODO: DESCRIPTION NEEDED
+#'
+#' @template mutuallyExclusive
+#'
+#' @param colsToUse TODO: DESCRIPTION NEEDED
+#'
+#' @inheritParams logisticAll
+#'
+#' @return TODO: DESCRIPTION NEEDED
+#'
 #' @export
-spreadProbFromIntegerCovs <-
-  function(shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
-           indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
-           doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb) {
-    # rescaleA <- function(annDTx1000, shortAnnDTx1000, nonAnnualDTx1000, indexNonAnnual,
-    #                      yr, covMinMax, mutuallyExclusive, colsToUse, doAssertions, logisticPars, maxFireSpread, covPars, lowerSpreadProb) {
+#' @importFrom data.table set setDT
+spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
+                                      indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
+                                      doAssertions, logisticPars, covPars, maxFireSpread,
+                                      lowerSpreadProb) {
+  # rescaleA <- function(annDTx1000, shortAnnDTx1000, nonAnnualDTx1000, indexNonAnnual,
+  #                      yr, covMinMax, mutuallyExclusive, colsToUse, doAssertions, logisticPars,
+  #                      maxFireSpread, covPars, lowerSpreadProb) {
 
-    if (!missing(annDTx1000))
-      setDT(annDTx1000)
-    if (is.null(shortAnnDTx1000))
-      shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
-    if (!is.null(covMinMax)) {
-      for (cn in colnames(covMinMax)) {
-        set(
-          shortAnnDTx1000, NULL, cn,
-          rescaleKnown2(
-            shortAnnDTx1000[[cn]], 0, 1000,
-            covMinMax[[cn]][1] * 1000,
-            covMinMax[[cn]][2] * 1000
-          )
+  if (!missing(annDTx1000)) {
+    setDT(annDTx1000)
+  }
+  if (is.null(shortAnnDTx1000)) {
+    shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
+  }
+  if (!is.null(covMinMax)) {
+    for (cn in colnames(covMinMax)) {
+      set(
+        shortAnnDTx1000, NULL, cn,
+        rescaleKnown2(
+          shortAnnDTx1000[[cn]], 0, 1000,
+          covMinMax[[cn]][1] * 1000,
+          covMinMax[[cn]][2] * 1000
         )
-      }
-    }
-    if (!is.null(mutuallyExclusive)) {
-      shortAnnDTx1000 <- makeMutuallyExclusive(
-        dt = shortAnnDTx1000,
-        mutuallyExclusiveCols = mutuallyExclusive
       )
     }
-    # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
-    for (cn2 in colsToUse)
-      set(shortAnnDTx1000, NULL, cn2, shortAnnDTx1000[[cn2]] / 1000)
-
-    if (doAssertions) {
-      test1 <- sum(apply(round(shortAnnDTx1000[, ..colsToUse], 3), 2, min) < 0) == 0
-      test2 <- sum(apply(round(shortAnnDTx1000[, ..colsToUse], 3), 2, max) > 1) == 0
-
-      # test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
-      # test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
-      if (!all(test1, test2)) {
-        stop("Covariates are not all between 0 and 1, which they should be")
-      }
-      if (logisticPars[1] > maxFireSpread) {
-        warning(
-          "The first parameter of the logistic is > ", maxFireSpread, ".",
-          "The parameter should be lowered."
-        )
-      }
-
-    }
-
-    # covPars <- tail(x = par, n = parsModel)
-    # logisticPars <- head(x = par, n = length(par) - parsModel)
-    shortAnnDTx1000
+  }
+  if (!is.null(mutuallyExclusive)) {
+    shortAnnDTx1000 <- makeMutuallyExclusive(
+      dt = shortAnnDTx1000,
+      mutuallyExclusiveCols = mutuallyExclusive
+    )
+  }
+  # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
+  for (cn2 in colsToUse) {
+    set(shortAnnDTx1000, NULL, cn2, shortAnnDTx1000[[cn2]] / 1000)
   }
 
+  if (doAssertions) {
+    test1 <- sum(apply(round(shortAnnDTx1000[, ..colsToUse], 3), 2, min) < 0) == 0
+    test2 <- sum(apply(round(shortAnnDTx1000[, ..colsToUse], 3), 2, max) > 1) == 0
 
+    # test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
+    # test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
+    if (!all(test1, test2)) {
+      stop("Covariates are not all between 0 and 1, which they should be")
+    }
+    if (logisticPars[1] > maxFireSpread) {
+      warning(
+        "The first parameter of the logistic is > ", maxFireSpread, ".",
+        "The parameter should be lowered."
+      )
+    }
+  }
 
-
-
+  # covPars <- tail(x = par, n = parsModel)
+  # logisticPars <- head(x = par, n = length(par) - parsModel)
+  shortAnnDTx1000
+}

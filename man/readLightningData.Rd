@@ -12,31 +12,48 @@ readLightningData(filename, ...)
 \item{...}{Passed to \code{postProcess}, e.g., \code{to}, \code{maskTo}}
 }
 \value{
-This will return a SpatRaster object with resolution the same as that
+This will return a \code{SpatRaster} object with resolution the same as that
 supplied by \code{to} or \code{projectTo}. If no \code{SpatRaster} is supplied, it will
-default to resolution of \code{10000} m (10kmx10km).
+default to resolution of \code{10000} m (10 km x 10 km).
 }
 \description{
-Data is not publicly available. It is currently stored in a User Access Controlled
-location. Data comes from William Burrows. Please contact him to obtain data.
-This function will get the data (which is in a .txt format) and do all the necessary
-sequence of calculations to create a SpatRaster. By default, it will
-}
-\details{
-Please publication: https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117#d1e886
+Data is not publicly available; it is currently stored in a User Access Controlled location.
+Data comes from William Burrows. Please contact him to obtain data.
+This function will get the data (which is in a \code{.txt} format) and do all the necessary
+sequence of calculations to create a \code{SpatRaster}.
 }
 \examples{
-library(reproducible); library(terra)
-crsToUse <- "+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs"
-ras <- rast(ext(-1115000, -376750, 7267000, 7874000), res = 250, vals = 1,
-            crs = crsToUse)
-# folder: https://drive.google.com/drive/folders/1ftpKKUO8BZcJ9ba4LDWcmF5uQkpRGmku?usp=drive_link
-data <- list(lightningDays = "1jeKJquhVJsesoNk2EPP1QZkttX3Zwp5c",
-             lightningDensity = "12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr" ,
-             positiveCG = "1bn6cQ23tvPicFLHn1tz4Z3AqDzJI4r60",
-             positiveCGdensity = "1GNixhXj1Ex1jT0tWXfhmxef-dX3ze1a4")
-lightning <- Map(url = data, function(url)
-  prepInputs(url = url,
-             fun = readLightningData(targetFile, to = ras)))
-
+if (require(googledrive, quietly = TRUE)) {
+  crsToUse <- paste("+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77",
+                    "+x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
+  ras <- terra::rast(
+    terra::ext(-1115000, -376750, 7267000, 7874000),
+    resolution = 250,
+    vals = 1,
+    crs = crsToUse
+  )
+  ## Google Drive folder:
+  ## <https://drive.google.com/drive/folders/1ftpKKUO8BZcJ9ba4LDWcmF5uQkpRGmku>
+  data <- list(
+    lightningDays = "1jeKJquhVJsesoNk2EPP1QZkttX3Zwp5c",
+    lightningDensity = "12fnhfKtER-JXkl06M4_yZ3GvpZWtQlIr",
+    positiveCG = "1bn6cQ23tvPicFLHn1tz4Z3AqDzJI4r60",
+    positiveCGdensity = "1GNixhXj1Ex1jT0tWXfhmxef-dX3ze1a4"
+  )
+  lightning <- Map(
+    url = data,
+    f = function(url) {
+      reproducible::prepInputs(
+        url = url,
+        fun = readLightningData(targetFile, to = ras),
+        destinationPath = file.path(tempdir(), "lightning_data")
+      )
+    }
+  )
+}
+}
+\references{
+Kochtubajda, B., & Burrows, W. R. (2020). Cloud-to-Ground Lightning in Canada:
+20 Years of CLDN Data. Atmosphere-Ocean, 58(5), 316–332.
+\url{https://doi.org/10.1080/07055900.2020.1845117}
 }

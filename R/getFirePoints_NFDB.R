@@ -12,9 +12,10 @@
 #' @return A `sf` spatial points object.
 #'
 #' @export
-#' @importFrom terra res
-#' @importFrom sf st_read
+#' @importFrom LandR asInteger
 #' @importFrom reproducible Cache Checksums prepInputs
+#' @importFrom sf st_read
+#' @importFrom terra res
 #' @importFrom utils getFromNamespace
 getFirePoints_NFDB <- function(url = NULL,
                                studyArea = NULL, rasterToMatch = NULL,

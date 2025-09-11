@@ -1,7 +1,7 @@
 #' Converts stacks of climate rasters to data.table and optionally subsets to index
 #'
 #' @param historicalClimateRasters named list of `SpatRaster` objects
-#' @param Index optional list of `data.table` objects named by fireYear and
+#' @param Index optional list of `data.table` objects named by `fireYear` and
 #' containing fire buffer indices
 #'
 #' @return a long-layout `data.table` of climate values in each pixel and year

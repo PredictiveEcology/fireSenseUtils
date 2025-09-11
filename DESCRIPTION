@@ -15,8 +15,9 @@ Authors@R: c(
            role = c("aut"), comment = c(ORCID = "0000-0001-7397-2116"))
     )
 Depends:
-    R (>= 4.2)
+    R (>= 4.3)
 Imports:
+    clusters (>= 0.0.15),
     crayon,
     data.table,
     DEoptim,
@@ -43,12 +44,13 @@ Imports:
     stats,
     terra,
     tidyr,
-    utils
+    utils,
+    withr
 Suggests:
     cowplot,
     dplyr,
+    googledrive,
     knitr,
-    lintr,
     PtProcess,
     raster,
     rasterVis,
@@ -60,12 +62,14 @@ Suggests:
     spelling,
     testthat
 Remotes:
+    PredictiveEcology/clusters,
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
-    PredictiveEcology/SpaDES.core@development,
-    PredictiveEcology/SpaDES.tools@development,
+    PredictiveEcology/quickPlot@development,
+    PredictiveEcology/reproducible@AI,
     PredictiveEcology/Require@development,
-    PredictiveEcology/reproducible@development
+    PredictiveEcology/SpaDES.core@development,
+    PredictiveEcology/SpaDES.tools@development
 VignetteBuilder:
     knitr,
     rmarkdown

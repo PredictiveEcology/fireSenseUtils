@@ -1,9 +1,9 @@
 #' Data checks and assertions for `spreadFitRun`
 #'
-#' @param cells DESCRIPTION NEEDED
-#' @param size DESCRIPTION NEEDED
+#' @param cells TODO: DESCRIPTION NEEDED
+#' @param size TODO: DESCRIPTION NEEDED
 #'
-#' @return DESCRIPTION NEEDED
+#' @return TODO: DESCRIPTION NEEDED
 #'
 #' @export
 #' @rdname assertions-spreadFitRun
@@ -31,12 +31,12 @@ chk_duplicatedStartPixels <- function(cells, size) {
   }
 }
 
-#' @param moduleName DESCRIPTION NEEDED
-#' @param envir DESCRIPTION NEEDED
-#' @param attribs DESCRIPTION NEEDED
-#' @param fml DESCRIPTION NEEDED
+#' @param moduleName TODO: DESCRIPTION NEEDED
+#' @param envir TODO: DESCRIPTION NEEDED
+#' @param attribs TODO: DESCRIPTION NEEDED
+#' @param fml TODO: DESCRIPTION NEEDED
 #'
-#' @return DESCRIPTION NEEDED
+#' @return TODO: DESCRIPTION NEEDED
 #'
 #' @export
 #' @importFrom stats is.empty.model

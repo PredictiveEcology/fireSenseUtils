@@ -4,7 +4,7 @@
 \alias{runDEoptim}
 \alias{DEoptimIterative}
 \alias{termsInDEoptim}
-\title{Wrapper around \code{DEoptim} call}
+\title{Run \code{DEoptim}}
 \usage{
 runDEoptim(
   landscape,
@@ -71,50 +71,49 @@ termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
 }
 \arguments{
 \item{landscape}{A \code{SpatRaster} which has the correct metadata associated with
-the \code{pixelID} and cells of other objects in this function call}
+the \code{pixelID} and cells of other objects in this function call.}
 
 \item{annualDTx1000}{A list of data.table objects. Each list element will be from 1
 year, and it must be the same length as \code{fireBufferedListDT} and \code{historicalFires}.
-All covariates must be integers, and must be 1000x their actual values.}
+All covariates must be integers, and must be \verb{1000x} their actual values.}
 
 \item{nonAnnualDTx1000}{A list of data.table objects. Each list element must be named
 with a concatenated sequence of names from \code{names(annualDTx1000)},
 e.g., \verb{1991_1992_1993}.
 It should contain all the years in \code{names(annualDTx1000)}.
-All covariates must be integers, and must be 1000x their actual values.}
+All covariates must be integers, and must be \verb{1000x} their actual values.}
 
 \item{fireBufferedListDT}{A list of data.table objects. It must be same length as
 \code{annualDTx1000}, with same names. Each element is a \code{data.table} with columns:
 \code{buff}...TODO: INCOMPLETE}
 
-\item{historicalFires}{DESCRIPTION NEEDED}
+\item{historicalFires}{TODO: DESCRIPTION NEEDED}
 
-\item{itermax}{Maximum number of iterations for the DEoptim algorithm. Passed to
-\code{DEoptim.control}.}
+\item{itermax}{Maximum number of iterations for the \link[DEoptim:DEoptim]{DEoptim::DEoptim} algorithm.
+Passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}.}
 
 \item{initialpop}{Optional. A matrix or vector specifying the initial population
-for DEoptim. If \code{NULL}, DEoptim generates one. Passed to \code{DEoptim.control}.
-See \code{?DEoptim::DEoptim.control}.}
+for \link[DEoptim:DEoptim]{DEoptim::DEoptim}. If \code{NULL}, \link[DEoptim:DEoptim]{DEoptim::DEoptim} generates one.
+Passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}.}
 
-\item{NP}{Optional. The number of population members (individuals) in DEoptim.
-If \code{NULL}, DEoptim sets a default. Passed to \code{DEoptim.control}.
-See \code{?DEoptim::DEoptim.control}.}
+\item{NP}{Optional. The number of population members (individuals) in \link[DEoptim:DEoptim]{DEoptim::DEoptim}.
+If \code{NULL}, \link[DEoptim:DEoptim]{DEoptim::DEoptim} sets a default. \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}.}
 
 \item{trace}{Integer or Logical. Controls the level of tracing information
-printed by DEoptim during optimization. Passed to \code{DEoptim.control}.}
+printed by \link[DEoptim:DEoptim]{DEoptim::DEoptim} during optimization. Passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}.}
 
-\item{strategy}{Integer (1-10). Defines the DEoptim strategy variant to use.
-Passed to \code{DEoptim.control}. See \code{?DEoptim::DEoptim.control}.}
+\item{strategy}{Integer \verb{[1,10]}. Defines the \link[DEoptim:DEoptim]{DEoptim::DEoptim} strategy variant to use.
+Passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}.}
 
 \item{cores}{A numeric (for running on localhost only) or a character vector of
 machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
 
-\item{paths}{see \code{SpaDES.core::paths} - list of paths containing the \code{cachePath} to store cache.
-Should likely be \code{cachePath(sim)}}
+\item{paths}{list of paths containing the \code{cachePath} to store cache.
+Should likely be \code{cachePath(sim)}. See \link[SpaDES.core:simList-accessors-paths]{SpaDES.core::paths}.}
 
-\item{libPath}{A character string indicating an R package library directory. This
-location must exist on each machine, though the function will make sure it
+\item{libPath}{A character string indicating an R package library directory.
+This location must exist on each machine, though the function will make sure it
 does internally.}
 
 \item{logPath}{A character string indicating what file to write logs to. This
@@ -123,58 +122,55 @@ does internally.}
 
 \item{doObjFunAssertions}{logical indicating whether to do assertions.}
 
-\item{iterStep}{Integer. Must be less than \code{itermax}. This will cause \code{DEoptim} to run
+\item{iterStep}{Integer. Must be less than \code{itermax}. This will cause \link[DEoptim:DEoptim]{DEoptim::DEoptim} to run
 the \code{itermax} iterations in \code{ceiling(itermax / iterStep)} steps. At the end of
 each step, this function will plot, optionally, the parameter histograms (if
 \code{visualizeDEoptim} is \code{TRUE})}
 
-\item{lower}{Numeric vector. Lower bounds for the parameters being optimized. Passed to \code{DEoptim}.}
+\item{lower}{Numeric vector. Lower bounds for the parameters being optimized.
+Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}.}
 
-\item{upper}{Numeric vector. Upper bounds for the parameters being optimized. Passed to \code{DEoptim}.}
+\item{upper}{Numeric vector. Upper bounds for the parameters being optimized.
+Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}.}
 
-\item{mutuallyExclusive}{If there are any covariates, e.g,. youngAge, that should be
-considered mutually exclusive, i.e., "if youngAge is non-zero, should vegPC2 be set to zero", then
-this can be done here. A named list, where the name of the list element must be a single
-covariate column name in either \code{annualDTx1000} or \code{nonAnnualDTx1000}. The list
-content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
-The values of all column names that match the grep value will be set to \code{0}, whenever
-the name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
+\item{mutuallyExclusive}{If there are any covariates, e.g,. \code{youngAge}, that should be
+considered mutually exclusive, then this can be done here
+(i.e., "if \code{youngAge} is non-zero, should \code{vegPC2} be set to zero").
+A named list, where the name of the list element must be a single covariate column name
+in either \code{annualDTx1000} or \code{nonAnnualDTx1000}.
+The list content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
+The values of all column names that match the grep value will be set to \code{0}, whenever the
+name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
 meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
 is non-zero.}
 
-\item{formulaToFit}{Passed to \code{DEoptim}}
+\item{formulaToFit}{Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}}
 
 \item{objFunCoresInternal}{Integer. The number of cores to use for potential
-parallelization \emph{within} a single call to the objective function (\code{fireSenseUtils::.objfunSpreadFit}).
-This is distinct from the parallelization managed by \code{DEoptim} across population members.}
+parallelization \emph{within} a single call to the objective function (\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}).
+This is distinct from the parallelization managed by \link[DEoptim:DEoptim]{DEoptim::DEoptim} across population members.}
 
-\item{covMinMax}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
-
-\item{tests}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
-
-\item{maxFireSpread}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
-
-\item{Nreps}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
+\item{covMinMax, tests, maxFireSpread, Nreps, .verbose}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.}
 
 \item{thresh}{The threshold for accepting fits; e.g., from \code{mod$thresh}.}
 
-\item{.c}{#DESCRIPTION NEEDED}
+\item{.c}{TODO: DESCRIPTION NEEDED}
 
-\item{.verbose}{Passed to \code{fireSenseUtils::.objfunSpreadFit}}
-
-\item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of
-\code{DEoptim} outputs.}
+\item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of \link[DEoptim:DEoptim]{DEoptim::DEoptim} outputs.}
 
 \item{.plots}{Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
-Passed to internal plotting functions (likely via \code{quickPlot::Plots} or \code{SpaDES.plotting::Plot}). Default "screen".}
+Passed to internal plotting functions (likely via \code{\link[SpaDES.core:Plots]{SpaDES.core::Plots()}}).
+Default "screen".}
 
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
 
-\item{rep}{#DESCRIPTION NEEDED}
+\item{rep}{TODO: DESCRIPTION NEEDED}
 
-\item{control}{passed to DEoptim.control}
+\item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 
 \item{figPath}{directory where figures will be saved, if relevant}
+
+\item{cachePath}{A \code{cacheRepo} (see \code{\link[reproducible:Cache]{reproducible::Cache()}}).}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
@@ -182,14 +178,14 @@ from e.g., \code{sim$fireSense_spreadFormula}.}
 \item{numParams}{The number of parameters (TODO: improve description)}
 }
 \value{
-The result of the \code{DEoptimIterative} call. This is typically a list where
-each element contains the \code{DEoptim} object state after a block of \code{iterStep} iterations.
+The result of the \code{\link[=DEoptimIterative]{DEoptimIterative()}} call. This is typically a list where
+each element contains the \link[DEoptim:DEoptim]{DEoptim::DEoptim} object state after a block of \code{iterStep} iterations.
 The final element represents the state after \code{itermax} iterations or upon early stopping.
 }
 \description{
-Does the multiple cluster connections. This will only work if
-ssh keys are correctly made between machines (if using multiple machines).
+Provides a wrapper around \link[DEoptim:DEoptim]{DEoptim::DEoptim}, setting up the multiple cluster connections.
+This will only work if ssh keys are preconfigured on all machines (if using multiple machines).
 
-Internal function called by \code{runDEoptim}. Runs \code{DEoptim} in steps,
+Internal function called by \code{runDEoptim}. Runs \link[DEoptim:DEoptim]{DEoptim::DEoptim} in steps,
 caching results and optionally visualizing progress after each step.
 }

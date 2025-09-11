@@ -10,22 +10,22 @@ chk_duplicatedStartPixels(cells, size)
 .doDataChecks(moduleName, envir, attribs, fml)
 }
 \arguments{
-\item{cells}{DESCRIPTION NEEDED}
+\item{cells}{TODO: DESCRIPTION NEEDED}
 
-\item{size}{DESCRIPTION NEEDED}
+\item{size}{TODO: DESCRIPTION NEEDED}
 
-\item{moduleName}{DESCRIPTION NEEDED}
+\item{moduleName}{TODO: DESCRIPTION NEEDED}
 
-\item{envir}{DESCRIPTION NEEDED}
+\item{envir}{TODO: DESCRIPTION NEEDED}
 
-\item{attribs}{DESCRIPTION NEEDED}
+\item{attribs}{TODO: DESCRIPTION NEEDED}
 
-\item{fml}{DESCRIPTION NEEDED}
+\item{fml}{TODO: DESCRIPTION NEEDED}
 }
 \value{
-DESCRIPTION NEEDED
+TODO: DESCRIPTION NEEDED
 
-DESCRIPTION NEEDED
+TODO: DESCRIPTION NEEDED
 }
 \description{
 Data checks and assertions for \code{spreadFitRun}

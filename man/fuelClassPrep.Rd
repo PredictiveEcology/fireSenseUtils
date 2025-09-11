@@ -28,12 +28,12 @@ and \code{sumB}.}
 
 \item{fires}{a single \code{sf} or \code{SpatVector} object of fire polygons containing a \code{YEAR} column}
 
-\item{nonforestLCC}{vector or list of vectors of flammable nonforest LCC}
+\item{nonforestLCC}{vector or list of vectors of flammable non-forest LCC}
 
 \item{yearRange}{the range of years represented by this landscape}
 }
 \value{
-\code{data.table} with cell, biomass, tree species or lcc for non-forest, and year of fire
+\code{data.table} with cell, biomass, tree species or LCC for non-forest, and year of fire
 }
 \description{
 Calculate proportional burn of landcover and tree species

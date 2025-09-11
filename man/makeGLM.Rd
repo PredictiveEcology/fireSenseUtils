@@ -2,17 +2,17 @@
 % Please edit documentation in R/fuelClassPrep.R
 \name{makeGLM}
 \alias{makeGLM}
-\title{wrapper on GLM that creates separate GLMs for each item in fuel}
+\title{Wrapper on \code{glm} that creates separate GLMs for each item in fuel}
 \usage{
 makeGLM(fuel, landscape, form)
 }
 \arguments{
-\item{fuel}{vector of tree species or lcc in landscape by which to subset}
+\item{fuel}{vector of tree species or LCC in landscape by which to subset}
 
 \item{landscape}{created by \code{fuelClassPrep}}
 
 \item{form}{the formula to use - as a character}
 }
 \description{
-wrapper on GLM that creates separate GLMs for each item in fuel
+Wrapper on \code{glm} that creates separate GLMs for each item in fuel
 }

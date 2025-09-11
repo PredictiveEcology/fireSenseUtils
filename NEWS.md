@@ -1,6 +1,7 @@
 # fireSenseUtils (development version)
 
-
-# Version 0.0.6
-
 * bugfixes
+
+# fireSenseUtils 0.0.5
+
+* TODO

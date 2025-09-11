@@ -1,14 +1,19 @@
 utils::globalVariables(c(
   "sumRows"
 ))
-#' preparing a time since disturbance map from stand age and fire data
+#' Prepare a time since disturbance map from stand age and fire data
 #'
 #' @param standAgeMap initial stand age map
+#'
 #' @param firePolys list of `spatialPolygon` objects comprising annual fires.
-#' fireRaster will supersede firePolys if provided
-#' @param fireRaster a `RasterLayer` with values representing fire years
-#' @param year the year represented by `standAge`
-#' @param lcc `data.table` with landcover values - `landcoverDT`
+#'   `fireRaster` will supersede `firePolys` if provided.
+#'
+#' @param fireRaster a `RasterLayer` with values representing fire years.
+#'
+#' @param year the year represented by `standAge`.
+#'
+#' @param lcc `data.table` with landcover values, i.e., `landcoverDT`.
+#'
 #' @inheritParams castCohortData
 #'
 #' @return a `SpatRaster` with values representing time since disturbance
@@ -23,14 +28,14 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
     baseYear <- setValues(baseYear, year)
     initialTSD <- baseYear - fireRaster
     initialTSD[initialTSD < 0] <- cutoffForYoungAge + 1
-    # these pixels burn in the future - can't infer prior disturbance
+    ## these pixels burn in the future - can't infer prior disturbance
   } else if (!is.null(firePolys)) {
     ## get particular fire polys in format that can be fasterized
     polysNeeded <- firePolys[names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1)]
     polysNeeded <- polysNeeded[sapply(polysNeeded, length) > 0]
     # polysNeeded <- vect(polysNeeded) #terrarize
     polysNeeded <- do.call(rbind, polysNeeded)
-    # create background raster with TSD
+    ## create background raster with TSD
     initialTSD <- rasterize(polysNeeded,
       y = standAgeMap,
       background = year - cutoffForYoungAge - 1,
@@ -47,13 +52,13 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   lcc[, sumRows := NULL]
 
   standAgeVals <- values(standAgeMap, mat = FALSE)
-  # these have no disturbance history but are apparently young
+  ## these have no disturbance history but are apparently young
   falseYoungs <- standAgeVals[pixToUpdate] <= cutoffForYoungAge | is.na(standAgeVals[pixToUpdate])
-  # disturbance history suggests young
+  ## disturbance history suggests young
   trueYoungs <- initialTSD[pixToUpdate] <= cutoffForYoungAge
 
   standAgeVals[pixToUpdate[falseYoungs]] <- cutoffForYoungAge + 1
-  # note that by doing this second, pixels in both groups are correctly set to trueYoung
+  ## note that by doing this second, pixels in both groups are correctly set to trueYoung
   standAgeVals[pixToUpdate[trueYoungs]] <- values(initialTSD, mat = FALSE)[pixToUpdate[trueYoungs]]
   standAgeMap <- setValues(standAgeMap, standAgeVals)
   set.names(standAgeMap, paste0("timeSinceDisturbance", year))
@@ -61,25 +66,25 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   return(standAgeMap)
 }
 
-#' Iteratively calculate `youngAge` column  in FS covariates
+#' Iteratively calculate `youngAge` column in FS covariates
 #'
 #' @param standAgeMap template `SpatRaster`
 #' @param years the years over which to iterate
-#' @param fireBufferedListDT data.table containing non-annual burn and buffer pixelIDs
-#' @param annualCovariates list of data.table objects with pixelID
+#' @param fireBufferedListDT data.table containing non-annual burn and buffer `pixelID`s
+#' @param annualCovariates list of data.table objects with `pixelID`
 #' @inheritParams castCohortData
 #'
-#' @return a raster layer with unified standAge and time-since-disturbance values
+#' @return a raster layer with unified stand age and time-since-disturbance values
 #'
 #' @export
-#' @importFrom terra rast setValues values
 #' @importFrom data.table data.table
+#' @importFrom terra rast setValues values
 calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT,
                          cutoffForYoungAge = 15) {
   # this is safest way to subset given the NULL year
   for (year in years) {
     yearChar <- paste0("year", year)
-    ann <- annualCovariates[[yearChar]] # no copy made
+    ann <- annualCovariates[[yearChar]] ## no copy made
     fires <- fireBufferedListDT[[yearChar]]
     if (!is.null(fires)) {
       ageVals <- values(standAgeMap, mat = FALSE)

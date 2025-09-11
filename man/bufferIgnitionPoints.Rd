@@ -2,12 +2,12 @@
 % Please edit documentation in R/makeBufferedFires.R
 \name{bufferIgnitionPoints}
 \alias{bufferIgnitionPoints}
-\title{buffer ignition points to create non-ignitions for model}
+\title{Buffer ignition points to create non-ignitions for model}
 \usage{
 bufferIgnitionPoints(ignitionPoints, rtm, bufferSize)
 }
 \arguments{
-\item{ignitionPoints}{SpatialPolygonsDataFrame with year of ignition}
+\item{ignitionPoints}{\code{sf} points with year of ignition}
 
 \item{rtm}{a template raster}
 
@@ -17,5 +17,5 @@ bufferIgnitionPoints(ignitionPoints, rtm, bufferSize)
 a list of data.tables containing indices inside buffered area of each year's ignitions
 }
 \description{
-buffer ignition points to create non-ignitions for model
+Buffer ignition points to create non-ignitions for model
 }

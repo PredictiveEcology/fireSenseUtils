@@ -7,7 +7,7 @@
 makeRastersFromCD(class, cohortData, flammableRTM, pixelGroupMap)
 }
 \arguments{
-\item{class}{fuelClass from  \code{sppEquiv}}
+\item{class}{\code{fuelClass} from  \code{sppEquiv}}
 
 \item{cohortData}{A \code{data.table} with columns: \code{pixelGroup}, \code{ecoregionGroup},
 \code{speciesCode}, and optionally \code{age}, \code{B}, \code{mortality}, \code{aNPPAct},
@@ -20,7 +20,7 @@ and NA no data}
 number that corresponds exactly to \code{pixelGroup} column in \code{cohortData}.}
 }
 \value{
-a SpatRaster with values equal to \code{class} biomass (B)
+a \code{SpatRaster} with values equal to \code{class} biomass (B)
 }
 \description{
 Put \code{cohortData} back into a \code{SpatRaster} with some extra details

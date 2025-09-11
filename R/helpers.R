@@ -1,9 +1,21 @@
-#' Four- and five-parameter logistic functions
+#' Multiple-parameter versions of logistic functions
 #'
-#' @param x DESCRIPTION NEEDED
-#' @param par DESCRIPTION NEEDED
+#' Logistic functions using 2, 3, 4, or 5 parameters.
+#' `logisticAll` provides a wrapper to call any of these.
 #'
-#' @return DESCRIPTION NEEDED
+#' @param x TODO: DESCRIPTION NEEDED
+#'
+#' @param par TODO: DESCRIPTION NEEDED
+#'
+#' @param logisticPars TODO: DESCRIPTION NEEDED
+#'
+#' @param mat TODO: DESCRIPTION NEEDED
+#'
+#' @param covPars TODO: DESCRIPTION NEEDED
+#'
+#' @param lowerSpreadProb TODO: DESCRIPTION NEEDED
+#'
+#' @return TODO: DESCRIPTION NEEDED
 #'
 #' @export
 #' @rdname logistic
@@ -31,8 +43,6 @@ logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par4
 }
 
-
-#' @param par4 DESCRIPTION NEEDED
 #' @export
 #' @rdname logistic
 logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb) {
@@ -59,10 +69,10 @@ logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb) {
 
 #' Replace `NA`s in a `data.table` with zeros
 #'
-#' @param DT DESCRIPTION NEEDED
-#' @param colsToUse DESCRIPTION NEEDED
+#' @param DT TODO: DESCRIPTION NEEDED
+#' @param colsToUse TODO: DESCRIPTION NEEDED
 #'
-#' @return DESCRIPTION NEEDED
+#' @return TODO: DESCRIPTION NEEDED
 #'
 #' @export
 #' @importFrom data.table set
@@ -79,19 +89,20 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
   DT
 }
 
-#' Convert list of annual SpatRaster to `data.table`
+#' Convert list of annual `SpatRaster` to `data.table`
 #'
 #' @param x `RasterStack` or list of rasters to convert to `data.table`
-#'          and multiply by 1000 to save space
+#'   and multiply by 1000 to save space.
 #' @param whNotNA Pixel indexes that should go through this process (i.e. not NA)
 #' @param ... Not currently used
 #'
-#' @return `data.table` of the SpatRaster or the list
+#' @return `data.table` of the `SpatRaster` or the list
 #' @export
 #' @rdname annualStackToDTx1000
 #'
 #' @examples
-#' library(raster)
+#' withr::local_package("raster")
+#'
 #' r1 <- raster(extent(0, 10, 0, 10), vals = 1:100)
 #' r2 <- raster(extent(0, 10, 0, 10), vals = 100:1)
 #' r3 <- raster(extent(0, 10, 0, 10), vals = 200:101)
@@ -123,12 +134,16 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 #' #  actually, this doesn't make sense: RasterStack can't have duplicated names
 #' names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
 #' out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+#'
+#' ## cleanup
+#' withr::deferred_run()
 annualStackToDTx1000 <- function(x, whNotNA, ...) {
   UseMethod("annualStackToDTx1000")
 }
 
 #' @export
 #' @importFrom data.table as.data.table set
+#' @importFrom LandR asInteger
 #' @importFrom terra values
 #' @rdname annualStackToDTx1000
 annualStackToDTx1000.SpatRaster <- function(x, whNotNA, ...) {
@@ -186,19 +201,18 @@ annualStackToDTx1000.list <- function(x, whNotNA, ...) {
   return(rastersDT)
 }
 
-
 #' Generate random beta variates between 2 values and a mean
 #'
 #' @inheritParams stats::Beta
-#' @param shape1 non-negative parameter of the Beta distribution
-#' @param shape2 If provided, passed to `rbeta`. If not, `m` must be (i.e., the mean)
-#' @param l scalar numeric for the lower bound
-#' @param u scalar numeric for the upper bound
-#' @param m scalar numeric for the mean
+#' @param shape1 non-negative parameter of the Beta distribution.
+#' @param shape2 If provided, passed to [stats::rbeta()]. If not, `m` must be.
+#' @param l scalar numeric for the lower bound.
+#' @param u scalar numeric for the upper bound.
+#' @param m scalar numeric for the mean.
 #'
 #' @export
 #' @importFrom stats rbeta
-#' @seealso stats::rbeta
+#' @seealso [stats::rbeta]
 rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
   if (is.null(shape2)) {
     m1 <- ((1) / (u - l) * (m - l))
@@ -208,15 +222,12 @@ rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
   out * (u - l) + (l)
 }
 
-asInteger <- function(x) as.integer(floor(x + 0.5))
-
-
-#' Split the character vector of parameters into covPars and logisticPars
+#' Split the character vector of parameters into `covPars` and `logisticPars`
 #'
-#' DEoptim does not differentiate between the logistic parameters and the covariates.
-#' This splits the vector into the correct components. The split is based on the
-#' number of covariates. Therefore the number of logistic parameters is deduced
-#' from `length(pars) - parsModel`.
+#' [DEoptim::DEoptim] does not differentiate between the logistic parameters and the covariates.
+#' This splits the vector into the correct components.
+#' The split is based on the number of covariates.
+#' Therefore the number of logistic parameters is deduced from `length(pars) - parsModel`.
 #'
 #' @param par Numeric vector of all parameters. The covariate parameters must be the
 #'   second group.
@@ -230,14 +241,15 @@ paramsSeparate <- function(par, parsModel) {
   list(covPars = covPars, logisticPars = logisticPars)
 }
 
-
-
 #' Log with a minimum
 #'
-#' This is used for transforming Biomass to the log scale
-#' @export
+#' Used for transforming Biomass to the log scale
+#'
 #' @param x Any value to be adjusted with log and a minimum B
-#' @return The original vector, logged with a minimum
+#'
+#' @return The original vector, logged with a minimum.
+#'
+#' @export
 logMinB <- function(x) {
   minimumB <- exp(log(100) - 1)
   x[x < minimumB] <- minimumB

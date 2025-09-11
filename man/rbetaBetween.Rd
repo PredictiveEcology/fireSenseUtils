@@ -10,19 +10,19 @@ rbetaBetween(n, l, u, m, shape1, shape2 = NULL)
 \item{n}{number of observations. If \code{length(n) > 1}, the length
     is taken to be the number required.}
 
-\item{l}{scalar numeric for the lower bound}
+\item{l}{scalar numeric for the lower bound.}
 
-\item{u}{scalar numeric for the upper bound}
+\item{u}{scalar numeric for the upper bound.}
 
-\item{m}{scalar numeric for the mean}
+\item{m}{scalar numeric for the mean.}
 
-\item{shape1}{non-negative parameter of the Beta distribution}
+\item{shape1}{non-negative parameter of the Beta distribution.}
 
-\item{shape2}{If provided, passed to \code{rbeta}. If not, \code{m} must be (i.e., the mean)}
+\item{shape2}{If provided, passed to \code{\link[stats:Beta]{stats::rbeta()}}. If not, \code{m} must be.}
 }
 \description{
 Generate random beta variates between 2 values and a mean
 }
 \seealso{
-stats::rbeta
+\link[stats:Beta]{stats::rbeta}
 }

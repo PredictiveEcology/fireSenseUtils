@@ -6,7 +6,7 @@
 \alias{logistic3p}
 \alias{logistic2p}
 \alias{logisticAll}
-\title{Four- and five-parameter logistic functions}
+\title{Multiple-parameter versions of logistic functions}
 \usage{
 logistic4p(x, par)
 
@@ -19,17 +19,26 @@ logistic2p(x, par, par1 = 0.1, par4 = 0.5)
 logisticAll(logisticPars, mat, covPars, lowerSpreadProb)
 }
 \arguments{
-\item{x}{DESCRIPTION NEEDED}
+\item{x}{TODO: DESCRIPTION NEEDED}
 
-\item{par}{DESCRIPTION NEEDED}
+\item{par}{TODO: DESCRIPTION NEEDED}
 
 \item{par1}{DESCRIPTION NEEDED}
 
 \item{par4}{DESCRIPTION NEEDED}
+
+\item{logisticPars}{TODO: DESCRIPTION NEEDED}
+
+\item{mat}{TODO: DESCRIPTION NEEDED}
+
+\item{covPars}{TODO: DESCRIPTION NEEDED}
+
+\item{lowerSpreadProb}{TODO: DESCRIPTION NEEDED}
 }
 \value{
-DESCRIPTION NEEDED
+TODO: DESCRIPTION NEEDED
 }
 \description{
-Four- and five-parameter logistic functions
+Logistic functions using 2, 3, 4, or 5 parameters.
+\code{logisticAll} provides a wrapper to call any of these.
 }

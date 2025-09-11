@@ -6,19 +6,27 @@ globalVariables(c(
 #' Classify `pixelGroups` by flammability
 #'
 #' @template cohortData
+#'
 #' @template pixelGroupMap
+#'
 #' @template sppEquiv
+#'
 #' @template sppEquivCol
-#' @param landcoverDT Optional table of nonforest landcovers and pixel indices.
+#'
+#' @param landcoverDT Optional table of non-forest land cover classes and pixel indices.
 #'                    It will override pixel values in `cohortData`, if supplied.
+#'
 #' @template flammableRTM
+#'
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
+#'
 #' @param fuelClassCol the column in `sppEquiv` that describes unique fuel classes
 #'
-#' @return a `SpatRaster` of biomass by fuel class as determined by `fuelClassCol` and `cohortData`
+#' @return a `SpatRaster` of biomass by fuel class as determined by `fuelClassCol` and `cohortData`.
 #'
 #' @export
 #' @importFrom data.table copy setkey
+#' @importFrom LandR asInteger
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom terra values rast
 #'
@@ -66,13 +74,18 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
 
 #' Put `cohortData` back into a `SpatRaster` with some extra details
 #'
-#' @param class fuelClass from  `sppEquiv`
+#' @param class `fuelClass` from  `sppEquiv`
+#'
 #' @template flammableRTM
+#'
 #' @template pixelGroupMap
+#'
 #' @template cohortData
-#' @return a SpatRaster with values equal to `class` biomass (B)
-#' @importFrom SpaDES.tools rasterizeReduced
+#'
+#' @return a `SpatRaster` with values equal to `class` biomass (B)
+#'
 #' @importFrom data.table data.table
+#' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom terra values setValues rast
 makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
   cohortDataFB <- cohortData[FuelClass == class, ]
@@ -82,8 +95,8 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
     newRasterCols = "BperClass",
     mapcode = "pixelGroup"
   )
-  # fuel class is 0 and not NA if absent entirely
-  # to prevent NAs following aggregation during ignitionFit
+  ## fuel class is 0 and not NA if absent entirely
+  ## to prevent NAs following aggregation during ignitionFit
   flamVals <- values(flammableRTM, mat = FALSE)
   rasVals <- values(ras, mat = FALSE)
   rasVals[!is.na(flamVals) & is.na(rasVals)] <- 0
@@ -91,17 +104,22 @@ makeRastersFromCD <- function(class, cohortData, flammableRTM, pixelGroupMap) {
   return(ras)
 }
 
-#' Modify cohortData with burn column
+#' Modify `cohortData` with burn column
 #'
-#' @param year length-two vector giving temporal period used to subset firePolys. Closed interval
-#' @param pixelGroupMap either a `SpatRaster` with `pixelGroups` or list of `SpatRasters` named by year
-#' @param cohortData either a `cohortData` object or list of `cohortData` objects named by year
-#' @param firePolys the output of `fireSenseUtils::getFirePolys` with `YEAR` column
-#' @return cohortData modified with burn status
+#' @param year length-two vector giving temporal period used to subset `firePolys`. Closed interval.
+#'
+#' @param pixelGroupMap either a `SpatRaster` with `pixelGroups` or list of `SpatRasters` named by year.
+#'
+#' @param cohortData either a `cohortData` object or list of `cohortData` objects named by year.
+#'
+#' @param firePolys the output of [getFirePolygons()] with `YEAR` column.
+#'
+#' @return `cohortData` modified with burn status
+#'
 #' @importFrom LandR addPixels2CohortData
 #' @importFrom terra rasterize
 buildCohortBurnHistory <- function(cohortData, pixelGroupMap, firePolys, year) {
-  # build fire raster
+  ## build fire raster
   firePolys <- do.call(rbind, firePolys)
   firePolys <- firePolys[firePolys$YEAR >= min(year) & firePolys$YEAR <= max(year), ]
   fireRas <- rasterize(firePolys, pixelGroupMap, field = "YEAR", fun = min)

@@ -5,7 +5,7 @@
 \alias{annualStackToDTx1000.SpatRaster}
 \alias{annualStackToDTx1000.Raster}
 \alias{annualStackToDTx1000.list}
-\title{Convert list of annual SpatRaster to \code{data.table}}
+\title{Convert list of annual \code{SpatRaster} to \code{data.table}}
 \usage{
 annualStackToDTx1000(x, whNotNA, ...)
 
@@ -17,20 +17,21 @@ annualStackToDTx1000(x, whNotNA, ...)
 }
 \arguments{
 \item{x}{\code{RasterStack} or list of rasters to convert to \code{data.table}
-and multiply by 1000 to save space}
+and multiply by 1000 to save space.}
 
 \item{whNotNA}{Pixel indexes that should go through this process (i.e. not NA)}
 
 \item{...}{Not currently used}
 }
 \value{
-\code{data.table} of the SpatRaster or the list
+\code{data.table} of the \code{SpatRaster} or the list
 }
 \description{
-Convert list of annual SpatRaster to \code{data.table}
+Convert list of annual \code{SpatRaster} to \code{data.table}
 }
 \examples{
-library(raster)
+withr::local_package("raster")
+
 r1 <- raster(extent(0, 10, 0, 10), vals = 1:100)
 r2 <- raster(extent(0, 10, 0, 10), vals = 100:1)
 r3 <- raster(extent(0, 10, 0, 10), vals = 200:101)
@@ -62,4 +63,7 @@ out3 <- annualStackToDTx1000(list(s1 = s1, s2 = s2), whNotNA) ## named list requ
 #  actually, this doesn't make sense: RasterStack can't have duplicated names
 names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
 out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
+
+## cleanup
+withr::deferred_run()
 }

@@ -35,7 +35,7 @@ must be a character matching a \code{nonForestedLCC} group, e.g. '\verb{nonFores
 "young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
 }
 \value{
-a trimmed \code{cohortData} with wide-layout and rows for every pixel in lcc
+a trimmed \code{cohortData} with wide-layout and rows for every pixel in \code{lcc}
 }
 \description{
 preparing covariates for fitting modules

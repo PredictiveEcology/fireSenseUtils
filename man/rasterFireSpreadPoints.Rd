@@ -2,7 +2,7 @@
 % Please edit documentation in R/rasterFireFunctions.R
 \name{rasterFireSpreadPoints}
 \alias{rasterFireSpreadPoints}
-\title{create a list of annual ignition points based on fire raster}
+\title{Create a list of annual ignition points based on fire raster}
 \usage{
 rasterFireSpreadPoints(fireBufferDT, flammableRTM)
 }
@@ -16,5 +16,5 @@ rasterFireSpreadPoints(fireBufferDT, flammableRTM)
 a list of \code{sf} point objects
 }
 \description{
-create a list of annual ignition points based on fire raster
+Create a list of annual ignition points based on fire raster
 }

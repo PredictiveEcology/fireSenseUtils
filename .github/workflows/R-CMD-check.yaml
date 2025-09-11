@@ -14,7 +14,6 @@ name: R-CMD-check
 
 jobs:
   R-CMD-check:
-    if: "!contains(github.event.commits[0].message, '[skip-ci]')"
     runs-on: ${{ matrix.config.os }}
 
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
@@ -26,12 +25,12 @@ jobs:
           - {os: macOS-latest,   r: 'release'}
           - {os: windows-latest, r: 'devel'}
           - {os: windows-latest, r: 'release'}
-          - {os: windows-latest, r: 'oldrel/1'}
-          - {os: windows-latest, r: 'oldrel/2'}
+          - {os: windows-latest, r: 'oldrel-1'}
+          - {os: windows-latest, r: 'oldrel-2'}
           - {os: ubuntu-latest,   r: 'devel'}
           - {os: ubuntu-latest,   r: 'release'}
-          - {os: ubuntu-latest,   r: 'oldrel/1'}
-          - {os: ubuntu-latest,   r: 'oldrel/2'}
+          - {os: ubuntu-latest,   r: 'oldrel-1'}
+          - {os: ubuntu-latest,   r: 'oldrel-2'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -54,14 +53,12 @@ jobs:
         with:
           extra-packages: |
             any::rcmdcheck
-            fastshp=?ignore
             NLMR=?ignore
           needs: check
 
       - name: Install additional package dependencies
         run: |
           pak::pkg_install("ropensci/NLMR")
-          pak::pkg_install("s-u/fastshp")
         shell: Rscript {0}
 
       - uses: r-lib/actions/check-r-package@v2
