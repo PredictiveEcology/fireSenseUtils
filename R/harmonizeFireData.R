@@ -68,11 +68,26 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   fireBufferedListDT1 <- lapply(fireBufferedListDT, FUN = removeBufferedFiresOutsideRTM,
                                flammableRTM = flammableRTM)
   whKept <- which(sapply(fireBufferedListDT1, nrow) > 0)
+  defaultDT <- fireBufferedListDT1[[1]][0]
   fireBufferedListDT2 <- fireBufferedListDT1[whKept]
-  newYears <- rbindlist(fireBufferedListDT2)[, .N, .(Year)]
-  if (!identical(length(fireBufferedListDT2), length(fireBufferedListDT1))) {
+  fireOnlyInBuffer <- FALSE
+  fireYearsOutsideBuffers <- fireYears
+  newYears <- defaultDT
+  if (identical(NROW(fireBufferedListDT2), 0L)) {
+    fireOnlyInBuffer <- TRUE
+    fireYearsOutsideBuffers <- integer()
+    fireBufferedListDT2 <- list(defaultDT)
+  }
+  if (isFALSE(fireOnlyInBuffer)) {
+    newYears <- rbindlist(fireBufferedListDT2)[, .N, .(Year)]
+    if (!identical(length(fireBufferedListDT2), length(fireBufferedListDT1))) {
+      fireOnlyInBuffer <- TRUE
+      fireYearsOutsideBuffers <- newYears$Year
+    }
+  }
+  if (fireOnlyInBuffer) {
     message("One or more fire years had fires only in the buffer; dropping \n",
-            setdiff(fireYears, newYears$Year))
+            paste(setdiff(fireYears, fireYearsOutsideBuffers), collapse = ", "))
   }
   fireBufferedListDT <- fireBufferedListDT2
 
@@ -81,7 +96,7 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   firePeriod <- paste0(gsub(x = fireYears, "year", "")[1], "-",
                        gsub(x = rev(fireYears), "year", "")[1])
   message(paste0("between ", firePeriod, " there were ", totalFires, " escaped fires",
-                 " and ", totalFires-firesRemaining, " were replaced for bordering the studyArea border"))
+                 " and ", totalFires-firesRemaining, " were removed for being entirely in the studyArea border"))
   fireBufferedListDT <- lapply(fireBufferedListDT, function(x) {x[, Year := NULL]})
   #ensure year derived from name, not data.table itself
   names(fireBufferedListDT) <- newYears$Year
@@ -120,9 +135,10 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   nfires_point <- sapply(harmonized$SpatialPoints, FUN = function(x){length(unique(x$FIRE_ID))})
 
   # Remove all the fires that were eliminated because they crossed outside of studyArea buffer
-  firePolys <- Map(fp = firePolys, fb = harmonized$FireBuffered, function(fp, fb) {
-    fp[fp[[pointsIDcolumn]] %in% fb$ids, ]
-  })
+  if (NROW(harmonized))
+    firePolys <- Map(fp = firePolys, fb = harmonized$FireBuffered, function(fp, fb) {
+      fp[fp[[pointsIDcolumn]] %in% fb$ids, ]
+    })
 
   if (!identical(nfires_poly, nfires_point)) {
     stop('spread fire point and poly harmonization error in dataPrepFit. Please debug harmonizeFireData')

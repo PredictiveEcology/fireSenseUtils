@@ -263,8 +263,19 @@ bufferIgnitionPoints <- function(ignitionPoints, rtm, bufferSize) {
 #' @rdname removeBufferedFiresOutsideRTM
 removeBufferedFiresOutsideRTM <- function(fireBufferedDT, flammableRTM) {
   fireBufferedDT[, flammable := flammableRTM[fireBufferedDT$pixelID]]
-  toExclude <- fireBufferedDT[is.na(flammable)]$ids
-  fireBufferedDT <- fireBufferedDT[!ids %in% toExclude]
+  toExclude <- unique(fireBufferedDT[is.na(flammable)]$ids)
+
+  # THIS CHANGE FROM ELIOT SEPT 3, 2025
+  #  The previous seems egregious -- it would remove every fire in its entirety
+  #   if there was even one pixel that was outside the RTM.
+  #  This first came up as a problem on Newfoundland, there there are inlets that make
+  #   small areas of "outside RTM"... i.e., the ocean.
+  #  Maybe it is OK for situations where there is no ocean nearby -- i.e., lakes would be
+  #   non-flammable, but inside RTM
+  fireBufferedDT <- fireBufferedDT[!is.na(flammable)]
+  # fireBufferedDT <- fireBufferedDT[!ids %in% toExclude]
+
+
   fireBufferedDT[, flammable := NULL]
   return(fireBufferedDT)
 }
