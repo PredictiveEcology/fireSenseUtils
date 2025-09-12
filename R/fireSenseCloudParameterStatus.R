@@ -39,8 +39,19 @@ fireSenseCloudParametersMap <-
         # canV <- terra::vect(can)
         # canV <- terra::union(canV)
         canV2 <- terra::as.polygons(canRas)
-        terra::plot(canV2, col = "transparent", main = "FireSense Fit completed")
-        terra::plot(oo, add = TRUE, col = "yellow")
+        terra::plot(canV2, col = "transparent", main = "FireSense Fit completed; ELFs with labels")
+        if (...names() %in% "destinationPath")
+          destinationPath <- list(...)$destinationPath
+        ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE)
+        ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)
+
+        # terra::plot(ELFs, col = c("turquoise", "yellow")[ELFs$buffer], alpha = 0.5)
+        terra::plot(ELFs)
+        terra::plot(oo, add = TRUE, col = rgb(255, 255, 0, alpha = 127, maxColorValue = 255))
+        centroids_points <- terra::centroids(oo)
+        keep <- ELFs$buffer %in% 2 & !ELFs$ID %in% centroids_points$polygonID
+        terra::text(terra::centroids(ELFs[ keep, ]), labels = ELFs$ID[keep], cex = 0.7)
+        terra::text(centroids_points, labels = centroids_points$polygonID, cex = 0.8, col = "blue")
       }
 
     }
