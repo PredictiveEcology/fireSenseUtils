@@ -8,7 +8,8 @@ makeELFs(
   nationalForestPolygon,
   desiredBuffer = 20000,
   maxArea = 2.4e+11,
-  destinationPath = "."
+  destinationPath = ".",
+  singleSpatVector = FALSE
 )
 }
 \arguments{

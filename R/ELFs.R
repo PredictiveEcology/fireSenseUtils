@@ -39,7 +39,7 @@
 #'   with the least amount of pixel deformation.
 #' @export
 makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
-                     maxArea = 2.4e+11, destinationPath = ".") {
+                     maxArea = 2.4e+11, destinationPath = ".", singleSpatVector = FALSE) {
   if (missing(nationalForestPolygon)) {
     if (!requireNamespace("scfmutils")) stop("Please install PredictiveEcology/scfmutils ",
                                         "or supply a nationalForestPolygon")
@@ -88,6 +88,7 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
   ecopRseg <- ecopRseg[[names(ecopRseg) %in% fre$value]][[ord]]
 
   # plotStack(ecopRseg)
+  message("Starting to buffer ELFs")
   out <- bufferOut(dv, desiredBuffer = desiredBuffer) |>
     reproducible::Cache(omitArgs = "v", .cacheExtra = digNFP)
   out2 <- mergeAndSplitRas(ecopRseg, ecosLCC$province, maxArea = maxArea) |> Cache()
@@ -103,6 +104,26 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
                                            attr(out2, "tags"),
                                            attr(out, "tags")
                         ))
+  if (isTRUE(singleSpatVector)) {
+
+    ELFs <- makeELFs(destinationPath = "inputs")
+    whole <- ELFs$rasWhole$`4.1`
+    whole[whole[] >= 0] <- 1
+    outerbound <- terra::as.polygons(whole)
+
+    allVec <- Map(id = ELFs$rasWhole, nam = names(ELFs$rasWhole), function(id, nam) {
+      a <- id
+      a[a[] == 0] <- NA
+      vec <- terra::as.polygons(a)
+      vec[,"ID"] <- nam
+      vec[, "buffer"] <- vec[, nam]
+      vec[,nam] <- NULL
+      vec
+      # terra::plot(vec, col = c("turquoise", "yellow")[vec$`4.1`], alpha = 0.5)
+    })
+    ELFs <- Reduce(rbind, allVec)
+
+  }
 
   ELFs
 }
@@ -288,7 +309,10 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
   prov1 <- as.character(sort(as.numeric(unique(names(ecopRseg)))))
   out <- Map(prov = prov1, function(prov) {
     provChar <- as.character(prov)
-    tmp <- ecopLCC[ecopLCC$ECOPROVINC == provChar, ] |> terra::vect()
+    tmp <- ecopLCC[ecopLCC$ECOPROVINC == provChar, ]
+    if (!is(tmp, "SpatVector")) {
+      tmp <- terra::vect(tmp)
+    }
     tmp[, "AREA"] <- terra::expanse(tmp)
     needUpdate <- FALSE
     # merge multiples into 1
