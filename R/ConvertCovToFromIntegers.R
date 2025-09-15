@@ -28,8 +28,14 @@ covsX1000AndSetDF <- function(annualList, nonAnnualList, fireBufferedList, fireL
   annualCols <- annualCols[annualCols %in% names(paramOrder)]
   nonAnnualCols <- nonAnnualCols[nonAnnualCols %in% names(paramOrder)]
 
-  annualList <- lapply(annualList, setcolorder, neworder = c("pixelID", annualCols))
-  nonAnnualCols <- lapply(nonAnnualList, setcolorder, neworder = c("pixelID", nonAnnualCols))
+  annualList <- setOrderInList(annualList, c("pixelID", annualCols))
+  nonAnnualList <- setOrderInList(nonAnnualList, c("pixelID", nonAnnualCols))
+  # annualList <- lapply(annualList, function(dt) {
+  # if (NROW(dt))
+  #   setcolorder(dt, neworder = c("pixelID", annualCols))
+  # dt
+  # })
+  #nonAnnualCols <- lapply(nonAnnualList, setcolorder, neworder = c("pixelID", nonAnnualCols))
 
   annualDT <- lapply(annualList, setDF)
   nonAnnualDT <- lapply(nonAnnualList, setDF)
@@ -45,6 +51,15 @@ covsX1000AndSetDF <- function(annualList, nonAnnualList, fireBufferedList, fireL
        nonAnnualDTx1000 = nonAnnualDTx1000,
        fireBufferedListDT = fireBufferedListDT,
        historicalFires = historicalFires)
+}
+
+
+setOrderInList <- function(ll, newOrd) {
+  lapply(ll, function(dt) {
+    if (NROW(dt))
+      setcolorder(dt, neworder = newOrd)
+    dt
+  })
 }
 
 #' Convert numeric values to integers x 1000
