@@ -30,6 +30,8 @@
 #' This means that the ELFs will be smaller than this, with lower limit being the
 #' individual ecozones plus buffer.
 #' @param destinationPath A path where any downloads should be put.
+#' @param useCache Logical. If `TRUE`, then some internal steps will be cached.
+#'   If `FALSE`, then some (or most) will not be cached.
 #'
 #' @return A list of length 2, with `rasWhole` and `rasCentered`. Each of these
 #'   will have the complete list of ELFs. `rasWhole` is the whole map of Canada
@@ -39,7 +41,8 @@
 #'   with the least amount of pixel deformation.
 #' @export
 makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
-                     maxArea = 2.4e+11, destinationPath = ".", singleSpatVector = FALSE) {
+                     maxArea = 2.4e+11, destinationPath = ".", singleSpatVector = FALSE,
+                     useCache = TRUE) {
   if (missing(nationalForestPolygon)) {
     if (!requireNamespace("scfmutils")) stop("Please install PredictiveEcology/scfmutils ",
                                         "or supply a nationalForestPolygon")
@@ -48,7 +51,8 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
   }
   digNFP <- reproducible::.robustDigest(nationalForestPolygon)
   dv <- terra::vect(nationalForestPolygon) |>
-    reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP)
+    reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP,
+                        useCache = useCache)
   ecoNames <- c(
     "zone", "region",
     "province"
@@ -62,20 +66,24 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
   ecosLCC <- Map(nam = ecoNames, url = urls, function(nam, url) {
     reproducible::prepInputs(url = url,
                              destinationPath = destinationPath,
-                             projectTo = nationalForestPolygon) |>
+                             projectTo = nationalForestPolygon,
+                             useCache = useCache) |>
       reproducible::Cache(omitArgs = "projectTo",
-                          .cacheExtra = list(nationalForestPolygon = digNFP))
+                          .cacheExtra = list(nationalForestPolygon = digNFP),
+                          useCache = useCache)
   })
   tmpl <- terra::rast(ecosLCC[[1]], res = 5000)
   hf <- terra::rasterize(nationalForestPolygon, tmpl, field = "FRU") |>
-    reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP)
+    reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP,
+                        useCache = useCache)
   ecosR <- Map(ecoLCC = ecosLCC, nam = names(ecosLCC),
                function(ecoLCC, nam) {
                  terra::rasterize(ecoLCC, tmpl, field = toupper(paste0("eco", substr(nam, 1, 7)))) |>
                    reproducible::postProcess(maskTo = hf)
                }) |>
-                 reproducible::Cache(omitArgs = "maskTo",
-                                        .cacheExtra = list(hf = attr(hf, "tags")))
+    reproducible::Cache(omitArgs = "maskTo", .functionName = "rasterize_eco*_files",
+                        .cacheExtra = list(hf = attr(hf, "tags")),
+                        useCache = useCache)
 
   ecopR <- ecosR$province
   # Some are on the edge, e.g., in the tundra --> remove if less than 100 pixels
@@ -89,21 +97,27 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
 
   # plotStack(ecopRseg)
   message("Starting to buffer ELFs")
-  out <- bufferOut(dv, desiredBuffer = desiredBuffer) |>
-    reproducible::Cache(omitArgs = "v", .cacheExtra = digNFP)
-  out2 <- mergeAndSplitRas(ecopRseg, ecosLCC$province, maxArea = maxArea) |> Cache()
+  out <- bufferOut(dv, desiredBuffer = desiredBuffer,
+                   useCache = useCache) |>
+    reproducible::Cache(omitArgs = "v", .cacheExtra = digNFP,
+                        useCache = useCache)
+  out2 <- mergeAndSplitRas(ecopRseg, ecosLCC$province, maxArea = maxArea,
+                           useCache = useCache) |>
+    Cache(useCache = useCache)
 
   out3 <- lapply(out2, function(x) as.list(segregateKeepNames(x, omitClasses = 0))) |>
     unlist(recursive = FALSE)
   names(out3) <- sapply(out3, names)
 
   ELFs <- bufferOut(spatRasSeg = out3, mask = out$rasWhole[[1]],
-                    desiredBuffer = desiredBuffer) |>
+                    desiredBuffer = desiredBuffer,
+                    useCache = useCache) |>
     reproducible::Cache(omitArgs = c("spatRasSeg", "mask"),
                         .cacheExtra = list(nationalForestPolygon = digNFP,
                                            attr(out2, "tags"),
                                            attr(out, "tags")
-                        ))
+                        ),
+                        useCache = useCache)
   if (isTRUE(singleSpatVector)) {
 
     ELFs <- makeELFs(destinationPath = "inputs")
@@ -129,13 +143,15 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
 }
 
 
-bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer = 20000) {
+bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer = 20000,
+                      useCache = TRUE) {
 
   if (missing(spatRasSeg) && missing(spatRas)) {
     tmpl <- terra::rast(v, res = 5000)
     spatRas <- {tmpl |>
         terra::rasterize(v, y = _, field = "FRU", touches = TRUE)} |>
-      reproducible::Cache(omitArgs = "x")
+      reproducible::Cache(omitArgs = "x",
+                          useCache = useCache)
     spatRasSeg <- terra::segregate(spatRas)
   }
 
@@ -279,6 +295,7 @@ segregateKeepNames <- function(ecopR, omitClasses, classes = NULL) {
 
 }
 
+#' @importFrom sf st_as_sf st_sample st_geometry st_intersection st_area
 split_poly <- function(sf_poly, n_areas) {
   # Create random points
   wasTerra <- FALSE
@@ -292,6 +309,8 @@ split_poly <- function(sf_poly, n_areas) {
     as.data.frame() %>% setNames(c("lon","lat"))
   k_means <- kmeans(points, centers = n_areas)
   # Create voronoi polygons
+  if (!requireNamespace("dismo"))
+    stop("Please install `dismo` package to proceed")
   voronoi_polys <- dismo::voronoi(k_means$centers, ext = sf_poly)
   # Clip to sf_poly
   crs(voronoi_polys) <- crs(sf_poly)
@@ -304,8 +323,8 @@ split_poly <- function(sf_poly, n_areas) {
 }
 
 mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
-                             field = "ECOPROVINC") { # FRU 27 ... or FRU 26 is 4.02075e+11
-  Require::Require(c(sf, dismo))
+                             field = "ECOPROVINC", useCache = TRUE) { # FRU 27 ... or FRU 26 is 4.02075e+11
+  # Require::Require(c(sf, dismo))
   prov1 <- as.character(sort(as.numeric(unique(names(ecopRseg)))))
   out <- Map(prov = prov1, function(prov) {
     provChar <- as.character(prov)

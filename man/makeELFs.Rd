@@ -9,7 +9,8 @@ makeELFs(
   desiredBuffer = 20000,
   maxArea = 2.4e+11,
   destinationPath = ".",
-  singleSpatVector = FALSE
+  singleSpatVector = FALSE,
+  useCache = TRUE
 )
 }
 \arguments{
@@ -26,6 +27,9 @@ This means that the ELFs will be smaller than this, with lower limit being the
 individual ecozones plus buffer.}
 
 \item{destinationPath}{A path where any downloads should be put.}
+
+\item{useCache}{Logical. If \code{TRUE}, then some internal steps will be cached.
+If \code{FALSE}, then some (or most) will not be cached.}
 }
 \value{
 A list of length 2, with \code{rasWhole} and \code{rasCentered}. Each of these
