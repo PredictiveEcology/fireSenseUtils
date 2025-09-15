@@ -40,8 +40,10 @@ fireSenseCloudParametersMap <-
         # canV <- terra::union(canV)
         canV2 <- terra::as.polygons(canRas)
         terra::plot(canV2, col = "transparent", main = "FireSense Fit completed; ELFs with labels")
-        if (...names() %in% "destinationPath")
+        if ("destinationPath" %in% ...names())
           destinationPath <- list(...)$destinationPath
+        else
+          destinationPath <- "."
         ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE)
         ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)
 
