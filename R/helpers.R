@@ -56,6 +56,16 @@ logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb) {
   }
 }
 
+
+#' Logistic parameter names
+#'
+#' @export
+#' @return A named list of length 4, with "2p", "3p", "4p", "5p" as names representing the
+#'   2-parameter etc. logistic curve.
+logisticParamNames <- list("2p" = c("maxAsymptote", "hillSlope1"),
+                           "3p" = c("maxAsymptote", "hillSlope1", "inflectionPoint1"),
+                           "4p" = c("minAsymptote", "maxAsymptote", "inflectionPoint1", "hillSlope1"),
+                           "5p" = c("minAsymptote", "maxAsymptote", "inflectionPoint1", "hillSlope1", "asymmetryFactor"))
 # logisticAll <- function(logisticPars, covsDT, mat, covPars, lowerSpreadProb) {
 #   if (length(logisticPars) == 4) {
 #     stop("logistic with 4 parameters not tested yet")
