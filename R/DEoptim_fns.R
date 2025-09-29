@@ -173,7 +173,7 @@ runDEoptim <- function(landscape,
     objsNeeded = objsNeeded,
     pkgsNeeded = neededPkgs, envir = environment()
   )
-  cl <<- control$cluster # This is to test whether it is actually closed
+  cl <- control$cluster # This is to test whether it is actually closed
   # on.exit(parallel::stopCluster(control$cluster), add = TRUE)
 
   # control <- list(itermax = itermax, trace = trace, strategy = strategy)
