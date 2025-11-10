@@ -303,9 +303,9 @@ split_poly <- function(sf_poly, n_areas) {
     sf_poly <- sf::st_as_sf(sf_poly)
     wasTerra <- TRUE
   }
-  points_rnd <- st_sample(sf_poly, size = 10000)
+  points_rnd <- sf::st_sample(sf_poly, size = 10000)
   # k-means clustering
-  points <- do.call(rbind, st_geometry(points_rnd)) %>%
+  points <- do.call(rbind, sf::st_geometry(points_rnd)) %>%
     as.data.frame() %>% setNames(c("lon","lat"))
   k_means <- kmeans(points, centers = n_areas)
   # Create voronoi polygons
@@ -313,10 +313,10 @@ split_poly <- function(sf_poly, n_areas) {
     stop("Please install `dismo` package to proceed")
   voronoi_polys <- dismo::voronoi(k_means$centers, ext = sf_poly)
   # Clip to sf_poly
-  crs(voronoi_polys) <- crs(sf_poly)
-  voronoi_sf <- st_as_sf(voronoi_polys)
-  equal_areas <- st_intersection(voronoi_sf, sf_poly)
-  equal_areas$area <- st_area(equal_areas)
+  terra::crs(voronoi_polys) <- terra::crs(sf_poly)
+  voronoi_sf <- sf::st_as_sf(voronoi_polys)
+  equal_areas <- sf::st_intersection(voronoi_sf, sf_poly)
+  equal_areas$area <- sf::st_area(equal_areas)
   if (wasTerra)
     equal_areas <- terra::vect(equal_areas)
   return(equal_areas)

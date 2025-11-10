@@ -113,6 +113,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
                                   years = 1991:2017,
                                   fireSizeColName = "SIZE_HA",
                                   NFDB_pointPath = NULL,
+                                  fun = "sf::st_read",
                                   plot = FALSE) {
   if (is.null(url)) {
     url <- "http://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point.zip"
@@ -139,7 +140,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
     print("downloading NFDB...") # put prepInputs here
     firePoints <- Cache(prepInputs,
       url = url,
-      fun = "st_read",
+      fun = fun,
       studyArea = studyArea,
       destinationPath = NFDB_pointPath,
       useSAcrs = TRUE,

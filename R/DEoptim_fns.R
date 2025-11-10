@@ -162,7 +162,8 @@ runDEoptim <- function(landscape,
   )
 
   neededPkgs <- c("kSamples", "magrittr", "raster", "data.table", "SpaDES.core",
-                  "SpaDES.tools", "fireSenseUtils", "sf", "mirai", "munsell")
+                  "SpaDES.tools", "fireSenseUtils", "sf", # "mirai",
+                  "munsell")
 
   control <- clusters::clusterSetup(
     messagePrefix = as.character(rep), # .runName,

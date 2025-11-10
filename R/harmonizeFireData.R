@@ -35,6 +35,14 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   spreadFirePoints[is.na(names(spreadFirePoints))] <- NULL
 
   fireYears <- names(firePolys)
+
+  returnToSpatVector <- FALSE
+  if (is(firePolys[[1]], "SpatVector")) {
+    returnToSpatVector <- TRUE
+    firePolys <- Map(f1 = firePolys, function(f1) sf::st_as_sf(f1))
+    spreadFirePoints <- Map(f1 = spreadFirePoints, function(f1) sf::st_as_sf(f1))
+  }
+
   fireBufferedListDT <- bufferToArea(
     poly = firePolys,
     polyName = fireYears,
@@ -126,13 +134,15 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
   harmonized <- Map(f = cleanUpSpreadFirePoints,
                     firePoints = harmonized,
                     bufferDT = fireBufferedListDT,
-                    MoreArgs = list(flammableRTM = flammableRTM)) |>
+                    MoreArgs = list(flammableRTM = flammableRTM,
+                                    idCol = pointsIDcolumn)) |>
     purrr::transpose()
 
   #one last safety check - ensuring points have corresponding fires
   nfires_poly <- sapply(harmonized$FireBuffered, FUN = function(x){nrow(x[, .N, .(ids)])})
   #polygons can have multiple ignition points, but the reverse is not true due to table structure
-  nfires_point <- sapply(harmonized$SpatialPoints, FUN = function(x){length(unique(x$FIRE_ID))})
+  nfires_point <- sapply(harmonized$SpatialPoints, FUN = function(x){length(unique(x[[pointsIDcolumn]]))})
+  # nfires_point <- sapply(harmonized$SpatialPoints, FUN = function(x){length(unique(x$FIRE_ID))})
 
   # Remove all the fires that were eliminated because they crossed outside of studyArea buffer
   if (NROW(harmonized))
@@ -144,6 +154,11 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
     stop('spread fire point and poly harmonization error in dataPrepFit. Please debug harmonizeFireData')
   }
 
+
+  if (isTRUE(returnToSpatVector)) {
+    firePolys <- Map(fp = firePolys, function(fp) terra::vect(fp))
+    harmonized$SpatialPoints <- Map(fp = harmonized$SpatialPoints, function(fp) terra::vect(fp))
+  }
 
   #fire polys should be cleaned too - though at this point it stops being used.
 

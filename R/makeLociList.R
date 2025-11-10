@@ -27,16 +27,21 @@ globalVariables(c(
 #' @importFrom terra extract res
 #' @importFrom sf %>% st_crs st_transform
 makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol = "POLY_HA",
-                         sizeColUnits = "ha") {
+                         sizeColUnits = "ha", yearPrefix = "year") {
   returnCols <- c("size", "date", "ids", "cells")
-  keepCols <- c(sizeCol, dateCol, idsCol)
+  # keepCols <- c(sizeCol, dateCol, idsCol)
   # pts shoudl already be projected but no harm in forcing..
-  pts <- lapply(pts, st_transform, crs = st_crs(ras))
+  if (is(pts$year2002, "SpatVector")) {
+    pts <- lapply(pts, terra::project, crs(ras))
+  } else {
+    pts <- lapply(pts, st_transform, crs = st_crs(ras))
+  }
+
 
   lociDF <- purrr::map(pts,
     ras = ras,
     function(x, ras) {
-      extract(x = ras, y = x, bind = TRUE, cells = TRUE) %>%
+      terra::extract(x = ras, y = x, bind = TRUE, cells = TRUE) %>%
         as.data.table()
     }
   ) %>%
@@ -70,6 +75,15 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
       set(lociDF, NULL, index, as.integer(lociDF[[index]]))
     }
   }
-  lociDF[, date := paste0("year", date)] # fires now have year in front
+  lociDF[, date := paste0(yearPrefix, date)] # fires now have year in front
   split(lociDF, f = lociDF$date, keep.by = FALSE)
 }
+
+
+#' Simple character string for year
+#' @export
+yearChar <- "year"
+
+#' Simple character string for youngAge
+#' @export
+youngAgeName <- "youngAge"

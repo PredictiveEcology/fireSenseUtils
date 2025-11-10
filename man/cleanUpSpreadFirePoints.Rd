@@ -5,7 +5,7 @@
 \title{Ensure fire points are located on flammable pixels inside a fire polygon
 Intended to be run using \code{Map}}
 \usage{
-cleanUpSpreadFirePoints(firePoints, bufferDT, flammableRTM)
+cleanUpSpreadFirePoints(firePoints, bufferDT, flammableRTM, idCol)
 }
 \arguments{
 \item{firePoints}{a \code{sf} points object representing annual ignitions}

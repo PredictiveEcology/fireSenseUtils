@@ -18,7 +18,7 @@ utils::globalVariables(c(
 #' @importFrom data.table as.data.table is.data.table data.table
 #' @importFrom sf st_as_sf st_crs
 #' @importFrom terra extract xyFromCell
-cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
+cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM, idCol) {
   if (!is.data.table(bufferDT)) {
     bufferDT <- as.data.table(bufferDT)
   }
@@ -28,7 +28,7 @@ cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
   FlamPoints[is.na(isFlammable), isFlammable := 0]
   if (any(FlamPoints$isFlammable == 0)) {
     badPoints <- FlamPoints[isFlammable == 0]
-    badStarts <- firePoints[firePoints$FIRE_ID %in% FlamPoints[isFlammable == 0]$ID, ]
+    badStarts <- firePoints[firePoints[[idCol]] %in% FlamPoints[isFlammable == 0]$ID, ]
     FlamPoints <- FlamPoints[isFlammable == 1, ] # keep the good ones
     polysWBadStarts <- bufferDT[ids %in% badPoints$ID, ]
     cells <- polysWBadStarts[polysWBadStarts$buffer == 1, ]
@@ -52,15 +52,16 @@ cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM) {
       nearestPixels <- nearestPixels[, .(x, y, id)]
       badStarts <- as.data.table(badStarts)
       badStarts[, geometry := NULL]
-      badStarts <- badStarts[nearestPixels, on = c("FIRE_ID" = "id")]
+      onVec <- c("id") |> setNames(idCol)
+      badStarts <- badStarts[nearestPixels, on = onVec]
       newStarts <- st_as_sf(badStarts, coords = c("x", "y"), crs = st_crs(firePoints))
-      firePoints <- firePoints[!firePoints$FIRE_ID %in% newStarts$FIRE_ID, ]
+      firePoints <- firePoints[!firePoints[[idCol]] %in% newStarts[[idCol]], ]
       firePoints <- rbind(firePoints, newStarts)
     }
     # 2. rm bad points - those without ANY flammable pixels
     if (length(badPolys) > 0) {
       bufferDT <- bufferDT[!ids %in% badPolys]
-      firePoints <- firePoints[!firePoints$FIRE_ID %in% badPolys, ]
+      firePoints <- firePoints[!firePoints[[idCol]] %in% badPolys, ]
     }
   }
   list(SpatialPoints = firePoints, FireBuffered = bufferDT)

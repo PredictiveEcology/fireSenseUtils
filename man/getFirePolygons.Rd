@@ -4,7 +4,7 @@
 \alias{getFirePolygons}
 \title{Download and prepare fire data from National Fire Database}
 \usage{
-getFirePolygons(years, useInnerCache = FALSE, ...)
+getFirePolygons(url, years, useInnerCache = FALSE, ...)
 }
 \arguments{
 \item{years}{years to filter fire polygons by}

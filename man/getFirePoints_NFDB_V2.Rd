@@ -11,6 +11,7 @@ getFirePoints_NFDB_V2(
   years = 1991:2017,
   fireSizeColName = "SIZE_HA",
   NFDB_pointPath = NULL,
+  fun = "sf::st_read",
   plot = FALSE
 )
 }

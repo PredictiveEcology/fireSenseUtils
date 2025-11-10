@@ -10,7 +10,8 @@ makeLociList(
   idsCol = "FIRE_ID",
   dateCol = "YEAR",
   sizeCol = "POLY_HA",
-  sizeColUnits = "ha"
+  sizeColUnits = "ha",
+  yearPrefix = "year"
 )
 }
 \arguments{

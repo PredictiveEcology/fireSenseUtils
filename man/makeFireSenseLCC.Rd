@@ -6,8 +6,8 @@
 \usage{
 makeFireSenseLCC(
   neededYear,
-  rasterToMatch,
-  studyArea = NULL,
+  to,
+  maskTo = NULL,
   nonflammableLCC = c(20, 31, 32, 33),
   flammabilityThreshold = 0.1,
   writeTo = NULL,
@@ -17,12 +17,6 @@ makeFireSenseLCC(
 \arguments{
 \item{neededYear}{Numeric. The specific year required for the NTEMS Land
 Cover Classification (LCC) data.}
-
-\item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
-raster operations (i.e., the one used throughout the simulation).}
-
-\item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
-passed to \code{\link[reproducible]{prepInputs}}.}
 
 \item{nonflammableLCC}{Numeric vector. LCC codes representing non-flammable
 land cover types (e.g., water, rock, urban). Defaults to \code{c(20, 31, 32, 33)}.
@@ -45,7 +39,7 @@ output raster will be written if \code{writeTo} is specified.}
 A list of two  \code{SpatRaster} objects:
 \enumerate{
 \item the processed land cover classification at the resolution, extent,
-and CRS of \code{rasterToMatch} with  values representing either the modal flammable
+and CRS of \code{to} with  values representing either the modal flammable
 LCC code or 0 if the pixel is below the \code{flammabilityThreshold}, and
 \item the proportion of each pixel that is flammable in the native resolution
 }
@@ -61,11 +55,11 @@ This function performs several steps:
 \item Downloads and prepares NTEMS LCC data for the specified \code{neededYear} using
 \code{LandR::prepInputs_NTEMS_LCC_FAO}, cropping and masking to the target extent.
 \item Identifies the dominant \emph{flammable} land cover class within each pixel of
-\code{rasterToMatch}. This is done by temporarily masking non-flammable classes
+\code{to}. This is done by temporarily masking non-flammable classes
 (defined in \code{nonflammableLCC}) to NA in the source raster and then
 reprojecting using the 'mode' method.
 \item Calculates the proportion of \emph{flammable} cover within each pixel of
-\code{rasterToMatch} by reprojecting a binary (1=flammable, 0=non-flammable)
+\code{to} by reprojecting a binary (1=flammable, 0=non-flammable)
 version of the source raster using the 'average' method.
 \item Creates the final raster: Pixels where the proportion of flammable cover
 (calculated in step 3) is below the \code{flammabilityThreshold} are assigned
@@ -76,10 +70,10 @@ dominant flammable LCC code identified in step 2.
 \examples{
 \dontrun{
   # Requires terra and potentially LandR installed
-  # Need example rasterToMatch and studyArea objects
+  # Need example to and maskTo objects
   library(terra)
 
-  # Create dummy rasterToMatch and studyArea
+  # Create dummy to and maskTo
   ras <- rast(xmin = 0, xmax = 10, ymin = 0, ymax = 10, res = 1)
   values(ras) <- 1
   crs(ras) <- "EPSG:4326" # Example CRS
@@ -93,8 +87,8 @@ dominant flammable LCC code identified in step 2.
   # Note: prepInputs_NTEMS_LCC_FAO might require specific setup or data sources
   # This example might fail if data download/access isn't configured
   # fireLCC <- makeFireSenseLCC(neededYear = 2011, # Example year
-  #                            rasterToMatch = ras,
-  #                            studyArea = sa,
+  #                            to = ras,
+  #                            maskTo = sa,
   #                            destinationPath = destPath)
   # plot(fireLCC)
 }

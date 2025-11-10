@@ -34,7 +34,8 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
     polysNeeded <- firePolys[names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1)]
     polysNeeded <- polysNeeded[sapply(polysNeeded, length) > 0]
     # polysNeeded <- vect(polysNeeded) #terrarize
-    polysNeeded <- do.call(rbind, polysNeeded)
+    # polysNeeded <- do.call(rbind, polysNeeded)
+    polysNeeded <- Reduce(rbind, polysNeeded)
     ## create background raster with TSD
     initialTSD <- rasterize(polysNeeded,
       y = standAgeMap,
@@ -82,10 +83,13 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
 calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT,
                          cutoffForYoungAge = 15) {
   # this is safest way to subset given the NULL year
+  yearsIsCorrectNaming <- all(years %in% names(annualCovariates))
+  if (yearsIsCorrectNaming %in% FALSE) {
+    years <- sapply(years, function(yr) grep(pattern = yr, years, value = TRUE))
+  }
   for (year in years) {
-    yearChar <- paste0("year", year)
-    ann <- annualCovariates[[yearChar]] ## no copy made
-    fires <- fireBufferedListDT[[yearChar]]
+    ann <- annualCovariates[[year]] ## no copy made
+    fires <- fireBufferedListDT[[year]]
     if (!is.null(fires)) {
       ageVals <- values(standAgeMap, mat = FALSE)
       set(ann, NULL, "youngAge", as.integer(ageVals[ann$pixelID] <= cutoffForYoungAge) |

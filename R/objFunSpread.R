@@ -382,7 +382,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   logisticPars <- parsList[["logisticPars"]]
   covPars <- parsList[["covPars"]]
 
-  browser()
   shortAnnDTx1000 <- spreadProbFromIntegerCovs(
     shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
     indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
@@ -816,8 +815,12 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
   if (!missing(annDTx1000)) {
     setDT(annDTx1000)
   }
+  if (is.character(yr)) {
+    yr <- gsub("[[:alpha:]]+", "", yr) |> as.integer()
+  }
   if (is.null(shortAnnDTx1000)) {
-    shortAnnDTx1000 <- nonAnnualDTx1000[[indexNonAnnual[date == yr]$ind]][annDTx1000, on = "pixelID"]
+    whKeep <- tail(indexNonAnnual$ind[indexNonAnnual$date <= yr], 1)
+    shortAnnDTx1000 <- nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]
   }
   if (!is.null(covMinMax)) {
     for (cn in colnames(covMinMax)) {
