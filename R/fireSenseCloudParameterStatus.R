@@ -60,6 +60,21 @@ fireSenseCloudParametersMap <-
     oo
   }
 
+#' @export
+#' @rdname makeELFs
+#' @seealso [fireSenseCloudParameters()]
+plotELFs <- function(destinationPath = ".") {
+  ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE) |>
+    Cache()
+  ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)|>
+    Cache()
+
+  # terra::plot(ELFs, col = c("turquoise", "yellow")[ELFs$buffer], alpha = 0.5)
+  terra::plot(ELFs)
+  keep <- ELFs$buffer %in% 2
+  terra::text(terra::centroids(ELFs[ keep, ]), labels = ELFs$ID[keep], cex = 0.7)
+  return(invisible(ELFs))
+}
 
 
 #' Get current state of FireSense Fit parameters as a map
@@ -75,9 +90,11 @@ fireSenseCloudParametersMap <-
 #' @return The object and the `rds` file saved to destinationPath.
 #' @export
 #' @seealso [fireSenseCloudParametersMap()]
-fireSenseCloudParameters <- function(url = "https://drive.google.com/file/d/1xQGAhBCRimYQC_GWA0lOctZU4VSlyojS/view?usp=drivesdk",
+fireSenseCloudParameters <- function(url = "https://drive.google.com/file/d/1oJX7V5wPSj49C6wt59yD9RBplfZ7Cp-f/view?usp=drive_link",
                                      targetFile = "fireSenseParams.rds",
                                      destinationPath = ".", useCache = TRUE) {
+
+  # KNN = "https://drive.google.com/file/d/1xQGAhBCRimYQC_GWA0lOctZU4VSlyojS/view?usp=drivesdk"
   prepInputs(targetFile = targetFile,
                    url = url,
                    destinationPath = destinationPath,

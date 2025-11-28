@@ -6,7 +6,7 @@
 \usage{
 fireSenseCloudParameters(
   url =
-    "https://drive.google.com/file/d/1xQGAhBCRimYQC_GWA0lOctZU4VSlyojS/view?usp=drivesdk",
+    "https://drive.google.com/file/d/1oJX7V5wPSj49C6wt59yD9RBplfZ7Cp-f/view?usp=drive_link",
   targetFile = "fireSenseParams.rds",
   destinationPath = ".",
   useCache = TRUE

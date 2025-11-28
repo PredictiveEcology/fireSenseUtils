@@ -20,8 +20,8 @@
 #' ecological zones (Canadian Ecozones), are "larg-ish", more "blobby" (low fractal dimension)
 #' than other ecological zonation in mountains (which tend to follow elevation
 #' contours), and are each buffered (default 20km).
-#' @param nationalForestPolygon A polygon layer (`SpatVector` or `sf`) that maps the
-#' national forests of Canada. If missing, it will try to use
+#' @param x A polygon layer (`SpatVector` or `sf`) or gridded layer (`SpatRaster`)
+#' that maps the entire area of interest for the ELFs. If missing, it will try to use
 #' `scfmutils::prepInputsFireRegimePolys(type = "FRU")` if `scfmutils` is installed.
 #' Currently, only options with a column called `FRU` will work.
 #' @param desiredBuffer The distance in `m` that the buffers should be. Default is `20000`.
@@ -40,19 +40,29 @@
 #'   and lat0 = ymin and lat1 = ymax of the individual ELF. This will create ELFs
 #'   with the least amount of pixel deformation.
 #' @export
-makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
+makeELFs <- function(x, desiredBuffer = 20000,
                      maxArea = 2.4e+11, destinationPath = ".", singleSpatVector = FALSE,
                      useCache = TRUE) {
-  if (missing(nationalForestPolygon)) {
+  if (missing(x)) {
     if (!requireNamespace("scfmutils")) stop("Please install PredictiveEcology/scfmutils ",
-                                        "or supply a nationalForestPolygon")
-    nationalForestPolygon <-
+                                        "or supply a x")
+    x <-
       scfmutils::prepInputsFireRegimePolys(type = "FRU", destinationPath = destinationPath)
   }
-  digNFP <- reproducible::.robustDigest(nationalForestPolygon)
-  dv <- terra::vect(nationalForestPolygon) |>
-    reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP,
-                        useCache = useCache)
+  digNFP <- reproducible::.robustDigest(x)
+  if (is(x, "sf")) {
+    dv <- terra::vect(x) |>
+      reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP,
+                          useCache = useCache)
+  } else if (is(x, "SpatRaster")) {
+    dv <- {
+      `>=`(x, 0) |>
+      terra::as.polygons() |>
+        terra::buffer(4*res(x)[1]) |>
+        terra::buffer(-4*res(x)[1]) } |>
+      Cache(.cacheExtra = digNFP, omitArgs = "x",
+            .functionName = "Create polygon from input SpatRaster")
+  }
   ecoNames <- c(
     "zone", "region",
     "province"
@@ -66,16 +76,23 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
   ecosLCC <- Map(nam = ecoNames, url = urls, function(nam, url) {
     reproducible::prepInputs(url = url,
                              destinationPath = destinationPath,
-                             projectTo = nationalForestPolygon,
+                             projectTo = x,
                              useCache = useCache) |>
       reproducible::Cache(omitArgs = "projectTo",
-                          .cacheExtra = list(nationalForestPolygon = digNFP),
-                          useCache = useCache)
+                          .cacheExtra = list(x = digNFP),
+                          useCache = useCache, .functionName = paste0("prepInputs_", nam))
   })
   tmpl <- terra::rast(ecosLCC[[1]], res = 5000)
-  hf <- terra::rasterize(nationalForestPolygon, tmpl, field = "FRU") |>
-    reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP,
-                        useCache = useCache)
+  if (is(x, "SpatRaster")) {
+    hf <- terra::project(x, tmpl)
+  } else {
+    hf <- terra::rasterize(x, tmpl, field = "FRU") |>
+      reproducible::Cache(omitArgs = "x", .cacheExtra = digNFP,
+                          useCache = useCache)
+  }
+
+  hf <- terra::trim(hf)
+
   ecosR <- Map(ecoLCC = ecosLCC, nam = names(ecosLCC),
                function(ecoLCC, nam) {
                  terra::rasterize(ecoLCC, tmpl, field = toupper(paste0("eco", substr(nam, 1, 7)))) |>
@@ -97,27 +114,37 @@ makeELFs <- function(nationalForestPolygon, desiredBuffer = 20000,
 
   # plotStack(ecopRseg)
   message("Starting to buffer ELFs")
-  out <- bufferOut(dv, desiredBuffer = desiredBuffer,
-                   useCache = useCache) |>
-    reproducible::Cache(omitArgs = "v", .cacheExtra = digNFP,
-                        useCache = useCache)
+  # out <- bufferOut(dv, desiredBuffer = desiredBuffer, # spatRas = x,
+  #                  useCache = useCache) |>
+  #   reproducible::Cache(omitArgs = "v", .cacheExtra = digNFP,
+  #                       useCache = useCache)
   out2 <- mergeAndSplitRas(ecopRseg, ecosLCC$province, maxArea = maxArea,
-                           useCache = useCache) |>
-    Cache(useCache = useCache)
+                           useCache = useCache, destinationPath = destinationPath) |>
+    reproducible::Cache(omitArgs = "ecopRseg", .cacheExtra = attr(ecosR, "tags"))
 
   out3 <- lapply(out2, function(x) as.list(segregateKeepNames(x, omitClasses = 0))) |>
     unlist(recursive = FALSE)
   names(out3) <- sapply(out3, names)
 
-  ELFs <- bufferOut(spatRasSeg = out3, mask = out$rasWhole[[1]],
+  ELFs <- bufferOut(spatRasSeg = out3, mask = hf,
                     desiredBuffer = desiredBuffer,
                     useCache = useCache) |>
     reproducible::Cache(omitArgs = c("spatRasSeg", "mask"),
-                        .cacheExtra = list(nationalForestPolygon = digNFP,
-                                           attr(out2, "tags"),
-                                           attr(out, "tags")
+                        .cacheExtra = list(x = digNFP,
+                                           attr(out2, "tags")#,
+                                           #attr(out, "tags")
                         ),
                         useCache = useCache)
+
+  # ELFs <- bufferOut(spatRasSeg = out3, mask = out$rasWhole[[1]],
+  #                   desiredBuffer = desiredBuffer,
+  #                   useCache = useCache) |>
+  #   reproducible::Cache(omitArgs = c("spatRasSeg", "mask"),
+  #                       .cacheExtra = list(x = digNFP,
+  #                                          attr(out2, "tags"),
+  #                                          attr(out, "tags")
+  #                       ),
+  #                       useCache = useCache)
   if (isTRUE(singleSpatVector)) {
 
     ELFs <- makeELFs(destinationPath = "inputs")
@@ -152,6 +179,8 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
         terra::rasterize(v, y = _, field = "FRU", touches = TRUE)} |>
       reproducible::Cache(omitArgs = "x",
                           useCache = useCache)
+  }
+  if (missing(spatRasSeg)) {
     spatRasSeg <- terra::segregate(spatRas)
   }
 
@@ -237,37 +266,53 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
 
     # need to mask 2x maybe
     r[[i]] <- reproducible::maskTo(r[[i]], mask, verbose = FALSE, touches = FALSE)
-    ca[[i]] <- reproducible::maskTo(ca[[i]], mask, verbose = FALSE, touches = FALSE)
+    if (NROW(terra::freq(is.na(r[[i]]))) > 1) {
+      ca[[i]] <- reproducible::maskTo(ca[[i]], mask, verbose = FALSE, touches = FALSE)
 
-    patchs <- terra::patches(r[[i]], allowGaps = FALSE, values = FALSE, directions = 8)
-    tab <- terra::freq(patchs)
+      patchs <- terra::patches(r[[i]], allowGaps = FALSE, values = FALSE, directions = 8)
+      tab <- terra::freq(patchs)
 
-    if (NROW(tab) > 1) {
-      tooSmall <- tab$count < 500
-      if (any(tooSmall)) {
-
-        r[[i]][patchs[] %in% tab$value[tooSmall]] <- NA
-        r[[i]] <- terra::trim(r[[i]])
-        a <- ca[[i]]
-        a[ca[[i]] == 0] <- NA
-        patchsCA <- terra::patches(a, allowGaps = FALSE, values = FALSE, directions = 8)
-        # patchsCA <- terra::patches(ca[[i]] > 0, allowGaps = FALSE, values = FALSE, directions = 8)
-        tab <- terra::freq(patchsCA)
+      if (NROW(tab) > 1) {
         tooSmall <- tab$count < 500
-        wh <- which(patchsCA[] %in% tab$value[tooSmall])
-        dtLost <- data.table(pixelID = wh, value = terra::values(ca[[i]])[wh])
+        if (!all(tooSmall)) {
+          if (any(tooSmall)) {
 
-        lostPixels[[i]] <- dtLost
-        ca[[i]][wh] <- 0
+            r[[i]][patchs[] %in% tab$value[tooSmall]] <- NA
+            r[[i]] <- terra::trim(r[[i]])
+            a <- ca[[i]]
+            a[ca[[i]] == 0] <- NA
+            patchsCA <- terra::patches(a, allowGaps = FALSE, values = FALSE, directions = 8)
+            # patchsCA <- terra::patches(ca[[i]] > 0, allowGaps = FALSE, values = FALSE, directions = 8)
+            tab <- terra::freq(patchsCA)
+            tooSmall <- tab$count < 500
+            wh <- which(patchsCA[] %in% tab$value[tooSmall])
+            dtLost <- data.table(pixelID = wh, value = terra::values(ca[[i]])[wh])
+
+            lostPixels[[i]] <- dtLost
+            ca[[i]][wh] <- 0
+          }
+        }
       }
+      # r[[i]] <- maskTo(r[[i]], mask, verbose = FALSE, touches = FALSE)
+      # ca[[i]] <- maskTo(ca[[i]], mask, verbose = FALSE, touches = FALSE)
     }
-    # r[[i]] <- maskTo(r[[i]], mask, verbose = FALSE, touches = FALSE)
-    # ca[[i]] <- maskTo(ca[[i]], mask, verbose = FALSE, touches = FALSE)
-
     print(paste0("Done ", i))
   }
 
   ll <- moveSliversToOtherELFs(lostPixels, lp, ca, i, r)
+  ll3 <- ll
+  destinationPath <- unique(dirname(Filenames(spatRasSeg)))
+  ELFpath <- file.path(destinationPath, "ELFs_final")
+  unlink(ELFpath, recursive = TRUE)
+  dir.create(ELFpath, recursive = TRUE, showWarnings = FALSE)
+  message("Writing ELF rasters to disk")
+  for (i in seq_along(ll)) {
+    for (j in seq_along(i)) {
+      fn <- file.path(ELFpath, paste0(names(ll[[i]][[j]]), ".tif"))
+      unlink(fn)
+      ll[[i]][[j]] <- terra::writeRaster(ll[[i]][[j]], filename = fn, overwrite = TRUE)
+    }
+  }
 
   list(rasCentered = ll$r, rasWhole = ll$ca)
 }
@@ -278,6 +323,7 @@ segregateKeepNames <- function(ecopR, omitClasses, classes = NULL) {
     classes <- setdiff(uniquVals, omitClasses)
   }
   if (length(setdiff(uniquVals, 0)) > 1) {
+    origFilenames <- Filenames(ecopR)
     ecopRseg <- terra::segregate(ecopR, classes = classes)
     if (is.factor(ecopR)) {
       names(ecopRseg) <- cats(ecopR)[[1]][match(as.numeric(names(ecopRseg)), cats(ecopR)[[1]]$ID), 2]
@@ -291,6 +337,10 @@ segregateKeepNames <- function(ecopR, omitClasses, classes = NULL) {
     data.table::setorder(dt, "num")
     ecopR <- ecopRseg[[match(dt$nam, names(ecopRseg))]]
   }
+  if (terra::inMemory(ecopR))
+    ecopR <- writeRaster(ecopR, overwrite = TRUE,
+                         filename = file.path(dirname(origFilenames),
+                                              paste0(paste(names(ecopR), collapse = "_"), ".tif")))
   ecopR
 
 }
@@ -323,7 +373,8 @@ split_poly <- function(sf_poly, n_areas) {
 }
 
 mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
-                             field = "ECOPROVINC", useCache = TRUE) { # FRU 27 ... or FRU 26 is 4.02075e+11
+                             field = "ECOPROVINC", useCache = TRUE,
+                             destinationPath) { # FRU 27 ... or FRU 26 is 4.02075e+11
   # Require::Require(c(sf, dismo))
   prov1 <- as.character(sort(as.numeric(unique(names(ecopRseg)))))
   out <- Map(prov = prov1, function(prov) {
@@ -356,11 +407,15 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
       tmpRas <- try(terra::rasterize(tmp, ecopRseg[[provChar]], field = field, touches = TRUE))
       whChange <- tmpRas[] > 0
       a <- ecopRseg[[provChar]]
+      # Next line doesn't work --> it pulls it into memory
+      # set.values(a, cells = which(whChange %in% 1), values(tmpRas, mat = FALSE)[whChange %in% 1])
       a[whChange] <- tmpRas[whChange]
-      tmp <- a
     } else {
-      tmp <- ecopRseg[[provChar]]
+      a <- ecopRseg[[provChar]]
     }
+    # Need to write it explicitly because it keeps the original "fullRaster" as its .tif
+    tmp <- writeRaster(a, filename = file.path(destinationPath, paste0(provChar, ".tif")),
+                       overwrite = TRUE)
     message("Done ", prov)
     tmp
   })
@@ -401,11 +456,20 @@ moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
         sums <- list()
         for (addToInd in addTo) {
           curPixelVal <- ca[[addToInd]][] != 2
-          a[[addToInd]] <- ca[[addToInd]]
+          arr <- try(a[[addToInd]] <- ca[[addToInd]])
+          if (is(arr, "try-error")) browser()
           a[[addToInd]][lostPixels[[lp]]$pixelID] <- pmax(terra::values(a[[addToInd]])[lostPixels[[lp]]$pixelID], lostPixels[[lp]]$value, na.rm = TRUE)
           theA <- terra::freq(a[[addToInd]])
           # theA <- lapply(a, function(x) if (!is.null(x)) terra::freq(x))
-          sums[[addToInd]] <- sum(theA[-1,] - terra::freq(ca[[addToInd]])[-1,])
+          ar1 <- theA[-1, ]
+          br1 <- terra::freq(ca[[addToInd]])[-1,]
+          if (NROW(ar1) != NROW(br1)) {
+            missings <- setdiff(br1$value, ar1$value)
+            a2 <- data.frame(layer = ar1$layer[1], value = missings, count = br1$count[br1$value %in% missings])
+            ar1 <- rbind(ar1, a2)
+            ar1 <- ar1[order(ar1$value),]
+          }
+          sums[[addToInd]] <- sum(ar1 - br1)
         }
         addTo <- which.min(unlist(lapply(sums, function(ss) if (is.null(ss)) 1e7 else ss )))
         if (hasNames)
@@ -420,6 +484,7 @@ moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
         a[lostPixels[[lp]]$pixelID] <- newVals
         # a[a[] == 0] <- NA
         a <- terra::trim(a)
+        # if (is(a, "try-error")) browser()
         a <- terra::project(a, terra::crs(r[[addTo]]), method = "near")
         bb <- terra::resample(a, r[[addTo]], method = "near")
         whVals <- which(terra::values(bb) > 0)
