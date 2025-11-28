@@ -111,7 +111,12 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   nonFlamMap <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(0, length(nonflammableLCC))), ncol = 2))
 
   # Convert remaining LCC codes (flammable ones) to 1
-  nonFlamMap[nonFlamMap > 0] <- 1 # Now 1 = flammable, 0 = non-flammable
+  allVals <- freq(nonFlamMap)$value
+  allVals <- setdiff(allVals, 0)
+  # not memory safe:
+  # nonFlamMap[nonFlamMap > 0] <- 1 # Now 1 = flammable, 0 = non-flammable
+  if (length(allVals) > 1)
+    nonFlamMap <- terra::subst(nonFlamMap, from = allVals, to = 1L)
 
   # Project using average to get proportion of flammable pixels
   flammableProp <- terra::project(nonFlamMap, to, method = "average")
@@ -120,6 +125,7 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   #    - Where the proportion of flammable cover is less than the threshold,
   #      set the LCC value in the result raster ('allFlam') to 0 (non-flammable).
   message("Applying flammability threshold...")
+  # not memory safe
   allFlam[flammableProp < flammabilityThreshold] <- 0
 
   # 5. Optionally write the result to disk
