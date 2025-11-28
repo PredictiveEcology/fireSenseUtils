@@ -162,7 +162,7 @@ runDEoptim <- function(landscape,
   )
 
   neededPkgs <- c("kSamples", "magrittr", "raster", "data.table", "SpaDES.core",
-                  "SpaDES.tools", "fireSenseUtils", "sf", # "mirai",
+                  "SpaDES.tools", "fireSenseUtils", "sf", "plyr",# "mirai",
                   "munsell")
 
   control <- clusters::clusterSetup(
