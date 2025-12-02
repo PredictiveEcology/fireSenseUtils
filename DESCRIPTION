@@ -17,7 +17,7 @@ Authors@R: c(
 Depends:
     R (>= 4.3)
 Imports:
-    clusters (>= 0.0.15),
+    clusters (>= 0.0.19),
     crayon,
     data.table,
     DEoptim,
