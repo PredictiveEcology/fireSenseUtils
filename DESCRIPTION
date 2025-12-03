@@ -2,8 +2,8 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2025-12-02
-Version: 0.0.6.9007
+Date: 2025-12-03
+Version: 0.0.6.9008
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -68,7 +68,7 @@ Remotes:
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
     PredictiveEcology/quickPlot@development,
-    PredictiveEcology/reproducible@AI,
+    PredictiveEcology/reproducible@development,
     PredictiveEcology/scfmutils@development,
     PredictiveEcology/Require@development,
     PredictiveEcology/SpaDES.core@development,

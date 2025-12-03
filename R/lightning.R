@@ -75,7 +75,7 @@ readLightningData <- function(filename, ...) {
   if (length(dots)) {
     ld <- postProcess(ld, ...)
     # if (length(to) > 1) {
-    gridded <- mapply(x = dots, function(x) isGridded(x), SIMPLIFY = TRUE)
+    gridded <- mapply(x = dots, function(x) reproducible::.isGridded(x), SIMPLIFY = TRUE)
     # area <- sapply(dots, SpaDES.project:::areas, USE.NAMES = TRUE)
     # largest <- which.max(area)
     whToUse <- intersect(names(dots), c("projectTo", "to"))[1]
