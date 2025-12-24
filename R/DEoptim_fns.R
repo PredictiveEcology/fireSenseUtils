@@ -136,7 +136,8 @@ runDEoptim <- function(landscape,
                        visualizeDEoptim = logPath,
                        .plots = "screen",
                        .plotSize = list(height = 1600, width = 2000),
-                       rep = 1L) {
+                       rep = 1L,
+                       runName = "") {
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -169,6 +170,7 @@ runDEoptim <- function(landscape,
     messagePrefix = as.character(rep), # .runName,
     strategy = strategy, itermax = itermax,
     cores = cores, # logPath = file.path(dataPath(sim)),
+    nCoresNeeded = 100L, 
     libPath = libPath[1], NP = NP,
     logPath = logPath,
     objsNeeded = objsNeeded,
@@ -419,11 +421,12 @@ runDEoptim <- function(landscape,
       .plotSize = .plotSize,
       iterStep = iterStep,
       thresh = thresh,
-      rep = rep),
+      rep = rep,
+      runName = runName),
     cachePath = paths$cachePath,
     omitArgs = c(".verbose")
-    #,
-    # cacheId = "cd495b412420ad4a"
+    , .functionName = paste0("DEoptimIterative2_", runName)
+    # , cacheId = "8448b6a37b54361b"
   ) # iteration 201 to 300
   DE
 }
@@ -612,8 +615,9 @@ DEoptimIterative <- function(itermax, lower, upper,
 
     control$initialpop <- DE[[iter]]$member$pop
 
-    rng <- 25; # do 25 iteration steps, i.e., 1:100, 25:125
-    dataRunToUse <- 150 # this will do the lm on this many items
+    rng <- 25; # do 25 iteration steps, i.e., 1:100, 25:
+
+    dataRunToUse <- 175 # this will do the lm on this many items
     numSegments <- (length(DE) - dataRunToUse) / rng + 1# (length(DE) - dataRunToUse + 1) / rng
     pvals <- c(0,0)
 

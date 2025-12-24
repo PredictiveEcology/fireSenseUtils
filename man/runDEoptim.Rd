@@ -39,7 +39,8 @@ runDEoptim(
   visualizeDEoptim = logPath,
   .plots = "screen",
   .plotSize = list(height = 1600, width = 2000),
-  rep = 1L
+  rep = 1L,
+  runName = ""
 )
 
 DEoptimIterative(

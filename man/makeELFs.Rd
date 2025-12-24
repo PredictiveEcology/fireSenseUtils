@@ -6,7 +6,7 @@
 \title{Make Ecologically-based Low Fractal-Dimensional polygons}
 \usage{
 makeELFs(
-  nationalForestPolygon,
+  x,
   desiredBuffer = 20000,
   maxArea = 2.4e+11,
   destinationPath = ".",
@@ -17,8 +17,8 @@ makeELFs(
 plotELFs(destinationPath = ".")
 }
 \arguments{
-\item{nationalForestPolygon}{A polygon layer (\code{SpatVector} or \code{sf}) that maps the
-national forests of Canada. If missing, it will try to use
+\item{x}{A polygon layer (\code{SpatVector} or \code{sf}) or gridded layer (\code{SpatRaster})
+that maps the entire area of interest for the ELFs. If missing, it will try to use
 \code{scfmutils::prepInputsFireRegimePolys(type = "FRU")} if \code{scfmutils} is installed.
 Currently, only options with a column called \code{FRU} will work.}
 

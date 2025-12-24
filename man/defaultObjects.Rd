@@ -5,7 +5,7 @@
 \alias{spreadFitAdditionalColNames}
 \title{Default values for various things}
 \format{
-An object of class \code{character} of length 4.
+An object of class \code{character} of length 6.
 }
 \usage{
 spreadFitAdditionalColNames

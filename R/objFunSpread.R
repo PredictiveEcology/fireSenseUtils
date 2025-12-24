@@ -195,6 +195,7 @@ utils::globalVariables(c(
       # mc.cores = min(length(years[yrs]), objFunCoresInternal), # normal
       # mc.preschedule = FALSE,                                  # normal
       # SIMPLIFY = FALSE,                                        # normal
+      # browser()
       results <- purrr::pmap( # interactive debugging
         .l = list( # interactive debugging
           annDTx1000 = annualDTx1000[yrs],
@@ -259,7 +260,7 @@ utils::globalVariables(c(
           simulatedFires <- unlist(results$fireSizes)
           adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
           if (is(adTest, "try-error")) {
-            adTest <- 1e5L
+            adTest <- 1e6L
           }
           adTest <- adTest * 50
           objFunRes <- objFunRes + adTest #+ SNLLTest
@@ -269,7 +270,7 @@ utils::globalVariables(c(
       if (isTRUE(doSNLL_FSTest)) {
         thresh <- round(thresh, 0)
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 0)
-        failVal <- 1e5L
+        failVal <- 1e6L
         numYrsDone <- length(results$SNLL_FS)
         threshold <- thresh * numYrsDone ## lower is _more_ restrictive; too high takes too long
         mess <- character()

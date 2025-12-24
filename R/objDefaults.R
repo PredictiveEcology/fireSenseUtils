@@ -2,4 +2,4 @@
 #'
 #' @rdname defaultObjects
 #' @export
-spreadFitAdditionalColNames <- c("params", "sppEquiv", "nonForestedLCCGroups", "missingLCCgroup")
+spreadFitAdditionalColNames <- c("numIterations", "objFunVal", "params", "sppEquiv", "nonForestedLCCGroups", "missingLCCgroup")
