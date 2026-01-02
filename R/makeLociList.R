@@ -31,7 +31,7 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
   returnCols <- c("size", "date", "ids", "cells")
   # keepCols <- c(sizeCol, dateCol, idsCol)
   # pts shoudl already be projected but no harm in forcing..
-  if (is(pts$year2002, "SpatVector")) {
+  if (is(pts[[1]], "SpatVector")) {
     pts <- lapply(pts, terra::project, crs(ras))
   } else {
     pts <- lapply(pts, st_transform, crs = st_crs(ras))
