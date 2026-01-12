@@ -35,6 +35,7 @@
 #' @param destinationPath Character string. Directory path where source NTEMS data
 #'   will be downloaded/loaded (via `prepInputs_NTEMS_LCC_FAO`) and where the
 #'   output raster will be written if `writeTo` is specified.
+#' @param overwrite Logical. Overwrite NTEMS FAO and flammable pixels rasters.
 #'
 #' @return A list of two  `SpatRaster` objects:
 #'   1) the processed land cover classification at the resolution, extent,
@@ -76,19 +77,19 @@
 makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
                              nonflammableLCC = c(20, 31, 32, 33),
                              flammabilityThreshold = 0.1, writeTo = NULL,
-                             destinationPath) {
+                             overwrite = TRUE, destinationPath) {
   # 1. Retrieve and prepare base NTEMS LCC data for the specified year
   #    - Crops to the extent of to
   #    - Masks to the maskTo polygon(s)
   message("Preparing base NTEMS LCC data...")
-
+browser()
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
 
   # if (exists("aaaa", envir = .GlobalEnv)) browser()
   rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
                                      disturbedCode = 240, # Optional: specify disturbed code if needed
-                                     overwrite = TRUE,    # Consider parameterizing overwrite?
+                                     overwrite = overwrite,
                                      destinationPath = destinationPath,
                                      cropTo = to,
                                      maskTo = maskToArg)
@@ -134,7 +135,7 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
     propFlamPath <- .suffix(outPath, "_propFlam")
     message("Writing output raster to: ", outPath)
     # Ensure data type supports 0 if original LCC didn't (though usually integer, so fine)
-    allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = TRUE)
+    allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = overwrite)
     flammableProp <- writeRaster(flammableProp, filename = propFlamPath, overwrite = TRUE)
   }
 

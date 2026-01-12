@@ -11,6 +11,7 @@ makeFireSenseLCC(
   nonflammableLCC = c(20, 31, 32, 33),
   flammabilityThreshold = 0.1,
   writeTo = NULL,
+  overwrite = TRUE,
   destinationPath
 )
 }
@@ -30,6 +31,8 @@ Defaults to 0.1.}
 \item{writeTo}{Character string or \code{NULL}. Optional filename for the output
 LCC raster, relative to \code{destinationPath}. If \code{NULL} (default), the raster is
 not written to disk by this function.}
+
+\item{overwrite}{Logical. Overwrite NTEMS FAO and flammable pixels rasters.}
 
 \item{destinationPath}{Character string. Directory path where source NTEMS data
 will be downloaded/loaded (via \code{prepInputs_NTEMS_LCC_FAO}) and where the
