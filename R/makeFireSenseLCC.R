@@ -82,7 +82,7 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   #    - Crops to the extent of to
   #    - Masks to the maskTo polygon(s)
   message("Preparing base NTEMS LCC data...")
-browser()
+
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
 
