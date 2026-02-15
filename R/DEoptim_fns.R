@@ -97,7 +97,7 @@ utils::globalVariables(c(
 #' @importFrom data.table rbindlist as.data.table set
 #' @importFrom parallel clusterExport clusterEvalQ stopCluster
 #' @importFrom parallelly makeClusterPSOCK
-#' @importFrom qs qread qsave
+#' @importFrom qs2 qs_read qs_save
 #' @importFrom reproducible Cache checkPath
 #' @importFrom SpaDES.core P
 #' @importFrom RhpcBLASctl blas_get_num_procs blas_set_num_threads omp_get_max_threads omp_set_num_threads
