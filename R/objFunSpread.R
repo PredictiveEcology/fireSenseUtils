@@ -444,7 +444,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # }
     #
     # set(shortAnnDTx1000, NULL, "spreadProb", logisticAll(logisticPars, mat, covPars, lowerSpreadProb))
-    browser()
     
     if (SpaDES.core::anyPlotting(plot.it)) {
       par(

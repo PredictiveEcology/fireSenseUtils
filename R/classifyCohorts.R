@@ -32,32 +32,53 @@ globalVariables(c(
 #'
 cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landcoverDT = NULL,
                                  sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
-  cD <- copy(cohortData)
+  # cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
-  cD <- cD[sppEquivSubset, on = c("speciesCode" = sppEquivCol)]
+  cD <- cohortData[sppEquivSubset, on = c("speciesCode" = sppEquivCol)]
   setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
   # data.table needs an argument for which column names are kept during join
-
   cD[, maxAge := max(age), .(pixelGroup)]
-  cD[maxAge <= cutoffForYoungAge, FuelClass := "youngAge"]
+  cD[maxAge <= cutoffForYoungAge, FuelClass := youngAgeName]
   cD[, maxAge := NULL]
-
   cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
 
   # youngAge is better treated as a binary cover variable than continuous measure of biomass
-  cD[FuelClass == "youngAge", BperClass := 1]
+  cD[FuelClass == youngAgeName, BperClass := 1]
 
   # Fix zero age, zero biomass
   classes <- sort(unique(cD$FuelClass))
-  classList <- lapply(classes, makeRastersFromCD,
-    flammableRTM = flammableRTM,
-    pixelGroupMap = pixelGroupMap,
-    cohortData = cD
-  )
-
-  classList <- rast(classList)
-
+  
+  # st <- profvis::profvis({
+  
+  pgmVals <- list(pixelGroup = values(pixelGroupMap, mat = FALSE), 
+                  pixelId = seq(ncell(pixelGroupMap))) |> 
+    setDT() |> na.omit()
+  aa <- pgmVals[cD, on = "pixelGroup", allow.cartesian=TRUE]
+  bb <- split(aa, by = "FuelClass")
+  flamVals <- values(flammableRTM, mat = FALSE)
+  flamValsGood <- !is.na(flamVals)
+  cc <- Map(r = bb, function(r) {
+    ras <- rastFromDF(r[, .(pixelId, BperClass)], rasTemplate = pixelGroupMap)
+    rasVals <- values(ras, mat = FALSE)
+    rasVals[flamValsGood & is.na(rasVals)] <- 0
+    ras <- setValues(x = ras, values = rasVals)
+    ras
+    })
+  dd <- rast(cc)
+  classList <- dd[[order(names(dd))]]
+  # })
+  
+  
+  # st2 <- profvis::profvis({
+  # classList <- lapply(classes, makeRastersFromCD,
+  #   flammableRTM = flammableRTM,
+  #   pixelGroupMap = pixelGroupMap,
+  #   cohortData = cD
+  # )
+  # 
+  # classList <- rast(classList)
+  # })
   if (!is.null(landcoverDT)) {
     # find rows that aren't empty i.e. have non-forest landcover
     landcoverDT[, foo := rowSums(.SD), .SD = setdiff(names(landcoverDT), "pixelID")]
@@ -69,6 +90,15 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   }
 
   names(classList) <- classes
+  
+  # Need to confirm that there was at least 1 youngAge ... sometime there are none e.g., with 9.2.1 plains
+  if (!youngAgeName %in% names(classList)) {
+    ya <- as.int(is.na(cc[[1]]) )
+    vals <- values(ya, mat = FALSE)
+    ya[vals == 1L] <- NA
+    names(ya) <- youngAgeName
+    classList <- c(classList, ya)
+  }
   return(classList)
 }
 
