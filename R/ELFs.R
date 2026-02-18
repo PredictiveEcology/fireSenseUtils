@@ -128,14 +128,7 @@ makeELFs <- function(x, desiredBuffer = 20000,
 
   ELFs <- bufferOut(spatRasSeg = out3, mask = hf,
                     desiredBuffer = desiredBuffer,
-                    useCache = useCache) |>
-    reproducible::Cache(omitArgs = c("spatRasSeg", "mask"),
-                        .cacheExtra = list(x = digNFP,
-                                           attr(out2, "tags")#,
-                                           #attr(out, "tags")
-                        ),
-                        useCache = useCache)
-
+                    useCache = useCache) 
   # ELFs <- bufferOut(spatRasSeg = out3, mask = out$rasWhole[[1]],
   #                   desiredBuffer = desiredBuffer,
   #                   useCache = useCache) |>
@@ -165,7 +158,17 @@ makeELFs <- function(x, desiredBuffer = 20000,
     ELFs <- Reduce(rbind, allVec)
 
   }
-
+  
+  # ELFs2 <- Map(e = ELFs, function(e) {
+  #   ff <- Filenames(e)
+  #   nzff <- nzchar(ff)
+  #   if (any(nzff)) {
+  #     whnzff <- which(nzff)
+  #     e[whnzff] <- Map(r = e[whnzff], function(r) {r[] <- terra::values(r, mat = FALSE); r})
+  #   }
+  #   e
+  # })
+  
   ELFs
 }
 
@@ -300,21 +303,20 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
   }
 
   ll <- moveSliversToOtherELFs(lostPixels, lp, ca, i, r)
-  ll3 <- ll
+  # ll3 <- ll
   destinationPath <- unique(dirname(Filenames(spatRasSeg)))
   ELFpath <- file.path(destinationPath, "ELFs_final")
   unlink(ELFpath, recursive = TRUE)
   dir.create(ELFpath, recursive = TRUE, showWarnings = FALSE)
   message("Writing ELF rasters to disk")
-  for (i in seq_along(ll)) {
-    for (j in seq_along(i)) {
-      fn <- file.path(ELFpath, paste0(names(ll[[i]][[j]]), ".tif"))
+  rr <- Map(out = ll, namOut = names(ll), function(out, namOut) {
+    Map(inner = out, nam = names(out), function(inner, nam) {
+      fn <- file.path(ELFpath, paste0(namOut, "_", nam, ".tif"))
       unlink(fn)
-      ll[[i]][[j]] <- terra::writeRaster(ll[[i]][[j]], filename = fn, overwrite = TRUE)
-    }
-  }
-
-  list(rasCentered = ll$r, rasWhole = ll$ca)
+      terra::writeRaster(inner, filename = fn, overwrite = TRUE)
+    })
+  })
+  list(rasCentered = rr$r, rasWhole = rr$ca)
 }
 
 segregateKeepNames <- function(ecopR, omitClasses, classes = NULL) {
