@@ -371,7 +371,16 @@ split_poly <- function(sf_poly, n_areas) {
   equal_areas$area <- sf::st_area(equal_areas)
   if (wasTerra)
     equal_areas <- terra::vect(equal_areas)
-  return(equal_areas)
+  
+  # Put them in xmin to xmax, ymin to ymax order
+  mins <- Map(ind = seq(NROW(equal_areas)), function(ind) {
+    cbind(xmin = terra::xmin(equal_areas[ind, ]), ymin = terra::ymin(equal_areas[ind, ]))
+  }) |> do.call(args = _, rbind)
+  ord <- order(mins[, "xmin"], mins[, "ymin"])
+  equal_areas <- equal_areas[ord, ]
+  equal_areas[, "id"] <- seq(NROW(equal_areas))
+  
+  return(equal_areas[ord, ])
 }
 
 mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
@@ -426,6 +435,7 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
 
 moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
 
+  message("moving slivers to neighbouring ELF")
   if (NROW(unlist(lostPixels))) {
     if (is.null(names(lostPixels))) {
       hasNames <- FALSE
@@ -486,7 +496,6 @@ moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
         a[lostPixels[[lp]]$pixelID] <- newVals
         # a[a[] == 0] <- NA
         a <- terra::trim(a)
-        # if (is(a, "try-error")) browser()
         a <- terra::project(a, terra::crs(r[[addTo]]), method = "near")
         bb <- terra::resample(a, r[[addTo]], method = "near")
         whVals <- which(terra::values(bb) > 0)
