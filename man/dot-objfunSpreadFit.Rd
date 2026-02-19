@@ -14,6 +14,7 @@
   fireBufferedListDT,
   covMinMax = NULL,
   maxFireSpread = 0.28,
+  lowerSpreadProb = 0.13,
   minFireSize = 2,
   tests = "snll_fs",
   Nreps = 10,

@@ -19,7 +19,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
     ssp <- strsplit(climateScenario, "_")[[1]][2]
     runName <- sprintf("%s_%s", studyAreaName, climateScenario) ## doesn't matter which run, all same
     run <- 1L
-    sim <- SpaDES.core::loadSimList(file.path(outputDir, runName, "rep01", paste0(runName, "_rep01.qs")))
+    sim <- SpaDES.core::loadSimList(file.path(outputDir, runName, "rep01", paste0(runName, "_rep01.qs2")))
     burnSummary <- sim$burnSummary
     rm(sim)
 
@@ -157,7 +157,6 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
 #' @export
 #' @importFrom data.table data.table rbindlist
 #' @importFrom parallel mclapply
-#' @importFrom qs qread
 #' @importFrom stats coefficients lm pf
 plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
@@ -166,7 +165,7 @@ plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
       runName <- sprintf("%s_%s", studyAreaName, climateScenario)
       resultsDir <- file.path(outputDir, runName, sprintf("rep%02d", rep))
 
-      burnDT <- qs::qread(file.path(resultsDir, "burnSummary_year2100.qs"))
+      burnDT <- qs2::qs_read(file.path(resultsDir, "burnSummary_year2100.qs2"))
       burnSummary <- data.table(
         year = burnDT[["year"]],
         N = burnDT[["N"]],

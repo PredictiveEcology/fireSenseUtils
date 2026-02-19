@@ -111,7 +111,7 @@ machine names (including possibly "localhost"), where
 the length of the vector indicates how many cores should be used on that machine.}
 
 \item{paths}{list of paths containing the \code{cachePath} to store cache.
-Should likely be \code{cachePath(sim)}. See \link[SpaDES.core:simList-accessors-paths]{SpaDES.core::paths}.}
+Should likely be \code{cachePath(sim)}. See \link[SpaDES.core:paths]{SpaDES.core::paths}.}
 
 \item{libPath}{A character string indicating an R package library directory.
 This location must exist on each machine, though the function will make sure it
