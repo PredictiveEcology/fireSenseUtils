@@ -128,14 +128,7 @@ makeELFs <- function(x, desiredBuffer = 20000,
 
   ELFs <- bufferOut(spatRasSeg = out3, mask = hf,
                     desiredBuffer = desiredBuffer,
-                    useCache = useCache) |>
-    reproducible::Cache(omitArgs = c("spatRasSeg", "mask"),
-                        .cacheExtra = list(x = digNFP,
-                                           attr(out2, "tags")#,
-                                           #attr(out, "tags")
-                        ),
-                        useCache = useCache)
-
+                    useCache = useCache) 
   # ELFs <- bufferOut(spatRasSeg = out3, mask = out$rasWhole[[1]],
   #                   desiredBuffer = desiredBuffer,
   #                   useCache = useCache) |>
@@ -165,7 +158,17 @@ makeELFs <- function(x, desiredBuffer = 20000,
     ELFs <- Reduce(rbind, allVec)
 
   }
-
+  
+  # ELFs2 <- Map(e = ELFs, function(e) {
+  #   ff <- Filenames(e)
+  #   nzff <- nzchar(ff)
+  #   if (any(nzff)) {
+  #     whnzff <- which(nzff)
+  #     e[whnzff] <- Map(r = e[whnzff], function(r) {r[] <- terra::values(r, mat = FALSE); r})
+  #   }
+  #   e
+  # })
+  
   ELFs
 }
 
@@ -300,21 +303,20 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
   }
 
   ll <- moveSliversToOtherELFs(lostPixels, lp, ca, i, r)
-  ll3 <- ll
+  # ll3 <- ll
   destinationPath <- unique(dirname(Filenames(spatRasSeg)))
   ELFpath <- file.path(destinationPath, "ELFs_final")
   unlink(ELFpath, recursive = TRUE)
   dir.create(ELFpath, recursive = TRUE, showWarnings = FALSE)
   message("Writing ELF rasters to disk")
-  for (i in seq_along(ll)) {
-    for (j in seq_along(i)) {
-      fn <- file.path(ELFpath, paste0(names(ll[[i]][[j]]), ".tif"))
+  rr <- Map(out = ll, namOut = names(ll), function(out, namOut) {
+    Map(inner = out, nam = names(out), function(inner, nam) {
+      fn <- file.path(ELFpath, paste0(namOut, "_", nam, ".tif"))
       unlink(fn)
-      ll[[i]][[j]] <- terra::writeRaster(ll[[i]][[j]], filename = fn, overwrite = TRUE)
-    }
-  }
-
-  list(rasCentered = ll$r, rasWhole = ll$ca)
+      terra::writeRaster(inner, filename = fn, overwrite = TRUE)
+    })
+  })
+  list(rasCentered = rr$r, rasWhole = rr$ca)
 }
 
 segregateKeepNames <- function(ecopR, omitClasses, classes = NULL) {
@@ -369,7 +371,16 @@ split_poly <- function(sf_poly, n_areas) {
   equal_areas$area <- sf::st_area(equal_areas)
   if (wasTerra)
     equal_areas <- terra::vect(equal_areas)
-  return(equal_areas)
+  
+  # Put them in xmin to xmax, ymin to ymax order
+  mins <- Map(ind = seq(NROW(equal_areas)), function(ind) {
+    cbind(xmin = terra::xmin(equal_areas[ind, ]), ymin = terra::ymin(equal_areas[ind, ]))
+  }) |> do.call(args = _, rbind)
+  ord <- order(mins[, "xmin"], mins[, "ymin"])
+  equal_areas <- equal_areas[ord, ]
+  equal_areas[, "id"] <- seq(NROW(equal_areas))
+  
+  return(equal_areas[ord, ])
 }
 
 mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
@@ -424,6 +435,7 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
 
 moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
 
+  message("moving slivers to neighbouring ELF")
   if (NROW(unlist(lostPixels))) {
     if (is.null(names(lostPixels))) {
       hasNames <- FALSE
@@ -484,7 +496,6 @@ moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
         a[lostPixels[[lp]]$pixelID] <- newVals
         # a[a[] == 0] <- NA
         a <- terra::trim(a)
-        # if (is(a, "try-error")) browser()
         a <- terra::project(a, terra::crs(r[[addTo]]), method = "near")
         bb <- terra::resample(a, r[[addTo]], method = "near")
         whVals <- which(terra::values(bb) > 0)

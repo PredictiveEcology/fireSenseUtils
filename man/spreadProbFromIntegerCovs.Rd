@@ -10,7 +10,7 @@ spreadProbFromIntegerCovs(
   nonAnnualDTx1000,
   indexNonAnnual,
   yr,
-  covMinMax,
+  covMinMax = NULL,
   mutuallyExclusive,
   colsToUse,
   doAssertions,
@@ -21,25 +21,33 @@ spreadProbFromIntegerCovs(
 )
 }
 \arguments{
-\item{shortAnnDTx1000}{TODO: DESCRIPTION NEEDED}
+\item{shortAnnDTx1000}{Optional if annDTx1000 and nonAnnualDTx1000 are supplied. Otherwise
+it must be a data.frame/data.table that has all covariates (>= 1 forests, >=0 non-forests,
+climate, youngAge), whose values are 1000x their original values so they can be stored as
+integers.}
 
-\item{annDTx1000}{TODO: use description of \code{annualDTx1000} parameter in \code{.objfunSpreadFit}}
+\item{annDTx1000}{TODO: use description of \code{annualDTx1000} parameter in \code{.objfunSpreadFit}.
+If \code{shortAnnDTx1000} is not supplied, this must be supplied.
+It must be a data.frame/data.table that has all the annual covariates (e.g., >=1 forest biomass,=0 non forest binary), whose values are 1000x their original values so they can be storedas integers.}
 
-\item{nonAnnualDTx1000}{Like \code{annualDTx1000}, but with where each list element will be
-used for >1 year. The names of the list elements must be of the form
-\code{"yearxxxx_yearyyyy_yearzzzz"} where \code{xxxx}, \code{yyyy}, and \code{zzzz} represent the four-digit
-calendar years for which that list element should be used.
-The columns are variables that are used for more than 1 year.}
+\item{nonAnnualDTx1000}{If \code{shortAnnDTx1000} is not supplied, this must be supplied.
+A named list of data.frames/data.tables that has all the non-annual covariates (e.g., >=1 forest biomass,=0 non forest binary), whose values are 1000x their original values so they can be storedas integers. These non annual covariates must have a date column that can be assessedagainst yr (via nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"])}
 
-\item{indexNonAnnual}{TODO: DESCRIPTION NEEDED}
+\item{indexNonAnnual}{\code{data.table} with 2 columns: \code{ind} and \code{date} which links the
+list elements in \code{nonAnnualDTx1000} with their date (in case \code{nonAnnualDTx1000} is
+not a named list. This is not necessary if the \code{nonAnnualDTx1000} is named with
+equivalent convention (e.g., character or numeric with year) as \code{yr}.}
 
-\item{yr}{TODO: DESCRIPTION NEEDED}
+\item{yr}{A single character or numeric/integer representing the full year (e.g., 2020) to
+but used. This year will be extracted from both the \code{annDTx1000} and \code{nonAnnualDTx1000} if
+they are supplied}
 
-\item{covMinMax}{This is a 2 row by multiple column data.frame indicating
-the minimum and maximum values of the original covariate data values.
-These will be used to rescale the covariates internally so that they are all between 0 and 1.
-It is important to not simply rescale internally here because only 1 year is run at a time;
-all years must be rescaled for a given covariate by the same amount.}
+\item{covMinMax}{A data.table, one column for each column in \code{shortAnnDTx1000} (or the
+ann and nonAnnual alternatives), where the two rows represent the minimum and maximum
+values in the original fitting dataset. This MUST be supplied if this is prediction
+scenario so that the new covariates values are not scaled to themselves. I.e., they
+must be rescaled compared to the fitted data or else their rescaled values will be
+incorrect.}
 
 \item{mutuallyExclusive}{If there are any covariates, e.g,. \code{youngAge}, that should be
 considered mutually exclusive, then this can be done here
@@ -52,7 +60,9 @@ name of that list element is non-zero. Default is \code{list("youngAge" = list("
 meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
 is non-zero.}
 
-\item{colsToUse}{TODO: DESCRIPTION NEEDED}
+\item{colsToUse}{Optional. If this is supplied, it must be a character vector indicating
+the column names to use in \code{shortAnnDTx1000}, i.e., it must include everything,
+annual or nonAnnual, that will be used.}
 
 \item{doAssertions}{Logical. If \code{TRUE}, the default, the function will test a few minor things
 for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
@@ -68,7 +78,8 @@ Default 0.28, which is overly generous unless there are many non-flammable pixel
 \item{lowerSpreadProb}{TODO: DESCRIPTION NEEDED}
 }
 \value{
-TODO: DESCRIPTION NEEDED
+This returns the full data.table to be used for fireSense, on the original numeric
+i.e., real scale, with the \code{x1000} reversed.
 }
 \description{
 Convert covariates from their \code{x1000} integer to usable by spread
