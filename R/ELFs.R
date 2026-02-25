@@ -514,3 +514,125 @@ moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
   list(ca = ca, r = r)
 }
 
+
+
+#' Run ELFs modules and optionally update googledrive png
+#'
+#' Extracting only the "ELF" module, runs the projectmodule
+#' via \code{SpaDES.core::simInitAndSpades2()} with caching (optionally
+#' updates a Google Drive file if the current user is \code{"emcintir"}), and
+#' returns the vector of polygon IDs from \code{spreadFitPreRun}.
+#'
+#' @details
+#' The function:
+#' \enumerate{
+#'   \item Restricts \code{preRunSetupProject$modules} to entries matching \code{"ELFs"}.
+#'   \item Collects all \code{.R} source files under each module directory (recursively),
+#'         excluding any under \code{tests/}, and uses these as part of the cache key.
+#'   \item Retrieves remote metadata (hash) from a Google Drive file URL and assigns
+#'         the remote hash to \code{preRunSetupProject$params$fireSense_ELFs$hashSpreadFitRemoteFile}.
+#'   \item Initializes and runs the simulation with \code{SpaDES.core::simInitAndSpades2()},
+#'         wrapping the call in \code{Cache()} so that the run is skipped unless inputs
+#'         (source files and remote hash) have changed.
+#'   \item If the current \code{SpaDES.project::user()} is \code{"emcintir"}, updates
+#'         the Google Drive file at the provided URL with any output files whose names
+#'         contain \code{"ELF"}, caching the update by \code{cacheId(sim)}.
+#'   \item Returns \code{sim$spreadFitPreRun$polygonID}.
+#' }
+#'
+#' Internal `Cache`ing relies on two extra keys:
+#' \itemize{
+#'   \item \code{src}: paths to module \code{.R} files (excluding \code{tests/}).
+#'   \item \code{remoteHash}: the remote metadata hash obtained from the URL.
+#' }
+#'
+#' The function expects \code{preRunSetupProject} to be a SpaDES project list with at least:
+#' \itemize{
+#'   \item \code{$modules}: character vector of module names.
+#'   \item \code{$paths$modulePath}: base directory containing module folders.
+#'   \item \code{$params$fireSense_ELFs}: a list where \code{hashSpreadFitRemoteFile} can be set.
+#' }
+#'
+#' @param preRunSetupProject list. A SpaDES project object prepared for
+#'   \code{SpaDES.core::simInitAndSpades2()}, containing \code{$modules},
+#'   \code{$paths$modulePath}, and \code{$params$fireSense_ELFs}.
+#' @param urlELFresults A googledrive url where the ELF data.frame that contains
+#'   geometries and fitted SpreadFit parameters and several other 
+#'   attributes.
+#' @param onlyFittedELFs logical. If `TRUE`, the default, then this will only
+#'   return the ELF indices that have been successfully fitted via `fireSense_SpreadFit`.
+#'   Whether individual ELFs have been fitted or not will be determined based on
+#'   downloading the `urlELFresults`.
+#'
+#' @return
+#' A vector corresponding to \code{sim$spreadFitPreRun$polygonID}. Currently, no high arctic
+#' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.)
+#'
+#' @section Side Effects:
+#' Updates a Google Drive file when the current user is \code{"emcintir"} and when
+#' the run produces outputs with names containing \code{"ELF"}.
+#'
+#' @section Notes:
+#' \itemize{
+#'   \item The remote file URL is hard-coded as:
+#'         \code{"https://drive.google.com/file/d/1tkC944mPzR9-y-qCMDB5o2cAR_1MoDz4/view?usp=drive_link"}.
+#'   \item \code{Cache()} and \code{cacheId()} are assumed to be available (typically from
+#'         \pkg{reproducible} in SpaDES workflows).
+#'   \item \code{asPath()} is expected to be available in your environment (commonly from
+#'         \pkg{reproducible}); adjust if your project defines it elsewhere.
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Assuming 'prj' is a valid SpaDES project list:
+#' # prj <- somePreparationFunction(...)
+#' ids <- runELFs(prj)
+#' }
+#'
+#' @importFrom SpaDES.core simInitAndSpades2
+#' @importFrom reproducible Cache
+#' @importFrom googledrive drive_update
+#' @importFrom SpaDES.project user
+#' @export
+#'
+#' @seealso
+#' \code{\link[SpaDES.core]{simInitAndSpades2}},
+#' \code{\link[reproducible]{Cache}},
+#' \code{\link[googledrive]{drive_update}}
+#'
+#' @author
+#' Based on the provided code snippet.
+#'
+runELFs <- function(preRunSetupProject, onlyFittedELFs = TRUE,
+                    urlELFresults = "https://drive.google.com/file/d/1tkC944mPzR9-y-qCMDB5o2cAR_1MoDz4/view?usp=drive_link") {
+  preRunSetupProject$modules <- grep("ELFs", preRunSetupProject$modules, value = TRUE)
+  # For digesting; i.e., whether it needs to be re-run
+  srcFiles <- asPath(dir(file.path(preRunSetupProject$paths$modulePath, preRunSetupProject$modules), 
+                         pattern = "\\.R$", recursive = TRUE, full.names = TRUE) |> 
+                       grep(pattern = "tests\\/", invert = TRUE, value = TRUE))
+  md <- reproducible:::getRemoteMetadata(url = urlELFresults)
+  preRunSetupProject$params$fireSense_ELFs$hashSpreadFitRemoteFile <- md$remoteHas
+  
+  # Run the module
+  sim <- SpaDES.core::simInitAndSpades2(preRunSetupProject) |> 
+    Cache(.cacheExtra = list(src = srcFiles, remoteHash = md$remoteHash),
+          omitArgs = "l")
+  
+  # Upload if it is emcintir; and if it has changed
+  if (SpaDES.project::user() %in% "emcintir") {
+    cid <- cacheId(sim)
+    ll <- googledrive::drive_update(file = urlELFresults,
+                                    media = grep("ELF", sim@outputs$file, value = TRUE)) |> 
+      Cache(omitArgs = c("file", "media"), .cacheExtra = list(cacheId = cid))
+  }
+  # })
+  if (isTRUE(onlyFittedELFs)) {
+    .ELFinds <- sim$spreadFitPreRun$polygonID
+  } else {
+    .ELFinds <- names(sim$ELFs$rasCentered)
+  }
+  #remove Arctic that is far from treeline
+  .ELFinds <- grep("^1\\.|^2\\.", invert = TRUE, value = TRUE, .ELFinds)
+
+  .ELFinds
+}
