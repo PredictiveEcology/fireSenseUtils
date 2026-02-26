@@ -25,6 +25,7 @@ Imports:
     fastDummies,
     ggpubr,
     ggplot2,
+    googledrive,
     kSamples,
     LandR (>= 1.1.0.9066),
     mclust,
@@ -40,6 +41,7 @@ Imports:
     sf,
     sp,
     SpaDES.core,
+    SpaDES.project,
     SpaDES.tools (>= 2.0.4),
     stats,
     terra,
@@ -50,7 +52,6 @@ Suggests:
     cowplot,
     dismo,
     dplyr,
-    googledrive,
     knitr,
     PtProcess,
     raster,
@@ -72,6 +73,7 @@ Remotes:
     PredictiveEcology/scfmutils@development,
     PredictiveEcology/Require@development,
     PredictiveEcology/SpaDES.core@development,
+    PredictiveEcology/SpaDES.project@development,
     PredictiveEcology/SpaDES.tools@development
 VignetteBuilder:
     knitr,
