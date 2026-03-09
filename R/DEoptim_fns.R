@@ -183,6 +183,7 @@ runDEoptim <- function(landscape,
   #####################################################################
   termsInDEoptim(formulaToFit, thresh, length(lower))
 
+  # aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
   DE <- Cache(
     clusters:::DEoptimIterative2(
       fn = fireSenseUtils::.objfunSpreadFit,
