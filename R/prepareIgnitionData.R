@@ -333,6 +333,70 @@ mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonFore
 
 
 
+#' Prepare and (optionally) cache scaled covariates for modeling
+#'
+#' Wraps [rescaleCovariates()] to rescale features according to the modeling
+#' algorithm, and optionally caches results based on a robust digest of the
+#' unscaled input data. Returns a list containing the (possibly) rescaled
+#' covariates, the modeling formula (if any), per-variable rescalers (if any),
+#' the x-axis variable name(s), and the digest used for caching.
+#'
+#' @param unscaledData A `data.frame` or `data.table` of covariates. Must
+#'   include predictor columns and may include response columns such as
+#'   `ignitions` and/or `escapes` (see Details).
+#' @param algorithm `character`. Name of the model algorithm. If it contains
+#'   `"xgb"`, covariates are standardized via [base::scale()] (centering and
+#'   scaling); otherwise, covariates are rescaled by order of magnitude to
+#'   roughly the \[0, 10\] range (see Details).
+#' @param rescaleVars `logical`. If `TRUE`, perform rescaling/standardization
+#'   according to `algorithm`; if `FALSE`, covariates are returned unchanged.
+#' @param useCache `logical` (default `TRUE`). If `TRUE`, results are cached
+#'   using [reproducible::Cache()] with an extra key derived from a digest of
+#'   `unscaledData`.
+#'
+#' @details
+#' This function:
+#' * Computes a digest of `unscaledData` (if `useCache = TRUE`) using an internal
+#'   `.robustDigest()` to form a `.cacheExtra` key for [reproducible::Cache()].
+#' * Calls [rescaleCovariates()] with `formula = NULL` and `family = NULL`
+#'   (non-xgboost code-paths were removed).
+#' * Caches the result while omitting the large arguments `"covariates"` and
+#'   `"formula"` from cache key construction (via `omitArgs`), relying on the
+#'   explicit digest instead.
+#'
+#' **Expected columns**:
+#' - `ignitions`: if present, is preserved through standardization (xgboost path).
+#' - `escapes`: if present, is preserved through standardization (xgboost path).
+#' - `year` or `yr`: used to infer `xvar` (see `rescaleCovariates()`).
+#'
+#' @return A `list` with elements:
+#' \describe{
+#'   \item{covariates}{A `data.table` with rescaled/standardized covariates.}
+#'   \item{formula}{`NULL` (the non-xgboost formula path is disabled).}
+#'   \item{ignitionRescalers}{Named numeric vector of per-variable 10-based
+#'     rescalers (non-xgboost path) or `NULL` for xgboost / no-rescale.}
+#'   \item{xvar}{Character vector indicating which year-like column(s) were found.}
+#'   \item{digestOfData}{The digest used for caching, or `NULL` if `useCache = FALSE`.}
+#' }
+#'
+#' @seealso [rescaleCovariates()], [reproducible::Cache()]
+#'
+#' @examples
+#' \dontrun{
+#' library(data.table)
+#' dt <- data.table(pixelID = 1:3,
+#'                  year = c(2001L, 2002L, 2003L),
+#'                  ignitions = c(0, 1, 0),
+#'                  x1 = c(0.01, 2.3, 15))
+#'
+#' out <- prepareCovariatesOuter(unscaledData = dt,
+#'                               algorithm = "xgb_classifier",
+#'                               rescaleVars = TRUE,
+#'                               useCache = FALSE)
+#' str(out)
+#' }
+#'
+#' @export
 prepareCovariatesOuter <- function(unscaledData, algorithm, rescaleVars,
                                    useCache = TRUE) {
   # covariatesHere <- igOrEscNames(igOrEsc, post = "Covariates") # paste0("fireSense_", igOrEsc, "Covariates")
@@ -373,6 +437,77 @@ prepareCovariatesOuter <- function(unscaledData, algorithm, rescaleVars,
 
 
 
+#' Rescale/standardize covariates for modeling
+#'
+#' Applies either order-of-magnitude rescaling to approximately confine features
+#' to the \[0, 10\] range (non-xgboost) or standardization via [base::scale()]
+#' (xgboost path). Preserves key response columns when present.
+#'
+#' @param formula A model formula or `NULL`. Non-xgboost paths would parse and
+#'   validate it, but the surrounding code path currently sets `formula = NULL`
+#'   and disables non-xgboost modeling in the caller.
+#' @param covariates A `data.frame` or `data.table` of covariates and possibly
+#'   responses (e.g., `ignitions`, `escapes`).
+#' @param rescaleVars `logical`. If `TRUE`, features are rescaled/standardized
+#'   according to `modelAlgorithm`. If `FALSE`, returned unchanged (with
+#'   `ignitionRescalers = NULL`).
+#' @param modelAlgorithm `character`. If the string contains `"xgb"`, apply
+#'   [base::scale()] (centering and scaling) to all columns except
+#'   `yearChar`, `ignitions`, and `escapes`. Otherwise, log-10 order-of-magnitude
+#'   rescaling is applied to all non-excluded covariates whose maxima fall
+#'   outside \[0, 10\].
+#'
+#' @details
+#' **Year variable inference**: If any of `c("year", "yr")` match column names (case-insensitive),
+#' `xvar` is set to the intersection. Otherwise, the code references `rows` (a TODO),
+#' which is undefined here. This appears to be a bug or placeholder and will error
+#' unless `rows` exists in scope; consider providing a default (e.g., `NULL`) or removing.
+#'
+#' **Non-xgboost path**:
+#'   - Excludes `pixelID`, `ignitions`, `escapes`, `year`, and `yearChar` from rescaling.
+#'   - Computes per-variable `rescalers <- 10^(floor(log10(abs(max))))` for variables
+#'     whose maxima fall outside \[0, 10\].
+#'   - Calls `rescaleVarsByMagnitude(covariates, ignitionRescalers)` (must exist in scope).
+#'
+#' **xgboost path**:
+#'   - Standardizes numeric columns except `yearChar`, `ignitions`, and `escapes`.
+#'   - Preserves original `ignitions` and (if present) `escapes` columns.
+#'   - Attaches centering/scaling attributes under `attr(covariates, "scaleData")`.
+#'
+#' **External references**:
+#'   - Uses `fireSenseUtils:::ignitionsTxt` and `fireSenseUtils:::escapesTxt` to
+#'     refer to the expected response column names. If these are not available,
+#'     ensure compatible strings are provided (see exported constants below).
+#'
+#' @return A `list` with elements:
+#' \describe{
+#'   \item{covariates}{A `data.table` after rescaling/standardization.}
+#'   \item{formula}{The input `formula` (often `NULL` in current usage).}
+#'   \item{ignitionRescalers}{Named numeric vector of per-variable rescalers (non-xgb) or `NULL`.}
+#'   \item{xvar}{Character vector with detected year-like column(s) or (bug) `rows`.}
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' library(data.table)
+#' dt <- data.table(ignitions = c(0,1,0),
+#'                  escapes = c(0,0,1),
+#'                  year = 2001:2003,
+#'                  x1 = c(0.05, 12, 100),
+#'                  x2 = c(5, 6, 7))
+#'
+#' # XGBoost-like standardization
+#' out_xgb <- rescaleCovariates(NULL, dt, rescaleVars = TRUE, modelAlgorithm = "xgb_tree")
+#' str(out_xgb)
+#'
+#' # Non-xgboost magnitude rescaling
+#' out_other <- rescaleCovariates(NULL, dt, rescaleVars = TRUE, modelAlgorithm = "glm")
+#' str(out_other)
+#' }
+#'
+#' @seealso [base::scale()]
+#'
+#' @export
 rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) {
   
   covariates <- copy(setDT(covariates))
@@ -454,6 +589,25 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
               xvar = xvar))
 }
 
+#' Construct standardized FireSense object names
+#'
+#' Creates a standardized name by combining a `pre` prefix, a normalized
+#' `igOrEsc` token (case-transformed), and a `post` suffix.
+#'
+#' @param igOrEsc `character`. A token such as `"ignition"` or `"escape"`.
+#' @param pre `character` scalar. Prefix string (default `"fireSense_"`).
+#' @param post `character` scalar. Suffix string to append.
+#' @param case One of `c("lower", "camel", "sentence", "title")`. Controls how
+#'   `igOrEsc` is transformed before concatenation. Partial matching on the
+#'   first letters is used: e.g., `"cam"`, `"sen"`, `"tit"`.
+#'
+#' @return `character(1)` constructed as `paste0(pre, transformed(igOrEsc), post)`.
+#'
+#' @examples
+#' igOrEscNames("ignition", post = "Covariates")
+#' igOrEscNames("escape", pre = "fs_", post = "_Formula", case = "camel")
+#'
+#' @export
 igOrEscNames <- function(igOrEsc, pre = "fireSense_", post, case = c("lower", "camel", "sentence", "title")) {
   if (startsWith(tolower(case[1]), prefix = "cam"))
     igOrEsc <- camelCase(igOrEsc)
@@ -462,8 +616,18 @@ igOrEscNames <- function(igOrEsc, pre = "fireSense_", post, case = c("lower", "c
   paste0(pre, igOrEsc, post)
 }
 
-
+#' Column name for ignitions
+#'
+#' Utility constant naming the expected ignitions column.
+#'
+#' @format `character(1)` with value `"ignitions"`.
+#' @export
 ignitionsTxt <- "ignitions"
 
+#' Column name for escapes
+#'
+#' Utility constant naming the expected escapes column.
+#'
+#' @format `character(1)` with value `"escapes"`.
+#' @export
 escapesTxt <- "escapes"
-
