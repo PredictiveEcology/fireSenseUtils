@@ -4,7 +4,7 @@
 \alias{stackAndExtract}
 \title{Prepare covariate table with ignition year, fuel class, climate value, and land cover}
 \usage{
-stackAndExtract(years, fuel, LCC, climate, fires)
+stackAndExtract(years, fuel, LCC, climate, fires = NULL)
 }
 \arguments{
 \item{years}{character vector of fire years with FS notation e.g. \code{"year2002"}}
