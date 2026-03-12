@@ -514,7 +514,7 @@ fireSenseCovariatesCreate <- function(cohortData,
   
   ## Nov 2023 - there should not be NA values - previously this used nafill
   ## if they return - use x <- as.data.table(nafill(vegData), 0) and setnames(x, names(vegData))
-  spreadCovariates[, rowcheck := rowSums(.SD), .SD = setdiff(names(spreadCovariates), "pixelID")]
+  spreadCovariates[, rowcheck := rowSums(.SD), .SDcols = setdiff(names(spreadCovariates), "pixelID")]
   if (any(is.na(spreadCovariates$rowcheck))) {
     stop("NA in vegData columns of fireSense_dataPrepPredict... please contact module developers")
   }
