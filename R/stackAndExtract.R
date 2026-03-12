@@ -17,7 +17,7 @@ utils::globalVariables(c(
 #' @importFrom terra extract ncell rast values
 #' @importFrom sf %>%
 #' @importFrom stats na.omit
-stackAndExtract <- function(years, fuel, LCC, climate, fires) {
+stackAndExtract <- function(years, fuel, LCC, climate, fires = NULL) {
   ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, fuelRas = fuel,
                                                 LCCras = LCC, ignitions = fires) {
     climateVariables <- names(climateRas)
@@ -28,31 +28,33 @@ stackAndExtract <- function(years, fuel, LCC, climate, fires) {
     ) |>
       rast()
 
-    ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year, ] # get annual ignitions
-    ## TODO: check this works with length = 1 and length > 1. str of lapply changes..
-
     ## rename from year to climate variable
     names(thisYearsClimate) <- climateVariables
-
+    
     yearCovariates <- c(thisYearsClimate, LCCras, fuelRas)
-
-    ## get cells with ignitions and aggregate by repeated ignitions
-    ignitionDT <- extract(x = yearCovariates, y = ignitions, cells = TRUE) %>%
-      as.data.table(.) %>% # some ignitions are not in cells
-      .[, .(ignitions = .N), .(cell)]
-
+    
     ## get covariate values of all cells
     noIgnitionsDT <- values(yearCovariates) %>%
       as.data.table() %>%
       .[, cell := seq_len(ncell(yearCovariates))] %>%
       na.omit()
+    if (!is.null(ignitions)) {
+      ignitions <- ignitions[paste0("year", ignitions$YEAR) %in% year, ] # get annual ignitions
+      ## TODO: check this works with length = 1 and length > 1. str of lapply changes..
+      
+      
+      ## get cells with ignitions and aggregate by repeated ignitions
+      ignitionDT <- extract(x = yearCovariates, y = ignitions, cells = TRUE) %>%
+        as.data.table(.) %>% # some ignitions are not in cells
+        .[, .(ignitions = .N), .(cell)]
+      noIgnitionsDT <- ignitionDT[noIgnitionsDT, on = c("cell")]
+    }
     ## join and assign 0 to non-ignited pixels
-    ignitionYear <- ignitionDT[noIgnitionsDT, on = c("cell")]
-    ignitionYear[is.na(ignitions), ignitions := 0]
+    noIgnitionsDT[is.na(ignitions), ignitions := 0]
 
-    ignitionYear[, year := gsub("year", "", year)]
+    noIgnitionsDT[, year := gsub("year", "", year)]
 
-    return(ignitionYear)
+    return(noIgnitionsDT)
   })
   ignitionYears <- rbindlist(ignitionYears)
   return(ignitionYears)
