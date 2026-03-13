@@ -611,7 +611,7 @@ runELFs <- function(preRunSetupProject, onlyFittedELFs = TRUE,
                          pattern = "\\.R$", recursive = TRUE, full.names = TRUE) |> 
                        grep(pattern = "tests\\/", invert = TRUE, value = TRUE))
   md <- reproducible:::getRemoteMetadata(url = urlELFresults)
-  preRunSetupProject$params$fireSense_ELFs$hashSpreadFitRemoteFile <- md$remoteHas
+  preRunSetupProject$params$fireSense_ELFs$hashSpreadFitRemoteFile <- md$remoteHash
   
   # Run the module
   sim <- SpaDES.core::simInitAndSpades2(preRunSetupProject) |> 

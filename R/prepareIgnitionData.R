@@ -275,7 +275,130 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
 
 
 
-
+#' Build ignition covariates table by stacking/extracting rasters and joining lightning
+#'
+#' For each `year` (or year period) provided, stacks and extracts covariates from
+#' coarse fuel rasters (split into forested vs. non-forested LCC groups) and climate,
+#' at ignition point locations, then merges results across years, filters unusable
+#' pixels, appends lightning summaries, and orders columns. Results are optionally
+#' cached.
+#'
+#' @param years A vector or list of year identifiers passed to
+#'   [fireSenseUtils::stackAndExtract()]. Can be a list matching the structure of
+#'   `fuelCovsCoarse`/`ignitionClimateCoarse`.
+#' @param fuelCovsCoarse A list (possibly nested by year) of named raster-layer
+#'   collections (e.g., `terra::SpatRaster` or lists of SpatRaster) representing
+#'   fuel-related covariates. Names must overlap with LCC group names used to
+#'   split forested vs. non-forested classes.
+#' @param ignitionFirePoints Ignition point locations (e.g., `sf`/`sp` points or
+#'   a \code{data.frame} convertible by \code{stackAndExtract}) used for extraction.
+#' @param nonForestedLCCGroups A named vector or list whose names identify the LCC
+#'   (land-cover) classes considered non-forested. These names are used to split
+#'   `fuelCovsCoarse` into `LCC` (non-forested) and `fuel` (forested/other) inputs.
+#' @param ignitionClimateCoarse A list (possibly by year) of coarse climate rasters
+#'   (e.g., `terra::SpatRaster`) to include in the stack-and-extract process.
+#'   The names of this list are used as `userTags` in caching and are later treated
+#'   as climate column names when computing row-wise cover sums.
+#' @param lightningMap A named `terra::SpatRaster` (or a named list coercible to one)
+#'   containing one or more lightning-derived layers (e.g., `"lightningDays"`).
+#'   These values are looked up by `pixelID` and appended as columns.
+#' @param digest A cache key supplement (character or list) forwarded to
+#'   [reproducible::Cache()] via `.cacheExtra` to ensure cache correctness for
+#'   large inputs omitted from the hash.
+#' @param useCache `logical` (default `TRUE`). If `TRUE`, wrap the Map call in
+#'   [reproducible::Cache()] with `omitArgs = c("fuel", "LCC")`, `.cacheExtra = digest`,
+#'   and `userTags = names(ignitionClimateCoarse)`.
+#'
+#' @details
+#' **Processing steps:**
+#' \enumerate{
+#'   \item Calls [fireSenseUtils::stackAndExtract()] via `Map()` for each entry in `years`,
+#'         splitting `fuelCovsCoarse` per year into:
+#'         \itemize{
+#'           \item `fuel`: all layers not in `names(nonForestedLCCGroups)`
+#'           \item `LCC`: layers whose names are in `names(nonForestedLCCGroups)`
+#'         }
+#'         Additional `MoreArgs` include `climate = ignitionClimateCoarse` and
+#'         `fires = ignitionFirePoints`.
+#'   \item Optionally caches the list of per-year extractions with
+#'         [reproducible::Cache()] (function name tagged as `"stackAndExtract"`).
+#'   \item Combines the list to a single `data.table` via [data.table::rbindlist()].
+#'   \item Removes rows for which the sum across all cover-type columns is zero
+#'         (computed as `rowSums(.SD)` over all columns except `ignitions`,
+#'         `yearChar` (from `fireSenseUtils`), `cell`, and the climate variable
+#'         names).
+#'   \item Renames the `cell` column to `pixelID`, coerces `year` to numeric,
+#'         and appends lightning columns by indexing `terra::values(terra::rast(lightningMap))`
+#'         with `pixelID`.
+#'   \item Optionally reorders columns to place `pixelID`, `ignitions`,
+#'         climate columns (i.e., `names(ignitionClimateCoarse)`), and `youngAgeName`
+#'         (if it exists) first.
+#' }
+#'
+#' **Assumptions / Requirements:**
+#' - `fireSenseUtils::stackAndExtract()` must accept arguments `years`, `fuel`, `LCC`,
+#'   `climate`, and `fires`, and return a data.table-like object with at least
+#'   `cell`, `ignitions`, and `year` (or `yearChar`) columns.
+#' - `fireSenseUtils::yearChar` is used as a column name to exclude from cover sums;
+#'   ensure it exists/aligns with the data produced by `stackAndExtract()`.
+#' - `youngAgeName` is referenced when establishing column order but is **not**
+#'   defined in this scope; if unavailable, it is silently omitted.
+#' - `pixelID` is assumed to be a valid row index into `lightningMap` raster values.
+#'
+#' **Lightning layer choice:** The code appends all layers provided in `lightningMap`.
+#' If a single best-performing layer is known (e.g., `"lightningDays"`), subset
+#' `lightningMap` before calling this function.
+#'
+#' **Caching:** Large raster inputs are excluded from the cache key via
+#' `omitArgs = c("fuel", "LCC")`; the caller-supplied `digest` should capture
+#' the salient identity of those omitted objects to avoid cache collisions.
+#'
+#' @return A `data.table` of ignition covariates with:
+#' \itemize{
+#'   \item `pixelID` (formerly `cell`)
+#'   \item `ignitions`
+#'   \item Climate covariate columns (names derived from `ignitionClimateCoarse`)
+#'   \item Cover/class covariates retained from `stackAndExtract()` (filtered to rows with non-zero cover sum)
+#'   \item Lightning-derived columns appended from `lightningMap`
+#'   \item `year` coerced to numeric
+#' }
+#'
+#' @section Potential pitfalls:
+#' - If `pixelID` indexes are not aligned with `lightningMap` cell indices,
+#'   appended lightning values will be incorrect; ensure consistent indexing/resolution.
+#' - If `fireSenseUtils::yearChar` is absent in the returned data, the exclusion in
+#'   `.SDcols` is harmless, but confirm that the intended year column exists for analysis.
+#' - If `youngAgeName` is not defined, it will be ignored when reordering columns.
+#'
+#' @examples
+#' \dontrun{
+#' # Pseudocode, assuming you have compatible inputs prepared:
+#' yrs <- list(`2001` = 2001L, `2002` = 2002L)
+#' # fuelCovsCoarse[[year]] is a named list or SpatRaster with LCC class names
+#' # ignitionClimateCoarse[[year]] is a SpatRaster of climate layers
+#' # ignitionFirePoints are point locations (sf/sp/data.frame accepted by stackAndExtract)
+#' # lightningMap is a named SpatRaster (e.g., "lightningDays")
+#'
+#' out <- mergePreparedCovs(
+#'   years = yrs,
+#'   fuelCovsCoarse = fuelCovsCoarse,
+#'   ignitionFirePoints = ignitionFirePoints,
+#'   nonForestedLCCGroups = c("Shrub", "Grass", "Bare"),
+#'   ignitionClimateCoarse = ignitionClimateCoarse,
+#'   lightningMap = lightningMap["lightningDays"],
+#'   digest = list(seed = 1L, cfg = "v1"),
+#'   useCache = TRUE
+#' )
+#' data.table::str(out)
+#' }
+#'
+#' @seealso fireSenseUtils::stackAndExtract, reproducible::Cache, data.table::rbindlist,
+#'   terra::rast, terra::values
+#'
+#' @import data.table
+#' @importFrom reproducible Cache
+#' @importFrom terra rast values
+#' @export
 mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonForestedLCCGroups,
                               ignitionClimateCoarse, lightningMap, digest, useCache = TRUE) {
   
