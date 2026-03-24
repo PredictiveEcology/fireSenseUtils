@@ -101,7 +101,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
     ggplot2::ggsave(plot = gEscapes, filename = figs$escape)
     ggplot2::ggsave(plot = gBurns, filename = figs$spread)
 
-    return(figs)
+    return(unlist(figs))
   }
 }
 
