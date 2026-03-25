@@ -559,10 +559,16 @@ moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
 #' @param urlELFresults A googledrive url where the ELF data.frame that contains
 #'   geometries and fitted SpreadFit parameters and several other 
 #'   attributes.
-#' @param onlyFittedELFs logical. If `TRUE`, the default, then this will only
-#'   return the ELF indices that have been successfully fitted via `fireSense_SpreadFit`.
-#'   Whether individual ELFs have been fitted or not will be determined based on
-#'   downloading the `urlELFresults`.
+#' @param whatOut string. One of `c("fittedNamesOnly", "allNames", "maps" )`. Partial
+#'   matching is active (i.e., `fit` will do `fittedNamesOnly`). Will
+#'   default to the first one if more than one supplied. If not `fittedNamesOnly` nor `allNames`,
+#'   then will do `maps`. `fittedNamesOnly` will return the vector of the `.ELFind` names
+#'   that have `SpreadFit`` values in the Cloud Geo Cache. `allNames` will return all .ELFind names,
+#'   even if they have no fits. `maps` or not one of the first two options,
+#'   will return a list of length 2, each with length `NROW(names(.ELFinds))`. These
+#'   are individual rasters, one per .ELFind, either with the entire map of 
+#'   Canada (`rasWhole`) or with a projection centered on the centroid of the ELF (`rasCentred`).
+#' 
 #'
 #' @return
 #' A vector corresponding to \code{sim$spreadFitPreRun$polygonID}. Currently, no high arctic
@@ -603,7 +609,7 @@ moveSliversToOtherELFs <- function(lostPixels, lp, ca, i, r) {
 #' @author
 #' Based on the provided code snippet.
 #'
-runELFs <- function(preRunSetupProject, onlyFittedELFs = TRUE,
+runELFs <- function(preRunSetupProject, whatOut = c("fittedNamesOnly", "allNames", "maps"),
                     urlELFresults = "https://drive.google.com/file/d/1tkC944mPzR9-y-qCMDB5o2cAR_1MoDz4/view?usp=drive_link") {
   preRunSetupProject$modules <- grep("ELFs", preRunSetupProject$modules, value = TRUE)
   # For digesting; i.e., whether it needs to be re-run
@@ -626,13 +632,23 @@ runELFs <- function(preRunSetupProject, onlyFittedELFs = TRUE,
       Cache(omitArgs = c("file", "media"), .cacheExtra = list(cacheId = cid))
   }
   # })
-  if (isTRUE(onlyFittedELFs)) {
-    .ELFinds <- sim$spreadFitPreRun$polygonID
-  } else {
-    .ELFinds <- names(sim$ELFs$rasCentered)
-  }
   #remove Arctic that is far from treeline
-  .ELFinds <- grep("^1\\.|^2\\.", invert = TRUE, value = TRUE, .ELFinds)
+  arcticELFs <- "^1\\.|^2\\."
+  if (grepl("^fit|^all", whatOut[1])) {
+    if (grepl("^all", whatOut[1])){
+      .ELFinds <- names(sim$ELFs$rasCentered)  
+    } else {
+      .ELFinds <- sim$spreadFitPreRun$polygonID
+    }
+    .ELFinds <- grep(arcticELFs, invert = TRUE, value = TRUE, .ELFinds)  
+  } else {
+    for (i in names(sim$ELFs)) {
+      .ELFinds <- grep(arcticELFs, value = TRUE, names(sim$ELFs[[i]]))
+      sim$ELFs[[i]][.ELFinds] <- NULL
+    }
+    .ELFinds <- sim$ELFs
+  }
 
+  #remove Arctic that is far from treeline
   .ELFinds
 }

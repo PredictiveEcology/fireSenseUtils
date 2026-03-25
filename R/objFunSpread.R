@@ -796,12 +796,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 #'
 #' @param annDTx1000 TODO: use description of `annualDTx1000` parameter in `.objfunSpreadFit`.
 #'   If `shortAnnDTx1000` is not supplied, this must be supplied.
-#'   It must be a data.frame/data.table that has all the annual covariates (e.g., >=1 forest biomass, 
-#'   >=0 non forest binary), whose values are 1000x their original values so they can be stored
+#'   It must be a data.frame/data.table that has all the annual covariates (e.g., `>=1` forest biomass, 
+#'   `>=0` non forest binary), whose values are 1000x their original values so they can be stored
 #'   as integers.
 #' @param nonAnnualDTx1000 If `shortAnnDTx1000` is not supplied, this must be supplied.
-#'   A named list of data.frames/data.tables that has all the non-annual covariates (e.g., >=1 forest biomass, 
-#'   >=0 non forest binary), whose values are 1000x their original values so they can be stored
+#'   A named list of data.frames/data.tables that has all the non-annual covariates (e.g., `>=1` forest biomass, 
+#'   `>=0` non forest binary), whose values are 1000x their original values so they can be stored
 #'   as integers. These non annual covariates must have a `date` column that can be assessed
 #'   against `yr` (via `nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]`)
 #'

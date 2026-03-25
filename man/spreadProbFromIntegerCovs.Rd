@@ -28,10 +28,15 @@ integers.}
 
 \item{annDTx1000}{TODO: use description of \code{annualDTx1000} parameter in \code{.objfunSpreadFit}.
 If \code{shortAnnDTx1000} is not supplied, this must be supplied.
-It must be a data.frame/data.table that has all the annual covariates (e.g., >=1 forest biomass,=0 non forest binary), whose values are 1000x their original values so they can be storedas integers.}
+It must be a data.frame/data.table that has all the annual covariates (e.g., \verb{>=1} forest biomass,
+\verb{>=0} non forest binary), whose values are 1000x their original values so they can be stored
+as integers.}
 
 \item{nonAnnualDTx1000}{If \code{shortAnnDTx1000} is not supplied, this must be supplied.
-A named list of data.frames/data.tables that has all the non-annual covariates (e.g., >=1 forest biomass,=0 non forest binary), whose values are 1000x their original values so they can be storedas integers. These non annual covariates must have a date column that can be assessedagainst yr (via nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"])}
+A named list of data.frames/data.tables that has all the non-annual covariates (e.g., \verb{>=1} forest biomass,
+\verb{>=0} non forest binary), whose values are 1000x their original values so they can be stored
+as integers. These non annual covariates must have a \code{date} column that can be assessed
+against \code{yr} (via \code{nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]})}
 
 \item{indexNonAnnual}{\code{data.table} with 2 columns: \code{ind} and \code{date} which links the
 list elements in \code{nonAnnualDTx1000} with their date (in case \code{nonAnnualDTx1000} is

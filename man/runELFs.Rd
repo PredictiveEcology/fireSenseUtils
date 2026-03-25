@@ -6,7 +6,7 @@
 \usage{
 runELFs(
   preRunSetupProject,
-  onlyFittedELFs = TRUE,
+  whatOut = c("fittedNamesOnly", "allNames", "maps"),
   urlELFresults =
     "https://drive.google.com/file/d/1tkC944mPzR9-y-qCMDB5o2cAR_1MoDz4/view?usp=drive_link"
 )
@@ -16,10 +16,11 @@ runELFs(
 \code{SpaDES.core::simInitAndSpades2()}, containing \code{$modules},
 \code{$paths$modulePath}, and \code{$params$fireSense_ELFs}.}
 
-\item{onlyFittedELFs}{logical. If \code{TRUE}, the default, then this will only
-return the ELF indices that have been successfully fitted via \code{fireSense_SpreadFit}.
-Whether individual ELFs have been fitted or not will be determined based on
-downloading the \code{urlELFresults}.}
+\item{whatOut}{string. One of \code{c("fittedNamesOnly", "allNames", "maps" )}. Partial
+matching is active (i.e., \code{fit} will do \code{fittedNamesOnly}). Will
+default to the first one if more than one supplied. If not \code{fittedNamesOnly} nor \code{allNames},
+then will do \code{maps}. \code{fittedNamesOnly} will return the vector of the \code{.ELFind} names
+that have \verb{SpreadFit`` values in the Cloud Geo Cache. }allNames\verb{will return all .ELFind names, even if they have no fits.}maps\verb{or not one of the first two options, will return a list of length 2, each with length}NROW(names(.ELFinds))\verb{. These are individual rasters, one per .ELFind, either with the entire map of  Canada (}rasWhole\verb{) or with a projection centered on the centroid of the ELF (}rasCentred`).}
 
 \item{urlELFresults}{A googledrive url where the ELF data.frame that contains
 geometries and fitted SpreadFit parameters and several other
