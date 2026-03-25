@@ -5,36 +5,48 @@ utils::globalVariables(c(
 #' Plot historic ignitions, escapes, and area burned
 #'
 #' @template summary_plots
+#'
+#' @param pixelSize raster pixel (Cell) size
+#'
 #' @param firePolys A `sf` spatial polygons of historic fire burn areas, from the Canadian
 #'    National Fire Database.
+#'
 #' @param ignitionPoints A `sf` spatial points of historic fire ignitions, from the Canadian
 #'    National Fire Database.
 #'
 #' @export
 #' @importFrom data.table as.data.table setnames
-plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePolys, ignitionPoints) {
+plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
+                              pixelSize, firePolys, ignitionPoints) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("SpaDES.core", quietly = TRUE)) {
     gcm <- strsplit(climateScenario, "_")[[1]][1]
     ssp <- strsplit(climateScenario, "_")[[1]][2]
-    runName <- sprintf("%s_%s", studyAreaName, climateScenario) ## doesn't matter which run, all same
-    run <- 1L
-    sim <- SpaDES.core::loadSimList(file.path(outputDir, runName, "rep01", paste0(runName, "_rep01.qs2")))
-    burnSummary <- sim$burnSummary
-    rm(sim)
 
     historicalBurns <- do.call(what = rbind, args = firePolys)
     historicalBurns <- as.data.table(historicalBurns@data)
 
     ## restrict to escapes only, but sum poly_ha for burns
-    res <- ifelse(grepl("ROF", studyAreaName), 125, 250)
     historicalBurns <- historicalBurns[
-      SIZE_HA > res,
+      SIZE_HA > pixelSize,
       .(sumBurn = sum(as.numeric(POLY_HA)), nFires = .N), .(YEAR)
     ]
     setnames(historicalBurns, "YEAR", "year")
     historicalBurns[, stat := "observed"]
-    projectedEscapes <- burnSummary[areaBurnedHa > res, .(nFires = .N), .(year)]
+
+    rep <- 1L ## only use the first rep
+    resultsDir <- file.path(outputDir, sprintf("rep%02d", rep))
+
+    burnDT <- file.path(resultsDir, "fireSense_burnSummary.csv") |> data.table::fread()
+    burnSummary <- data.table(
+      year = burnDT[["year"]],
+      N = burnDT[["N"]],
+      areaBurnedHa = burnDT[["areaBurnedHa"]],
+      rep = as.integer(rep)
+    ) ## TODO: this is the BUFFERED studyArea, not the REPORTING one!!!!
+
+    ## TODO: average by number of reps
+    projectedEscapes <- burnSummary[areaBurnedHa > pixelSize, .(nFires = .N), .(year)]
     projectedBurns <- burnSummary[, .(sumBurn = sum(areaBurnedHa)), .(year)]
     projectedBurns <- projectedBurns[projectedEscapes, on = c("year")]
     projectedBurns[, stat := "projected"]
@@ -89,30 +101,34 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir, firePol
     ggplot2::ggsave(plot = gEscapes, filename = figs$escape)
     ggplot2::ggsave(plot = gBurns, filename = figs$spread)
 
-    return(figs)
+    return(unlist(figs))
   }
 }
 
 #' Plot cumulative burn maps
 #'
 #' @template summary_plots
+#'
 #' @template Nreps
+#'
+#' @param years integer (length 2). start and end years for comparison.
+#'
 #' @template rasterToMatch
 #'
 #' @return a file path corresponding to the images and/or objects written to disk
 #'
 #' @export
 #' @importFrom parallel mclapply
-plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps, rasterToMatch) {
+plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
+                                Nreps, years, rasterToMatch) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
       requireNamespace("raster", quietly = TRUE) &&
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
     burnMapAllReps <- parallel::mclapply(1:Nreps, function(rep) {
-      runName <- sprintf("%s_%s", studyAreaName, climateScenario)
-      resultsDir <- file.path(outputDir, runName, sprintf("rep%02d", rep))
+      resultsDir <- file.path(outputDir, sprintf("rep%02d", rep))
 
-      burnMap <- raster::raster(file.path(resultsDir, "burnMap_2100_year2100.tif"))
+      burnMap <- raster::raster(file.path(resultsDir, paste0("burnMap_year", years[2], ".tif")))
     })
 
     cumulBurnMap <- raster::calc(raster::stack(burnMapAllReps), fun = sum) / Nreps
@@ -128,7 +144,7 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
 
     fig <- rasterVis::levelplot(cumulBurnMap,
       margin = list(FUN = "mean"), ## median?
-      main = paste0("Cumulative burn map 2011-2100 under ", climateScenario),
+      main = paste0("Cumulative burn map ", years[1], "-", years[2], "under ", climateScenario),
       colorkey = list(
         at = seq(0, raster::maxValue(cumulBurnMap), length.out = Nreps + 1),
         space = "bottom",
@@ -152,20 +168,25 @@ plotCumulativeBurns <- function(studyAreaName, climateScenario, outputDir, Nreps
 #' Create plot with subplots showing: a) area burned; b) number of fires; c) mean fire size.
 #'
 #' @template summary_plots
+#'
 #' @template Nreps
+#'
+#' @param years integer (length 2). start and end years for comparison.
+#'
+#' @param pixelSize raster pixel (Cell) size
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist
 #' @importFrom parallel mclapply
 #' @importFrom stats coefficients lm pf
-plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
+plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
+                            Nreps, years, pixelSize) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("cowplot", quietly = TRUE)) {
     burnSummaryAllReps <- rbindlist(parallel::mclapply(1:Nreps, function(rep) {
-      runName <- sprintf("%s_%s", studyAreaName, climateScenario)
-      resultsDir <- file.path(outputDir, runName, sprintf("rep%02d", rep))
+      resultsDir <- file.path(outputDir, sprintf("rep%02d", rep))
 
-      burnDT <- qs2::qs_read(file.path(resultsDir, "burnSummary_year2100.qs2"))
+      burnDT <- file.path(resultsDir, "fireSense_burnSummary.csv") |> data.table::fread()
       burnSummary <- data.table(
         year = burnDT[["year"]],
         N = burnDT[["N"]],
@@ -211,7 +232,8 @@ plotBurnSummary <- function(studyAreaName, climateScenario, outputDir, Nreps) {
     # meanFireSize <- burnSummaryAllReps[, lapply(.SD, mean), by = c("year", "rep"), .SDcols = "areaBurnedHa"]
     # meanFireSize <- meanFireSize[, lapply(.SD, mean), by = "year", .SDcols = "areaBurnedHa"]
 
-    burnSummaryAllReps[areaBurnedHa > 6.25, fireSize := mean(areaBurnedHa, na.rm = TRUE),
+    pixelSizeHa <- (pixelSize^2) / 1e4
+    burnSummaryAllReps[areaBurnedHa > pixelSizeHa, fireSize := mean(areaBurnedHa, na.rm = TRUE),
       by = c("year", "rep")
     ]
     fireSize <- na.omit(unique(burnSummaryAllReps[, c("year", "rep", "fireSize")]))
