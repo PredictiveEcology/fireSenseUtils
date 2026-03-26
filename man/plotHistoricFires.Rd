@@ -8,6 +8,7 @@ plotHistoricFires(
   climateScenario,
   studyAreaName,
   outputDir,
+  pixelSize,
   firePolys,
   ignitionPoints
 )
@@ -20,6 +21,8 @@ including SSP, formatted as in \code{ClimateNA}, using underscores as separator
 \item{studyAreaName}{character string giving the study area name}
 
 \item{outputDir}{Path specifying the directory to which outputs figures/objects should be saved.}
+
+\item{pixelSize}{raster pixel (Cell) size}
 
 \item{firePolys}{A \code{sf} spatial polygons of historic fire burn areas, from the Canadian
 National Fire Database.}

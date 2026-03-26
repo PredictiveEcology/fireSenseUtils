@@ -5,25 +5,28 @@
 \title{Plot cumulative burn maps}
 \usage{
 plotCumulativeBurns(
-  studyAreaName,
   climateScenario,
+  studyAreaName,
   outputDir,
   Nreps,
+  years,
   rasterToMatch
 )
 }
 \arguments{
-\item{studyAreaName}{character string giving the study area name}
-
 \item{climateScenario}{character string specifying the name of a CIMP6 climate scenario,
 including SSP, formatted as in \code{ClimateNA}, using underscores as separator
 (e.g., 'CanESM5_SSP370').}
+
+\item{studyAreaName}{character string giving the study area name}
 
 \item{outputDir}{Path specifying the directory to which outputs figures/objects should be saved.}
 
 \item{Nreps}{the number of simulation replicates/run used to produce summary figures.
 NOTE: \code{mclapply} is used internally, so you should set \code{options(mc.cores = nReps)}
 to take advantage of parallel processing.}
+
+\item{years}{integer (length 2). start and end years for comparison.}
 
 \item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
 raster operations (i.e., the one used throughout the simulation).}

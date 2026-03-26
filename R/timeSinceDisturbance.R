@@ -19,7 +19,7 @@ utils::globalVariables(c(
 #' @return a `SpatRaster` with values representing time since disturbance
 #'
 #' @export
-#' @importFrom data.table data.table
+#' @importFrom data.table data.table as.data.table
 #' @importFrom terra values rast setValues rasterize vect set.names
 makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
                     standAgeMap, lcc, cutoffForYoungAge = 15) {
@@ -52,16 +52,25 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   pixToUpdate <- lcc[sumRows > 0]$pixelID
   lcc[, sumRows := NULL]
 
-  standAgeVals <- values(standAgeMap, mat = FALSE)
-  ## these have no disturbance history but are apparently young
-  falseYoungs <- standAgeVals[pixToUpdate] <= cutoffForYoungAge | is.na(standAgeVals[pixToUpdate])
-  ## disturbance history suggests young
-  trueYoungs <- initialTSD[pixToUpdate] <= cutoffForYoungAge
+  standAgeVals <- data.table(pixelID = 1:ncell(standAgeMap), age = as.vector(standAgeMap))
+  data.table::setnames(standAgeVals, c("pixelID", "age"))
 
-  standAgeVals[pixToUpdate[falseYoungs]] <- cutoffForYoungAge + 1
+  # standAgeVals <- values(standAgeMap, mat = FALSE)
+  ## these have no disturbance history but are apparently young
+
+  falseYoungs <- standAgeVals[c(pixelID %in% pixToUpdate & age <= cutoffForYoungAge) |
+                                c(pixelID %in% pixToUpdate & is.na(age))]$pixelID
+  ## disturbance history suggests young
+
+  trueYoungs <- pixToUpdate[initialTSD[pixToUpdate] <= cutoffForYoungAge]
+  trueAges <- as.vector(initialTSD)[trueYoungs]
+  standAgeVals[pixelID %in% falseYoungs, age := cutoffForYoungAge + 1]
   ## note that by doing this second, pixels in both groups are correctly set to trueYoung
-  standAgeVals[pixToUpdate[trueYoungs]] <- values(initialTSD, mat = FALSE)[pixToUpdate[trueYoungs]]
-  standAgeMap <- setValues(standAgeMap, standAgeVals)
+
+  standAgeVals[pixelID %in% trueYoungs, age := trueAges]
+  standAgeVals[!pixelID %in% lcc$pixelID, age := NA] #these should be NA - not flammable
+
+  standAgeMap <- setValues(standAgeMap, standAgeVals$age)
   set.names(standAgeMap, paste0("timeSinceDisturbance", year))
 
   return(standAgeMap)
