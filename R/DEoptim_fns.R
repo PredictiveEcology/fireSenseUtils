@@ -286,7 +286,7 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
 #'
 #' @export
 #' @importFrom crayon green
-#' @importFrom data.table rbindlist setDTthreads
+#' @importFrom data.table rbindlist setDTthreads setorder
 #' @importFrom DEoptim DEoptim DEoptim.control
 #' @importFrom grDevices dev.off png
 #' @importFrom ggplot2 geom_abline

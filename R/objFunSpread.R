@@ -91,7 +91,7 @@ utils::globalVariables(c(
 #' @importFrom EnvStats demp
 #' @importFrom graphics abline axis hist mtext
 #' @importFrom kSamples ad.test
-#' @importFrom purrr map2 pmap transpose
+#' @importFrom purrr map2 pmap
 #' @importFrom quickPlot clearPlot dev gpar Plot
 #' @importFrom terra buffer crop ext ncell rast trim xyFromCell
 #' @importFrom sp SpatialPoints

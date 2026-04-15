@@ -26,7 +26,6 @@ utils::globalVariables(c(
 #' @param cores Positive integer.Number of CPU cores (threads) to use for parallel operations.
 #'
 #' @export
-#' @importFrom purrr transpose
 #' @importFrom data.table rbindlist
 harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
                               areaMultiplier, minSize, pointsIDcolumn = "FIRE_ID",

@@ -395,7 +395,7 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
 #' @seealso fireSenseUtils::stackAndExtract, reproducible::Cache, data.table::rbindlist,
 #'   terra::rast, terra::values
 #'
-#' @import data.table
+#' @importFrom data.table rbindlist set setnames setcolorder
 #' @importFrom reproducible Cache
 #' @importFrom terra rast values
 #' @export
