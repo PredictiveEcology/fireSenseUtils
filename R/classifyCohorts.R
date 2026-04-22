@@ -68,7 +68,9 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
     ras
     })
   
-  noFuelForRequiredClass <- setdiff(requiredFuelClasses, names(cc))
+  noFuelForRequiredClass <- character()
+  if (!is.null(requiredFuelClasses))
+    noFuelForRequiredClass <- setdiff(requiredFuelClasses, names(cc))
 
   # This is where a species disappears from the map: create a map of zeros
   if (length(noFuelForRequiredClass)) {
