@@ -12,7 +12,8 @@ cohortsToFuelClasses(
   sppEquiv,
   sppEquivCol,
   cutoffForYoungAge,
-  fuelClassCol = "FuelClass"
+  fuelClassCol = "FuelClass",
+  requiredFuelClasses
 )
 }
 \arguments{
@@ -40,6 +41,10 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{cutoffForYoungAge}{age at and below which pixels are considered 'young'}
 
 \item{fuelClassCol}{the column in \code{sppEquiv} that describes unique fuel classes}
+
+\item{requiredFuelClasses}{A character vector of all the fuel classes that are expected.
+This is needed because a fuel class may disappear (e.g., Popu_tre) due to succession,
+causing a downstream failure because the prediction model requires values for it.}
 }
 \value{
 a \code{SpatRaster} of biomass by fuel class as determined by \code{fuelClassCol} and \code{cohortData}.

@@ -11,6 +11,7 @@ fireSenseCovariatesCreate(
   sppEquiv,
   landcoverDT,
   fuelClassCol,
+  requiredFuelClasses,
   sppEquivCol,
   missingLCCgroup,
   nonForestedLCCGroups,
@@ -34,6 +35,10 @@ fireSenseCovariatesCreate(
 indicators (e.g., logical or numeric columns for LCC groups) used in the covariate set.}
 
 \item{fuelClassCol}{Character name of the fuel-class column produced/expected by \code{sppEquiv}.}
+
+\item{requiredFuelClasses}{A character vector of all the fuel classes that are expected.
+This is needed because a fuel class may disappear (e.g., Popu_tre) due to succession,
+causing a downstream failure because the prediction model requires values for it.}
 
 \item{sppEquivCol}{Character name of the species-equivalency column in \code{sppEquiv}.}
 

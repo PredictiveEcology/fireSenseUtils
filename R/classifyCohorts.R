@@ -21,17 +21,19 @@ globalVariables(c(
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #'
 #' @param fuelClassCol the column in `sppEquiv` that describes unique fuel classes
-#'
+#' 
 #' @return a `SpatRaster` of biomass by fuel class as determined by `fuelClassCol` and `cohortData`.
 #'
 #' @export
+#' @inheritParams fireSenseCovariatesCreate
 #' @importFrom data.table copy setkey
 #' @importFrom LandR asInteger
 #' @importFrom SpaDES.tools rasterizeReduced
 #' @importFrom terra values rast
 #'
 cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landcoverDT = NULL,
-                                 sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass") {
+                                 sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass",
+                                 requiredFuelClasses) {
   # cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
@@ -65,6 +67,19 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
     ras <- setValues(x = ras, values = rasVals)
     ras
     })
+  
+  noFuelForRequiredClass <- setdiff(requiredFuelClasses, names(cc))
+
+  # This is where a species disappears from the map: create a map of zeros
+  if (length(noFuelForRequiredClass)) {
+    for (fuel in noFuelForRequiredClass) {
+      ras <- Copy(pixelGroupMap)
+      rasVals <- values(ras, mat = FALSE)
+      rasVals[rasVals > 0] <- 0
+      cc[[fuel]] <- setValues(x = ras, values = rasVals)
+    }
+    
+  }
   dd <- rast(cc)
   classList <- dd[[order(names(dd))]]
   # })

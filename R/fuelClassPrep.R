@@ -416,6 +416,9 @@ abbreviateSpNames <- function(df) {
 #'   indexed by \code{pixelID} and used when \code{nonForestCanBeYoungAge = TRUE}.
 #' @param cutoffForYoungAge Numeric threshold (years). Pixels with TSD \eqn{\le} this value are considered
 #'   \code{youngAge}.
+#' @param requiredFuelClasses A character vector of all the fuel classes that are expected.
+#'   This is needed because a fuel class may disappear (e.g., Popu_tre) due to succession,
+#'   causing a downstream failure because the prediction model requires values for it.
 #' @param nonForestCanBeYoungAge Logical. If \code{TRUE}, non-forest pixels can be flagged as \code{youngAge}
 #'   based on \code{nonForest_timeSinceDisturbance} and \code{cutoffForYoungAge}.
 #' @param studyAreaName Character tag used for caching/user tags.
@@ -481,6 +484,7 @@ fireSenseCovariatesCreate <- function(cohortData,
                                    sppEquiv,
                                    landcoverDT,
                                    fuelClassCol,
+                                   requiredFuelClasses,
                                    sppEquivCol,
                                    missingLCCgroup,
                                    nonForestedLCCGroups,
@@ -496,6 +500,7 @@ fireSenseCovariatesCreate <- function(cohortData,
     landcoverDT = landcoverDT,
     sppEquiv = sppEquiv,
     fuelClassCol = fuelClassCol,
+    requiredFuelClasses = requiredFuelClasses,
     sppEquivCol = sppEquivCol,
     cutoffForYoungAge = cutoffForYoungAge
   )
