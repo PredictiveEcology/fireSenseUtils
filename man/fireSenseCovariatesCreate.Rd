@@ -11,7 +11,7 @@ fireSenseCovariatesCreate(
   sppEquiv,
   landcoverDT,
   fuelClassCol,
-  requiredFuelClasses,
+  requiredFuelClasses = NULL,
   sppEquivCol,
   missingLCCgroup,
   nonForestedLCCGroups,

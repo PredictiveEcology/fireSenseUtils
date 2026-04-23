@@ -314,8 +314,8 @@ combine_fuel_classes <- function(df, targetFuelClasses = 5, lowThreshold = 0.05)
     #   sapply(out, "[[", placement)
     # }
     # hasUnderscore[, genus := abbreviate(species)]
-    # hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcol = "genus"]
-    # hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcol = "species"]
+    # hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcols = "genus"]
+    # hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcols = "species"]
     # hasUnderscore[, spec := substr(spec, start = 1, stop = 2)]
     # hasUnderscore[, newName := paste0(genus, "_", spec)]
     # hasUnderscore[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
@@ -357,8 +357,8 @@ abbreviateSpNames <- function(df) {
     sapply(out, "[[", placement)
   }
   hasUnderscore[, genus := abbreviate(species)]
-  hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcol = "genus"]
-  hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcol = "species"]
+  hasUnderscore[, genus := lapply(.SD, FUN = myFun, placement = 1), .SDcols = "genus"]
+  hasUnderscore[, spec := lapply(.SD, FUN = myFun, placement = 2), .SDcols = "species"]
   hasUnderscore[, spec := substr(spec, start = 1, stop = 2)]
   hasUnderscore[, newName := paste0(genus, "_", spec)]
   hasUnderscore[, newName := paste(newName, collapse = "."), .(assignedFuelClass)]
@@ -532,7 +532,7 @@ fireSenseCovariatesCreate <- function(cohortData,
   exclusiveCols <- c(fcs, names(landcoverDT))
   exclusiveCols <- setdiff(exclusiveCols, "pixelID")
   spreadCovariates <- makeMutuallyExclusive(dt = spreadCovariates,
-                                            mutuallyExclusive = list("youngAge" = exclusiveCols))
+                                            mutuallyExclusiveCols = list("youngAge" = exclusiveCols))
   
   spreadCovariates <- spreadCovariates[, eval(fcs) := lapply(.SD, FUN = logMinB), .SDcols = fcs]
   
@@ -834,7 +834,7 @@ putBackIntoRaster <- function(lcc, landcoverDT, flammableMap) {
 #' @export
 calcNonForestYoungAge <- function(landcoverDT, NFTSD, LCCras, cutoffForYoungAge) {
   nfLCC <- setdiff(colnames(landcoverDT), "pixelID")
-  landcoverDT[, sumRows := rowSums(.SD), .SDcol = nfLCC]
+  landcoverDT[, sumRows := rowSums(.SD), .SDcols = nfLCC]
   landcoverDT[, age := NFTSD[pixelID]]
   # this need to be chagned in LCCras and also converted to a youngAge raster
   # as the rasters will be aggregated
@@ -844,7 +844,7 @@ calcNonForestYoungAge <- function(landcoverDT, NFTSD, LCCras, cutoffForYoungAge)
   
   # check how terra works - this should change all pixels if length 2+ spat raster
   LCCras[pixToChange] <- 0
-  youngAge <- rast(LCCras, nlyr = 1)
+  youngAge <- rast(LCCras, nlyrs = 1)
   
   temp <- values(LCCras[[1]])
   temp[!is.na(temp)] <- 0
