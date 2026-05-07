@@ -14,8 +14,8 @@ utils::globalVariables(c(
 #'
 #' @export
 #' @importFrom data.table as.data.table data.table rbindlist setnames
+#' @importFrom magrittr %>%
 #' @importFrom terra extract ncell rast values
-#' @importFrom sf %>%
 #' @importFrom stats na.omit
 stackAndExtract <- function(years, fuel, LCC, climate, fires = NULL) {
   ignitionYears <- lapply(years, FUN = function(year, climateRas = climate, fuelRas = fuel,

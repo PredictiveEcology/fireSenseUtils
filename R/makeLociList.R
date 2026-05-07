@@ -23,9 +23,10 @@ globalVariables(c(
 #'
 #' @export
 #' @importFrom data.table rbindlist as.data.table set
+#' @importFrom magrittr %>%
 #' @importFrom purrr map
 #' @importFrom terra extract res
-#' @importFrom sf %>% st_crs st_transform
+#' @importFrom sf st_crs st_transform
 makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol = "POLY_HA",
                          sizeColUnits = "ha", yearPrefix = "year") {
   returnCols <- c("size", "date", "ids", "cells")

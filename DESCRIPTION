@@ -2,8 +2,8 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2026-04-22
-Version: 0.1.8
+Date: 2026-05-07
+Version: 0.1.9
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -28,6 +28,7 @@ Imports:
     googledrive,
     kSamples,
     LandR (>= 1.1.0.9066),
+    magrittr,
     mclust,
     methods,
     parallelly,
