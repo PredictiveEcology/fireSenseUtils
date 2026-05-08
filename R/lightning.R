@@ -25,6 +25,12 @@ utils::globalVariables(c(
 #' <https://doi.org/10.1080/07055900.2020.1845117>
 #'
 #' @examples
+#' \dontrun{
+#' # The example fetches from a Google Drive folder that requires
+#' # `drive_auth()` credentials. R CMD check runs examples
+#' # non-interactively where no Drive token is available, so the body
+#' # is gated under \dontrun{} to keep docs complete without breaking
+#' # checks.
 #' if (require(googledrive, quietly = TRUE)) {
 #'   crsToUse <- paste("+proj=lcc +lat_0=0 +lon_0=-95 +lat_1=49 +lat_2=77",
 #'                     "+x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
@@ -52,6 +58,7 @@ utils::globalVariables(c(
 #'       )
 #'     }
 #'   )
+#' }
 #' }
 readLightningData <- function(filename, ...) {
   a <- data.table::fread(filename)
