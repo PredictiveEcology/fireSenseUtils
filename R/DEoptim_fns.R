@@ -87,6 +87,11 @@ utils::globalVariables(c(
 #'
 #' @param .plotSize List specifying plot `height` and `width`, in pixels.
 #'
+#' @param runName Character string used to label this run. Forwarded to
+#'   `DEoptimIterative()` and used as a suffix for the cache `.functionName`
+#'   so that runs with different `runName` values get distinct cache entries.
+#'   Default `""` (no suffix).
+#'
 #' @return The result of the [DEoptimIterative()] call. This is typically a list where
 #' each element contains the [DEoptim::DEoptim] object state after a block of `iterStep` iterations.
 #' The final element represents the state after `itermax` iterations or upon early stopping.

@@ -30,6 +30,9 @@
 #' This means that the ELFs will be smaller than this, with lower limit being the
 #' individual ecozones plus buffer.
 #' @param destinationPath A path where any downloads should be put.
+#' @param singleSpatVector Logical. If `TRUE`, the function returns a single
+#'   `SpatVector` of all ELFs (rather than the per-ELF list described in
+#'   `Value`). Default `FALSE`.
 #' @param useCache Logical. If `TRUE`, then some internal steps will be cached.
 #'   If `FALSE`, then some (or most) will not be cached.
 #'

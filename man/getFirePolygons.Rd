@@ -7,6 +7,9 @@
 getFirePolygons(url, years, useInnerCache = FALSE, ...)
 }
 \arguments{
+\item{url}{Character (or \code{missing}). URL to the fire polygons archive.
+When missing, defaults to the current NBAC fire polygons archive URL.}
+
 \item{years}{years to filter fire polygons by}
 
 \item{useInnerCache}{logical indicating whether to cache the \code{prepInputs} call}

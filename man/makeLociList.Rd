@@ -28,6 +28,10 @@ id per event (i.e., fire)}
 individual event. Can be in hectares or metres squared. Should set \code{sizeColUnits}}
 
 \item{sizeColUnits}{Character string. Either \code{"ha"} or \code{"m2"}.}
+
+\item{yearPrefix}{Character string prefixed to each year when naming the
+output list elements (e.g. \code{"year"} produces \code{"year2001"}, \code{"year2002"},
+...). Default \code{"year"}.}
 }
 \value{
 A list of data.table objects, each with 4 columns, \code{"size"} (in pixels), \code{"date"},

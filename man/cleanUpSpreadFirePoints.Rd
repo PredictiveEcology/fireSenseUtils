@@ -14,6 +14,9 @@ cleanUpSpreadFirePoints(firePoints, bufferDT, flammableRTM, idCol)
 
 \item{flammableRTM}{a \code{rasterToMatch} with binary values where 1 represents flammable pixels, 0 nonflammable,
 and NA no data}
+
+\item{idCol}{Character. Name of the column in \code{firePoints} that uniquely
+identifies each fire event (e.g. \code{"FIRE_ID"}).}
 }
 \value{
 a list of harmonized points and polygons

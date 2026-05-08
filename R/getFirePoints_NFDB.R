@@ -99,6 +99,8 @@ getFirePoints_NFDB <- function(url = NULL,
 #' @param years Numeric vector of consecutive years to fetch.
 #' @param fireSizeColName Character describing the name of the column containing fire size information.
 #' @param NFDB_pointPath Passed to `destinationPath` in `prepInputs`
+#' @param fun Character. The function (as a string, e.g., `"sf::st_read"`)
+#'   used to load the downloaded data. Forwarded to `prepInputs(fun = ...)`.
 #' @param plot logical indicating whether to produce plot of fire points. Default FALSE.
 #'
 #' @return A `sf` spatial points object.

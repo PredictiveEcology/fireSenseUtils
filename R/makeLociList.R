@@ -15,6 +15,9 @@ globalVariables(c(
 #' @param sizeCol Character string identifying column name in `pts` that has size of
 #'   individual event. Can be in hectares or metres squared. Should set `sizeColUnits`
 #' @param sizeColUnits Character string. Either `"ha"` or `"m2"`.
+#' @param yearPrefix Character string prefixed to each year when naming the
+#'   output list elements (e.g. `"year"` produces `"year2001"`, `"year2002"`,
+#'   ...). Default `"year"`.
 #'
 #' @return
 #' A list of data.table objects, each with 4 columns, `"size"` (in pixels), `"date"`,

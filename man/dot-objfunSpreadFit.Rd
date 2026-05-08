@@ -63,6 +63,10 @@ all years must be rescaled for a given covariate by the same amount.}
 \item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
 Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
 
+\item{lowerSpreadProb}{Numeric. Lower bound for \code{spreadProb}; if a candidate
+\code{spreadProb} falls at or below this, the call exits early to avoid wasted
+simulation work. Default \code{0.13}.}
+
 \item{minFireSize}{TODO: DESCRIPTION NEEDED}
 
 \item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
