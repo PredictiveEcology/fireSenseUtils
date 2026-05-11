@@ -35,7 +35,6 @@ Imports:
     pemisc (>= 0.0.4.9011),
     pROC,
     purrr,
-    qs2,
     quickPlot,
     reproducible (>= 2.0.12),
     RhpcBLASctl,
