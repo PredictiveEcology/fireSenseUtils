@@ -16,6 +16,9 @@
 #' @param igAggFactor `numeric(1)` aggregation factor forwarded to
 #'   `terra::aggregate(fact = ...)`, typically used to coarsen lightning rasters
 #'   for ignition modeling.
+#' @param dPath Character. Destination path forwarded to
+#'   `reproducible::prepInputs(destinationPath = ...)`; the directory where
+#'   downloaded lightning rasters are stored / cached on disk.
 #'
 #' @details
 #' The function maintains an internal mapping of Google Drive file IDs for
@@ -124,6 +127,9 @@ prepare_LightningData <- function(rtm, igAggFactor, dPath) {
 #'   used in ignition modeling.
 #' @param fact `numeric(1)` aggregation factor passed to
 #'   `terra::aggregate(fact = ...)`.
+#' @param useCache `logical` (default `TRUE`). If `TRUE`, wrap the per-element
+#'   aggregation in `reproducible::Cache()` so that re-running with the same
+#'   inputs returns the cached result. If `FALSE`, force recomputation.
 #' @param digest A digest object (e.g., `list`, atomic vector) representing
 #'   upstream processing context, which will be appended to the input-derived
 #'   digest when constructing the cache key.
@@ -733,11 +739,16 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
 #' @export
 igOrEscNames <- function(igOrEsc, pre = "fireSense_", post, case = c("lower", "camel", "sentence", "title")) {
   if (startsWith(tolower(case[1]), prefix = "cam"))
-    igOrEsc <- camelCase(igOrEsc)
+    igOrEsc <- .camelCase(igOrEsc)
   if (startsWith(tolower(case[1]), prefix = "sen") || startsWith(tolower(case[1]), prefix = "tit"))
     igOrEsc <- tools::toTitleCase(igOrEsc) # only has one word, so OK
   paste0(pre, igOrEsc, post)
 }
+
+# Internal: capitalize the first letter of each element. Used by
+# igOrEscNames(case = "camel") to produce names like "Ignition" from
+# "ignition" without depending on a function from another package.
+.camelCase <- function(x) sub("^([a-z])", "\\U\\1", x, perl = TRUE)
 
 #' Column name for ignitions
 #'

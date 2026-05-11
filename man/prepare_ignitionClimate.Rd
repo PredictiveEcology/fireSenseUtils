@@ -22,6 +22,10 @@ used in ignition modeling.}
 \item{digest}{A digest object (e.g., \code{list}, atomic vector) representing
 upstream processing context, which will be appended to the input-derived
 digest when constructing the cache key.}
+
+\item{useCache}{\code{logical} (default \code{TRUE}). If \code{TRUE}, wrap the per-element
+aggregation in \code{reproducible::Cache()} so that re-running with the same
+inputs returns the cached result. If \code{FALSE}, force recomputation.}
 }
 \value{
 A \code{list} of aggregated climate rasters (typically \code{terra::SpatRaster}), in

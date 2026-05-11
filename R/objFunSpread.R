@@ -79,6 +79,14 @@ utils::globalVariables(c(
 #'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
+#' @param lowerSpreadProb Numeric. Lower bound for `spreadProb`; if a candidate
+#'   `spreadProb` falls at or below this, the call exits early to avoid wasted
+#'   simulation work. Default `0.13`.
+#'
+#' @param mutuallyExclusive Named list of vectors describing groups of model
+#'   terms that must not be active together (mutually exclusive in the
+#'   formula). Default `list("youngAge" = c("class", "nf"))`.
+#'
 #' @param ... This is not used here, but allows for extraneous arguments to not break this function.
 #'
 #' @return

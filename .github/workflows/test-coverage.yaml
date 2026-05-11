@@ -10,11 +10,16 @@ on:
 
 name: test-coverage
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   test-coverage:
     runs-on: macOS-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      GOOGLEDRIVE_AUTH: ${{ secrets.GOOGLEDRIVE_AUTH }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       USING_COVR: true
 
     steps:

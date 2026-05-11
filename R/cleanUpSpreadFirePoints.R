@@ -11,6 +11,9 @@ utils::globalVariables(c(
 #'
 #' @param bufferDT a data.table of burned cells, output from `bufferToArea`
 #'
+#' @param idCol Character. Name of the column in `firePoints` that uniquely
+#'   identifies each fire event (e.g. `"FIRE_ID"`).
+#'
 #' @return a list of harmonized points and polygons
 #'
 #' @export

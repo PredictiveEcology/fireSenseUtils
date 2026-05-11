@@ -14,6 +14,10 @@ lightning rasters.}
 \item{igAggFactor}{\code{numeric(1)} aggregation factor forwarded to
 \code{terra::aggregate(fact = ...)}, typically used to coarsen lightning rasters
 for ignition modeling.}
+
+\item{dPath}{Character. Destination path forwarded to
+\code{reproducible::prepInputs(destinationPath = ...)}; the directory where
+downloaded lightning rasters are stored / cached on disk.}
 }
 \value{
 A named list of aggregated lightning rasters (class \code{list} of

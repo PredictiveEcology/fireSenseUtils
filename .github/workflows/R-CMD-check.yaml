@@ -12,6 +12,9 @@ on:
 
 name: R-CMD-check
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
@@ -39,7 +42,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: r-lib/actions/setup-pandoc@v2
+      # setup-pandoc occasionally fails with HTTP 5xx when its CDN blips.
+      # Three attempts with continue-on-error ride out transient failures.
+      - id: pandoc1
+        continue-on-error: true
+        uses: r-lib/actions/setup-pandoc@v2
+      - if: steps.pandoc1.outcome == 'failure'
+        id: pandoc2
+        continue-on-error: true
+        uses: r-lib/actions/setup-pandoc@v2
+      - if: steps.pandoc1.outcome == 'failure' && steps.pandoc2.outcome == 'failure'
+        uses: r-lib/actions/setup-pandoc@v2
 
       - uses: PredictiveEcology/actions/install-spatial-deps@v0.2
 
@@ -49,12 +62,34 @@ jobs:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: false
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      - id: deps
+        continue-on-error: true
+        uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          # Pin pak stable; devel-pak occasionally regresses on resolve.
+          pak-version: stable
           extra-packages: |
             any::rcmdcheck
             NLMR=?ignore
           needs: check
+
+      # Retry fallback for setup-r-dependencies. Catches transient
+      # "Cannot query GitHub" / pkgdepends resolution errors that hit
+      # individual matrix entries (windows-latest release was the
+      # casualty today).
+      - name: Install R deps (retry fallback)
+        if: steps.deps.outcome == 'failure'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 60
+          retry_on: error
+          shell: 'Rscript {0}'
+          command: |
+            install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")
+            pak::local_install_dev_deps(ask = FALSE, dependencies = TRUE)
+            pak::pkg_install(c("any::rcmdcheck"), ask = FALSE)
 
       - name: Install additional package dependencies
         run: |

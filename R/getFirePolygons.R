@@ -1,5 +1,7 @@
 #' Download and prepare fire data from National Fire Database
 #'
+#' @param url Character (or `missing`). URL to the fire polygons archive.
+#'   When missing, defaults to the current NBAC fire polygons archive URL.
 #' @param years years to filter fire polygons by
 #' @param ... additional arguments passed to [reproducible::prepInputs()]
 #' @param useInnerCache logical indicating whether to cache the `prepInputs` call

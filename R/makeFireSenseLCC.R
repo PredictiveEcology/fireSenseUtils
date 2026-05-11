@@ -22,6 +22,12 @@
 #'
 #' @param neededYear Numeric. The specific year required for the NTEMS Land
 #'   Cover Classification (LCC) data.
+#' @param to A `SpatRaster` (or raster-like) template defining the resolution,
+#'   extent, and CRS that the output LCC raster will be aligned to. Forwarded
+#'   to `reproducible::postProcessTo(to = ...)`.
+#' @param maskTo Optional. A `SpatVector` / `SpatRaster` / polygon used to mask
+#'   the output. Forwarded to `reproducible::postProcessTo(maskTo = ...)`.
+#'   Default `NULL` (no extra mask beyond `to`).
 #' @param nonflammableLCC Numeric vector. LCC codes representing non-flammable
 #'   land cover types (e.g., water, rock, urban). Defaults to `c(20, 31, 32, 33)`.
 #'   Pixels with these values are initially masked or converted for thresholding.

@@ -17,7 +17,7 @@ globalVariables(c(
 #' @export
 #' @importFrom data.table data.table set setDT
 #' @importFrom fastDummies dummy_cols
-#' @importFrom sf %>%
+#' @importFrom magrittr %>%
 #' @importFrom terra values ncell compareGeom
 #' @importFrom reproducible postProcess
 #'

@@ -167,6 +167,11 @@ Default "screen".}
 
 \item{rep}{TODO: DESCRIPTION NEEDED}
 
+\item{runName}{Character string used to label this run. Forwarded to
+\code{DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
+so that runs with different \code{runName} values get distinct cache entries.
+Default \code{""} (no suffix).}
+
 \item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 
 \item{figPath}{directory where figures will be saved, if relevant}

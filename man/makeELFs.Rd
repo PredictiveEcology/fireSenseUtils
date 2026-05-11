@@ -31,6 +31,10 @@ individual ecozones plus buffer.}
 
 \item{destinationPath}{A path where any downloads should be put.}
 
+\item{singleSpatVector}{Logical. If \code{TRUE}, the function returns a single
+\code{SpatVector} of all ELFs (rather than the per-ELF list described in
+\code{Value}). Default \code{FALSE}.}
+
 \item{useCache}{Logical. If \code{TRUE}, then some internal steps will be cached.
 If \code{FALSE}, then some (or most) will not be cached.}
 }

@@ -20,6 +20,9 @@ correct on GoogleDrive. Must be a folder.}
 default is correct for fireSense parameters.}
 
 \item{destinationPath}{A path for the downloaded file.}
+
+\item{useCache}{Logical. Forwarded to \code{reproducible::prepInputs(useCache = ...)}
+to control whether downloaded/processed inputs are cached. Default \code{TRUE}.}
 }
 \value{
 The object and the \code{rds} file saved to destinationPath.

@@ -87,6 +87,8 @@ plotELFs <- function(destinationPath = ".") {
 #' @param targetFile A filename to search on the folder on Google Drive. The
 #'   default is correct for fireSense parameters.
 #' @param destinationPath A path for the downloaded file.
+#' @param useCache Logical. Forwarded to `reproducible::prepInputs(useCache = ...)`
+#'   to control whether downloaded/processed inputs are cached. Default `TRUE`.
 #' @return The object and the `rds` file saved to destinationPath.
 #' @export
 #' @seealso [fireSenseCloudParametersMap()]
