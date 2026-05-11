@@ -80,7 +80,9 @@ take some small amount of time.}
 \item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
 Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
 
-\item{lowerSpreadProb}{TODO: DESCRIPTION NEEDED}
+\item{lowerSpreadProb}{Numeric. Lower bound for \code{spreadProb}; if a candidate
+\code{spreadProb} falls at or below this, the call exits early to avoid wasted
+simulation work. Default \code{0.13}.}
 }
 \value{
 This returns the full data.table to be used for fireSense, on the original numeric

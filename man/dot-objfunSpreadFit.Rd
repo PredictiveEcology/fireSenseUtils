@@ -73,16 +73,9 @@ simulation work. Default \code{0.13}.}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
-\item{mutuallyExclusive}{If there are any covariates, e.g,. \code{youngAge}, that should be
-considered mutually exclusive, then this can be done here
-(i.e., "if \code{youngAge} is non-zero, should \code{vegPC2} be set to zero").
-A named list, where the name of the list element must be a single covariate column name
-in either \code{annualDTx1000} or \code{nonAnnualDTx1000}.
-The list content should be a "grep" pattern with which to match column names, e.g., \code{"vegPC"}.
-The values of all column names that match the grep value will be set to \code{0}, whenever the
-name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
-meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
-is non-zero.}
+\item{mutuallyExclusive}{Named list of vectors describing groups of model
+terms that must not be active together (mutually exclusive in the
+formula). Default \code{list("youngAge" = c("class", "nf"))}.}
 
 \item{doAssertions}{Logical. If \code{TRUE}, the default, the function will test a few minor things
 for consistency. This should be set to \code{FALSE} for operational situations, as the assertions

@@ -93,9 +93,11 @@ prepare_LightningData <- function(rtm, igAggFactor, dPath) {
   digCE <- .robustDigest(list(rtm = rtm, 
                               igAggFactor = igAggFactor,
                               rld = fireSenseUtils::readLightningData))
-  digURLs <- Map(url = lightningUrls, function(url) 
-    reproducible:::getRemoteMetadata(url = reproducible:::googledriveIDtoHumanURL(url), 
-                                     isGDurl = TRUE)$remoteHash)
+  .getRemoteMetadata <- utils::getFromNamespace("getRemoteMetadata", "reproducible")
+  .googledriveIDtoHumanURL <- utils::getFromNamespace("googledriveIDtoHumanURL", "reproducible")
+  digURLs <- Map(url = lightningUrls, function(url)
+    .getRemoteMetadata(url = .googledriveIDtoHumanURL(url),
+                       isGDurl = TRUE)$remoteHash)
   Map(url = lightningUrls, nam = names(lightningUrls), digURL = digURLs,
                            function(url, nam, digURL) {
                              {
@@ -273,7 +275,7 @@ prepare_ignitionClimate <- function(ignitionClimateList, fact, digest = NULL, us
 #' @importFrom terra aggregate
 #' @export
 prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
-  fcn <- fireSenseUtils:::fireSenseCovariatesCreate(...)
+  fcn <- fireSenseCovariatesCreate(...)
   fuelCovs <- SpaDES.tools::rastFromDF(fcn, rasTemplate = rasTemplate)
   terra::aggregate(fuelCovs, fact = fact, fun = mean)
 }
@@ -604,7 +606,7 @@ prepareCovariatesOuter <- function(unscaledData, algorithm, rescaleVars,
 #'   - Attaches centering/scaling attributes under `attr(covariates, "scaleData")`.
 #'
 #' **External references**:
-#'   - Uses `fireSenseUtils:::ignitionsTxt` and `fireSenseUtils:::escapesTxt` to
+#'   - Uses `ignitionsTxt` and `escapesTxt` to
 #'     refer to the expected response column names. If these are not available,
 #'     ensure compatible strings are provided (see exported constants below).
 #'
@@ -666,7 +668,7 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
       # rescalers <- abs(sapply(covariates[, .SD, .SDcols = toRescale], FUN = max))
       message("Variables outside of [0,10] range will be rescaled to [0,10]")
       toRescale <- setdiff(names(covariates),
-                           c("pixelID", fireSenseUtils:::ignitionsTxt, fireSenseUtils:::escapesTxt, "year", "yearChar"))
+                           c("pixelID", ignitionsTxt, escapesTxt, "year", "yearChar"))
       rescalers <- sapply(covariates[, .SD, .SDcols = toRescale], max)
       needRescale <- sapply(rescalers, FUN = function(x) !inRange(x, 0, 10))
       cols <- names(rescalers)[which(needRescale)]
@@ -675,13 +677,13 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
       covariates <- rescaleVarsByMagnitude(covariates, ignitionRescalers)
     } else {
       
-      SDcols <- setdiff(colnames(covariates), c("yearChar", fireSenseUtils:::ignitionsTxt, "escapes"))
+      SDcols <- setdiff(colnames(covariates), c("yearChar", ignitionsTxt, "escapes"))
       scaledData <- scale(covariates[, ..SDcols])
-      origIgnitions <- covariates[[fireSenseUtils:::ignitionsTxt]]
+      origIgnitions <- covariates[[ignitionsTxt]]
       origEscapes <- covariates[["escapes"]]
       centeringData <- attributes(scaledData)
       covariates <- as.data.table(scaledData)
-      set(covariates, NULL, fireSenseUtils:::ignitionsTxt, origIgnitions)
+      set(covariates, NULL, ignitionsTxt, origIgnitions)
       if (!is.null(origEscapes))
         set(covariates, NULL, "escapes", origEscapes)
       
@@ -694,14 +696,14 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
       #                              #, youngAge = youngAge
       #                            ),
       #                            lapply(.SD, scale, scale = TRUE)),
-      #                          .SDcols = setdiff(colnames(covariates), c("yearChar", fireSenseUtils:::ignitionsTxt))
+      #                          .SDcols = setdiff(colnames(covariates), c("yearChar", ignitionsTxt))
       #                          #.SDcols = c("CMDsm", "Betu_pap", "Pc_gl.Lr_la", "Pice_mar",
       #                          #"Pn_co.Pn_ba", "Pp_ba.Pp_tr", "lightning")
       # ]
       # cols <- grep("V1", value = TRUE, colnames(covariates))
       # setnames(covariates, old = cols, new = gsub(".V1", "", cols))
-      # if (fireSenseUtils:::escapesTxt %in% colnames(covariates)) {
-      #   set(covariates, NULL, fireSenseUtils:::escapesTxt, covariates[[fireSenseUtils:::escapesTxt]])
+      # if (escapesTxt %in% colnames(covariates)) {
+      #   set(covariates, NULL, escapesTxt, covariates[[escapesTxt]])
       # }
       
       setattr(covariates, name = "scaleData", value = centeringData)

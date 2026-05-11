@@ -5,8 +5,8 @@
 \title{Get current state of FireSense Fit parameters as a map}
 \usage{
 fireSenseCloudParameters(
-  url =
-    "https://drive.google.com/file/d/1oJX7V5wPSj49C6wt59yD9RBplfZ7Cp-f/view?usp=drive_link",
+  url = paste0("https://drive.google.com/file/d/",
+    "1oJX7V5wPSj49C6wt59yD9RBplfZ7Cp-f/view?usp=drive_link"),
   targetFile = "fireSenseParams.rds",
   destinationPath = ".",
   useCache = TRUE

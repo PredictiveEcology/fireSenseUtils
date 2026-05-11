@@ -92,9 +92,13 @@ plotELFs <- function(destinationPath = ".") {
 #' @return The object and the `rds` file saved to destinationPath.
 #' @export
 #' @seealso [fireSenseCloudParametersMap()]
-fireSenseCloudParameters <- function(url = "https://drive.google.com/file/d/1oJX7V5wPSj49C6wt59yD9RBplfZ7Cp-f/view?usp=drive_link",
-                                     targetFile = "fireSenseParams.rds",
-                                     destinationPath = ".", useCache = TRUE) {
+fireSenseCloudParameters <- function(
+    url = paste0(
+      "https://drive.google.com/file/d/",
+      "1oJX7V5wPSj49C6wt59yD9RBplfZ7Cp-f/view?usp=drive_link"
+    ),
+    targetFile = "fireSenseParams.rds",
+    destinationPath = ".", useCache = TRUE) {
 
   # KNN = "https://drive.google.com/file/d/1xQGAhBCRimYQC_GWA0lOctZU4VSlyojS/view?usp=drivesdk"
   prepInputs(targetFile = targetFile,

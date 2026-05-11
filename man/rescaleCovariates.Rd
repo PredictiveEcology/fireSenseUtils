@@ -61,7 +61,7 @@ whose maxima fall outside [0, 10].
 
 \strong{External references}:
 \itemize{
-\item Uses \code{fireSenseUtils:::ignitionsTxt} and \code{fireSenseUtils:::escapesTxt} to
+\item Uses \code{ignitionsTxt} and \code{escapesTxt} to
 refer to the expected response column names. If these are not available,
 ensure compatible strings are provided (see exported constants below).
 }
