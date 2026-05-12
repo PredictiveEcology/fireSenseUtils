@@ -22,7 +22,13 @@ library(knitr)
 ## Probe the *function* (not just the namespace) so we catch the partially-
 ## installed case. Skip the live chunks when the probe fails — the code
 ## stays visible as documentation.
-.canExtract <- tryCatch(
+## Belt-and-suspenders: requireNamespace + getExportedValue both return TRUE
+## on the macOS R-CMD-check runner even when libarchive isn't actually
+## linkable, so the actual extract still blows up at runtime with
+## "Please install.packages('archive')". Force-skip on macOS where this
+## has been the persistent failure mode.
+.onMac <- isTRUE(Sys.info()[["sysname"]] == "Darwin")
+.canExtract <- !.onMac && tryCatch(
   {
     requireNamespace("archive", quietly = TRUE) &&
       is.function(getExportedValue("archive", "archive_extract"))
