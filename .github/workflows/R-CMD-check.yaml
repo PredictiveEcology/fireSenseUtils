@@ -85,11 +85,16 @@ jobs:
           max_attempts: 3
           retry_wait_seconds: 60
           retry_on: error
-          shell: 'Rscript {0}'
+          # `shell: Rscript {0}` is rejected by the runner on Windows
+          # (GitHub Actions only registers it when r-lib/actions/setup-r
+          # ran first in the job context, which nick-fields/retry does
+          # not preserve). Use bash — available on all runners via
+          # Git Bash on Windows — and invoke `Rscript -e` inline.
+          shell: bash
           command: |
-            install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")
-            pak::local_install_dev_deps(ask = FALSE, dependencies = TRUE)
-            pak::pkg_install(c("any::rcmdcheck"), ask = FALSE)
+            Rscript -e 'install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")'
+            Rscript -e 'pak::local_install_dev_deps(ask = FALSE, dependencies = TRUE)'
+            Rscript -e 'pak::pkg_install(c("any::rcmdcheck"), ask = FALSE)'
 
       - name: Install additional package dependencies
         run: |
