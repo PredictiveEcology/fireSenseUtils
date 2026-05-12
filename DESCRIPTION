@@ -49,6 +49,7 @@ Imports:
     utils,
     withr
 Suggests:
+    archive,
     cowplot,
     dismo,
     dplyr,
