@@ -13,11 +13,17 @@ editor_options:
 
 ```{r setup, include=FALSE}
 library(knitr)
+## The download/extract step below needs the `archive` R package to handle the
+## zipped LCC + NFDB data. On macOS R-CMD-check runners the libarchive system
+## dep isn't always present, so the install of `archive` can fail there.
+## Skip the live chunks if archive isn't available; show the code regardless
+## so the vignette is still useful as documentation.
+.haveArchive <- requireNamespace("archive", quietly = TRUE)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   echo = TRUE,
-  eval = TRUE
+  eval = .haveArchive
 )
 ```
 
