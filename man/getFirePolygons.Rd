@@ -4,19 +4,20 @@
 \alias{getFirePolygons}
 \title{Download and prepare fire data from National Fire Database}
 \usage{
-getFirePolygons(years, studyArea, pathInputs, version = NULL)
+getFirePolygons(url, years, useInnerCache = FALSE, ...)
 }
 \arguments{
-\item{years}{DESCRIPTION NEEDED}
+\item{url}{Character (or \code{missing}). URL to the fire polygons archive.
+When missing, defaults to the current NBAC fire polygons archive URL.}
 
-\item{studyArea}{DESCRIPTION NEEDED}
+\item{years}{years to filter fire polygons by}
 
-\item{pathInputs}{DESCRIPTION NEEDED}
+\item{useInnerCache}{logical indicating whether to cache the \code{prepInputs} call}
 
-\item{version}{DESCRIPTION NEEDED}
+\item{...}{additional arguments passed to \code{\link[reproducible:prepInputs]{reproducible::prepInputs()}}}
 }
 \value{
-DESCRIPTION NEEDED
+list of fire polygons by year
 }
 \description{
 Download and prepare fire data from National Fire Database

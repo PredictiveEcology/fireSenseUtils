@@ -4,6 +4,7 @@
 \alias{bufferToArea}
 \alias{bufferToArea.list}
 \alias{bufferToArea.SpatialPolygons}
+\alias{bufferToArea.sf}
 \title{Create buffers around polygons based on area target for buffer}
 \usage{
 bufferToArea(
@@ -21,7 +22,7 @@ bufferToArea(
 \method{bufferToArea}{list}(
   poly,
   rasterToMatch,
-  areaMultiplier = 1,
+  areaMultiplier = 10,
   verb = FALSE,
   polyName = NULL,
   field = NULL,
@@ -33,7 +34,19 @@ bufferToArea(
 \method{bufferToArea}{SpatialPolygons}(
   poly,
   rasterToMatch,
-  areaMultiplier = 1,
+  areaMultiplier = 10,
+  verb = FALSE,
+  polyName = NULL,
+  field = NULL,
+  minSize = 500,
+  cores = 1,
+  ...
+)
+
+\method{bufferToArea}{sf}(
+  poly,
+  rasterToMatch,
+  areaMultiplier = 10,
   verb = FALSE,
   polyName = NULL,
   field = NULL,
@@ -43,19 +56,19 @@ bufferToArea(
 )
 }
 \arguments{
-\item{poly}{\code{SpatialPolygons} or a list of \code{SpatialPolygons}, containing polygons to buffer.}
+\item{poly}{\code{sf} polygons or a list of \code{sf} containing polygons to buffer.}
 
-\item{rasterToMatch}{A \code{RasterLayer} with \code{res}, \code{origin}, \code{extent},
+\item{rasterToMatch}{A \code{SpatRaster} with \code{res}, \code{origin}, \code{extent},
 \code{crs} of desired outputted \code{pixelID} values.}
 
 \item{areaMultiplier}{Either a scalar that will buffer \code{areaMultiplier * fireSize} or
-a function of \code{fireSize.} Default is 1. See \code{\link{multiplier}} for an example.}
+a function of \code{fireSize.} Default is 1. See \code{\link[=multiplier]{multiplier()}} for an example.}
 
 \item{verb}{Logical or numeric related to how much verbosity is printed. \code{FALSE} or
 \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
 
 \item{polyName}{Optional character string of the polygon layer name (not the individual polygons
-on a \code{SpatialPolygons} object)}
+on a \code{sf} polygon object)}
 
 \item{field}{Passed to \code{fasterize::fasterize}. If this is unique (such as polygon id),
 then each polygon will have its buffer calculated independently for each unique value

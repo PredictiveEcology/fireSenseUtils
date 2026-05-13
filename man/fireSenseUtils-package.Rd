@@ -6,7 +6,7 @@
 \alias{fireSenseUtils-package}
 \title{\code{fireSenseUtils} package}
 \description{
-DESCRIPTION NEEDED
+Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 }
 \seealso{
 Useful links:
@@ -16,12 +16,14 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Eliot J B McIntire \email{eliot.mcintire@canada.ca} (\href{https://orcid.org/0000-0002-6914-8316}{ORCID})
+\strong{Maintainer}: Eliot J B McIntire \email{eliot.mcintire@nrcan-rncan.gc.ca} (\href{https://orcid.org/0000-0002-6914-8316}{ORCID})
 
 Authors:
 \itemize{
+  \item Eliot J B McIntire \email{eliot.mcintire@nrcan-rncan.gc.ca} (\href{https://orcid.org/0000-0002-6914-8316}{ORCID})
   \item Jean Marchal \email{jean.d.marchal@gmail.com}
-  \item Alex M Chubaty \email{alex.chubaty@gmail.com} (\href{https://orcid.org/0000-0001-7146-8135}{ORCID})
+  \item Alex M Chubaty \email{achubaty@for-cast.ca} (\href{https://orcid.org/0000-0001-7146-8135}{ORCID})
+  \item Ian Eddy \email{ian.eddy@nrcan-rncan.gc.ca} (\href{https://orcid.org/0000-0001-7397-2116}{ORCID})
 }
 
 }

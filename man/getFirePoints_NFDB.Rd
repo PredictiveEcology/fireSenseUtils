@@ -2,7 +2,7 @@
 % Please edit documentation in R/getFirePoints_NFDB.R
 \name{getFirePoints_NFDB}
 \alias{getFirePoints_NFDB}
-\title{Get Fire SpatialPoints from Canadian Fire Database}
+\title{Get Fire \code{SpatialPoints} from Canadian Fire Database}
 \usage{
 getFirePoints_NFDB(
   url = NULL,
@@ -11,15 +11,17 @@ getFirePoints_NFDB(
   redownloadIn = 1,
   years = 1991:2017,
   fireSizeColName = "SIZE_HA",
-  NFDB_pointPath = NULL
+  NFDB_pointPath
 )
 }
 \arguments{
 \item{url}{Passed to \code{prepInputs}}
 
-\item{studyArea}{Passed to \code{prepInputs}}
+\item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
+passed to \code{\link[reproducible]{prepInputs}}.}
 
-\item{rasterToMatch}{Passed to \code{prepInputs}}
+\item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
+raster operations (i.e., the one used throughout the simulation).}
 
 \item{redownloadIn}{Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 0.5 would mean "redownload data older than 6 months"}
@@ -31,8 +33,8 @@ getFirePoints_NFDB(
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}
 }
 \value{
-A \code{SpatialPointsDataFrame}.
+A \code{sf} spatial points object.
 }
 \description{
-Get Fire SpatialPoints from Canadian Fire Database
+Get Fire \code{SpatialPoints} from Canadian Fire Database
 }

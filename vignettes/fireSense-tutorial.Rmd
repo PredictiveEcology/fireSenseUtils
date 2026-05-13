@@ -95,26 +95,36 @@ editor_options:
   chunk_output_type: console
 ---
 
-```{r setup, include = FALSE}
+```{r setup, include=FALSE}
+library(knitr)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   echo = TRUE,
   eval = FALSE ## TODO: temporary until I can rework this vignette to actually run
 )
+```
 
-library(reproducible)
-Require(c("magrittr", "dplyr", "pemisc", "PtProcess", "quickPlot",
-          "raster", "rgeos", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"))
+```{r init}
+library(Require)
+Require(c(
+  "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
+  "raster", "sf", "sp", "SpaDES.core", "SpaDES.tools", "spatstat"
+))
 
 options(reproducible.useCache = FALSE) # Turn off caching
 
-#setPaths(
-#  modulePath = normalizePath("../NWT/modules"), ## TODO: fix paths
-#  outputPath = normalizePath("../NWT/outputs")
-#)
+moduleDir <- checkPath(file.path(tempdir(), "modules"), create = TRUE)
+outputDir <- checkPath(file.path(tempdir(), "outputs"), create = TRUE)
 
-normalizeRaster <- function(x) { ## TODO: use pemisc version
+setPaths(
+  modulePath = moduleDir,
+  outputPath = outputDir
+)
+
+## TODO: download modules to moduleDir -- use git or downloadModule() ???
+
+normalizeRaster <- function(x) { ## TODO: use pemisc version (#9)
   # Normalize raster values
   (x - minValue(x)) / (maxValue(x) - minValue(x))
 }
@@ -176,9 +186,9 @@ weather <- gaussMap(r_template, scale = 300, var = 3000)
 
 # Create low resolution rasters of the environmental drivers
 # These are used for fitting the ignition model. The main advantages
-# of fire modeling using low resolution are described in Marchal et al. 2017. 
+# of fire modeling using low resolution are described in Marchal et al. 2017.
 # In short, unlike high-resolution modeling, fire locations need not be known
-# precisely and do not require data at scales where local homogeneity of 
+# precisely and do not require data at scales where local homogeneity of
 # landcover can be assumed.
 
 landTypeOneLowRes <- aggregate(landTypeOne, fact = 25, fun = mean)
@@ -191,34 +201,34 @@ nbFires <- 500
 fireLocations <- rpoint(nbFires, f = function(x, y, ...) 300 * y) # Introduce some spatial variability: more fires in the North
 fireLocations <- as(fireLocations, "SpatialPoints")
 
-#landcoverDataLowRes <- extract(landTypeOneLowRes, fireLocations, cellnumbers = TRUE) %>%
+# landcoverDataLowRes <- extract(landTypeOneLowRes, fireLocations, cellnumbers = TRUE) %>%
 #  as_tibble %>%
 #  rename(cell_id = 1, landtype_1_pp = 2) %>% # Rename columns using column index
 #  distinct(cell_id, landtype_1_pp) %>%
 #  mutate(landtype_2_pp = 1 - landtype_1_pp)  # Add a column with the 2nd landcover type
 
-#weatherDataLowRes <- extract(weatherLowRes, fireLocations, cellnumbers = TRUE) %>%
-#  as_tibble %>% 
+# weatherDataLowRes <- extract(weatherLowRes, fireLocations, cellnumbers = TRUE) %>%
+#  as_tibble %>%
 #  rename(cell_id = 1, weather = 2) %>% # Rename columns using column index
 #  distinct(cell_id, weather)
 
 # Create the dataset necessary to fit the statistical model of fire ignitions
-#dataFireSense_IgnitionFit <- landcoverDataLowRes %>%
+# dataFireSense_IgnitionFit <- landcoverDataLowRes %>%
 #  group_by(cell_id) %>%
 #  summarise(n_fires = n()) %>%
 #  right_join(landcoverDataLowRes) %>%
 #  left_join(weatherDataLowRes) %>%
-  mutate(n_fires = ifelse(is.na(n_fires), 0, n_fires))
+#  mutate(n_fires = ifelse(is.na(n_fires), 0, n_fires))
 
-# Converting the above from tibble to data.table 
+# Converting the above from tibble to data.table
 dataFireSense_IgnitionFit <- data.table(
   extract(landTypeOneLowRes, fireLocations, cellnumbers = TRUE),
   landtype_2_pp = extract(landTypeTwoLowRes, fireLocations, cellnumbers = FALSE),
   weather = extract(weatherLowRes, fireLocations, cellnumbers = FALSE)
-  )
-setnames(dataFireSense, old = "layer", new = "landtype_1_pp")
-dataFireSense_IgnitionFit <- dataFireSense[, list(
-  n_fires = .N, landtype_1_pp = landtype_1_pp[1], 
+)
+setnames(dataFireSense_IgnitionFit, old = "layer", new = "landtype_1_pp")
+dataFireSense_IgnitionFit <- dataFireSense_IgnitionFit[, list(
+  n_fires = .N, landtype_1_pp = landtype_1_pp[1],
   landtype_2_pp = landtype_2_pp[1], weather = weather[1]
 ), by = cells]
 
@@ -226,14 +236,14 @@ dataFireSense_EscapeFit <- data.table(
   landtype_1_pp = extract(landTypeOne, fireLocations, cellnumbers = FALSE),
   landtype_2_pp = extract(landTypeTwo, fireLocations, cellnumbers = FALSE),
   weather = extract(weather, fireLocations, cellnumbers = FALSE)
-  )
+)
 
 # Create the dataset necessary to fit the statistical model fire escapes
-#dataFireSense_EscapeFit <- tibble(
+# dataFireSense_EscapeFit <- tibble(
 #  landtype_1_pp = extract(landTypeOne, fireLocations),
 #  landtype_2_pp = extract(landTypeTwo, fireLocations),
 #  weather = extract(weather, fireLocations)
-#)
+# )
 
 b1 <- .01
 b2 <- -1
@@ -249,17 +259,17 @@ dataFireSense_EscapeFit[, `:=`(escaped = escaped, n_fires = 1)]
 # Calculate mean landcover and weather conditions around the locations of escaped fires
 buf_around_loc_escaped <- gBuffer(fireLocations[as.logical(escaped)], byid = TRUE, width = .03)
 
-landtypeTypeOneBufMn <- extract(landTypeOne, buf_around_loc_escaped) %>% 
-  lapply(mean) %>% 
-  unlist
+landtypeTypeOneBufMn <- extract(landTypeOne, buf_around_loc_escaped) %>%
+  lapply(mean) %>%
+  unlist()
 
-landtypeTypeTwoBufMn <- extract(landTypeTwo, buf_around_loc_escaped) %>% 
-  lapply(mean) %>% 
-  unlist
+landtypeTypeTwoBufMn <- extract(landTypeTwo, buf_around_loc_escaped) %>%
+  lapply(mean) %>%
+  unlist()
 
 weatherBufMn <- extract(weather, buf_around_loc_escaped) %>%
   lapply(mean) %>%
-  unlist
+  unlist()
 
 dataFireSense_SizeFit <- data.table(
   landtype_1_pp = landtypeTypeOneBufMn,
@@ -276,7 +286,7 @@ lambda <- with(dataFireSense_SizeFit, exp(weather * b1_l + landtype_1_pp * b2_l 
 b1_t <- .02
 b2_t <- 4
 b3_t <- 2
-  
+
 theta <- with(dataFireSense_SizeFit, exp(weather * b1_t + landtype_1_pp * b2_t + landtype_2_pp * b3_t))
 
 fireSize <- round(rtappareto(n = length(lambda), lambda = lambda, theta = theta, a = 1))
@@ -284,9 +294,11 @@ fireSize <- round(rtappareto(n = length(lambda), lambda = lambda, theta = theta,
 dataFireSense_SizeFit[, fire_size := fireSize]
 # dataFireSense_SizeFit <- mutate(dataFireSense_SizeFit, fire_size = fireSize)
 
-# Create the fire attribute dataset that describes the starting locations 
+# Create the fire attribute dataset that describes the starting locations
 # and the size of the fires to be spread. This is needed to fit the statistical model of spread probabilities
-fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.logical(escaped)], data = data.frame(size = fireSize))
+fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.logical(escaped)],
+  data = data.frame(size = fireSize)
+)
 ```
 
 ## Fit the statistical model of fire ignitions
@@ -306,7 +318,7 @@ ub <- list(coef = 1)
 dataObjName <- "dataFireSense_IgnitionFit"
 trace <- 1
 iterDEoptim <- 60
-iterNlminb <- 100  
+iterNlminb <- 100
 cores <- 50
 
 parameters <- list(
@@ -417,13 +429,11 @@ sim <- simInitAndSpades(
 )
 
 fireSense_SizeFitted <- sim$fireSense_SizeFitted # Extract the fitted model from the sim object
-
 ```
 
 ### Produce the maps of the tapered Pareto parameters
 
 ```{r produce_maps_tp_params, message=FALSE}
-
 modules <- list("fireSense_SizePredict")
 
 times <- list(start = 1, end = 1)
@@ -487,7 +497,7 @@ inputs <- rbind(
   data.frame(
     files = dir(
       getPaths()$outputPath,
-      pattern = "fireSense_SizePredicted_Beta", 
+      pattern = "fireSense_SizePredicted_Beta",
       full.names = TRUE
     ),
     functions = "raster::raster",
@@ -498,7 +508,7 @@ inputs <- rbind(
   data.frame(
     files = dir(
       getPaths()$outputPath,
-      pattern = "fireSense_SizePredicted_Theta", 
+      pattern = "fireSense_SizePredicted_Theta",
       full.names = TRUE
     ),
     functions = "raster::raster",
@@ -506,11 +516,11 @@ inputs <- rbind(
     loadTime = 1
   )
 )
-  
+
 objects <- list(fireAttributesFireSense_SpreadFit = fireAttributesFireSense_SpreadFit)
 
 # Define fireSense_SpreadFit module parameters
-formula <- formula(~ I(1/beta) + log(theta) - 1)
+formula <- formula(~ I(1 / beta) + log(theta) - 1)
 
 parameters <- list(
   fireSense_SpreadFit = list(
@@ -539,7 +549,6 @@ fireSense_SpreadFitted <- sim$fireSense_SpreadFitted # Extract the fitted model 
 ### Fire ignition rates
 
 ```{r predict_ignition_rates, message=FALSE}
-
 modules <- list("fireSense_IgnitionPredict")
 
 times <- list(start = 1, end = 1)
@@ -638,7 +647,7 @@ inputs <- rbind(
   data.frame(
     files = dir(
       getPaths()$outputPath,
-      pattern = "fireSense_SizePredicted_Beta", 
+      pattern = "fireSense_SizePredicted_Beta",
       full.names = TRUE
     ),
     functions = "raster::raster",
@@ -649,7 +658,7 @@ inputs <- rbind(
   data.frame(
     files = dir(
       getPaths()$outputPath,
-      pattern = "fireSense_SizePredicted_Theta", 
+      pattern = "fireSense_SizePredicted_Theta",
       full.names = TRUE
     ),
     functions = "raster::raster",
@@ -702,7 +711,7 @@ inputs <- rbind(
   data.frame(
     files = dir(
       getPaths()$outputPath,
-      pattern = "fireSense_IgnitionPredicted", 
+      pattern = "fireSense_IgnitionPredicted",
       full.names = TRUE
     ),
     functions = "raster::raster",
@@ -713,7 +722,7 @@ inputs <- rbind(
   data.frame(
     files = dir(
       getPaths()$outputPath,
-      pattern = "fireSense_EscapePredicted", 
+      pattern = "fireSense_EscapePredicted",
       full.names = TRUE
     ),
     functions = "raster::raster",
@@ -724,7 +733,7 @@ inputs <- rbind(
   data.frame(
     files = dir(
       getPaths()$outputPath,
-      pattern = "fireSense_SpreadPredicted", 
+      pattern = "fireSense_SpreadPredicted",
       full.names = TRUE
     ),
     functions = "raster::raster",
@@ -746,11 +755,11 @@ burnMap <- sim$burnMap
 Plot(burnMap)
 ```
 
-Note that all the steps above could be done in one simulation / SpaDES call()
+Note that all the steps above could be done in one simulation / SpaDES call.
 
 # Additional resources
 
-Read modules metadata, all module parameters are documented in Rmd files.
+Read modules metadata, all module parameters are documented in `.Rmd` files.
 
 # References
 

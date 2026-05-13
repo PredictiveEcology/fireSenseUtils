@@ -1,0 +1,110 @@
+#' ---
+#' title: "fireSense LCC flammability analysis"
+#' author: "Ian Eddy, Eliot McIntire, Steve Cumming, Alex Chubaty"
+#' date: "`r Sys.Date()`"
+#' output: rmarkdown::html_vignette
+#' vignette: >
+#'   %\VignetteIndexEntry{fireSense LCC flammability analysis}
+#'   %\VignetteEncoding{UTF-8}
+#'   %\VignetteEngine{knitr::rmarkdown}
+#' editor_options: 
+#'   chunk_output_type: console
+#' ---
+#' 
+## ----setup, include=FALSE-----------------------------------------------------
+library(knitr)
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  echo = TRUE,
+  eval = TRUE
+)
+
+#' 
+## ----packages, message=FALSE--------------------------------------------------
+library(data.table)
+library(ggplot2)
+library(reproducible)
+library(sf)
+library(terra)
+
+#' 
+#' ## Compare LCC and fire data
+#' 
+#' NRCan's `LCC2005_V1_4` product was retired (its `ftp.ccrs.nrcan.gc.ca` host no
+#' longer resolves), so this vignette uses the current
+#' [Land Cover of Canada 2015](https://open.canada.ca/data/en/dataset/4e615eae-b90c-420b-adee-2ca35896caf6)
+#' product hosted at `ftp.maps.canada.ca`. The same workflow applies to any LCC
+#' vintage. The build is cropped to a small study area (a 50 km square in central
+#' Saskatchewan) so the vignette completes in reasonable time; remove `cropTo` to
+#' analyse the full country.
+#' 
+## ----compare_LCC_and_fire_data, message=FALSE, warning=FALSE------------------
+dPath <- file.path(tempdir(), "fireSense_LCC_flammability")
+checkPath(dPath, create = TRUE)
+
+## small study area: 50 km square in central Saskatchewan (lon/lat → LCC's
+## Lambert Conformal Conic via terra::vect + project)
+studyArea <- vect(
+  cbind(c(-106, -105.5, -105.5, -106, -106),
+        c(54, 54, 54.5, 54.5, 54)),
+  type = "polygons", crs = "EPSG:4326"
+)
+
+lccUrl <- paste0(
+  "https://ftp.maps.canada.ca/pub/nrcan_rncan/Land-cover_Couverture-du-sol/",
+  "canada-landcover_canada-couverture-du-sol/CanadaLandcover2015.zip"
+)
+lcc <- prepInputs(
+  url = lccUrl, destinationPath = dPath,
+  targetFile = "CAN_LC_2015_CAL.tif", alsoExtract = NA,
+  cropTo = studyArea, projectTo = NA, maskTo = NA,
+  fun = "terra::rast", overwrite = TRUE
+)
+
+fireUrl <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
+firePolygons <- prepInputs(
+  url = fireUrl, destinationPath = dPath,
+  fun = "sf::read_sf", overwrite = TRUE
+)
+firePolygons <- sf::st_transform(firePolygons, crs = sf::st_crs(lcc))
+firePolygons <- sf::st_crop(firePolygons, sf::st_bbox(lcc))
+firePolygons <- firePolygons[firePolygons$YEAR > 2004, ]
+firePolygons$dummyVar <- 1L
+
+## rasterize burned area onto the LCC grid, then collapse to one row per LCC class
+fireRaster <- terra::rasterize(terra::vect(firePolygons), lcc, field = "dummyVar")
+burned <- data.table(
+  pixelID = seq_len(terra::ncell(lcc)),
+  lcc     = terra::values(lcc, mat = FALSE),
+  burn    = terra::values(fireRaster, mat = FALSE)
+)
+burnCalc <- burned[, .(available = .N,
+                       burned    = sum(burn, na.rm = TRUE)), by = lcc]
+burnCalc[, percentBurned := round(burned / available * 100, digits = 3)]
+setkey(burnCalc, lcc)
+burnCalc
+
+#' 
+#' ## Plot
+#' 
+## ----fire, echo=FALSE---------------------------------------------------------
+ggplot(data = burnCalc, aes(x = lcc, y = percentBurned)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) +
+  ylab("percent burned (%)") +
+  scale_x_continuous("LCC", labels = as.character(burnCalc$lcc), breaks = burnCalc$lcc) +
+  theme_bw()
+
+#' 
+#' From the plot above (and based on descriptions of each class) we determine the following non-flammable classes:
+#' 
+## ----non_flam_defaults--------------------------------------------------------
+## original fireSense_dataPrepFit defaults
+LCC2005_nonFlam <- c(0, 25, 30, 33, 36, 37, 38, 39)
+
+#' 
+#' And for `fireSense` categories:
+#' 
+#' - **non-forest high-flammability:**
+#' - **non-forest low-flammability:**

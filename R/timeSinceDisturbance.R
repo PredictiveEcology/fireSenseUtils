@@ -1,0 +1,113 @@
+utils::globalVariables(c(
+  "sumRows"
+))
+#' Prepare a time since disturbance map from stand age and fire data
+#'
+#' @param standAgeMap initial stand age map
+#'
+#' @param firePolys list of `spatialPolygon` objects comprising annual fires.
+#'   `fireRaster` will supersede `firePolys` if provided.
+#'
+#' @param fireRaster a `RasterLayer` with values representing fire years.
+#'
+#' @param year the year represented by `standAge`.
+#'
+#' @param lcc `data.table` with landcover values, i.e., `landcoverDT`.
+#'
+#' @inheritParams castCohortData
+#'
+#' @return a `SpatRaster` with values representing time since disturbance
+#'
+#' @export
+#' @importFrom data.table data.table as.data.table
+#' @importFrom terra values rast setValues rasterize vect set.names
+makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
+                    standAgeMap, lcc, cutoffForYoungAge = 15) {
+  if (!is.null(fireRaster)) {
+    baseYear <- rast(fireRaster)
+    baseYear <- setValues(baseYear, year)
+    initialTSD <- baseYear - fireRaster
+    initialTSD[initialTSD < 0] <- cutoffForYoungAge + 1
+    ## these pixels burn in the future - can't infer prior disturbance
+  } else if (!is.null(firePolys)) {
+    ## get particular fire polys in format that can be fasterized
+    polysNeeded <- firePolys[names(firePolys) %in% paste0("year", c(year - cutoffForYoungAge - 1):year - 1)]
+    polysNeeded <- polysNeeded[sapply(polysNeeded, length) > 0]
+    # polysNeeded <- vect(polysNeeded) #terrarize
+    # polysNeeded <- do.call(rbind, polysNeeded)
+    polysNeeded <- Reduce(rbind, polysNeeded)
+    ## create background raster with TSD
+    initialTSD <- rasterize(polysNeeded,
+      y = standAgeMap,
+      background = year - cutoffForYoungAge - 1,
+      field = "YEAR", fun = "max"
+    )
+    initialTSD <- year - initialTSD
+  } else {
+    stop("Please provide either firePolys or fireRaster")
+  }
+
+  nfLCC <- names(lcc)[!names(lcc) %in% "pixelID"]
+  lcc[, sumRows := rowSums(.SD), .SDcols = nfLCC]
+  pixToUpdate <- lcc[sumRows > 0]$pixelID
+  lcc[, sumRows := NULL]
+
+  standAgeVals <- data.table(pixelID = 1:ncell(standAgeMap), age = as.vector(standAgeMap))
+  data.table::setnames(standAgeVals, c("pixelID", "age"))
+
+  # standAgeVals <- values(standAgeMap, mat = FALSE)
+  ## these have no disturbance history but are apparently young
+
+  falseYoungs <- standAgeVals[c(pixelID %in% pixToUpdate & age <= cutoffForYoungAge) |
+                                c(pixelID %in% pixToUpdate & is.na(age))]$pixelID
+  ## disturbance history suggests young
+
+  trueYoungs <- pixToUpdate[initialTSD[pixToUpdate] <= cutoffForYoungAge]
+  trueAges <- as.vector(initialTSD)[trueYoungs]
+  standAgeVals[pixelID %in% falseYoungs, age := cutoffForYoungAge + 1]
+  ## note that by doing this second, pixels in both groups are correctly set to trueYoung
+
+  standAgeVals[pixelID %in% trueYoungs, age := trueAges]
+  standAgeVals[!pixelID %in% lcc$pixelID, age := NA] #these should be NA - not flammable
+
+  standAgeMap <- setValues(standAgeMap, standAgeVals$age)
+  set.names(standAgeMap, paste0("timeSinceDisturbance", year))
+
+  return(standAgeMap)
+}
+
+#' Iteratively calculate `youngAge` column in FS covariates
+#'
+#' @param standAgeMap template `SpatRaster`
+#' @param years the years over which to iterate
+#' @param fireBufferedListDT data.table containing non-annual burn and buffer `pixelID`s
+#' @param annualCovariates list of data.table objects with `pixelID`
+#' @inheritParams castCohortData
+#'
+#' @return a raster layer with unified stand age and time-since-disturbance values
+#'
+#' @export
+#' @importFrom data.table data.table
+#' @importFrom terra rast setValues values
+calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT,
+                         cutoffForYoungAge = 15) {
+  # this is safest way to subset given the NULL year
+  yearsIsCorrectNaming <- all(years %in% names(annualCovariates))
+  if (yearsIsCorrectNaming %in% FALSE) {
+    years <- sapply(years, function(yr) grep(pattern = yr, years, value = TRUE))
+  }
+  for (year in years) {
+    ann <- annualCovariates[[year]] ## no copy made
+    fires <- fireBufferedListDT[[year]]
+    if (!is.null(fires)) {
+      ageVals <- values(standAgeMap, mat = FALSE)
+      set(ann, NULL, "youngAge", as.integer(ageVals[ann$pixelID] <= cutoffForYoungAge) |
+        is.na(ageVals[ann$pixelID])) ## cannot have NAs
+      burnedPix <- fires$pixelID[fires$buffer == 1]
+      ageVals[burnedPix] <- 0
+      standAgeMap <- setValues(standAgeMap, values = ageVals)
+    }
+    standAgeMap <- setValues(standAgeMap, values = values(standAgeMap, mat = FALSE) + 1)
+  }
+  return(annualCovariates)
+}

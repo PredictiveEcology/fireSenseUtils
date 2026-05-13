@@ -2,3 +2,7 @@
 ^\.Rproj\.user$
 ^LICENSE\.md$
 ^\.github$
+^\.claude$
+^\.vscode$
+docs/
+man-roxygen/

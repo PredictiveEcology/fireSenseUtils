@@ -1,9 +1,21 @@
-#' Four- and five-parameter logistic functions
+#' Multiple-parameter versions of logistic functions
 #'
-#' @param x DESCRIPTION NEEDED
-#' @param par DESCRIPTION NEEDED
+#' Logistic functions using 2, 3, 4, or 5 parameters.
+#' `logisticAll` provides a wrapper to call any of these.
 #'
-#' @return DESCRIPTION NEEDED
+#' @param x TODO: DESCRIPTION NEEDED
+#'
+#' @param par TODO: DESCRIPTION NEEDED
+#'
+#' @param logisticPars TODO: DESCRIPTION NEEDED
+#'
+#' @param mat TODO: DESCRIPTION NEEDED
+#'
+#' @param covPars TODO: DESCRIPTION NEEDED
+#'
+#' @param lowerSpreadProb TODO: DESCRIPTION NEEDED
+#'
+#' @return TODO: DESCRIPTION NEEDED
 #'
 #' @export
 #' @rdname logistic
@@ -14,7 +26,7 @@ logistic4p <- function(x, par) {
 #' @export
 #' @rdname logistic
 logistic5p <- function(x, par) {
-  par[1L] + (par[2L] - par[1L]) / (1 + (exp(x)/par[3L])^(-par[4L])) ^ par[5L]
+  par[1L] + (par[2L] - par[1L]) / (1 + (exp(x) / par[3L])^(-par[4L]))^par[5L]
 }
 
 #' @param par1 DESCRIPTION NEEDED
@@ -31,12 +43,46 @@ logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par4
 }
 
-#' Replace \code{NA}s in a \code{data.table} with zeros
+#' @export
+#' @rdname logistic
+logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb) {
+  if (length(logisticPars) == 4) {
+    stop("logistic with 4 parameters not tested yet")
+    logistic4p(mat %*% covPars, logisticPars)
+  } else if (length(logisticPars) == 3) {
+    logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb)
+  } else if (length(logisticPars) == 2) {
+    logistic2p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb)
+  }
+}
+
+
+#' Logistic parameter names
 #'
-#' @param DT DESCRIPTION NEEDED
-#' @param colsToUse DESCRIPTION NEEDED
+#' @export
+#' @return A named list of length 4, with "2p", "3p", "4p", "5p" as names representing the
+#'   2-parameter etc. logistic curve.
+logisticParamNames <- list("2p" = c("maxAsymptote", "hillSlope1"),
+                           "3p" = c("maxAsymptote", "hillSlope1", "inflectionPoint1"),
+                           "4p" = c("minAsymptote", "maxAsymptote", "inflectionPoint1", "hillSlope1"),
+                           "5p" = c("minAsymptote", "maxAsymptote", "inflectionPoint1", "hillSlope1", "asymmetryFactor"))
+# logisticAll <- function(logisticPars, covsDT, mat, covPars, lowerSpreadProb) {
+#   if (length(logisticPars) == 4) {
+#     stop("logistic with 4 parameters not tested yet")
+#     set(covsDT, NULL, "spreadProb", logistic4p(mat %*% covPars, logisticPars))
+#   } else if (length(logisticPars) == 3) {
+#     set(covsDT, NULL, "spreadProb", logistic3p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
+#   } else if (length(logisticPars) == 2) {
+#     set(covsDT, NULL, "spreadProb", logistic2p(mat %*% covPars, logisticPars, par1 = lowerSpreadProb, par4 = 0.5))
+#   }
+# }
+
+#' Replace `NA`s in a `data.table` with zeros
 #'
-#' @return DESCRIPTION NEEDED
+#' @param DT TODO: DESCRIPTION NEEDED
+#' @param colsToUse TODO: DESCRIPTION NEEDED
+#'
+#' @return TODO: DESCRIPTION NEEDED
 #'
 #' @export
 #' @importFrom data.table set
@@ -53,23 +99,24 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
   DT
 }
 
-#' Convert list of annual raster stack to \code{data.table}
+#' Convert list of annual `SpatRaster` to `data.table`
 #'
-#' @param x \code{RasterStack} or list of rasters to convert to \code{data.table}
-#'          and multiply by 1000 to save space
+#' @param x `RasterStack` or list of rasters to convert to `data.table`
+#'   and multiply by 1000 to save space.
 #' @param whNotNA Pixel indexes that should go through this process (i.e. not NA)
 #' @param ... Not currently used
 #'
-#' @return \code{data.table} of the raster stack or the list
+#' @return `data.table` of the `SpatRaster` or the list
 #' @export
 #' @rdname annualStackToDTx1000
 #'
 #' @examples
-#' library(raster)
-#' r1 <- raster(extent(0,10,0,10), vals = 1:100)
-#' r2 <- raster(extent(0,10,0,10), vals = 100:1)
-#' r3 <- raster(extent(0,10,0,10), vals = 200:101)
-#' r4 <- raster(extent(0,10,0,10), vals = 300:201)
+#' withr::local_package("raster")
+#'
+#' r1 <- raster(extent(0, 10, 0, 10), vals = 1:100)
+#' r2 <- raster(extent(0, 10, 0, 10), vals = 100:1)
+#' r3 <- raster(extent(0, 10, 0, 10), vals = 200:101)
+#' r4 <- raster(extent(0, 10, 0, 10), vals = 300:201)
 #'
 #' # list of Rasters
 #' lRast <- list(r1, r2, r3)
@@ -98,6 +145,8 @@ dtReplaceNAwith0 <- function(DT, colsToUse = NULL) {
 #' names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
 #' out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
 #'
+#' ## cleanup
+#' withr::deferred_run()
 annualStackToDTx1000 <- function(x, whNotNA, ...) {
   UseMethod("annualStackToDTx1000")
 }
@@ -105,14 +154,21 @@ annualStackToDTx1000 <- function(x, whNotNA, ...) {
 #' @export
 #' @importFrom data.table as.data.table set
 #' @importFrom LandR asInteger
+#' @importFrom terra values
 #' @rdname annualStackToDTx1000
-annualStackToDTx1000.RasterLayer <- function(x, whNotNA, ...) {
-  layDT <- as.data.table(x[])[whNotNA]
+annualStackToDTx1000.SpatRaster <- function(x, whNotNA, ...) {
+  layDT <- as.data.table(values(x))[whNotNA]
   layDT <- dtReplaceNAwith0(layDT)
-  set(layDT, NULL, 1L, asInteger(layDT[[1L]]*1000))
+  set(layDT, NULL, 1L, asInteger(layDT[[1L]] * 1000))
   names(layDT) <- names(x)
   message("Layer ", names(layDT), " converted to data.table")
   layDT
+}
+
+#' @export
+#' @rdname annualStackToDTx1000
+annualStackToDTx1000.Raster <- function(x, whNotNA, ...) {
+  annualStackToDTx1000(rast(x), whNotNA, ...)
 }
 
 #' @export
@@ -121,8 +177,9 @@ annualStackToDTx1000.RasterLayer <- function(x, whNotNA, ...) {
 annualStackToDTx1000.list <- function(x, whNotNA, ...) {
   # check for names
   # check for rasters
-  if (is.null(names(x)))
+  if (is.null(names(x))) {
     stop("x must be a named list (or stack)")
+  }
   out <- lapply(x, whNotNA = whNotNA, annualStackToDTx1000, ...)
   rastersDT <- as.data.table(out)
   # rastersDT <- lapply(names(x), whNotNA = whNotNA, function(x, whNotNA) {
@@ -154,60 +211,57 @@ annualStackToDTx1000.list <- function(x, whNotNA, ...) {
   return(rastersDT)
 }
 
-#' @export
-#' @importFrom data.table as.data.table set
-#' @importFrom LandR asInteger
-#' @importFrom raster stack unstack
-#' @rdname annualStackToDTx1000
-annualStackToDTx1000.RasterStack <- function(x, whNotNA, ...) {
-  annualList <- raster::unstack(x)
-  names(annualList) <- names(x)
-  rastersDT <- annualStackToDTx1000(annualList, whNotNA, ...)
-  # stkName <- names(x)
-  # rastersDT <- lapply(names(x), whNotNA = whNotNA, function(x, whNotNA) {
-  #   if (any(is(x, "list"), is(x, "RasterStack"))) {
-  #     lay <- x[[x]]
-  #   } else {
-  #     stop("x must be either a list or a RasterStack")
-  #   }
-  #   layDT <- as.data.table(lay[])[whNotNA]
-  #   layDT <- dtReplaceNAwith0(layDT)
-  #   names(layDT) <- names(lay)
-  #   return(layDT)
-  # })
-  # lapply(rastersDT, function(x) { # Should be the fitting and predicting
-  #   for (col in colnames(x)) {
-  #     set(x, NULL, col, asInteger(x[[col]]*1000))
-  #     message("Layer ", col, " converted to integer")
-  #   }
-  # })
-  # if (is(x, "RasterStack")) { # Should be the prediction, raster stack
-  #   bindedList <- do.call(cbind, args = rastersDT)
-  #   bindedList <- data.table::data.table(bindedList)
-  #   if (any(duplicated(names(bindedList)))) {
-  #     warning("There are duplicated names in the raster layer. Deleting...",
-  #             immediate. = TRUE)
-  #     bindedList[, `:=`(which(duplicated(names(bindedList))), NULL)]
-  #   }
-  #   rastersDT <- bindedList
-  # }
-  return(rastersDT)
-}
-
 #' Generate random beta variates between 2 values and a mean
-#' @inheritParams stats::rbeta
-#' @param shape2 If provided, passed to \code{rbeta}. If not, \code{m} must be (i.e., the mean)
-#' @param l scalar numeric for the lower bound
-#' @param u scalar numeric for the upper bound
-#' @param m scalar numeric for the mean
+#'
+#' @inheritParams stats::Beta
+#' @param shape1 non-negative parameter of the Beta distribution.
+#' @param shape2 If provided, passed to [stats::rbeta()]. If not, `m` must be.
+#' @param l scalar numeric for the lower bound.
+#' @param u scalar numeric for the upper bound.
+#' @param m scalar numeric for the mean.
 #'
 #' @export
 #' @importFrom stats rbeta
+#' @seealso [stats::rbeta]
 rbetaBetween <- function(n, l, u, m, shape1, shape2 = NULL) {
   if (is.null(shape2)) {
-    m1 <- ((1)/(u - l) * (m - l))
-    shape2 <- (shape1 - shape1*m1)/m1
+    m1 <- ((1) / (u - l) * (m - l))
+    shape2 <- (shape1 - shape1 * m1) / m1
   }
   out <- rbeta(n, shape1, shape2)
   out * (u - l) + (l)
+}
+
+#' Split the character vector of parameters into `covPars` and `logisticPars`
+#'
+#' [DEoptim::DEoptim] does not differentiate between the logistic parameters and the covariates.
+#' This splits the vector into the correct components.
+#' The split is based on the number of covariates.
+#' Therefore the number of logistic parameters is deduced from `length(pars) - parsModel`.
+#'
+#' @param par Numeric vector of all parameters. The covariate parameters must be the
+#'   second group.
+#' @param parsModel Integer. The number of covariates.
+#' @return list of 2 numeric vectors `covPars` and `logisticPars`, representing the
+#'   parameters for the covariates and the logistic equation, respectively.
+#' @export
+paramsSeparate <- function(par, parsModel) {
+  covPars <- tail(x = par, n = parsModel)
+  logisticPars <- head(x = par, n = length(par) - parsModel)
+  list(covPars = covPars, logisticPars = logisticPars)
+}
+
+#' Log with a minimum
+#'
+#' Used for transforming Biomass to the log scale
+#'
+#' @param x Any value to be adjusted with log and a minimum B
+#'
+#' @return The original vector, logged with a minimum.
+#'
+#' @export
+logMinB <- function(x) {
+  minimumB <- exp(log(100) - 1)
+  x[x < minimumB] <- minimumB
+  x <- log(x)
 }

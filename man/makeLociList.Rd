@@ -7,16 +7,17 @@
 makeLociList(
   ras,
   pts,
-  idsCol = "NFIREID",
+  idsCol = "FIRE_ID",
   dateCol = "YEAR",
   sizeCol = "POLY_HA",
-  sizeColUnits = "ha"
+  sizeColUnits = "ha",
+  yearPrefix = "year"
 )
 }
 \arguments{
 \item{ras}{A raster that will be the template for cells (pixel ids)}
 
-\item{pts}{A list of \code{SpatialPointsDataFrame} objects}
+\item{pts}{A list of \code{sf} point objects}
 
 \item{idsCol}{Character string identifying column name in \code{pts} that has unique
 id per event (i.e., fire)}
@@ -27,6 +28,10 @@ id per event (i.e., fire)}
 individual event. Can be in hectares or metres squared. Should set \code{sizeColUnits}}
 
 \item{sizeColUnits}{Character string. Either \code{"ha"} or \code{"m2"}.}
+
+\item{yearPrefix}{Character string prefixed to each year when naming the
+output list elements (e.g. \code{"year"} produces \code{"year2001"}, \code{"year2002"},
+...). Default \code{"year"}.}
 }
 \value{
 A list of data.table objects, each with 4 columns, \code{"size"} (in pixels), \code{"date"},

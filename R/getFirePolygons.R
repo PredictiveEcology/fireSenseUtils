@@ -1,58 +1,42 @@
 #' Download and prepare fire data from National Fire Database
 #'
-#' @param years DESCRIPTION NEEDED
-#' @param studyArea DESCRIPTION NEEDED
-#' @param pathInputs DESCRIPTION NEEDED
-#' @param version DESCRIPTION NEEDED
+#' @param url Character (or `missing`). URL to the fire polygons archive.
+#'   When missing, defaults to the current NBAC fire polygons archive URL.
+#' @param years years to filter fire polygons by
+#' @param ... additional arguments passed to [reproducible::prepInputs()]
+#' @param useInnerCache logical indicating whether to cache the `prepInputs` call
 #'
-#' @return DESCRIPTION NEEDED
+#' @return list of fire polygons by year
 #'
 #' @export
 #' @importFrom reproducible prepInputs
-getFirePolygons <- function(years, studyArea, pathInputs,
-                            version = NULL) {
-  if (is.null(version)) {
-    version <- c(20191129, 20190919)
-  }
-  firePolygonsList <- lapply(years, function(ys) {
-    out <- tryCatch(
-      {
-        url <- paste0(
-          "https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/nbac_", ys, "_r9_",
-          version[1], ".zip"
-        )
-        polyYear <- prepInputs(
-          url = url, studyArea = studyArea,
-          destinationPath = pathInputs,
-          alsoExtract = "similar",
-          archive = paste0("nbac_", ys, "_r9_", version[1], ".zip"),
-          targetFile = paste0("nbac_", ys, "_r9_", version[1], ".shp"),
-          userTags = c(
-            "object:firePolygons_NBAC", paste0("year:", ys),
-            paste0("version:", version[1])
-          )
-        )
-        return(polyYear)
-      },
-      error = function(e) {
-        url <- paste0("https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/nbac_", ys, "_r9_", version[2], ".zip")
-        polyYear <- prepInputs(
-          url = url, studyArea = studyArea,
-          destinationPath = pathInputs,
-          alsoExtract = "similar",
-          archive = paste0("nbac_", ys, "_r9_", version[2], ".zip"),
-          targetFile = paste0("nbac_", ys, "_r9_", version[2], ".shp"),
-          userTags = c(
-            "object:firePolygons_NBAC", paste0("year:", ys),
-            paste0("version:", version[2])
-          )
-        )
-        return(polyYear)
-      }
-    )
-    out[seq_len(NROW(out)), "POLY_HA"] <- rgeos::gArea(out, byid = TRUE) / (1e4)
-    out
+#' @importFrom sf st_area
+getFirePolygons <- function(url, years, useInnerCache = FALSE, ...) {
+  # This is stuck at 2021 max year
+  if (missing(url))
+    # url <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
+    url <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nbac/NBAC_1972to2024_20250506_shp.zip"
+  firePolys <- prepInputs(
+    url = url,
+    useCache = useInnerCache,
+    ...
+  ) ## this object will cache several gigabytes of cached for a small object
+
+  firePolys$YEAR <- as.numeric(firePolys$YEAR) ## it has been character before...
+  if (is(firePolys, "SpatVector"))
+    firePolys$POLY_HA <- round(terra::expanse(firePolys, unit = "ha"), 2)
+  else
+    firePolys$POLY_HA <- round(sf::st_area(firePolys, unit = "ha"), 2)
+
+  firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
+    firePoly <- polys[polys$YEAR == x, ]
+    if (nrow(firePoly) > 0) {
+      return(firePoly)
+    } else {
+      return(NULL)
+    }
   })
-  names(firePolygonsList) <- paste0("Year", years)
+
+  names(firePolygonsList) <- paste0("year", years)
   return(firePolygonsList)
 }

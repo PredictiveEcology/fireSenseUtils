@@ -7,19 +7,19 @@
 getFirePoints_NFDB_V2(
   url = NULL,
   studyArea = NULL,
-  rasterToMatch = NULL,
   redownloadIn = 1,
   years = 1991:2017,
   fireSizeColName = "SIZE_HA",
-  NFDB_pointPath = NULL
+  NFDB_pointPath = NULL,
+  fun = "sf::st_read",
+  plot = FALSE
 )
 }
 \arguments{
 \item{url}{Passed to \code{prepInputs}}
 
-\item{studyArea}{Passed to \code{prepInputs}}
-
-\item{rasterToMatch}{Passed to \code{prepInputs}}
+\item{studyArea}{A \code{SpatialPolygons*} object used as the principle study region,
+passed to \code{\link[reproducible]{prepInputs}}.}
 
 \item{redownloadIn}{Numeric Time in YEARS that we tolerate the data to be "old" i.e.
 0.5 would mean "re-download data older than 6 months"}
@@ -29,9 +29,14 @@ getFirePoints_NFDB_V2(
 \item{fireSizeColName}{Character describing the name of the column containing fire size information.}
 
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}
+
+\item{fun}{Character. The function (as a string, e.g., \code{"sf::st_read"})
+used to load the downloaded data. Forwarded to \code{prepInputs(fun = ...)}.}
+
+\item{plot}{logical indicating whether to produce plot of fire points. Default FALSE.}
 }
 \value{
-A \code{SpatialPointsDataFrame}.
+A \code{sf} spatial points object.
 }
 \description{
 Get Fire \code{SpatialPoints} from Canadian Fire Database

@@ -2,61 +2,75 @@ Package: fireSenseUtils
 Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
-Date: 2020-08-11
-Version: 0.0.1
+Date: 2026-05-11
+Version: 0.1.11
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
-    role = c("aut")),
-    person("Eliot J B", "McIntire", email = "eliot.mcintire@canada.ca",
-    role = c("aut", "cre"), comment=c(ORCID = "0000-0002-6914-8316")),
+           role = c("aut")),
+    person("Eliot J B", "McIntire", email = "eliot.mcintire@nrcan-rncan.gc.ca",
+           role = c("aut", "cre"), comment=c(ORCID = "0000-0002-6914-8316")),
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca",
-    role = c("aut"), comment = c(ORCID = "0000-0001-7146-8135"))
+           role = c("aut"), comment = c(ORCID = "0000-0001-7146-8135")),
+    person("Ian", "Eddy", email = "ian.eddy@nrcan-rncan.gc.ca",
+           role = c("aut"), comment = c(ORCID = "0000-0001-7397-2116"))
     )
 Depends:
-    R (>= 3.6)
+    R (>= 4.3)
 Imports:
-    assertthat,
+    clusters (>= 0.0.19),
     crayon,
     data.table,
     DEoptim,
     EnvStats,
-    fasterize,
-    future,
-    future.apply,
+    fastDummies,
+    ggpubr,
+    ggplot2,
+    googledrive,
     kSamples,
-    LandR,
+    LandR (>= 1.1.0.9066),
     magrittr,
+    mclust,
     methods,
-    quickPlot,
-    pemisc,
+    parallelly,
+    pemisc (>= 0.0.4.9011),
+    pROC,
     purrr,
-    raster,
-    reproducible,
-    rlang,
+    quickPlot,
+    reproducible (>= 2.0.12),
+    RhpcBLASctl,
     sf,
     sp,
     SpaDES.core,
-    SpaDES.tools,
+    SpaDES.project,
+    SpaDES.tools (>= 2.0.4),
     stats,
-    usefulFuns
+    terra,
+    tidyr,
+    utils,
+    withr
 Suggests:
+    archive,
+    cowplot,
+    dismo,
     dplyr,
     knitr,
-    lintr,
     PtProcess,
-    rgeos,
+    raster,
+    rasterVis,
+    RColorBrewer,
+    Require (>= 0.3.1),
+    remotes,
     rmarkdown,
+    scfmutils,
     spatstat,
     spelling,
     testthat
 Remotes:
-    traversc/stringfish,
-    PredictiveEcology/Require@development,
-    PredictiveEcology/reproducible@development,
-    PredictiveEcology/quickPlot@development,
-    PredictiveEcology/pemisc@development,
+    PredictiveEcology/clusters,
     PredictiveEcology/LandR@development,
-    PredictiveEcology/usefulFuns@development
+    PredictiveEcology/pemisc@development,
+    PredictiveEcology/scfmutils@development,
+    PredictiveEcology/SpaDES.project@development
 VignetteBuilder:
     knitr,
     rmarkdown
@@ -65,4 +79,5 @@ Language: en-CA
 LazyData: true
 License: GPL-3
 BugReports: https://github.com/PredictiveEcology/fireSenseUtils/issues
-RoxygenNote: 7.1.1
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.0.0

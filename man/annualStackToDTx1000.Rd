@@ -2,39 +2,40 @@
 % Please edit documentation in R/helpers.R
 \name{annualStackToDTx1000}
 \alias{annualStackToDTx1000}
-\alias{annualStackToDTx1000.RasterLayer}
+\alias{annualStackToDTx1000.SpatRaster}
+\alias{annualStackToDTx1000.Raster}
 \alias{annualStackToDTx1000.list}
-\alias{annualStackToDTx1000.RasterStack}
-\title{Convert list of annual raster stack to \code{data.table}}
+\title{Convert list of annual \code{SpatRaster} to \code{data.table}}
 \usage{
 annualStackToDTx1000(x, whNotNA, ...)
 
-\method{annualStackToDTx1000}{RasterLayer}(x, whNotNA, ...)
+\method{annualStackToDTx1000}{SpatRaster}(x, whNotNA, ...)
+
+\method{annualStackToDTx1000}{Raster}(x, whNotNA, ...)
 
 \method{annualStackToDTx1000}{list}(x, whNotNA, ...)
-
-\method{annualStackToDTx1000}{RasterStack}(x, whNotNA, ...)
 }
 \arguments{
 \item{x}{\code{RasterStack} or list of rasters to convert to \code{data.table}
-and multiply by 1000 to save space}
+and multiply by 1000 to save space.}
 
 \item{whNotNA}{Pixel indexes that should go through this process (i.e. not NA)}
 
 \item{...}{Not currently used}
 }
 \value{
-\code{data.table} of the raster stack or the list
+\code{data.table} of the \code{SpatRaster} or the list
 }
 \description{
-Convert list of annual raster stack to \code{data.table}
+Convert list of annual \code{SpatRaster} to \code{data.table}
 }
 \examples{
-library(raster)
-r1 <- raster(extent(0,10,0,10), vals = 1:100)
-r2 <- raster(extent(0,10,0,10), vals = 100:1)
-r3 <- raster(extent(0,10,0,10), vals = 200:101)
-r4 <- raster(extent(0,10,0,10), vals = 300:201)
+withr::local_package("raster")
+
+r1 <- raster(extent(0, 10, 0, 10), vals = 1:100)
+r2 <- raster(extent(0, 10, 0, 10), vals = 100:1)
+r3 <- raster(extent(0, 10, 0, 10), vals = 200:101)
+r4 <- raster(extent(0, 10, 0, 10), vals = 300:201)
 
 # list of Rasters
 lRast <- list(r1, r2, r3)
@@ -63,4 +64,6 @@ out3 <- annualStackToDTx1000(list(s1 = s1, s2 = s2), whNotNA) ## named list requ
 names(lRast) <- c("OneToHun", "OneToHun", "TwoHunToOneHun")
 out4 <- annualStackToDTx1000(raster::stack(lRast), whNotNA)
 
+## cleanup
+withr::deferred_run()
 }
