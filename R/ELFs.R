@@ -46,6 +46,15 @@
 makeELFs <- function(x, desiredBuffer = 20000,
                      maxArea = 2.4e+11, destinationPath = ".", singleSpatVector = FALSE,
                      useCache = TRUE) {
+  
+  tO <- list(
+    memfrac = 0,
+    todisk = TRUE
+  )
+  forExit <- terraOptions()[names(tO)]
+  do.call(terraOptions, tO)
+  on.exit(do.call(terraOptions, forExit))
+  
   if (missing(x)) {
     if (!requireNamespace("scfmutils")) stop("Please install PredictiveEcology/scfmutils ",
                                         "or supply a x")
@@ -66,6 +75,12 @@ makeELFs <- function(x, desiredBuffer = 20000,
       Cache(.cacheExtra = digNFP, omitArgs = "x",
             .functionName = "Create polygon from input SpatRaster")
   }
+  
+  # remove tiny NA holes --> this should not exist because this is coming from SCANFI files;
+  #    but there were tiny NA slivers that were being magnified by the aggregate for ELFs
+  r_focal <- focal(x, w = 7, fun = "modal", na.policy = "only", na.rm = TRUE)
+  x <- terra::mask(r_focal, dv)
+  
   ecoNames <- c(
     "zone", "region",
     "province"
@@ -833,7 +848,7 @@ ELFtemplateRaster <- function(inputPath) {
       # r <- terra::rast(paste0("/vsicurl/", templateURL)) |>
       prepInputs(url = templateURL, destinationPath = inputPath) |>
         # terra::rast(fn) |>
-        terra::aggregate(fact = 8) |> 
+        terra::aggregate(fact = 8, na.rm = TRUE) |> 
         terra::toMemory()
     } |> Cache(omitArgs = TRUE, .cacheExtra = list(hash$remoteHash))
   }
