@@ -46,15 +46,15 @@
 makeELFs <- function(x, desiredBuffer = 20000,
                      maxArea = 2.4e+11, destinationPath = ".", singleSpatVector = FALSE,
                      useCache = TRUE) {
-  
-  tO <- list(
-    memfrac = 0,
-    todisk = TRUE
-  )
-  forExit <- terraOptions()[names(tO)]
-  do.call(terraOptions, tO)
-  on.exit(do.call(terraOptions, forExit))
-  
+  ## keep many small terra intermediates in memory rather than spawning scratch tifs in
+  ## terra's tmpdir -- those scratch tifs are the dominant FD_SETSIZE-exhausting holders
+  ## (see climateData::makeClimateCluster diagnostics)
+  tO <- list(todisk = FALSE, memmax = -1)
+  forExit <- terra::terraOptions(print = FALSE)[names(tO)]
+  do.call(terra::terraOptions, tO)
+  on.exit(do.call(terra::terraOptions, forExit), add = TRUE)
+
+
   if (missing(x)) {
     if (!requireNamespace("scfmutils")) stop("Please install PredictiveEcology/scfmutils ",
                                         "or supply a x")
@@ -78,8 +78,11 @@ makeELFs <- function(x, desiredBuffer = 20000,
   
   # remove tiny NA holes --> this should not exist because this is coming from SCANFI files;
   #    but there were tiny NA slivers that were being magnified by the aggregate for ELFs
-  r_focal <- focal(x, w = 7, fun = "modal", na.policy = "only", na.rm = TRUE)
-  x <- terra::mask(r_focal, dv)
+  # browser()
+  x <- {
+    focal(x, w = 5, fun = "modal", na.policy = "only", na.rm = TRUE) |>
+      terra::mask(dv)
+  } |> Cache()
   
   ecoNames <- c(
     "zone", "region",
@@ -100,7 +103,7 @@ makeELFs <- function(x, desiredBuffer = 20000,
                           .cacheExtra = list(x = digNFP),
                           useCache = useCache, .functionName = paste0("prepInputs_", nam))
   })
-  tmpl <- terra::rast(ecosLCC[[1]], res = 5000)
+  tmpl <- terra::rast(ecosLCC[[1]], resolution = 5000)
   if (is(x, "SpatRaster")) {
     hf <- terra::project(x, tmpl)
   } else {
@@ -146,7 +149,7 @@ makeELFs <- function(x, desiredBuffer = 20000,
 
   ELFs <- bufferOut(spatRasSeg = out3, mask = hf,
                     desiredBuffer = desiredBuffer,
-                    useCache = useCache) 
+                    useCache = useCache)
   # ELFs <- bufferOut(spatRasSeg = out3, mask = out$rasWhole[[1]],
   #                   desiredBuffer = desiredBuffer,
   #                   useCache = useCache) |>
@@ -168,7 +171,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
       a <- id
       a[a[] == 0] <- NA
       vec <- terra::as.polygons(a)
-      vec[,"ID"] <- nam
+      bb <- try(vec[,"ID"] <- nam)
+      if (is(bb, "try-error")) browser()
       vec[, "buffer"] <- vec[, nam]
       vec[,nam] <- NULL
       vec
@@ -195,8 +199,14 @@ makeELFs <- function(x, desiredBuffer = 20000,
 bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer = 20000,
                       useCache = TRUE) {
 
+  ## see makeELFs(); applied here too so direct callers of bufferOut benefit
+  tO <- list(todisk = FALSE, memmax = -1)
+  forExit <- terra::terraOptions(print = FALSE)[names(tO)]
+  do.call(terra::terraOptions, tO)
+  on.exit(do.call(terra::terraOptions, forExit), add = TRUE)
+
   if (missing(spatRasSeg) && missing(spatRas)) {
-    tmpl <- terra::rast(v, res = 5000)
+    tmpl <- terra::rast(v, resolution = 5000)
     spatRas <- {tmpl |>
         terra::rasterize(v, y = _, field = "FRU", touches = TRUE)} |>
       reproducible::Cache(omitArgs = "x",
@@ -238,14 +248,15 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
     vCentred[[i]] <- terra::project(nfll, prj)
 
     b41 <- vCentred[[i]]
-    tmpl <- terra::rast(b41, res = 5000)
+    
+    tmpl <- terra::rast(b41, resolution = 5000)
     largestBuffer <- 8e4
     tmpl1 <- terra::extend(tmpl, largestBuffer/terra::res(tmpl)[1])
     b41Orig <- terra::rasterize(b41, y = tmpl, field = field)
+    b41Orig <- as.numeric(b41Orig) # remove factor
     b41Extended <- terra::rasterize(b41, y = tmpl1, field = field)
+    b41Extended <- as.numeric(b41Extended) # remove factor
     b41ToUse <- b41Extended
-
-
     b41 <- b41ToUse
     if (is.factor(b41)) {
       cat <- cats(b41)[[1]]$ID
@@ -254,30 +265,49 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
       # b41[!b41[] > as.integer(i)] <- NA
     }
     # do buffer on the centred polygon
+    buffer_filled <- function(x, width, original = x) {
+      # 1. data footprint as polygon, holes filled
+      mask <- terra::ifel(is.na(x[[1]]), NA, 1L)
+      p    <- terra::as.polygons(mask, dissolve = TRUE)
+      p    <- terra::fillHoles(p)                  # <-- closes ALL internal holes
+      
+      # 2. buffer the filled footprint
+      pb   <- terra::buffer(p, width = width)
+      
+      # 3. rasterize buffer as 1, then overwrite original footprint as 2
+      template <- terra::rast(x)
+      r    <- terra::rasterize(pb, template, field = 1L, background = NA)
+      r[!is.na(original[[1]])] <- 2L               # original region = 2
+      
+      terra::trim(r)
+    }
+    b41ddd <- buffer_filled(b41, desiredBuffer)
+    
+    # terra::buffer is failing for me: it just makes whole map "TRUE"; can't diagnose; claude neither
+    #   this is a workaround
+    #terra::toMemory(b41)
+    # b41ddd <- terra::buffer(b41, largestBuffer) # goes well past the edge of the map
+    # b41ddd[b41ddd[] %in% TRUE] <- NA
+    # b41ddd <- terra::buffer(b41ddd, largestBuffer - desiredBuffer)
+    # b41ddd[] <- b41ddd[] %in% FALSE
+    # b41ddd[b41ddd[] %in% FALSE] <- NA
+    # b41ddd[] <- b41ddd + 0L # convert to numeric/integer
+    # b41ddd[!is.na(b41ToUse[])] <- 2L
+    # b41ddd <- terra::trim(b41ddd)
 
-    b41 <- terra::buffer(b41, largestBuffer) # goes well past the edge of the map
-    b41[b41[] %in% TRUE] <- NA
-    b41 <- terra::buffer(b41, largestBuffer - desiredBuffer)
-    b41[] <- b41[] %in% FALSE
-    b41[b41[] %in% FALSE] <- NA
-    b41[] <- b41 + 0L # convert to numeric/integer
-    # b41[b41ToUse[] %in% as.integer(i)] <- 2L
-    b41[!is.na(b41ToUse[])] <- 2L
-    b41 <- terra::trim(b41)
-
-    names(b41) <- i
+    names(b41ddd) <- i
     if (is.factor(b41Orig)) {
       cat <- cats(b41Orig)[[1]]$ID
-      b41OrigNew <- terra::resample(b41Orig, b41, method = "near")
-      b41[b41OrigNew[] %in% cat & !is.na(b41OrigNew[])] <- 2
+      b41OrigNew <- terra::resample(b41Orig, b41ddd, method = "near")
+      b41ddd[b41OrigNew[] %in% cat & !is.na(b41OrigNew[])] <- 2
     } else {
-      # b41[!b41Orig[] > as.integer(i)] <- NA
+      # b41ddd[!b41Orig[] > as.integer(i)] <- NA
     }
 
-    r[[i]] <- b41
+    r[[i]] <- b41ddd
 
     # Add it to the national map
-    b41b <- terra::project(b41, crsThis, method = "near")
+    b41b <- terra::project(b41ddd, crsThis, method = "near")
     b41b <- terra::resample(b41b, spatRasSeg[[i]], method = "near")
     ca[[i]] <- spatRasSeg[[i]]
     ca[[i]][b41b > 0] <- b41b
@@ -318,12 +348,15 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
       # r[[i]] <- maskTo(r[[i]], mask, verbose = FALSE, touches = FALSE)
       # ca[[i]] <- maskTo(ca[[i]], mask, verbose = FALSE, touches = FALSE)
     }
-    print(paste0("Done ", i))
+    message("Done bufferOut for ", i)
   }
 
   ll <- moveSliversToOtherELFs(lostPixels, ca, i, r)
   # ll3 <- ll
   destinationPath <- unique(dirname(Filenames(spatRasSeg)))
+  # There may be tempfiles along the way; remove them
+  destinationPath <- grep(basename(tempdir()), destinationPath, invert = TRUE, value = TRUE)
+  destinationPath <- grep(terra::terraOptions()$tempdir, destinationPath, invert = TRUE, value = TRUE)
   ELFpath <- file.path(destinationPath, "ELFs_final")
   unlink(ELFpath, recursive = TRUE)
   dir.create(ELFpath, recursive = TRUE, showWarnings = FALSE)
@@ -843,7 +876,7 @@ ELFtemplateRaster <- function(inputPath) {
     templateURL <- "https://ftp.maps.canada.ca/pub/nrcan_rncan/Forests_Foret/SCANFI/v1/SCANFI_sps_douglasFir_SW_2020_v1.2.tif"
     hash <- utils::getFromNamespace("getRemoteMetadata", "reproducible")(isGDurl = FALSE, url = templateURL) |>
       Cache(notOlderThan = Sys.time() - 60*60*24*7)
-    fn <- dir(getOption("reproducible.destinationPathShared"), pattern = "douglasFir", full.names = TRUE)[1]
+    # fn <- dir(getOption("reproducible.destinationPathShared"), pattern = "douglasFir", full.names = TRUE)[1]
     {
       # r <- terra::rast(paste0("/vsicurl/", templateURL)) |>
       prepInputs(url = templateURL, destinationPath = inputPath) |>
