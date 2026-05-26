@@ -10,23 +10,33 @@ chk_duplicatedStartPixels(cells, size)
 .doDataChecks(moduleName, envir, attribs, fml)
 }
 \arguments{
-\item{cells}{TODO: DESCRIPTION NEEDED}
+\item{cells}{Integer vector of raster cell indices (pixel IDs) at which
+fires are scheduled to start.}
 
-\item{size}{TODO: DESCRIPTION NEEDED}
+\item{size}{Integer vector the same length as \code{cells}, giving the size of
+each fire (number of pixels). Used to break ties when duplicates exist.}
 
-\item{moduleName}{TODO: DESCRIPTION NEEDED}
+\item{moduleName}{Character. Name of the calling SpaDES module, used as a
+prefix in any error messages thrown.}
 
-\item{envir}{TODO: DESCRIPTION NEEDED}
+\item{envir}{An environment (typically a SpaDES module's \code{sim} object) that
+is expected to contain the data object named \code{"fireAttributesFireSense_SpreadFit"}.}
 
-\item{attribs}{TODO: DESCRIPTION NEEDED}
+\item{attribs}{Character. Name of the data object being checked, included
+in error messages so the caller can identify which input failed.}
 
-\item{fml}{TODO: DESCRIPTION NEEDED}
+\item{fml}{A model formula passed through to \code{\link[stats:is.empty.model]{stats::is.empty.model()}}.}
 }
 \value{
-TODO: DESCRIPTION NEEDED
+A list with two elements: \code{loci} (deduplicated \code{cells}) and
+\code{sizes} (corresponding \code{size} values).
 
-TODO: DESCRIPTION NEEDED
+Called for its side effects. Throws an informative error if any
+check fails; returns invisibly otherwise.
 }
 \description{
-Data checks and assertions for \code{spreadFitRun}
+\code{chk_duplicatedStartPixels} enforces the invariant that no more than one
+fire can be ignited in a given pixel within a single time interval. When
+duplicate \code{cells} are detected it issues a warning and keeps only the
+largest fire (by \code{size}) for each duplicated pixel.
 }

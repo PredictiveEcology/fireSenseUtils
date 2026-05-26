@@ -25,7 +25,10 @@ utils::globalVariables(c(
 #'   `annualDTx1000`, with same names. Each element is a `data.table` with columns:
 #'   `buff`...TODO: INCOMPLETE
 #'
-#' @param historicalFires TODO: DESCRIPTION NEEDED
+#' @param historicalFires A named list of `data.frame`s (one per year, names
+#'   matching those of `annualDTx1000`), each with columns `cells` (pixel
+#'   indices of fire ignitions) and `size` (fire size in pixels). Used as the
+#'   observed reference against which simulated fires are scored.
 #'
 #' @param itermax Maximum number of iterations for the [DEoptim::DEoptim] algorithm.
 #'   Passed to [DEoptim::DEoptim.control].
@@ -278,11 +281,11 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
 #'
 #' @template mutuallyExclusive
 #'
-#' @param .c TODO: DESCRIPTION NEEDED
+#' @param .c Numeric scalar in `[0, 1]`. Crossover constant passed through to
+#'   [DEoptim::DEoptim.control()] as `c` (the speed of crossover adaptation).
+#'   Default 0.5.
 #'
 #' @param figPath directory where figures will be saved, if relevant
-#'
-#' @param rep TODO: DESCRIPTION NEEDED
 #'
 #' @param control passed to [DEoptim::DEoptim.control]
 #'

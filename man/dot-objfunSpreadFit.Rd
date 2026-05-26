@@ -50,9 +50,16 @@ The columns are variables that are used for more than 1 year.}
 (if it is provided as a class \code{formula}, then it invariably will have an
 enormous amount of data hidden in the formula environment; this is bad for \link[DEoptim:DEoptim]{DEoptim::DEoptim})}
 
-\item{historicalFires}{TODO: DESCRIPTION NEEDED}
+\item{historicalFires}{A named list of \code{data.frame}s (one per year, names
+matching those of \code{annualDTx1000}), each with columns \code{cells} (pixel
+indices of ignitions) and \code{size} (fire size in pixels). The observed
+fire record against which the simulation is compared.}
 
-\item{fireBufferedListDT}{TODO: DESCRIPTION NEEDED}
+\item{fireBufferedListDT}{A named list of \code{data.table}s (one per year,
+names matching \code{annualDTx1000}), each with columns \code{pixelID}, \code{buffer}
+(\code{1} if the pixel is inside a buffered fire footprint, \code{0} otherwise),
+and \code{ids} (a unique identifier per fire). Restricts the set of pixels
+used when fitting and scoring spread.}
 
 \item{covMinMax}{This is a 2 row by multiple column data.frame indicating
 the minimum and maximum values of the original covariate data values.
@@ -67,7 +74,9 @@ Default 0.28, which is overly generous unless there are many non-flammable pixel
 \code{spreadProb} falls at or below this, the call exits early to avoid wasted
 simulation work. Default \code{0.13}.}
 
-\item{minFireSize}{TODO: DESCRIPTION NEEDED}
+\item{minFireSize}{Integer. Minimum fire size (in pixels) to include when
+scoring simulated against historical fires; fires smaller than this are
+filtered out of the comparison. Default \code{1}.}
 
 \item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
 

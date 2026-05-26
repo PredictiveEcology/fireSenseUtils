@@ -1,8 +1,14 @@
 #' Handling piecewise terms in a formula
 #'
-#' @param variable DESCRIPTION NEEDED
-#' @param knot DESCRIPTION NEEDED
-#' @return DESCRIPTION NEEDED
+#' Implements the right-hand half of a piecewise-linear (hinge) term:
+#' `pmax(variable - knot, 0)`. Used in formulas passed to the ignition
+#' fitting routines so that a covariate can have zero effect below a
+#' threshold and a linear effect above it.
+#'
+#' @param variable Numeric vector of covariate values.
+#' @param knot Numeric scalar threshold (knot) below which the term is `0`.
+#' @return Numeric vector the same length as `variable`, with each element
+#'   equal to `max(variable[i] - knot, 0)`.
 #'
 #' @export
 pw <- function(variable, knot) pmax(variable - knot, 0)
@@ -16,10 +22,16 @@ oom <- function(x) 10^(ceiling(log10(abs(x))))
 
 #' Extract the elements of the special terms, i.e. the variable and the knot value
 #'
-#' @param v DESCRIPTION NEEDED
-#' @param k DESCRIPTION NEEDED
+#' Used by the ignition formula machinery to parse a `pw(v, k)` term and
+#' return its components without evaluating them. The variable and knot
+#' names are returned as character strings (the captured symbols), or kept
+#' as `AsIs` if `v` was wrapped with `I()`.
 #'
-#' @return DESCRIPTION NEEDED
+#' @param v The variable symbol or expression appearing inside `pw()`.
+#' @param k The knot value or symbol; **must** be supplied.
+#'
+#' @return A list with elements `variable` (character, or `AsIs` expression)
+#'   and `knot` (character form of `k`). Errors if `k` is missing.
 #'
 #' @export
 extractSpecial <- function(v, k) {
@@ -33,23 +45,31 @@ extractSpecial <- function(v, k) {
 
 #' Objective function when no piecewise model is used
 #'
-#' @param params TODO: DESCRIPTION NEEDED
+#' Internal callback passed to the optimizer (e.g. [stats::nlminb()]) when
+#' the ignition formula contains no [pw()] terms. Computes the linear
+#' predictor `mm %*% params + offset`, applies `linkinv`, and returns the
+#' negative log-likelihood evaluated in `mod_env`. A large sentinel
+#' (`1e20`) is returned whenever the link inverse produces invalid values
+#' (non-positive, `NA`, infinite, or empty), preventing the optimizer from
+#' wandering into infeasible regions.
 #'
-#' @param linkinv the link function
+#' @param params Numeric vector of parameter values supplied by the optimizer.
+#' @param linkinv Function. Inverse link function (e.g. [stats::plogis()]
+#'   for a logit link).
+#' @param nll Quoted/unevaluated R expression that computes the negative
+#'   log-likelihood when evaluated in `mod_env`.
+#' @param sm Square numeric matrix. Parameter scaling matrix applied as
+#'   `params %*% sm` before the linear predictor is formed.
+#' @param nx Integer. Number of covariate parameters (i.e. number of
+#'   columns in `mm`).
+#' @param mm Numeric model matrix containing covariate values.
+#' @param mod_env An environment (or data-frame coerced via [base::list2env()])
+#'   containing the variables referenced by `nll`.
+#' @param offset Numeric vector the same length as `nrow(mm)`. Model offset
+#'   added to the linear predictor.
 #'
-#' @param nll the log-likelihood function
-#'
-#' @param sm scaling matrix
-#'
-#' @param nx number of covariates
-#'
-#' @param mm model matrix containing data
-#'
-#' @param mod_env the environment containing parameters - can be a data.frame
-#'
-#' @param offset TODO: DESCRIPTION NEEDED
-#'
-#' @return TODO: DESCRIPTION NEEDED
+#' @return Numeric scalar: the negative log-likelihood, or `1e20` if the
+#'   inverse-link produces non-finite or non-positive values.
 #'
 #' @export
 #' @rdname objFunIgnition
@@ -71,17 +91,30 @@ extractSpecial <- function(v, k) {
 
 #' Function to pass to the optimizer - Piece-wise version
 #'
-#' @param params DESCRIPTION NEEDED
-#' @param formula DESCRIPTION NEEDED
-#' @param linkinv DESCRIPTION NEEDED
-#' @param nll DESCRIPTION NEEDED
-#' @param sm DESCRIPTION NEEDED
-#' @param updateKnotExpr DESCRIPTION NEEDED
-#' @param nx DESCRIPTION NEEDED
-#' @param mod_env the environment containing params - can be a data.frame
-#' @param offset DESCRIPTION NEEDED
+#' Internal callback for the optimizer when the ignition formula contains
+#' [pw()] terms. Differs from [.objFunIgnition] in that the model matrix is
+#' rebuilt at every call (via [stats::model.matrix()]) after running
+#' `updateKnotExpr`, which updates the knot values in `mod_env`. This lets
+#' the optimizer jointly fit covariate coefficients and knot positions.
 #'
-#' @return DESCRIPTION NEEDED
+#' @param params Numeric vector of parameter values supplied by the optimizer.
+#'   Includes both covariate coefficients and knot values.
+#' @param formula Model formula (or string coercible by [stats::as.formula()])
+#'   containing one or more `pw()` calls.
+#' @param linkinv Function. Inverse link function.
+#' @param nll Quoted R expression evaluating to the negative log-likelihood
+#'   when evaluated in `mod_env`.
+#' @param sm Square numeric matrix. Parameter scaling matrix.
+#' @param updateKnotExpr Quoted R expression that copies the latest knot
+#'   values from `params` into the variables in `mod_env` referenced by
+#'   `formula`.
+#' @param nx Integer. Number of covariate parameters.
+#' @param mod_env An environment (or data-frame) containing the covariates
+#'   and the variables updated by `updateKnotExpr`.
+#' @param offset Numeric vector. Model offset added to the linear predictor.
+#'
+#' @return Numeric scalar: the negative log-likelihood, or `1e20` if the
+#'   inverse-link produces negative, `NA`, or infinite values.
 #'
 #' @export
 #' @importFrom stats model.matrix as.formula
@@ -110,17 +143,29 @@ extractSpecial <- function(v, k) {
 
 #' `objNlminb`
 #'
-#' Wrapper around `stats::nlminb`
+#' Wrapper around [stats::nlminb()] that calls one of the ignition objective
+#' functions (`.objFunIgnition` or `.objFunIgnitionPW`, dispatched by `hvPW`)
+#' and falls back to [stats::optim()] (L-BFGS-B) when `nlminb` reports a
+#' "false convergence" or similar non-convergence code (codes 7-14).
 #'
-#' @param x DESCRIPTION NEEDED
-#' @param objective objective function
-#' @param lower lower bounds on coefficients
-#' @param upper upper bounds on coefficients
-#' @param control DESCRIPTION NEEDED
-#' @param hvPW logical indicating whether the formula is piece-wise #IE added
-#' @param ... additional arguments passed to objective function
+#' @param x Numeric vector. Starting parameter values for the optimizer.
+#' @param objective Function. Objective function to minimize, typically
+#'   `.objFunIgnition` or `.objFunIgnitionPW`.
+#' @param lower Numeric vector. Lower bounds on each parameter, same length
+#'   as `x`.
+#' @param upper Numeric vector. Upper bounds on each parameter, same length
+#'   as `x`.
+#' @param control List of control options passed to [stats::nlminb()] (or
+#'   [stats::optim()] on fallback, with `iter.max` and `eval.max` dropped).
+#' @param hvPW Logical. If `TRUE`, dispatches to the piecewise objective
+#'   (formula is rebuilt per call); if `FALSE`, dispatches to the
+#'   non-piecewise objective (pre-built `mm` is supplied).
+#' @param ... Additional arguments passed through to `objective`. Expected
+#'   names are: `linkinv`, `nll`, `sm`, `nx`, `mm`, `updateKnotExpr`,
+#'   `mod_env`, `offset`, `formula`.
 #'
-#' @return DESCRIPTION NEEDED
+#' @return The list returned by [stats::nlminb()] on success, or the result
+#'   of [stats::optim()] (with `value` renamed to `objective`) on fallback.
 #'
 #' @export
 #' @importFrom stats nlminb

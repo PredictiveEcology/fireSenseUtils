@@ -88,7 +88,10 @@ All covariates must be integers, and must be \verb{1000x} their actual values.}
 \code{annualDTx1000}, with same names. Each element is a \code{data.table} with columns:
 \code{buff}...TODO: INCOMPLETE}
 
-\item{historicalFires}{TODO: DESCRIPTION NEEDED}
+\item{historicalFires}{A named list of \code{data.frame}s (one per year, names
+matching those of \code{annualDTx1000}), each with columns \code{cells} (pixel
+indices of fire ignitions) and \code{size} (fire size in pixels). Used as the
+observed reference against which simulated fires are scored.}
 
 \item{itermax}{Maximum number of iterations for the \link[DEoptim:DEoptim]{DEoptim::DEoptim} algorithm.
 Passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}.}
@@ -155,7 +158,9 @@ This is distinct from the parallelization managed by \link[DEoptim:DEoptim]{DEop
 
 \item{thresh}{The threshold for accepting fits; e.g., from \code{mod$thresh}.}
 
-\item{.c}{TODO: DESCRIPTION NEEDED}
+\item{.c}{Numeric scalar in \verb{[0, 1]}. Crossover constant passed through to
+\code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} as \code{c} (the speed of crossover adaptation).
+Default 0.5.}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of \link[DEoptim:DEoptim]{DEoptim::DEoptim} outputs.}
 
@@ -165,7 +170,8 @@ Default "screen".}
 
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
 
-\item{rep}{TODO: DESCRIPTION NEEDED}
+\item{rep}{Integer. An identifier for the replication number of this optimization run.
+Used in cache tags and plot filenames. Default 1L.}
 
 \item{runName}{Character string used to label this run. Forwarded to
 \code{DEoptimIterative()} and used as a suffix for the cache \code{.functionName}

@@ -73,9 +73,11 @@ annual or nonAnnual, that will be used.}
 for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
 take some small amount of time.}
 
-\item{logisticPars}{TODO: DESCRIPTION NEEDED}
+\item{logisticPars}{Numeric vector of logistic parameters; its length
+selects which variant \code{logisticAll} dispatches to.}
 
-\item{covPars}{TODO: DESCRIPTION NEEDED}
+\item{covPars}{Numeric vector of covariate coefficients (same length as
+\code{ncol(mat)}); \code{mat \%*\% covPars} forms the linear predictor.}
 
 \item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
 Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}

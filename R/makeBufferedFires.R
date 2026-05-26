@@ -196,13 +196,23 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   out4 <- out3[, list(buffer = buffer[1], ids = ids[1]), by = "pixelID"]
 }
 
-#' multiplier
+#' Buffer-size multiplier for fire footprints
 #'
-#' TODO: DESCRIPTION NEEDED
+#' Returns a per-fire buffer target (in pixels) by scaling `size` so that
+#' small fires get proportionally larger buffers and large fires plateau
+#' at `baseMultiplier * size`. The result is then clamped from below by
+#' `minSize`. Used when generating non-burned "control" pixels around
+#' historical fire perimeters.
 #'
-#' @param size TODO: DESCRIPTION NEEDED
-#' @param minSize TODO: DESCRIPTION NEEDED
-#' @param baseMultiplier TODO: DESCRIPTION NEEDED
+#' @param size Numeric vector. Fire sizes in pixels.
+#' @param minSize Numeric scalar. Absolute floor on the returned size; the
+#'   buffer (plus burned pixels) is never smaller than this. Default `1000`.
+#' @param baseMultiplier Numeric scalar. Asymptotic multiplier for large
+#'   fires (as `size` grows, the effective multiplier tends to
+#'   `baseMultiplier`). Default `5`.
+#'
+#' @return Integer vector the same length as `size`, giving the target
+#'   buffered area in pixels for each fire.
 #'
 #' @export
 multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {

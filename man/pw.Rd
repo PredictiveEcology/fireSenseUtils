@@ -7,13 +7,17 @@
 pw(variable, knot)
 }
 \arguments{
-\item{variable}{DESCRIPTION NEEDED}
+\item{variable}{Numeric vector of covariate values.}
 
-\item{knot}{DESCRIPTION NEEDED}
+\item{knot}{Numeric scalar threshold (knot) below which the term is \code{0}.}
 }
 \value{
-DESCRIPTION NEEDED
+Numeric vector the same length as \code{variable}, with each element
+equal to \code{max(variable[i] - knot, 0)}.
 }
 \description{
-Handling piecewise terms in a formula
+Implements the right-hand half of a piecewise-linear (hinge) term:
+\code{pmax(variable - knot, 0)}. Used in formulas passed to the ignition
+fitting routines so that a covariate can have zero effect below a
+threshold and a linear effect above it.
 }

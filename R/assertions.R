@@ -1,9 +1,17 @@
 #' Data checks and assertions for `spreadFitRun`
 #'
-#' @param cells TODO: DESCRIPTION NEEDED
-#' @param size TODO: DESCRIPTION NEEDED
+#' `chk_duplicatedStartPixels` enforces the invariant that no more than one
+#' fire can be ignited in a given pixel within a single time interval. When
+#' duplicate `cells` are detected it issues a warning and keeps only the
+#' largest fire (by `size`) for each duplicated pixel.
 #'
-#' @return TODO: DESCRIPTION NEEDED
+#' @param cells Integer vector of raster cell indices (pixel IDs) at which
+#'   fires are scheduled to start.
+#' @param size Integer vector the same length as `cells`, giving the size of
+#'   each fire (number of pixels). Used to break ties when duplicates exist.
+#'
+#' @return A list with two elements: `loci` (deduplicated `cells`) and
+#'   `sizes` (corresponding `size` values).
 #'
 #' @export
 #' @rdname assertions-spreadFitRun
@@ -31,12 +39,16 @@ chk_duplicatedStartPixels <- function(cells, size) {
   }
 }
 
-#' @param moduleName TODO: DESCRIPTION NEEDED
-#' @param envir TODO: DESCRIPTION NEEDED
-#' @param attribs TODO: DESCRIPTION NEEDED
-#' @param fml TODO: DESCRIPTION NEEDED
+#' @param moduleName Character. Name of the calling SpaDES module, used as a
+#'   prefix in any error messages thrown.
+#' @param envir An environment (typically a SpaDES module's `sim` object) that
+#'   is expected to contain the data object named `"fireAttributesFireSense_SpreadFit"`.
+#' @param attribs Character. Name of the data object being checked, included
+#'   in error messages so the caller can identify which input failed.
+#' @param fml A model formula passed through to [stats::is.empty.model()].
 #'
-#' @return TODO: DESCRIPTION NEEDED
+#' @return Called for its side effects. Throws an informative error if any
+#'   check fails; returns invisibly otherwise.
 #'
 #' @export
 #' @importFrom stats is.empty.model
