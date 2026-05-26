@@ -145,17 +145,8 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
     allFlam[flammableProp < flammabilityThreshold] <- 0
     
     # 5. Optionally write the result to disk
-    if (!is.null(writeTo)) {
-      outPath <- file.path(destinationPath, writeTo)
-      propFlamPath <- .suffix(outPath, "_propFlam")
-      message("Writing output raster to: ", outPath)
-      # Ensure data type supports 0 if original LCC didn't (though usually integer, so fine)
-      allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = overwrite)
-      flammableProp <- writeRaster(flammableProp, filename = propFlamPath, overwrite = TRUE)
-    }
   } else {
     # Eliot rewrite with Claude May 22, 2026
-    browser() # need to check writeTo filename
     
     # --- dominant flammable LCC at target res (mode) ---
     allFlam <- terra::classify(
@@ -208,7 +199,17 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
     # --- threshold (streamed, not in-memory) ---
     allFlam <- terra::ifel(flammableProp < flammabilityThreshold, 0, allFlam)
   }
-
+  flammableProp <- terra::ifel(is.na(allFlam), NA, flammableProp)
+  
+  if (!is.null(writeTo)) {
+    outPath <- file.path(destinationPath, writeTo)
+    propFlamPath <- .suffix(outPath, "_propFlam")
+    message("Writing output raster to: ", outPath)
+    # Ensure data type supports 0 if original LCC didn't (though usually integer, so fine)
+    allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = overwrite)
+    flammableProp <- writeRaster(flammableProp, filename = propFlamPath, overwrite = TRUE)
+  }
+  
   output <- list("lcc" = allFlam, "flammableProp" = flammableProp)
 
   return(output)
