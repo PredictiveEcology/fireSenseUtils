@@ -1,10 +1,4 @@
 ## Tests for makeTSD
-##
-## NOTE: makeTSD currently has a fragile path when fireRaster has NA values
-## in pixels that lcc flags as nonForested (`pixToUpdate`). The NA propagates
-## into the `pixToUpdate[initialTSD[pixToUpdate] <= cutoffForYoungAge]` subset
-## and produces a length mismatch on `:= trueAges`. These tests therefore
-## supply fireRasters without NAs over the active `pixToUpdate` set.
 
 library(data.table)
 
@@ -67,6 +61,25 @@ test_that("makeTSD: future burns (year < fireRaster) are clamped to cutoff + 1",
   out <- makeTSD(year = 2020, fireRaster = fireRaster, standAgeMap = standAgeMap,
                  lcc = lcc, cutoffForYoungAge = 15)
   expect_false(terra::values(out, mat = FALSE)[1] <= 15)
+})
+
+test_that("makeTSD: NA fireRaster pixels in pixToUpdate do not cause length mismatch", {
+  withr::local_package("terra")
+
+  ## Pixel 2 has NA fireRaster but is in pixToUpdate via lcc. Previously this
+  ## produced "Supplied N items to be assigned to M items of column 'age'"
+  ## because the NA propagated into trueYoungs but not into the := match.
+  fireRaster   <- terra::rast(nrows = 1, ncols = 3, vals = c(2018, NA, 2010))
+  standAgeMap  <- terra::rast(nrows = 1, ncols = 3, vals = c(10, 50, 30))
+  lcc <- data.table(pixelID = 1:3,
+                    nonForest_lowFlam  = 1L,
+                    nonForest_highFlam = 0L)
+  out <- makeTSD(year = 2020, fireRaster = fireRaster, standAgeMap = standAgeMap,
+                 lcc = lcc, cutoffForYoungAge = 15)
+  vals <- terra::values(out, mat = FALSE)
+  expect_equal(vals[1], 2)        ## 2020 - 2018
+  expect_equal(vals[3], 10)       ## 2020 - 2010
+  expect_false(vals[2] <= 15)     ## NA fire -> not flagged as young
 })
 
 test_that("makeTSD: pixels not in lcc are set to NA in output", {

@@ -62,8 +62,13 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
                                 c(pixelID %in% pixToUpdate & is.na(age))]$pixelID
   ## disturbance history suggests young
 
-  trueYoungs <- pixToUpdate[initialTSD[pixToUpdate] <= cutoffForYoungAge]
-  trueAges <- as.vector(initialTSD)[trueYoungs]
+  ## Read TSD as a plain numeric vector once. `which()` drops NA entries so a
+  ## missing fireRaster value (no recorded disturbance) is not flagged as young
+  ## and trueYoungs / trueAges stay length-locked for the := assignment.
+  tsdAtPix <- terra::values(initialTSD, mat = FALSE)[pixToUpdate]
+  youngPos <- which(tsdAtPix <= cutoffForYoungAge)
+  trueYoungs <- pixToUpdate[youngPos]
+  trueAges <- tsdAtPix[youngPos]
   standAgeVals[pixelID %in% falseYoungs, age := cutoffForYoungAge + 1]
   ## note that by doing this second, pixels in both groups are correctly set to trueYoung
 
