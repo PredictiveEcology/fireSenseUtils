@@ -33,6 +33,20 @@ test_that("covsX1000AndSetDF: annual covariates are multiplied by 1000 and integ
   expect_equal(out$nonAnnualDTx1000[[1]]$vegPC1, c(500L, 500L))
 })
 
+test_that("covsX1000AndSetDF: errors cleanly when toX1000Integer = FALSE (inverse not implemented)", {
+  annualList    <- list(year2001 = data.table(pixelID = 1L, cov1 = 0.1))
+  nonAnnualList <- list(`2001` = data.table(pixelID = 1L, vegPC1 = 0.5))
+  fireBufferedList <- list(year2001 = data.table(pixelID = 1L, buffer = 1L, ids = 1L))
+  fireLociList     <- list(year2001 = data.table(pixelID = 1L, size = 5L))
+  paramOrder       <- c(cov1 = 1, vegPC1 = 2)
+
+  expect_error(
+    covsX1000AndSetDF(annualList, nonAnnualList, fireBufferedList,
+                      fireLociList, paramOrder, toX1000Integer = FALSE),
+    regexp = "not yet implemented"
+  )
+})
+
 test_that("covsX1000AndSetDF: paramOrder filters which columns are retained for reordering", {
   ## 'extraCov' is not in paramOrder, so it stays at the end of the table.
   annualList    <- list(year2001 = data.table(pixelID = 1:2, cov1 = c(0.1, 0.2),

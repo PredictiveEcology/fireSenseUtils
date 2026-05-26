@@ -43,7 +43,8 @@ covsX1000AndSetDF <- function(annualList, nonAnnualList, fireBufferedList, fireL
     annualDTx1000 <- toX1000(annualDT)
     nonAnnualDTx1000 <- toX1000(nonAnnualDT)
   } else {
-    browser()
+    stop("covsX1000AndSetDF: toX1000Integer = FALSE (inverse direction) ",
+         "is not yet implemented.")
   }
   fireBufferedListDT <- lapply(fireBufferedList, setDF)
   historicalFires <- lapply(fireLociList, setDF)
