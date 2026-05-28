@@ -84,10 +84,3 @@ makeLociList <- function(ras, pts, idsCol = "FIRE_ID", dateCol = "YEAR", sizeCol
 }
 
 
-#' Simple character string for year
-#' @export
-yearChar <- "year"
-
-#' Simple character string for youngAge
-#' @export
-youngAgeName <- "youngAge"
