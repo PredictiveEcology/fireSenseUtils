@@ -60,7 +60,13 @@ jobs:
         with:
           Ncpus: 2
           r-version: ${{ matrix.config.r }}
-          use-public-rspm: false
+          # Use Posit Public Package Manager so pak resolves
+          # R-version-matched binaries. With raw CRAN, recommended
+          # packages such as Matrix/nlme/rpart only have their newest
+          # release (currently `Needs R >= 4.7`), which makes pak's
+          # solver report "dependency conflict" for every matrix entry
+          # whose R is older. PPM serves the older compatible builds.
+          use-public-rspm: true
 
       # Cache the resolved R user library so transient GitHub-API failures
       # during pak dependency resolution (`Cannot query GitHub`) do not
