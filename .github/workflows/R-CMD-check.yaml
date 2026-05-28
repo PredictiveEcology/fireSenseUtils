@@ -89,8 +89,34 @@ jobs:
         with:
           # Pin pak stable; devel-pak occasionally regresses on resolve.
           pak-version: stable
+          # `dependencies: "hard"` sidesteps a pak metadata bug: the
+          # combined Depends+Imports+Suggests dep graph trips pak's
+          # solver over an inconsistent `Matrix` entry (R>=4.7 from the
+          # /src/contrib/4.7.0/Recommended path coexisting with R>=4.4
+          # from the main /src/contrib path). The conflict only
+          # materialises when Suggests is traversed transitively.
+          # Hard-deps-only resolves; the Suggests we actually need for
+          # `R CMD check` (vignettes / tests / examples) are re-added
+          # explicitly via `extra-packages` so they still install.
+          dependencies: '"hard"'
           extra-packages: |
             any::rcmdcheck
+            any::knitr
+            any::rmarkdown
+            any::testthat
+            any::archive
+            any::cowplot
+            any::dismo
+            any::dplyr
+            any::PtProcess
+            any::raster
+            any::rasterVis
+            any::RColorBrewer
+            any::Require
+            any::remotes
+            any::scfmutils
+            any::spatstat
+            any::spelling
             NLMR=?ignore
           needs: check
 

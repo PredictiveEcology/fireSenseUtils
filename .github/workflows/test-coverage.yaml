@@ -58,8 +58,30 @@ jobs:
         continue-on-error: true
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
+          # See R-CMD-check.yaml for the rationale - `dependencies: hard`
+          # avoids a pak Matrix-metadata bug; we re-add the Suggests we
+          # need (here, only covr is strictly required for coverage, but
+          # the Suggests are mirrored so tests under coverage have all
+          # the packages they would in R CMD check).
+          dependencies: '"hard"'
           extra-packages: |
             any::covr
+            any::knitr
+            any::rmarkdown
+            any::testthat
+            any::archive
+            any::cowplot
+            any::dismo
+            any::dplyr
+            any::PtProcess
+            any::raster
+            any::rasterVis
+            any::RColorBrewer
+            any::Require
+            any::remotes
+            any::scfmutils
+            any::spatstat
+            any::spelling
             NLMR=?ignore
 
       - name: Install additional package dependencies
