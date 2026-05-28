@@ -62,6 +62,21 @@ jobs:
           r-version: ${{ matrix.config.r }}
           use-public-rspm: false
 
+      # Cache the resolved R user library so transient GitHub-API failures
+      # during pak dependency resolution (`Cannot query GitHub`) do not
+      # block the job - the previously cached library still satisfies
+      # `R CMD check`. The primary key invalidates whenever DESCRIPTION
+      # changes; the restore-key falls back to any prior cache for the
+      # same OS+R combination so an unrelated DESCRIPTION edit still
+      # benefits from a warm library.
+      - name: Restore R library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-${{ runner.arch }}-r${{ matrix.config.r }}-deps-${{ hashFiles('DESCRIPTION') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-r${{ matrix.config.r }}-deps-
+
       - id: deps
         continue-on-error: true
         uses: r-lib/actions/setup-r-dependencies@v2
