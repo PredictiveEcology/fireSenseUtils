@@ -64,10 +64,13 @@ jobs:
           # r-universe, not CRAN, so pak can't resolve `any::scfmutils`
           # without this. Matches what `test-coverage.yaml` already sets.
           extra-repositories: 'https://predictiveecology.r-universe.dev/'
-          # Use Posit Public Package Manager for faster Linux installs.
-          # (Originally added thinking it would fix a Matrix metadata
-          # conflict, but the real fix is `dependencies: "hard"` below.)
-          use-public-rspm: true
+          # PPM is intentionally off: its Linux binaries are compiled
+          # against a specific libgdal that doesn't match the one
+          # `install-spatial-deps` puts on the runner, so `terra` (used
+          # by scfmutils, LandR, etc.) fails to load with
+          # `libgdal.so.34: cannot open shared object file`. Falling
+          # back to source builds keeps the ABI in sync.
+          use-public-rspm: false
 
       # Cache the resolved R user library so transient GitHub-API failures
       # during pak dependency resolution (`Cannot query GitHub`) do not

@@ -37,9 +37,9 @@ jobs:
         with:
           extra-repositories: 'https://predictiveecology.r-universe.dev/'
           Ncpus: 2
-          # See R-CMD-check.yaml for the rationale (Matrix/nlme/rpart
-          # only have R>=4.7 builds on raw CRAN today).
-          use-public-rspm: true
+          # macOS runner -- `use-public-rspm` is a no-op anyway, but
+          # set to false to match R-CMD-check.yaml.
+          use-public-rspm: false
 
       # Cache the resolved R user library so transient GitHub-API
       # failures during pak dependency resolution still leave a usable
