@@ -41,12 +41,12 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
   # data.table needs an argument for which column names are kept during join
   cD[, maxAge := max(age), .(pixelGroup)]
-  cD[maxAge <= cutoffForYoungAge, FuelClass := youngAgeName]
+  cD[maxAge <= cutoffForYoungAge, FuelClass := youngAgeTxt]
   cD[, maxAge := NULL]
   cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
 
   # youngAge is better treated as a binary cover variable than continuous measure of biomass
-  cD[FuelClass == youngAgeName, BperClass := 1]
+  cD[FuelClass == youngAgeTxt, BperClass := 1]
 
   # Fix zero age, zero biomass
   classes <- sort(unique(cD$FuelClass))
@@ -109,11 +109,11 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   names(classList) <- classes
   
   # Need to confirm that there was at least 1 youngAge ... sometime there are none e.g., with 9.2.1 plains
-  if (!youngAgeName %in% names(classList)) {
+  if (!youngAgeTxt %in% names(classList)) {
     ya <- as.int(is.na(cc[[1]]) )
     vals <- values(ya, mat = FALSE)
     ya[vals == 1L] <- NA
-    names(ya) <- youngAgeName
+    names(ya) <- youngAgeTxt
     classList <- c(classList, ya)
   }
   return(classList)
