@@ -576,7 +576,7 @@ fireSenseCovariatesCreate <- function(cohortData,
     
     #for (i in names(fuelClasses)) {
     if (youngAgeTxt %in% names(fuelClasses)) {
-      
+
       YA1 <- fuelClasses[[youngAgeTxt]]
       YA2 <- terra::values(LCCras[[youngAgeTxt]])[fuelClasses$pixelID]
       bothYA <- YA1 + YA2

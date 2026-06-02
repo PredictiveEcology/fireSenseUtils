@@ -1,5 +1,5 @@
 ## Tests for utility helper functions: oom, pw, logMinB, paramsSeparate,
-## dtReplaceNAwith0, rbetaBetween, toX1000, yearChar, youngAgeName
+## dtReplaceNAwith0, rbetaBetween, toX1000, yearTxt, youngAgeTxt
 
 library(data.table)
 
@@ -220,12 +220,12 @@ test_that("toX1000: works on a list of multiple data.frames", {
 })
 
 # ---------------------------------------------------------------------------
-# yearChar and youngAgeName (exported constants)
+# yearTxt and youngAgeTxt (exported constants)
 # ---------------------------------------------------------------------------
-test_that("yearChar is the string 'year'", {
-  expect_equal(yearChar, "year")
+test_that("yearTxt is the string 'year'", {
+  expect_equal(yearTxt, "year")
 })
 
-test_that("youngAgeName is the string 'youngAge'", {
-  expect_equal(youngAgeName, "youngAge")
+test_that("youngAgeTxt is the string 'youngAge'", {
+  expect_equal(youngAgeTxt, "youngAge")
 })

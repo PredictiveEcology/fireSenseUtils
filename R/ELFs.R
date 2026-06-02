@@ -129,8 +129,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
   fre <- fre[fre$count > 100, ]
   ecopRseg <- terra::segregate(ecopR)
   if (terra::is.factor(ecopR)) {
-  categories <- terra::cats(ecopR)[[1]]
-  names(ecopRseg) <- categories[match(names(ecopRseg), categories$ID), "ECOPROVINC"]
+    categories <- terra::cats(ecopR)[[1]]
+    names(ecopRseg) <- categories[match(names(ecopRseg), categories$ID), "ECOPROVINC"]
   } else {
     browser() # this means there is a problem --> they need to be named by the 4.3 type name
     categories <- data.frame(names(ecopRseg)) |> setNames(names(ecopR))
@@ -167,25 +167,25 @@ makeELFs <- function(x, desiredBuffer = 20000,
   #                       useCache = useCache)
   ELFsPoly <- NULL
   # if (isTRUE(singleSpatVector)) {
-
-    # ELFs <- makeELFs(destinationPath = "inputs") # recursive if singleSpatVector is TRUE
-    whole <- ELFs$rasWhole$`4.1`
-    whole[whole[] >= 0] <- 1
-    outerbound <- terra::as.polygons(whole)
-
-    allVec <- Map(id = ELFs$rasWhole, nam = names(ELFs$rasWhole), function(id, nam) {
-      a <- id
-      a[a[] == 0] <- NA
-      vec <- terra::as.polygons(a)
-      bb <- try(vec[,"ID"] <- nam)
-      if (is(bb, "try-error")) browser()
-      vec[, "buffer"] <- vec[, nam]
-      vec[,nam] <- NULL
-      vec
-      # terra::plot(vec, col = c("turquoise", "yellow")[vec$`4.1`], alpha = 0.5)
-    })
-    ELFsPoly <- Reduce(rbind, allVec)
-
+  
+  # ELFs <- makeELFs(destinationPath = "inputs") # recursive if singleSpatVector is TRUE
+  whole <- ELFs$rasWhole$`4.1`
+  whole[whole[] >= 0] <- 1
+  outerbound <- terra::as.polygons(whole)
+  
+  allVec <- Map(id = ELFs$rasWhole, nam = names(ELFs$rasWhole), function(id, nam) {
+    a <- id
+    a[a[] == 0] <- NA
+    vec <- terra::as.polygons(a)
+    bb <- try(vec[,"ID"] <- nam)
+    if (is(bb, "try-error")) browser()
+    vec[, "buffer"] <- vec[, nam]
+    vec[,nam] <- NULL
+    vec
+    # terra::plot(vec, col = c("turquoise", "yellow")[vec$`4.1`], alpha = 0.5)
+  })
+  ELFsPoly <- Reduce(rbind, allVec)
+  
   # }
   
   # ELFs2 <- Map(e = ELFs, function(e) {
