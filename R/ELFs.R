@@ -128,8 +128,14 @@ makeELFs <- function(x, desiredBuffer = 20000,
   fre <- terra::freq(ecopR)
   fre <- fre[fre$count > 100, ]
   ecopRseg <- terra::segregate(ecopR)
+  if (terra::is.factor(ecopR)) {
   categories <- terra::cats(ecopR)[[1]]
   names(ecopRseg) <- categories[match(names(ecopRseg), categories$ID), "ECOPROVINC"]
+  } else {
+    browser() # this means there is a problem --> they need to be named by the 4.3 type name
+    categories <- data.frame(names(ecopRseg)) |> setNames(names(ecopR))
+  }
+  
   ord <- order(as.numeric(intersect(categories$ECOPROVINC, fre$value)))
   ecopRseg <- ecopRseg[[names(ecopRseg) %in% fre$value]][[ord]]
 
@@ -589,7 +595,7 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
 #'   \item If the current \code{SpaDES.project::user()} is \code{"emcintir"}, updates
 #'         the Google Drive file at the provided URL with any output files whose names
 #'         contain \code{"ELF"}, caching the update by \code{cacheId(sim)}.
-#'   \item Returns \code{sim$spreadFitPreRun$polygonID}.
+#'   \item Returns \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
 #' }
 #'
 #' Internal `Cache`ing relies on two extra keys:
@@ -623,7 +629,8 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
 #' 
 #'
 #' @return
-#' A vector corresponding to \code{sim$spreadFitPreRun$polygonID}. Currently, no high arctic
+#' A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
+#' Currently, no high arctic
 #' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.)
 #'
 #' @section Side Effects:
@@ -695,7 +702,7 @@ runELFs <- function(
     if (grepl("^all", whatOut[1])){
       .ELFinds <- names(sim$ELFs$rasCentered)  
     } else {
-      .ELFinds <- sim$spreadFitPreRun$polygonID
+      .ELFinds <- sim$spreadFitPreRun[[polygonIDTxt]]
     }
     .ELFinds <- grep(arcticELFs, invert = TRUE, value = TRUE, .ELFinds)  
   } else {

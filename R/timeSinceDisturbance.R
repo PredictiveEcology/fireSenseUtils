@@ -47,7 +47,7 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
     stop("Please provide either firePolys or fireRaster")
   }
 
-  nfLCC <- names(lcc)[!names(lcc) %in% "pixelID"]
+  nfLCC <- names(lcc)[!names(lcc) %in% nonNFColNamesTxt]
   lcc[, sumRows := rowSums(.SD), .SDcols = nfLCC]
   pixToUpdate <- lcc[sumRows > 0]$pixelID
   lcc[, sumRows := NULL]

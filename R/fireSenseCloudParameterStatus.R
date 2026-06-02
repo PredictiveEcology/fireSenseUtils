@@ -51,9 +51,9 @@ fireSenseCloudParametersMap <-
         terra::plot(ELFs)
         terra::plot(oo, add = TRUE, col = rgb(255, 255, 0, alpha = 127, maxColorValue = 255))
         centroids_points <- terra::centroids(oo)
-        keep <- ELFs$buffer %in% 2 & !ELFs$ID %in% centroids_points$polygonID
+        keep <- ELFs$buffer %in% 2 & !ELFs$ID %in% centroids_points[[polygonIDTxt]]
         terra::text(terra::centroids(ELFs[ keep, ]), labels = ELFs$ID[keep], cex = 0.7)
-        terra::text(centroids_points, labels = centroids_points$polygonID, cex = 0.8, col = "blue")
+        terra::text(centroids_points, labels = centroids_points[[polygonIDTxt]], cex = 0.8, col = "blue")
       }
 
     }
