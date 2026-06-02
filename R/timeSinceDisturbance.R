@@ -41,19 +41,19 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
       y = standAgeMap,
       background = year - cutoffForYoungAge - 1,
       field = "YEAR", fun = "max"
-    )
+    ) |> terra::mask(standAgeMap)
     initialTSD <- year - initialTSD
   } else {
     stop("Please provide either firePolys or fireRaster")
   }
 
-  nfLCC <- names(lcc)[!names(lcc) %in% "pixelID"]
-  lcc[, sumRows := rowSums(.SD), .SDcols = nfLCC]
-  pixToUpdate <- lcc[sumRows > 0]$pixelID
+  nfLCC <- names(lcc)[!names(lcc) %in% nonNFColNamesTxt]
+  lcc[, sumRows := rowSums(.SD, na.rm = TRUE), .SDcols = nfLCC]
+  pixToUpdate <- lcc[sumRows > 0]$pixelID |> unique()
   lcc[, sumRows := NULL]
 
-  standAgeVals <- data.table(pixelID = 1:ncell(standAgeMap), age = as.vector(standAgeMap))
-  data.table::setnames(standAgeVals, c("pixelID", "age"))
+  standAgeVals <- data.table(pixelID = 1:ncell(standAgeMap), age = values(standAgeMap, mat = FALSE))
+  # data.table::setnames(standAgeVals, c("pixelID", "age"))
 
   # standAgeVals <- values(standAgeMap, mat = FALSE)
   ## these have no disturbance history but are apparently young

@@ -98,7 +98,7 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   # })
   if (!is.null(landcoverDT)) {
     # find rows that aren't empty i.e. have non-forest landcover
-    landcoverDT[, foo := rowSums(.SD), .SDcols = setdiff(names(landcoverDT), "pixelID")]
+    landcoverDT[, foo := rowSums(.SD, na.rm = TRUE), .SDcols = setdiff(names(landcoverDT), nonNFColNamesTxt)]
     # terra needs protection from zero-length index
     if (nrow(landcoverDT[foo > 0, ]) > 0) {
       classList[landcoverDT[foo > 0]$pixelID] <- 0 # must be 0
@@ -174,3 +174,4 @@ buildCohortBurnHistory <- function(cohortData, pixelGroupMap, firePolys, year) {
   cdLong[, burned := fireRas[pixelIndex]]
   return(cdLong)
 }
+
