@@ -18,11 +18,11 @@ rbetaBetween(n, l, u, m, shape1, shape2 = NULL)
 
 \item{shape1}{non-negative parameter of the Beta distribution.}
 
-\item{shape2}{If provided, passed to \code{\link[stats:rbeta]{stats::rbeta()}}. If not, \code{m} must be.}
+\item{shape2}{If provided, passed to \code{\link[stats:Beta]{stats::rbeta()}}. If not, \code{m} must be.}
 }
 \description{
 Generate random beta variates between 2 values and a mean
 }
 \seealso{
-\link[stats:rbeta]{stats::rbeta}
+\link[stats:Beta]{stats::rbeta}
 }

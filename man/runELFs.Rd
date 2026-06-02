@@ -27,7 +27,8 @@ geometries and fitted SpreadFit parameters and several other
 attributes.}
 }
 \value{
-A vector corresponding to \code{sim$spreadFitPreRun$polygonID}. Currently, no high arctic
+A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
+Currently, no high arctic
 ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.)
 }
 \description{
@@ -50,7 +51,7 @@ wrapping the call in \code{Cache()} so that the run is skipped unless inputs
 \item If the current \code{SpaDES.project::user()} is \code{"emcintir"}, updates
 the Google Drive file at the provided URL with any output files whose names
 contain \code{"ELF"}, caching the update by \code{cacheId(sim)}.
-\item Returns \code{sim$spreadFitPreRun$polygonID}.
+\item Returns \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
 }
 
 Internal \code{Cache}ing relies on two extra keys:

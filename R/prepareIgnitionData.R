@@ -1,6 +1,9 @@
 
 #' Prepare and cache lightning rasters from Google Drive sources
 #'
+#' Lightning data is given by the authors of https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117
+#' It is currently not hosted by the authors. We therefore host it on Google Drive. 
+#' 
 #' @description
 #' Downloads, reads, aggregates, and caches multiple lightning-related rasters
 #' (e.g., daily flashes, flash density, positive CG counts) using
@@ -333,23 +336,23 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
 #'   \item Combines the list to a single `data.table` via [data.table::rbindlist()].
 #'   \item Removes rows for which the sum across all cover-type columns is zero
 #'         (computed as `rowSums(.SD)` over all columns except `ignitions`,
-#'         `yearChar` (from `fireSenseUtils`), `cell`, and the climate variable
+#'         `yearTxt` (from `fireSenseUtils`), `cell`, and the climate variable
 #'         names).
 #'   \item Renames the `cell` column to `pixelID`, coerces `year` to numeric,
 #'         and appends lightning columns by indexing `terra::values(terra::rast(lightningMap))`
 #'         with `pixelID`.
 #'   \item Optionally reorders columns to place `pixelID`, `ignitions`,
-#'         climate columns (i.e., `names(ignitionClimateCoarse)`), and `youngAgeName`
+#'         climate columns (i.e., `names(ignitionClimateCoarse)`), and `youngAgeTxt`
 #'         (if it exists) first.
 #' }
 #'
 #' **Assumptions / Requirements:**
 #' - `fireSenseUtils::stackAndExtract()` must accept arguments `years`, `fuel`, `LCC`,
 #'   `climate`, and `fires`, and return a data.table-like object with at least
-#'   `cell`, `ignitions`, and `year` (or `yearChar`) columns.
-#' - `fireSenseUtils::yearChar` is used as a column name to exclude from cover sums;
+#'   `cell`, `ignitions`, and `year` (or `yearTxt`) columns.
+#' - `fireSenseUtils::yearTxt` is used as a column name to exclude from cover sums;
 #'   ensure it exists/aligns with the data produced by `stackAndExtract()`.
-#' - `youngAgeName` is referenced when establishing column order but is **not**
+#' - `youngAgeTxt` is referenced when establishing column order but is **not**
 #'   defined in this scope; if unavailable, it is silently omitted.
 #' - `pixelID` is assumed to be a valid row index into `lightningMap` raster values.
 #'
@@ -374,9 +377,9 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
 #' @section Potential pitfalls:
 #' - If `pixelID` indexes are not aligned with `lightningMap` cell indices,
 #'   appended lightning values will be incorrect; ensure consistent indexing/resolution.
-#' - If `fireSenseUtils::yearChar` is absent in the returned data, the exclusion in
+#' - If `fireSenseUtils::yearTxt` is absent in the returned data, the exclusion in
 #'   `.SDcols` is harmless, but confirm that the intended year column exists for analysis.
-#' - If `youngAgeName` is not defined, it will be ignored when reordering columns.
+#' - If `youngAgeTxt` is not defined, it will be ignored when reordering columns.
 #'
 #' @examples
 #' \dontrun{
@@ -430,7 +433,7 @@ mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonFore
   ## remove any pixels that are 0 for all classes
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
                                .SDcols = setdiff(names(fireSense_ignitionCovariates),
-                                                 c(names(ignitionClimateCoarse), "cell", "ignitions", fireSenseUtils::yearChar))]
+                                                 c(names(ignitionClimateCoarse), "cell", "ignitions", fireSenseUtils::yearTxt))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
   set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
   
@@ -450,10 +453,10 @@ mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonFore
   
   # ## for random effect
   # if (grepl("xgb", Par$modelAlgorithm) %in% FALSE) {
-  #   # ranEffs <- "fireSenseUtils::yearChar"
+  #   # ranEffs <- "fireSenseUtils::yearTxt"
   #   set(fireSense_ignitionCovariates, NULL, ranEffsLabel, as.character(fireSense_ignitionCovariates$year))
   # }
-  firstCols <- c("pixelID", "ignitions", names(ignitionClimateCoarse), youngAgeName)
+  firstCols <- c("pixelID", "ignitions", names(ignitionClimateCoarse), youngAgeTxt)
   firstCols <- firstCols[firstCols %in% names(fireSense_ignitionCovariates)]
   setcolorder(fireSense_ignitionCovariates, neworder = firstCols)
   
@@ -752,18 +755,3 @@ igOrEscNames <- function(igOrEsc, pre = "fireSense_", post, case = c("lower", "c
 # "ignition" without depending on a function from another package.
 .camelCase <- function(x) sub("^([a-z])", "\\U\\1", x, perl = TRUE)
 
-#' Column name for ignitions
-#'
-#' Utility constant naming the expected ignitions column.
-#'
-#' @format `character(1)` with value `"ignitions"`.
-#' @export
-ignitionsTxt <- "ignitions"
-
-#' Column name for escapes
-#'
-#' Utility constant naming the expected escapes column.
-#'
-#' @format `character(1)` with value `"escapes"`.
-#' @export
-escapesTxt <- "escapes"

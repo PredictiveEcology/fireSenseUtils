@@ -111,6 +111,7 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
                               targetFuelClasses = 5, nonforestLCC, pValue = 0.001) {
 
   ####sort non-forest classes###
+  browser()
   nfData <- landscape[is.na(B)]
   #this will assume there is always missing landcover
   #TODO: review this assumption when everything is NTEMS-ified. Does it matter?
@@ -575,16 +576,16 @@ fireSenseCovariatesCreate <- function(cohortData,
                           omitArgs = c("landcoverDT", "LCCras"))#, "flammableMap"),)
     
     #for (i in names(fuelClasses)) {
-    if (youngAgeName %in% names(fuelClasses)) {
-      
-      YA1 <- fuelClasses[[youngAgeName]]
-      YA2 <- terra::values(LCCras[[youngAgeName]])[fuelClasses$pixelID]
+    if (youngAgeTxt %in% names(fuelClasses)) {
+
+      YA1 <- fuelClasses[[youngAgeTxt]]
+      YA2 <- terra::values(LCCras[[youngAgeTxt]])[fuelClasses$pixelID]
       bothYA <- YA1 + YA2
-      fuelClasses[[youngAgeName]] <- bothYA
+      fuelClasses[[youngAgeTxt]] <- bothYA
     }  else {
-      fuelClasses[[youngAgeName]] <- LCCras[[youngAgeName]]
+      fuelClasses[[youngAgeTxt]] <- LCCras[[youngAgeTxt]]
     }
-    # toKeep <- setdiff(names(LCCras), youngAgeName)
+    # toKeep <- setdiff(names(LCCras), youngAgeTxt)
     # LCCras <- terra::subset(LCCras, toKeep) ## to avoid double-counting
     #}
     

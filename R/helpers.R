@@ -1,21 +1,29 @@
 #' Multiple-parameter versions of logistic functions
 #'
-#' Logistic functions using 2, 3, 4, or 5 parameters.
-#' `logisticAll` provides a wrapper to call any of these.
+#' Logistic functions using 2, 3, 4, or 5 parameters; `logisticAll` dispatches
+#' to one of them based on `length(logisticPars)`.
 #'
-#' @param x TODO: DESCRIPTION NEEDED
+#' The general form is the 5-parameter sigmoid (Richards' curve):
+#' `par1 + (par2 - par1) / (1 + (exp(x) / par3)^(-par4))^par5`.
+#' The 4-, 3-, and 2-parameter variants successively fix the lower asymptote
+#' (`par1`), the inflection-point scale (`par3 = 1`), and the asymmetry
+#' factor (`par5 = 0.5`) to reduce the parameter count.
 #'
-#' @param par TODO: DESCRIPTION NEEDED
+#' @param x Numeric vector. Linear predictor (e.g. `mat %*% covPars`) at which
+#'   to evaluate the logistic.
+#' @param par Numeric vector of logistic parameters whose length matches the
+#'   variant: 2 for `logistic2p`, 3 for `logistic3p`, etc. See
+#'   [logisticParamNames] for the meaning of each position.
+#' @param logisticPars Numeric vector of logistic parameters; its length
+#'   selects which variant `logisticAll` dispatches to.
+#' @param mat Numeric matrix of covariate values, one row per observation.
+#' @param covPars Numeric vector of covariate coefficients (same length as
+#'   `ncol(mat)`); `mat %*% covPars` forms the linear predictor.
+#' @param lowerSpreadProb Numeric scalar in `[0, 1]`. The lower asymptote
+#'   (`par1`) used for the 2- and 3-parameter forms.
 #'
-#' @param logisticPars TODO: DESCRIPTION NEEDED
-#'
-#' @param mat TODO: DESCRIPTION NEEDED
-#'
-#' @param covPars TODO: DESCRIPTION NEEDED
-#'
-#' @param lowerSpreadProb TODO: DESCRIPTION NEEDED
-#'
-#' @return TODO: DESCRIPTION NEEDED
+#' @return Numeric vector of logistic values; same length as `x` (or
+#'   `nrow(mat)` for `logisticAll`).
 #'
 #' @export
 #' @rdname logistic
@@ -29,14 +37,16 @@ logistic5p <- function(x, par) {
   par[1L] + (par[2L] - par[1L]) / (1 + (exp(x) / par[3L])^(-par[4L]))^par[5L]
 }
 
-#' @param par1 DESCRIPTION NEEDED
+#' @param par1 Numeric scalar. Lower asymptote (replaces `par[1]` of the
+#'   4-parameter form).
 #' @export
 #' @rdname logistic
 logistic3p <- function(x, par, par1 = 0.1) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par[3L]
 }
 
-#' @param par4 DESCRIPTION NEEDED
+#' @param par4 Numeric scalar. Asymmetry factor (replaces `par[4]` of the
+#'   4-parameter form).
 #' @export
 #' @rdname logistic
 logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
@@ -79,10 +89,16 @@ logisticParamNames <- list("2p" = c("maxAsymptote", "hillSlope1"),
 
 #' Replace `NA`s in a `data.table` with zeros
 #'
-#' @param DT TODO: DESCRIPTION NEEDED
-#' @param colsToUse TODO: DESCRIPTION NEEDED
+#' Modifies `DT` in place: for each column in `colsToUse`, every `NA` is
+#' overwritten with `0` via [data.table::set()]. Useful when a covariate
+#' table is later passed to a model that does not tolerate `NA`s.
 #'
-#' @return TODO: DESCRIPTION NEEDED
+#' @param DT A `data.table` to be modified by reference.
+#' @param colsToUse Character vector of column names in `DT` to process.
+#'   `NULL` (default) means every column.
+#'
+#' @return `DT`, invisibly modified by reference; columns are unchanged
+#'   where no `NA`s were present.
 #'
 #' @export
 #' @importFrom data.table set

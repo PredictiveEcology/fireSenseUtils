@@ -19,26 +19,42 @@ logistic2p(x, par, par1 = 0.1, par4 = 0.5)
 logisticAll(logisticPars, mat, covPars, lowerSpreadProb)
 }
 \arguments{
-\item{x}{TODO: DESCRIPTION NEEDED}
+\item{x}{Numeric vector. Linear predictor (e.g. \code{mat \%*\% covPars}) at which
+to evaluate the logistic.}
 
-\item{par}{TODO: DESCRIPTION NEEDED}
+\item{par}{Numeric vector of logistic parameters whose length matches the
+variant: 2 for \code{logistic2p}, 3 for \code{logistic3p}, etc. See
+\link{logisticParamNames} for the meaning of each position.}
 
-\item{par1}{DESCRIPTION NEEDED}
+\item{par1}{Numeric scalar. Lower asymptote (replaces \code{par[1]} of the
+4-parameter form).}
 
-\item{par4}{DESCRIPTION NEEDED}
+\item{par4}{Numeric scalar. Asymmetry factor (replaces \code{par[4]} of the
+4-parameter form).}
 
-\item{logisticPars}{TODO: DESCRIPTION NEEDED}
+\item{logisticPars}{Numeric vector of logistic parameters; its length
+selects which variant \code{logisticAll} dispatches to.}
 
-\item{mat}{TODO: DESCRIPTION NEEDED}
+\item{mat}{Numeric matrix of covariate values, one row per observation.}
 
-\item{covPars}{TODO: DESCRIPTION NEEDED}
+\item{covPars}{Numeric vector of covariate coefficients (same length as
+\code{ncol(mat)}); \code{mat \%*\% covPars} forms the linear predictor.}
 
-\item{lowerSpreadProb}{TODO: DESCRIPTION NEEDED}
+\item{lowerSpreadProb}{Numeric scalar in \verb{[0, 1]}. The lower asymptote
+(\code{par1}) used for the 2- and 3-parameter forms.}
 }
 \value{
-TODO: DESCRIPTION NEEDED
+Numeric vector of logistic values; same length as \code{x} (or
+\code{nrow(mat)} for \code{logisticAll}).
 }
 \description{
-Logistic functions using 2, 3, 4, or 5 parameters.
-\code{logisticAll} provides a wrapper to call any of these.
+Logistic functions using 2, 3, 4, or 5 parameters; \code{logisticAll} dispatches
+to one of them based on \code{length(logisticPars)}.
+}
+\details{
+The general form is the 5-parameter sigmoid (Richards' curve):
+\code{par1 + (par2 - par1) / (1 + (exp(x) / par3)^(-par4))^par5}.
+The 4-, 3-, and 2-parameter variants successively fix the lower asymptote
+(\code{par1}), the inflection-point scale (\code{par3 = 1}), and the asymmetry
+factor (\code{par5 = 0.5}) to reduce the parameter count.
 }

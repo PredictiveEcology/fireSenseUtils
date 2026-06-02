@@ -37,12 +37,51 @@ jobs:
         with:
           extra-repositories: 'https://predictiveecology.r-universe.dev/'
           Ncpus: 2
+          # macOS runner -- `use-public-rspm` is a no-op anyway, but
+          # set to false to match R-CMD-check.yaml.
           use-public-rspm: false
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
+      # Cache the resolved R user library so transient GitHub-API
+      # failures during pak dependency resolution still leave a usable
+      # library for the coverage run. See R-CMD-check.yaml for rationale.
+      - name: Restore R library cache
+        uses: actions/cache@v4
         with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-${{ runner.arch }}-coverage-deps-${{ hashFiles('DESCRIPTION') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-coverage-deps-
+
+      # `continue-on-error` so a transient pak failure does not abort the
+      # job while the restored cache still has a usable library.
+      - id: deps
+        continue-on-error: true
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          # See R-CMD-check.yaml for the rationale - `dependencies: hard`
+          # avoids a pak Matrix-metadata bug; we re-add the Suggests we
+          # need (here, only covr is strictly required for coverage, but
+          # the Suggests are mirrored so tests under coverage have all
+          # the packages they would in R CMD check).
+          dependencies: '"hard"'
           extra-packages: |
             any::covr
+            any::knitr
+            any::rmarkdown
+            any::testthat
+            any::archive
+            any::cowplot
+            any::dismo
+            any::dplyr
+            any::PtProcess
+            any::raster
+            any::rasterVis
+            any::RColorBrewer
+            any::Require
+            any::remotes
+            any::scfmutils
+            any::spatstat
+            any::spelling
             NLMR=?ignore
 
       - name: Install additional package dependencies

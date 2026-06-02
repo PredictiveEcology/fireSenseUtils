@@ -17,27 +17,38 @@
 )
 }
 \arguments{
-\item{params}{DESCRIPTION NEEDED}
+\item{params}{Numeric vector of parameter values supplied by the optimizer.
+Includes both covariate coefficients and knot values.}
 
-\item{formula}{DESCRIPTION NEEDED}
+\item{formula}{Model formula (or string coercible by \code{\link[stats:formula]{stats::as.formula()}})
+containing one or more \code{pw()} calls.}
 
-\item{linkinv}{DESCRIPTION NEEDED}
+\item{linkinv}{Function. Inverse link function.}
 
-\item{nll}{DESCRIPTION NEEDED}
+\item{nll}{Quoted R expression evaluating to the negative log-likelihood
+when evaluated in \code{mod_env}.}
 
-\item{sm}{DESCRIPTION NEEDED}
+\item{sm}{Square numeric matrix. Parameter scaling matrix.}
 
-\item{updateKnotExpr}{DESCRIPTION NEEDED}
+\item{updateKnotExpr}{Quoted R expression that copies the latest knot
+values from \code{params} into the variables in \code{mod_env} referenced by
+\code{formula}.}
 
-\item{nx}{DESCRIPTION NEEDED}
+\item{nx}{Integer. Number of covariate parameters.}
 
-\item{mod_env}{the environment containing params - can be a data.frame}
+\item{mod_env}{An environment (or data-frame) containing the covariates
+and the variables updated by \code{updateKnotExpr}.}
 
-\item{offset}{DESCRIPTION NEEDED}
+\item{offset}{Numeric vector. Model offset added to the linear predictor.}
 }
 \value{
-DESCRIPTION NEEDED
+Numeric scalar: the negative log-likelihood, or \code{1e20} if the
+inverse-link produces negative, \code{NA}, or infinite values.
 }
 \description{
-Function to pass to the optimizer - Piece-wise version
+Internal callback for the optimizer when the ignition formula contains
+\code{\link[=pw]{pw()}} terms. Differs from \link{.objFunIgnition} in that the model matrix is
+rebuilt at every call (via \code{\link[stats:model.matrix]{stats::model.matrix()}}) after running
+\code{updateKnotExpr}, which updates the knot values in \code{mod_env}. This lets
+the optimizer jointly fit covariate coefficients and knot positions.
 }

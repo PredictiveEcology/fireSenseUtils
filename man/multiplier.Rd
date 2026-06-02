@@ -2,17 +2,28 @@
 % Please edit documentation in R/makeBufferedFires.R
 \name{multiplier}
 \alias{multiplier}
-\title{multiplier}
+\title{Buffer-size multiplier for fire footprints}
 \usage{
 multiplier(size, minSize = 1000, baseMultiplier = 5)
 }
 \arguments{
-\item{size}{TODO: DESCRIPTION NEEDED}
+\item{size}{Numeric vector. Fire sizes in pixels.}
 
-\item{minSize}{TODO: DESCRIPTION NEEDED}
+\item{minSize}{Numeric scalar. Absolute floor on the returned size; the
+buffer (plus burned pixels) is never smaller than this. Default \code{1000}.}
 
-\item{baseMultiplier}{TODO: DESCRIPTION NEEDED}
+\item{baseMultiplier}{Numeric scalar. Asymptotic multiplier for large
+fires (as \code{size} grows, the effective multiplier tends to
+\code{baseMultiplier}). Default \code{5}.}
+}
+\value{
+Integer vector the same length as \code{size}, giving the target
+buffered area in pixels for each fire.
 }
 \description{
-TODO: DESCRIPTION NEEDED
+Returns a per-fire buffer target (in pixels) by scaling \code{size} so that
+small fires get proportionally larger buffers and large fires plateau
+at \code{baseMultiplier * size}. The result is then clamped from below by
+\code{minSize}. Used when generating non-burned "control" pixels around
+historical fire perimeters.
 }

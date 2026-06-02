@@ -32,14 +32,14 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
                                minSize = 5000, verb = 1, cores = 1) {
   maxCores <- parallelly::availableCores(constraints = "connections", omit = 1)
   cores <- min(min(length(years), cores), maxCores)
-  if (cores > 1) {
-    out <- parallel::mclapply(years,
+  fireBufferListDT <- if (cores > 1) {
+    parallel::mclapply(years,
       FUN = makeFireIDs, fireRaster = fireRaster,
       flammableRTM = flammableRTM, bufferForFireRaster = bufferForFireRaster,
       areaMultiplier = areaMultiplier, minSize = minSize, verb = verb
     )
   } else {
-    fireBufferListDT <- lapply(years, makeFireIDs,
+    lapply(years, makeFireIDs,
       fireRaster = fireRaster, flammableRTM = flammableRTM,
       bufferForFireRaster = bufferForFireRaster,
       areaMultiplier = areaMultiplier, minSize = minSize, verb = verb

@@ -7,8 +7,12 @@
 getFirePolygons(url, years, useInnerCache = FALSE, ...)
 }
 \arguments{
-\item{url}{Character (or \code{missing}). URL to the fire polygons archive.
-When missing, defaults to the current NBAC fire polygons archive URL.}
+\item{url}{Character (or \code{missing}). URL to the fire polygons archive
+(typically an NBAC \verb{*_shp.zip} on the CFS server). When \code{missing},
+\code{\link[=latestNBACUrl]{latestNBACUrl()}} is queried so the newest NBAC release available on
+the CFS download index is used; this means re-running the same code
+later may pick up a newer dataset. Pass an explicit URL to pin to a
+specific release when reproducibility matters.}
 
 \item{years}{years to filter fire polygons by}
 
@@ -21,4 +25,7 @@ list of fire polygons by year
 }
 \description{
 Download and prepare fire data from National Fire Database
+}
+\seealso{
+\code{\link[=latestNBACUrl]{latestNBACUrl()}} for the discovery helper used when \code{url} is missing.
 }

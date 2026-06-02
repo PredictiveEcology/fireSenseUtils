@@ -7,23 +7,35 @@
 objNlminb(x, objective, lower, upper, control, hvPW, ...)
 }
 \arguments{
-\item{x}{DESCRIPTION NEEDED}
+\item{x}{Numeric vector. Starting parameter values for the optimizer.}
 
-\item{objective}{objective function}
+\item{objective}{Function. Objective function to minimize, typically
+\code{.objFunIgnition} or \code{.objFunIgnitionPW}.}
 
-\item{lower}{lower bounds on coefficients}
+\item{lower}{Numeric vector. Lower bounds on each parameter, same length
+as \code{x}.}
 
-\item{upper}{upper bounds on coefficients}
+\item{upper}{Numeric vector. Upper bounds on each parameter, same length
+as \code{x}.}
 
-\item{control}{DESCRIPTION NEEDED}
+\item{control}{List of control options passed to \code{\link[stats:nlminb]{stats::nlminb()}} (or
+\code{\link[stats:optim]{stats::optim()}} on fallback, with \code{iter.max} and \code{eval.max} dropped).}
 
-\item{hvPW}{logical indicating whether the formula is piece-wise #IE added}
+\item{hvPW}{Logical. If \code{TRUE}, dispatches to the piecewise objective
+(formula is rebuilt per call); if \code{FALSE}, dispatches to the
+non-piecewise objective (pre-built \code{mm} is supplied).}
 
-\item{...}{additional arguments passed to objective function}
+\item{...}{Additional arguments passed through to \code{objective}. Expected
+names are: \code{linkinv}, \code{nll}, \code{sm}, \code{nx}, \code{mm}, \code{updateKnotExpr},
+\code{mod_env}, \code{offset}, \code{formula}.}
 }
 \value{
-DESCRIPTION NEEDED
+The list returned by \code{\link[stats:nlminb]{stats::nlminb()}} on success, or the result
+of \code{\link[stats:optim]{stats::optim()}} (with \code{value} renamed to \code{objective}) on fallback.
 }
 \description{
-Wrapper around \code{stats::nlminb}
+Wrapper around \code{\link[stats:nlminb]{stats::nlminb()}} that calls one of the ignition objective
+functions (\code{.objFunIgnition} or \code{.objFunIgnitionPW}, dispatched by \code{hvPW})
+and falls back to \code{\link[stats:optim]{stats::optim()}} (L-BFGS-B) when \code{nlminb} reports a
+"false convergence" or similar non-convergence code (codes 7-14).
 }

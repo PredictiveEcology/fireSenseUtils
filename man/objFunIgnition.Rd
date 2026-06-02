@@ -7,25 +7,38 @@
 .objFunIgnition(params, linkinv, nll, sm, nx, mm, mod_env, offset)
 }
 \arguments{
-\item{params}{TODO: DESCRIPTION NEEDED}
+\item{params}{Numeric vector of parameter values supplied by the optimizer.}
 
-\item{linkinv}{the link function}
+\item{linkinv}{Function. Inverse link function (e.g. \code{\link[stats:Logistic]{stats::plogis()}}
+for a logit link).}
 
-\item{nll}{the log-likelihood function}
+\item{nll}{Quoted/unevaluated R expression that computes the negative
+log-likelihood when evaluated in \code{mod_env}.}
 
-\item{sm}{scaling matrix}
+\item{sm}{Square numeric matrix. Parameter scaling matrix applied as
+\code{params \%*\% sm} before the linear predictor is formed.}
 
-\item{nx}{number of covariates}
+\item{nx}{Integer. Number of covariate parameters (i.e. number of
+columns in \code{mm}).}
 
-\item{mm}{model matrix containing data}
+\item{mm}{Numeric model matrix containing covariate values.}
 
-\item{mod_env}{the environment containing parameters - can be a data.frame}
+\item{mod_env}{An environment (or data-frame coerced via \code{\link[base:list2env]{base::list2env()}})
+containing the variables referenced by \code{nll}.}
 
-\item{offset}{TODO: DESCRIPTION NEEDED}
+\item{offset}{Numeric vector the same length as \code{nrow(mm)}. Model offset
+added to the linear predictor.}
 }
 \value{
-TODO: DESCRIPTION NEEDED
+Numeric scalar: the negative log-likelihood, or \code{1e20} if the
+inverse-link produces non-finite or non-positive values.
 }
 \description{
-Objective function when no piecewise model is used
+Internal callback passed to the optimizer (e.g. \code{\link[stats:nlminb]{stats::nlminb()}}) when
+the ignition formula contains no \code{\link[=pw]{pw()}} terms. Computes the linear
+predictor \code{mm \%*\% params + offset}, applies \code{linkinv}, and returns the
+negative log-likelihood evaluated in \code{mod_env}. A large sentinel
+(\code{1e20}) is returned whenever the link inverse produces invalid values
+(non-positive, \code{NA}, infinite, or empty), preventing the optimizer from
+wandering into infeasible regions.
 }

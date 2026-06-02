@@ -83,13 +83,13 @@ Additional \code{MoreArgs} include \code{climate = ignitionClimateCoarse} and
 \item Combines the list to a single \code{data.table} via \code{\link[data.table:rbindlist]{data.table::rbindlist()}}.
 \item Removes rows for which the sum across all cover-type columns is zero
 (computed as \code{rowSums(.SD)} over all columns except \code{ignitions},
-\code{yearChar} (from \code{fireSenseUtils}), \code{cell}, and the climate variable
+\code{yearTxt} (from \code{fireSenseUtils}), \code{cell}, and the climate variable
 names).
 \item Renames the \code{cell} column to \code{pixelID}, coerces \code{year} to numeric,
 and appends lightning columns by indexing \code{terra::values(terra::rast(lightningMap))}
 with \code{pixelID}.
 \item Optionally reorders columns to place \code{pixelID}, \code{ignitions},
-climate columns (i.e., \code{names(ignitionClimateCoarse)}), and \code{youngAgeName}
+climate columns (i.e., \code{names(ignitionClimateCoarse)}), and \code{youngAgeTxt}
 (if it exists) first.
 }
 
@@ -97,10 +97,10 @@ climate columns (i.e., \code{names(ignitionClimateCoarse)}), and \code{youngAgeN
 \itemize{
 \item \code{fireSenseUtils::stackAndExtract()} must accept arguments \code{years}, \code{fuel}, \code{LCC},
 \code{climate}, and \code{fires}, and return a data.table-like object with at least
-\code{cell}, \code{ignitions}, and \code{year} (or \code{yearChar}) columns.
-\item \code{fireSenseUtils::yearChar} is used as a column name to exclude from cover sums;
+\code{cell}, \code{ignitions}, and \code{year} (or \code{yearTxt}) columns.
+\item \code{fireSenseUtils::yearTxt} is used as a column name to exclude from cover sums;
 ensure it exists/aligns with the data produced by \code{stackAndExtract()}.
-\item \code{youngAgeName} is referenced when establishing column order but is \strong{not}
+\item \code{youngAgeTxt} is referenced when establishing column order but is \strong{not}
 defined in this scope; if unavailable, it is silently omitted.
 \item \code{pixelID} is assumed to be a valid row index into \code{lightningMap} raster values.
 }
@@ -118,9 +118,9 @@ the salient identity of those omitted objects to avoid cache collisions.
 \itemize{
 \item If \code{pixelID} indexes are not aligned with \code{lightningMap} cell indices,
 appended lightning values will be incorrect; ensure consistent indexing/resolution.
-\item If \code{fireSenseUtils::yearChar} is absent in the returned data, the exclusion in
+\item If \code{fireSenseUtils::yearTxt} is absent in the returned data, the exclusion in
 \code{.SDcols} is harmless, but confirm that the intended year column exists for analysis.
-\item If \code{youngAgeName} is not defined, it will be ignored when reordering columns.
+\item If \code{youngAgeTxt} is not defined, it will be ignored when reordering columns.
 }
 }
 

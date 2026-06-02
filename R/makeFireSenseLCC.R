@@ -88,16 +88,19 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   #    - Crops to the extent of to
   #    - Masks to the maskTo polygon(s)
   message("Preparing base NTEMS LCC data...")
+  cp <- capture.output(opts <- terraOptions())
+  optsNow <- list(memmax = 4, todisk = TRUE)
+  newOpts <- do.call(terraOptions, optsNow)
+  on.exit(do.call(terraOptions, opts[names(optsNow)]))
 
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
-
-  # if (exists("aaaa", envir = .GlobalEnv)) browser()
   rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
                                      disturbedCode = 240, # Optional: specify disturbed code if needed
                                      overwrite = overwrite,
                                      destinationPath = destinationPath,
                                      cropTo = to,
+                                     writeTo = writeTo,
                                      maskTo = maskToArg)
   # 2. Determine the dominant *flammable* LCC code at the target resolution
   #    - Mask non-flammable codes to NA in the source resolution LCC
@@ -105,37 +108,97 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   #      the most frequent flammable LCC code among the source pixels
   #      contributing to each target pixel.
   message("Calculating dominant flammable LCC at target resolution...")
-  allFlam <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(NA, length(nonflammableLCC))), ncol = 2)) |>
-    terra::project(y = to, method = "mode")
-
-  # 3. Calculate the proportion of *flammable* cover at the target resolution
-  #    - Create a binary raster at source resolution: 1 = flammable, 0 = non-flammable
-  #    - Project this binary raster to the target resolution using 'average'
-  #      aggregation. The result represents the proportion of flammable source
-  #      pixels within each target pixel.
-  message("Calculating proportion of flammable cover...")
-  # Create binary raster: 0 where LCC is non-flammable, keep original LCC otherwise
-  nonFlamMap <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(0, length(nonflammableLCC))), ncol = 2))
-
-  # Convert remaining LCC codes (flammable ones) to 1
-  allVals <- freq(nonFlamMap)$value
-  allVals <- setdiff(allVals, 0)
-  # not memory safe:
-  # nonFlamMap[nonFlamMap > 0] <- 1 # Now 1 = flammable, 0 = non-flammable
-  if (length(allVals) > 1)
-    nonFlamMap <- terra::subst(nonFlamMap, from = allVals, to = 1L)
-
-  # Project using average to get proportion of flammable pixels
-  flammableProp <- terra::project(nonFlamMap, to, method = "average")
-
-  # 4. Apply flammability threshold
-  #    - Where the proportion of flammable cover is less than the threshold,
-  #      set the LCC value in the result raster ('allFlam') to 0 (non-flammable).
-  message("Applying flammability threshold...")
-  # not memory safe
-  allFlam[flammableProp < flammabilityThreshold] <- 0
-
-  # 5. Optionally write the result to disk
+  if (FALSE) {
+    
+    # Eliot's commentary: As the new section below, the "mode" may artificially prefer NA
+    #   and this is WAYYYY too slow on a large SpatRaster
+    allFlam <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(NA, length(nonflammableLCC))), ncol = 2)) |>
+      terra::project(y = to, method = "mode")
+    
+    # 3. Calculate the proportion of *flammable* cover at the target resolution
+    #    - Create a binary raster at source resolution: 1 = flammable, 0 = non-flammable
+    #    - Project this binary raster to the target resolution using 'average'
+    #      aggregation. The result represents the proportion of flammable source
+    #      pixels within each target pixel.
+    message("Calculating proportion of flammable cover...")
+    # Create binary raster: 0 where LCC is non-flammable, keep original LCC otherwise
+    nonFlamMap <- terra::classify(rstLCC, matrix(c(nonflammableLCC, rep(0, length(nonflammableLCC))), ncol = 2))
+    
+    # Convert remaining LCC codes (flammable ones) to 1
+    allVals <- freq(nonFlamMap)$value
+    allVals <- setdiff(allVals, 0)
+    # not memory safe:
+    # nonFlamMap[nonFlamMap > 0] <- 1 # Now 1 = flammable, 0 = non-flammable
+    if (length(allVals) > 1)
+      nonFlamMap <- terra::subst(nonFlamMap, from = allVals, to = 1L)
+    
+    # Project using average to get proportion of flammable pixels
+    flammableProp <- terra::project(nonFlamMap, to, method = "average")
+    
+    # 4. Apply flammability threshold
+    #    - Where the proportion of flammable cover is less than the threshold,
+    #      set the LCC value in the result raster ('allFlam') to 0 (non-flammable).
+    message("Applying flammability threshold...")
+    # not memory safe
+    allFlam[flammableProp < flammabilityThreshold] <- 0
+    
+    # 5. Optionally write the result to disk
+  } else {
+    # Eliot rewrite with Claude May 22, 2026
+    
+    # --- dominant flammable LCC at target res (mode) ---
+    allFlam <- terra::classify(
+      rstLCC,
+      rcl = cbind(nonflammableLCC, NA),
+      filename = tempfile(fileext = ".tif"),
+      wopt = list(datatype = "INT2S")
+    ) 
+    fact <- max(1L, floor((res(to)[1] / res(allFlam)[1]) * 0.1))
+    # 1. modal of real classes, NAs dropped -> dominant flammable class per block
+    aggClass <- terra::aggregate(
+      allFlam,
+      fact = fact,
+      fun  = "modal",
+      na.rm = TRUE,
+      filename = tempfile(fileext = ".tif"),
+      wopt = list(datatype = "INT2S")
+    )
+    # # 2. fraction of NA per block: make a 1-where-NA raster, mean it
+    # naFrac <- terra::aggregate(
+    #   terra::ifel(is.na(allFlam), 1, 0),
+    #   fact = fact,
+    #   fun  = "mean",
+    #   na.rm = FALSE,                 # no NAs in this 0/1 layer, so safe
+    #   filename = tempfile(fileext = ".tif")
+    # )
+    # 
+    # # 3. NA wins only when it is a strict majority; else keep the modal class
+    # aggFinal <- terra::ifel(
+    #   naFrac > 0.5,
+    #   NA,
+    #   aggClass,
+    #   filename = tempfile(fileext = ".tif"),
+    #   wopt = list(datatype = "INT2S")
+    # )
+    # 
+    allFlam <- terra::project(aggClass, y = to, method = "mode")
+    levels(allFlam) <- terra::levels(rstLCC)
+    
+    # --- proportion flammable at target res (average of binary) ---
+    flamBinary <- terra::classify(
+      rstLCC,
+      rcl = cbind(nonflammableLCC, 0),
+      others = 1,
+      filename = tempfile(fileext = ".tif"),
+      wopt = list(datatype = "INT1U")
+    )
+    flammableProp <- terra::project(flamBinary, y = to, method = "average")
+    
+    # --- threshold (streamed, not in-memory) ---
+    allFlam <- terra::ifel(flammableProp < flammabilityThreshold, 0, allFlam)
+  }
+  flammableProp <- terra::ifel(is.na(allFlam), NA, flammableProp)
+  
   if (!is.null(writeTo)) {
     outPath <- file.path(destinationPath, writeTo)
     propFlamPath <- .suffix(outPath, "_propFlam")
@@ -144,7 +207,7 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
     allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = overwrite)
     flammableProp <- writeRaster(flammableProp, filename = propFlamPath, overwrite = TRUE)
   }
-
+  
   output <- list("lcc" = allFlam, "flammableProp" = flammableProp)
 
   return(output)

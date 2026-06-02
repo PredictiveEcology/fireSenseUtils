@@ -34,6 +34,9 @@ hashes of the Google Drive files, so cached results are invalidated whenever
 either local parameters or upstream files change.
 }
 \details{
+Lightning data is given by the authors of https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117
+It is currently not hosted by the authors. We therefore host it on Google Drive.
+
 The function maintains an internal mapping of Google Drive file IDs for
 four lightning products:
 \itemize{

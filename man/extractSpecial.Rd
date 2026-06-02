@@ -7,13 +7,17 @@
 extractSpecial(v, k)
 }
 \arguments{
-\item{v}{DESCRIPTION NEEDED}
+\item{v}{The variable symbol or expression appearing inside \code{pw()}.}
 
-\item{k}{DESCRIPTION NEEDED}
+\item{k}{The knot value or symbol; \strong{must} be supplied.}
 }
 \value{
-DESCRIPTION NEEDED
+A list with elements \code{variable} (character, or \code{AsIs} expression)
+and \code{knot} (character form of \code{k}). Errors if \code{k} is missing.
 }
 \description{
-Extract the elements of the special terms, i.e. the variable and the knot value
+Used by the ignition formula machinery to parse a \code{pw(v, k)} term and
+return its components without evaluating them. The variable and knot
+names are returned as character strings (the captured symbols), or kept
+as \code{AsIs} if \code{v} was wrapped with \code{I()}.
 }

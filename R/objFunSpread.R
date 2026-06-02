@@ -26,9 +26,16 @@ utils::globalVariables(c(
 #'   (if it is provided as a class `formula`, then it invariably will have an
 #'   enormous amount of data hidden in the formula environment; this is bad for [DEoptim::DEoptim])
 #'
-#' @param historicalFires TODO: DESCRIPTION NEEDED
+#' @param historicalFires A named list of `data.frame`s (one per year, names
+#'   matching those of `annualDTx1000`), each with columns `cells` (pixel
+#'   indices of ignitions) and `size` (fire size in pixels). The observed
+#'   fire record against which the simulation is compared.
 #'
-#' @param fireBufferedListDT TODO: DESCRIPTION NEEDED
+#' @param fireBufferedListDT A named list of `data.table`s (one per year,
+#'   names matching `annualDTx1000`), each with columns `pixelID`, `buffer`
+#'   (`1` if the pixel is inside a buffered fire footprint, `0` otherwise),
+#'   and `ids` (a unique identifier per fire). Restricts the set of pixels
+#'   used when fitting and scoring spread.
 #'
 #' @param covMinMax This is a 2 row by multiple column data.frame indicating
 #'   the minimum and maximum values of the original covariate data values.
@@ -39,7 +46,9 @@ utils::globalVariables(c(
 #' @param maxFireSpread A value for `spreadProb` that is considered impossible to go above.
 #'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
 #'
-#' @param minFireSize TODO: DESCRIPTION NEEDED
+#' @param minFireSize Integer. Minimum fire size (in pixels) to include when
+#'   scoring simulated against historical fires; fires smaller than this are
+#'   filtered out of the comparison. Default `1`.
 #'
 #' @template mutuallyExclusive
 #'

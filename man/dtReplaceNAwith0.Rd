@@ -7,13 +7,17 @@
 dtReplaceNAwith0(DT, colsToUse = NULL)
 }
 \arguments{
-\item{DT}{TODO: DESCRIPTION NEEDED}
+\item{DT}{A \code{data.table} to be modified by reference.}
 
-\item{colsToUse}{TODO: DESCRIPTION NEEDED}
+\item{colsToUse}{Character vector of column names in \code{DT} to process.
+\code{NULL} (default) means every column.}
 }
 \value{
-TODO: DESCRIPTION NEEDED
+\code{DT}, invisibly modified by reference; columns are unchanged
+where no \code{NA}s were present.
 }
 \description{
-Replace \code{NA}s in a \code{data.table} with zeros
+Modifies \code{DT} in place: for each column in \code{colsToUse}, every \code{NA} is
+overwritten with \code{0} via \code{\link[data.table:assign]{data.table::set()}}. Useful when a covariate
+table is later passed to a model that does not tolerate \code{NA}s.
 }
