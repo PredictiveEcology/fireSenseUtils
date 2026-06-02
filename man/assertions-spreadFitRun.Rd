@@ -25,7 +25,7 @@ is expected to contain the data object named \code{"fireAttributesFireSense_Spre
 \item{attribs}{Character. Name of the data object being checked, included
 in error messages so the caller can identify which input failed.}
 
-\item{fml}{A model formula passed through to \code{\link[stats:is.empty.model]{stats::is.empty.model()}}.}
+\item{fml}{A model formula passed through to \code{\link[stats:is.empty]{stats::is.empty.model()}}.}
 }
 \value{
 A list with two elements: \code{loci} (deduplicated \code{cells}) and

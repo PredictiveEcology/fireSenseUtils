@@ -18,6 +18,6 @@ where no \code{NA}s were present.
 }
 \description{
 Modifies \code{DT} in place: for each column in \code{colsToUse}, every \code{NA} is
-overwritten with \code{0} via \code{\link[data.table:set]{data.table::set()}}. Useful when a covariate
+overwritten with \code{0} via \code{\link[data.table:assign]{data.table::set()}}. Useful when a covariate
 table is later passed to a model that does not tolerate \code{NA}s.
 }

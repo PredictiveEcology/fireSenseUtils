@@ -16,7 +16,7 @@
 (currently \code{"polygonID"}).
 \item \code{nonNFColNamesTxt}: \code{character} vector of bookkeeping column names
 that are \emph{not} non-forest landcover classes (currently \code{"pixelID"}
-and \code{polygonIDTxt}); used with \code{\link[base:setdiff]{base::setdiff()}} to select the
+and \code{polygonIDTxt}); used with \code{\link[base:sets]{base::setdiff()}} to select the
 non-forest landcover columns when summing/aggregating across rows
 (see \code{\link[=makeTSD]{makeTSD()}}).
 \item \code{yearTxt}: \code{character(1)}. Token used as a year-column name or as a

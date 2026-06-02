@@ -1,6 +1,9 @@
 
 #' Prepare and cache lightning rasters from Google Drive sources
 #'
+#' Lightning data is given by the authors of https://www.tandfonline.com/doi/full/10.1080/07055900.2020.1845117
+#' It is currently not hosted by the authors. We therefore host it on Google Drive. 
+#' 
 #' @description
 #' Downloads, reads, aggregates, and caches multiple lightning-related rasters
 #' (e.g., daily flashes, flash density, positive CG counts) using

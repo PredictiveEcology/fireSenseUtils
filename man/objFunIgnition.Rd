@@ -9,7 +9,7 @@
 \arguments{
 \item{params}{Numeric vector of parameter values supplied by the optimizer.}
 
-\item{linkinv}{Function. Inverse link function (e.g. \code{\link[stats:plogis]{stats::plogis()}}
+\item{linkinv}{Function. Inverse link function (e.g. \code{\link[stats:Logistic]{stats::plogis()}}
 for a logit link).}
 
 \item{nll}{Quoted/unevaluated R expression that computes the negative

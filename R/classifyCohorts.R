@@ -96,6 +96,8 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   # 
   # classList <- rast(classList)
   # })
+  browser()
+  
   if (!is.null(landcoverDT)) {
     # find rows that aren't empty i.e. have non-forest landcover
     landcoverDT[, foo := rowSums(.SD, na.rm = TRUE), .SDcols = setdiff(names(landcoverDT), nonNFColNamesTxt)]

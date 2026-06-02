@@ -111,6 +111,7 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
                               targetFuelClasses = 5, nonforestLCC, pValue = 0.001) {
 
   ####sort non-forest classes###
+  browser()
   nfData <- landscape[is.na(B)]
   #this will assume there is always missing landcover
   #TODO: review this assumption when everything is NTEMS-ified. Does it matter?

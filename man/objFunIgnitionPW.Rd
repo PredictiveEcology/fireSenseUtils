@@ -20,7 +20,7 @@
 \item{params}{Numeric vector of parameter values supplied by the optimizer.
 Includes both covariate coefficients and knot values.}
 
-\item{formula}{Model formula (or string coercible by \code{\link[stats:as.formula]{stats::as.formula()}})
+\item{formula}{Model formula (or string coercible by \code{\link[stats:formula]{stats::as.formula()}})
 containing one or more \code{pw()} calls.}
 
 \item{linkinv}{Function. Inverse link function.}

@@ -95,8 +95,6 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
 
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
-
-  # if (exists("aaaa", envir = .GlobalEnv)) browser()
   rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
                                      disturbedCode = 240, # Optional: specify disturbed code if needed
                                      overwrite = overwrite,
