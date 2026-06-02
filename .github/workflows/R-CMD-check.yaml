@@ -60,7 +60,32 @@ jobs:
         with:
           Ncpus: 2
           r-version: ${{ matrix.config.r }}
+          # `scfmutils` (a Suggests we re-add below) is only on
+          # r-universe, not CRAN, so pak can't resolve `any::scfmutils`
+          # without this. Matches what `test-coverage.yaml` already sets.
+          extra-repositories: 'https://predictiveecology.r-universe.dev/'
+          # PPM is intentionally off: its Linux binaries are compiled
+          # against a specific libgdal that doesn't match the one
+          # `install-spatial-deps` puts on the runner, so `terra` (used
+          # by scfmutils, LandR, etc.) fails to load with
+          # `libgdal.so.34: cannot open shared object file`. Falling
+          # back to source builds keeps the ABI in sync.
           use-public-rspm: false
+
+      # Cache the resolved R user library so transient GitHub-API failures
+      # during pak dependency resolution (`Cannot query GitHub`) do not
+      # block the job - the previously cached library still satisfies
+      # `R CMD check`. The primary key invalidates whenever DESCRIPTION
+      # changes; the restore-key falls back to any prior cache for the
+      # same OS+R combination so an unrelated DESCRIPTION edit still
+      # benefits from a warm library.
+      - name: Restore R library cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.R_LIBS_USER }}
+          key: ${{ runner.os }}-${{ runner.arch }}-r${{ matrix.config.r }}-deps-${{ hashFiles('DESCRIPTION') }}-v1
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-r${{ matrix.config.r }}-deps-
 
       - id: deps
         continue-on-error: true
@@ -68,8 +93,34 @@ jobs:
         with:
           # Pin pak stable; devel-pak occasionally regresses on resolve.
           pak-version: stable
+          # `dependencies: "hard"` sidesteps a pak metadata bug: the
+          # combined Depends+Imports+Suggests dep graph trips pak's
+          # solver over an inconsistent `Matrix` entry (R>=4.7 from the
+          # /src/contrib/4.7.0/Recommended path coexisting with R>=4.4
+          # from the main /src/contrib path). The conflict only
+          # materialises when Suggests is traversed transitively.
+          # Hard-deps-only resolves; the Suggests we actually need for
+          # `R CMD check` (vignettes / tests / examples) are re-added
+          # explicitly via `extra-packages` so they still install.
+          dependencies: '"hard"'
           extra-packages: |
             any::rcmdcheck
+            any::knitr
+            any::rmarkdown
+            any::testthat
+            any::archive
+            any::cowplot
+            any::dismo
+            any::dplyr
+            any::PtProcess
+            any::raster
+            any::rasterVis
+            any::RColorBrewer
+            any::Require
+            any::remotes
+            any::scfmutils
+            any::spatstat
+            any::spelling
             NLMR=?ignore
           needs: check
 
