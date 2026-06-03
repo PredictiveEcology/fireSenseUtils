@@ -51,6 +51,7 @@ Imports:
 Suggests:
     archive,
     cowplot,
+    curl,
     dismo,
     dplyr,
     knitr,
