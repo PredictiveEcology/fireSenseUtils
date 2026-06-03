@@ -163,24 +163,6 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
       filename = tempfile(fileext = ".tif"),
       wopt = list(datatype = "INT2S")
     )
-    # # 2. fraction of NA per block: make a 1-where-NA raster, mean it
-    # naFrac <- terra::aggregate(
-    #   terra::ifel(is.na(allFlam), 1, 0),
-    #   fact = fact,
-    #   fun  = "mean",
-    #   na.rm = FALSE,                 # no NAs in this 0/1 layer, so safe
-    #   filename = tempfile(fileext = ".tif")
-    # )
-    # 
-    # # 3. NA wins only when it is a strict majority; else keep the modal class
-    # aggFinal <- terra::ifel(
-    #   naFrac > 0.5,
-    #   NA,
-    #   aggClass,
-    #   filename = tempfile(fileext = ".tif"),
-    #   wopt = list(datatype = "INT2S")
-    # )
-    # 
     allFlam <- terra::project(aggClass, y = to, method = "mode")
     levels(allFlam) <- terra::levels(rstLCC)
     
