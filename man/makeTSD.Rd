@@ -9,8 +9,10 @@ makeTSD(
   firePolys = NULL,
   fireRaster = NULL,
   standAgeMap,
-  lcc,
-  cutoffForYoungAge = 15
+  lcc = NULL,
+  cutoffForYoungAge = 15,
+  pixToUpdate = NULL,
+  flammablePixels = NULL
 )
 }
 \arguments{
@@ -23,14 +25,42 @@ makeTSD(
 
 \item{standAgeMap}{initial stand age map}
 
-\item{lcc}{\code{data.table} with landcover values, i.e., \code{landcoverDT}.}
+\item{lcc}{Optional \code{data.table} with landcover values, i.e., \code{landcoverDT}
+(see \code{\link[=makeLandcoverDT]{makeLandcoverDT()}}). When supplied, \code{pixToUpdate} and \code{flammablePixels}
+are derived from it unless they are passed explicitly. Specific to
+\code{fireSense_dataPrepFit}; for general use prefer \code{pixToUpdate} /
+\code{flammablePixels}.}
 
 \item{cutoffForYoungAge}{Numeric. Default is 15. This is the age below which the pixel is considered
 "young" --> \code{youngAge} column will be 1 if \code{age <= 15}}
+
+\item{pixToUpdate}{Optional integer vector of \code{pixelID}s whose age should be
+taken from fire history rather than \code{standAgeMap} (e.g. pixels with no reliable
+stand age). If \code{NULL} and \code{lcc} is supplied, these are the non-forest pixels in
+\code{lcc} (those with a positive sum across the non-forest landcover columns).}
+
+\item{flammablePixels}{Optional integer vector of flammable \code{pixelID}s. Pixels
+not in this set are set to \code{NA} in the output (non-flammable). If \code{NULL} and
+\code{lcc} is supplied, this is \code{lcc$pixelID}. If \code{NULL} and \code{lcc} is not supplied,
+no pixels are masked to \code{NA}.}
 }
 \value{
 a \code{SpatRaster} with values representing time since disturbance
 }
 \description{
-Prepare a time since disturbance map from stand age and fire data
+Combines an initial stand age map with disturbance (fire) history to produce a
+time-since-disturbance (TSD) raster. Stand age is trusted for most pixels, but
+for pixels whose stand age is unreliable (e.g. non-forest land cover) the fire
+history is used instead: a recorded recent burn sets the TSD, while the absence
+of one marks the pixel as old (\code{cutoffForYoungAge + 1}).
+}
+\details{
+Which pixels to update from fire history, and which pixels are flammable, can be
+supplied in one of two ways:
+\itemize{
+\item directly, via \code{pixToUpdate} and \code{flammablePixels} (general purpose); or
+\item via \code{lcc}, the \code{landcoverDT} produced by \code{fireSense_dataPrepFit}, from which
+both are derived (non-forest pixels are updated, and \code{lcc$pixelID} defines the
+flammable mask). This is retained for backwards compatibility.
+}
 }
