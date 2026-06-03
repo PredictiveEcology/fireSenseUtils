@@ -95,3 +95,49 @@ test_that("makeTSD: pixels not in lcc are set to NA in output", {
                  lcc = lcc, cutoffForYoungAge = 15)
   expect_true(is.na(terra::values(out, mat = FALSE)[2]))
 })
+
+test_that("makeTSD: general-purpose pixToUpdate/flammablePixels match the lcc path", {
+  withr::local_package("terra")
+
+  fireRaster  <- terra::rast(nrows = 1, ncols = 3, vals = c(2005, 2010, 2018))
+  standAgeMap <- terra::rast(nrows = 1, ncols = 3, vals = c(50, 30, 10))
+  lcc <- data.table(pixelID = 1:3,
+                    nonForest_lowFlam  = 1L,
+                    nonForest_highFlam = 0L)
+
+  fromLcc <- makeTSD(year = 2020, fireRaster = fireRaster, standAgeMap = standAgeMap,
+                     lcc = lcc, cutoffForYoungAge = 15)
+  ## Same result without an lcc, by supplying the derived vectors directly
+  fromArgs <- makeTSD(year = 2020, fireRaster = fireRaster, standAgeMap = standAgeMap,
+                      pixToUpdate = 1:3, flammablePixels = 1:3, cutoffForYoungAge = 15)
+
+  expect_equal(terra::values(fromLcc, mat = FALSE),
+               terra::values(fromArgs, mat = FALSE))
+})
+
+test_that("makeTSD: flammablePixels masks non-flammable pixels without an lcc", {
+  withr::local_package("terra")
+
+  ## Pixel 2 is omitted from flammablePixels -> NA in output
+  fireRaster  <- terra::rast(nrows = 1, ncols = 2, vals = c(2018, 2018))
+  standAgeMap <- terra::rast(nrows = 1, ncols = 2, vals = c(10, 10))
+  out <- makeTSD(year = 2020, fireRaster = fireRaster, standAgeMap = standAgeMap,
+                 pixToUpdate = 1L, flammablePixels = 1L, cutoffForYoungAge = 15)
+  expect_true(is.na(terra::values(out, mat = FALSE)[2]))
+  expect_equal(terra::values(out, mat = FALSE)[1], 2)
+})
+
+test_that("makeTSD: explicit pixToUpdate/flammablePixels override lcc-derived values", {
+  withr::local_package("terra")
+
+  fireRaster  <- terra::rast(nrows = 1, ncols = 2, vals = c(2018, 2018))
+  standAgeMap <- terra::rast(nrows = 1, ncols = 2, vals = c(10, 10))
+  ## lcc would mark pixel 2 as non-flammable, but flammablePixels overrides it
+  lcc <- data.table(pixelID = 1L,
+                    nonForest_lowFlam  = 1L,
+                    nonForest_highFlam = 0L)
+  out <- makeTSD(year = 2020, fireRaster = fireRaster, standAgeMap = standAgeMap,
+                 lcc = lcc, pixToUpdate = 1:2, flammablePixels = 1:2,
+                 cutoffForYoungAge = 15)
+  expect_false(is.na(terra::values(out, mat = FALSE)[2]))
+})

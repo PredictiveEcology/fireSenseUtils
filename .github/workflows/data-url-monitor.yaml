@@ -1,0 +1,47 @@
+# Monitors the external data sources used by the Firesense_LCC_flammability
+# vignette. The vignette's R-CMD-check guard deliberately *skips* (degrades to
+# documentation-only) when these servers are unreachable, so a server going
+# down or a URL moving would otherwise be invisible. This scheduled job is the
+# loud signal: it fails (red run + e-mail to maintainers) when either source is
+# unreachable or no longer serves the file. Run it manually any time from the
+# Actions tab via "Run workflow".
+on:
+  schedule:
+    - cron: '0 6 * * 1' # 06:00 UTC every Monday
+  workflow_dispatch:
+
+name: data-url-monitor
+
+jobs:
+  check-data-urls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check vignette data sources are reachable
+        shell: bash
+        run: |
+          set -u
+          urls=(
+            "https://ftp.maps.canada.ca/pub/nrcan_rncan/Land-cover_Couverture-du-sol/canada-landcover_canada-couverture-du-sol/CanadaLandcover2015.zip"
+            "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
+          )
+          failed=0
+          for url in "${urls[@]}"; do
+            echo "::group::HEAD $url"
+            # --fail: non-2xx/3xx (e.g. a moved-URL 404) exits non-zero
+            # --location: a redirect that resolves to 200 is fine
+            if curl --fail --location --silent --show-error --head \
+                    --connect-timeout 30 --max-time 120 "$url" >/dev/null; then
+              echo "OK: reachable"
+            else
+              echo "::error::Unreachable or moved: $url"
+              failed=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ "$failed" -ne 0 ]; then
+            echo "One or more vignette data sources are down or moved." >&2
+            echo "If this is persistent (not a transient outage), update the URL(s)" >&2
+            echo "in vignettes/Firesense_LCC_flammability.Rmd." >&2
+            exit 1
+          fi
+          echo "All vignette data sources reachable."
