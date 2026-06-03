@@ -3,6 +3,19 @@ utils::globalVariables(c(
 ))
 #' Prepare a time since disturbance map from stand age and fire data
 #'
+#' Combines an initial stand age map with disturbance (fire) history to produce a
+#' time-since-disturbance (TSD) raster. Stand age is trusted for most pixels, but
+#' for pixels whose stand age is unreliable (e.g. non-forest land cover) the fire
+#' history is used instead: a recorded recent burn sets the TSD, while the absence
+#' of one marks the pixel as old (`cutoffForYoungAge + 1`).
+#'
+#' Which pixels to update from fire history, and which pixels are flammable, can be
+#' supplied in one of two ways:
+#' * directly, via `pixToUpdate` and `flammablePixels` (general purpose); or
+#' * via `lcc`, the `landcoverDT` produced by `fireSense_dataPrepFit`, from which
+#'   both are derived (non-forest pixels are updated, and `lcc$pixelID` defines the
+#'   flammable mask). This is retained for backwards compatibility.
+#'
 #' @param standAgeMap initial stand age map
 #'
 #' @param firePolys list of `spatialPolygon` objects comprising annual fires.
@@ -12,7 +25,21 @@ utils::globalVariables(c(
 #'
 #' @param year the year represented by `standAge`.
 #'
-#' @param lcc `data.table` with landcover values, i.e., `landcoverDT`.
+#' @param lcc Optional `data.table` with landcover values, i.e., `landcoverDT`
+#'   (see [makeLandcoverDT()]). When supplied, `pixToUpdate` and `flammablePixels`
+#'   are derived from it unless they are passed explicitly. Specific to
+#'   `fireSense_dataPrepFit`; for general use prefer `pixToUpdate` /
+#'   `flammablePixels`.
+#'
+#' @param pixToUpdate Optional integer vector of `pixelID`s whose age should be
+#'   taken from fire history rather than `standAgeMap` (e.g. pixels with no reliable
+#'   stand age). If `NULL` and `lcc` is supplied, these are the non-forest pixels in
+#'   `lcc` (those with a positive sum across the non-forest landcover columns).
+#'
+#' @param flammablePixels Optional integer vector of flammable `pixelID`s. Pixels
+#'   not in this set are set to `NA` in the output (non-flammable). If `NULL` and
+#'   `lcc` is supplied, this is `lcc$pixelID`. If `NULL` and `lcc` is not supplied,
+#'   no pixels are masked to `NA`.
 #'
 #' @inheritParams castCohortData
 #'
@@ -22,7 +49,8 @@ utils::globalVariables(c(
 #' @importFrom data.table data.table as.data.table
 #' @importFrom terra values rast setValues rasterize vect set.names
 makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
-                    standAgeMap, lcc, cutoffForYoungAge = 15) {
+                    standAgeMap, lcc = NULL, cutoffForYoungAge = 15,
+                    pixToUpdate = NULL, flammablePixels = NULL) {
   if (!is.null(fireRaster)) {
     baseYear <- rast(fireRaster)
     baseYear <- setValues(baseYear, year)
@@ -47,10 +75,21 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
     stop("Please provide either firePolys or fireRaster")
   }
 
-  nfLCC <- names(lcc)[!names(lcc) %in% nonNFColNamesTxt]
-  lcc[, sumRows := rowSums(.SD, na.rm = TRUE), .SDcols = nfLCC]
-  pixToUpdate <- lcc[sumRows > 0]$pixelID |> unique()
-  lcc[, sumRows := NULL]
+  ## Derive `pixToUpdate` (pixels to age from fire history) and `flammablePixels`
+  ## (the non-NA mask) from `lcc` when they are not supplied directly. These are
+  ## the operations specific to `fireSense_dataPrepFit`'s `landcoverDT`; explicit
+  ## arguments take precedence so the function can be used without an `lcc`.
+  if (!is.null(lcc)) {
+    nfLCC <- names(lcc)[!names(lcc) %in% nonNFColNamesTxt]
+    lcc[, sumRows := rowSums(.SD, na.rm = TRUE), .SDcols = nfLCC]
+    if (is.null(pixToUpdate)) {
+      pixToUpdate <- lcc[sumRows > 0]$pixelID |> unique()
+    }
+    lcc[, sumRows := NULL]
+    if (is.null(flammablePixels)) {
+      flammablePixels <- lcc$pixelID
+    }
+  }
 
   standAgeVals <- data.table(pixelID = 1:ncell(standAgeMap), age = values(standAgeMap, mat = FALSE))
   # data.table::setnames(standAgeVals, c("pixelID", "age"))
@@ -73,7 +112,9 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   ## note that by doing this second, pixels in both groups are correctly set to trueYoung
 
   standAgeVals[pixelID %in% trueYoungs, age := trueAges]
-  standAgeVals[!pixelID %in% lcc$pixelID, age := NA] #these should be NA - not flammable
+  if (!is.null(flammablePixels)) {
+    standAgeVals[!pixelID %in% flammablePixels, age := NA] #these should be NA - not flammable
+  }
 
   standAgeMap <- setValues(standAgeMap, standAgeVals$age)
   set.names(standAgeMap, paste0("timeSinceDisturbance", year))
