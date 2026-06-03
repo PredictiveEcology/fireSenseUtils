@@ -35,11 +35,36 @@ library(knitr)
   },
   error = function(e) FALSE
 )
+
+## The data servers (ftp.maps.canada.ca for LCC, cwfis.cfs.nrcan.gc.ca for the
+## fire polygons) are routinely unreachable from R-CMD-check runners, which made
+## the live build die with "Failed to connect to ... port 443". Probe both hosts
+## with a short HEAD request up front and skip the live chunks when either is
+## down — the code stays visible as documentation, same as the macOS path. Any
+## probe error (including curl being unavailable) degrades to skip, never error.
+lccUrl <- paste0(
+  "https://ftp.maps.canada.ca/pub/nrcan_rncan/Land-cover_Couverture-du-sol/",
+  "canada-landcover_canada-couverture-du-sol/CanadaLandcover2015.zip"
+)
+fireUrl <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
+.canReach <- function(url, timeoutSec = 20) {
+  tryCatch(
+    {
+      h <- curl::new_handle(nobody = TRUE, connecttimeout = timeoutSec)
+      curl::curl_fetch_memory(url, handle = h)
+      TRUE
+    },
+    error = function(e) FALSE
+  )
+}
+.reachable <- requireNamespace("curl", quietly = TRUE) &&
+  .canReach(lccUrl) && .canReach(fireUrl)
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   echo = TRUE,
-  eval = .canExtract
+  eval = .canExtract && .reachable
 )
 ```
 
@@ -73,10 +98,7 @@ studyArea <- vect(
   type = "polygons", crs = "EPSG:4326"
 )
 
-lccUrl <- paste0(
-  "https://ftp.maps.canada.ca/pub/nrcan_rncan/Land-cover_Couverture-du-sol/",
-  "canada-landcover_canada-couverture-du-sol/CanadaLandcover2015.zip"
-)
+## lccUrl is defined in the setup chunk (used there for the reachability probe)
 lcc <- prepInputs(
   url = lccUrl, destinationPath = dPath,
   targetFile = "CAN_LC_2015_CAL.tif", alsoExtract = NA,
@@ -84,7 +106,7 @@ lcc <- prepInputs(
   fun = "terra::rast", overwrite = TRUE
 )
 
-fireUrl <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
+## fireUrl is defined in the setup chunk (used there for the reachability probe)
 firePolygons <- prepInputs(
   url = fireUrl, destinationPath = dPath,
   fun = "sf::read_sf", overwrite = TRUE
