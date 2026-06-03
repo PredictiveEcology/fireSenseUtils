@@ -1,3 +1,8 @@
+# fireSenseUtils 0.2.2
+
+* `makeFireSenseLCC()`: remove commented-out dead code (an unused majority-NA
+  block aggregation path) from the aggregation step.
+
 # fireSenseUtils 0.1.5
 
 * Fix namespace conflict warning: remove blanket `import(data.table)` in favour of
