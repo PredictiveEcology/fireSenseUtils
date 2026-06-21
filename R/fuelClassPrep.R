@@ -494,7 +494,8 @@ fireSenseCovariatesCreate <- function(cohortData,
                                    nonForestCanBeYoungAge,
                                    studyAreaName, useCache = TRUE) {
   
-  fuelClasses <- cohortsToFuelClasses(
+  # No non-forest nf happening here
+  fuelClassesRas <- cohortsToFuelClasses(
     cohortData = cohortData,
     pixelGroupMap = pixelGroupMap,
     flammableRTM = flammableRTM,
@@ -506,17 +507,15 @@ fireSenseCovariatesCreate <- function(cohortData,
     cutoffForYoungAge = cutoffForYoungAge
   )
   
-  
   ## make columns for each fuel class
-  # fuelClasses <- terra::app(fuelClasses, fun = logMinB)
+  # fuelClassesRas <- terra::app(fuelClassesRas, fun = logMinB)
   # terra app is horrifically slow
-  fcs <- setdiff(names(fuelClasses), "youngAge")
-  fuelClasses <- as.data.table(as.data.frame(fuelClasses, cells = TRUE))
+  fcs <- setdiff(names(fuelClassesRas), "youngAge")
+  fuelClasses <- as.data.table(as.data.frame(fuelClassesRas, cells = TRUE))
   setnames(fuelClasses, old = "cell", new = "pixelID")
   
   # make sure join is only landcoverDT -- this adds the nonForest that are in sim$landcoverDT
   spreadCovariates <- fuelClasses[landcoverDT, on = c("pixelID")]
-  
   
   ## Nov 2023 - there should not be NA values - previously this used nafill
   ## if they return - use x <- as.data.table(nafill(vegData), 0) and setnames(x, names(vegData))
