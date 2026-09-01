@@ -33,7 +33,9 @@ raster operations (i.e., the one used throughout the simulation).}
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}
 }
 \value{
-A \code{sf} spatial points object.
+A \code{sf} spatial points object, retaining all columns of the source data
+(notably \code{CAUSE}, \code{YEAR} and \code{SIZE_HA}). When \code{rasterToMatch} is
+supplied, an additional \code{size} column gives fire size in pixels.
 }
 \description{
 Get Fire \code{SpatialPoints} from Canadian Fire Database

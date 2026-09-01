@@ -47,7 +47,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
   }
   maxCores <- parallelly::availableCores(constraints = "connections", omit = 1)
   cores <- min(min(length(poly), cores), maxCores)
-  if (cores > 1) {
+  if (cores > 1 && !Require:::isRstudio()) {
     out <- parallel::mcMap(
       mc.cores = cores,
       poly = poly,

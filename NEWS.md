@@ -1,5 +1,53 @@
 # fireSenseUtils 0.2.3
 
+* `getFirePoints_NFDB()` no longer drops columns. It previously subset to
+  `c("YEAR", fireSizeColName)` and renamed those to `date`/`size_ha`, discarding
+  `CAUSE` among everything else -- the reason the scfm modules explicitly avoid
+  fireSenseUtils (`## NOTE: do not use fireSenseUtils - it removes the cause
+  column`). All source columns are now retained, matching
+  `getFirePoints_NFDB_V2()` and `scfmutils::getFirePoints_NFDB_scfm()`. The
+  derived `size` column (fire size in pixels) is still added when `rasterToMatch`
+  is supplied. **Breaking:** the `date` and `size_ha` output names are gone; use
+  `YEAR` and `SIZE_HA` (#32).
+
+* `getFirePoints_NFDB_V2()` now uses `fun` to load already-downloaded data, not
+  just downloaded data. The cached branch hardcoded `st_read()`, so a caller
+  passing `fun = "terra::vect"` (as `fireSense_dataPrepFit` does) got a
+  `SpatVector` on the first run and an `sf` on every run after. The return class
+  is now the same in both branches (#32).
+
+* `getFirePoints_NFDB()` and `getFirePoints_NFDB_V2()`: fix inverted
+  `redownloadIn`. The staleness threshold was `365 / redownloadIn`, so
+  `redownloadIn = 0.5` gave a 730-day tolerance rather than the documented
+  "redownload data older than 6 months". Now `365 * redownloadIn`. Only the
+  default of `1` was unaffected (#32).
+
+* `getFirePoints_NFDB()` and `getFirePoints_NFDB_V2()`: the staleness check
+  errored with "the condition has length > 1" when `NFDB_pointPath` held more
+  than one `NFDB_point*.shp`; now wrapped in `any()` (#32).
+
+* `getFirePoints_NFDB_V2()`: restore the `NFDB_pointPath` non-NULL check, so the
+  `NULL` default fails with a clear message instead of inside `Checksums()` (#32).
+
+* `getFirePoints_NFDB()`: pass `useSAcrs = TRUE` to `postProcess()` in the
+  already-downloaded branch, so the CRS no longer depends on whether a download
+  happened; restore `reproducible.cacheSaveFormat` to its previous value on exit
+  instead of overwriting it; drop the dead `SpaDES.core` requirement check (the
+  package is only in Suggests and nothing in the function uses it) (#32).
+* Replace the single `ggpubr::ggarrange()` call in `visualizeDE()` with
+  `cowplot::plot_grid()`, and move `cowplot` from Suggests to Imports (it was
+  already used, behind a `requireNamespace()` guard, in `plot_summaries.R`).
+  `ggpubr` is dropped from Imports. This removes 14 packages from the
+  dependency tree -- ggpubr, car, carData, pbkrtest, doBy, Deriv, lme4,
+  quantreg, SparseM, MatrixModels, nloptr, minqa, abind and Formula.
+
+  It also fixes R-CMD-check on the `oldrel-2` leg. `Deriv 4.3.0` (published
+  2026-07-23) uses `R_ClosureFormals`, an R >= 4.5 C-API entry point, but
+  declares no minimum R version, so it fails to compile on R 4.4.x with
+  `'R_ClosureFormals' was not declared in this scope`. The dependency install
+  then aborted and `rcmdcheck` died at `loadVignetteBuilder()`, which made the
+  failure look like a vignette problem.
+
 * `makeTSD()` is now general purpose: the pixels to age from fire history and the
   flammable mask can be supplied directly via the new `pixToUpdate` and
   `flammablePixels` arguments, instead of only through `lcc` (the `landcoverDT`
