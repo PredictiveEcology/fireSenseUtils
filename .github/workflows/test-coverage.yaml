@@ -58,30 +58,13 @@ jobs:
         continue-on-error: true
         uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          # See R-CMD-check.yaml for the rationale - `dependencies: hard`
-          # avoids a pak Matrix-metadata bug; we re-add the Suggests we
-          # need (here, only covr is strictly required for coverage, but
-          # the Suggests are mirrored so tests under coverage have all
-          # the packages they would in R CMD check).
-          dependencies: '"hard"'
-          extra-packages: |
-            any::covr
-            any::knitr
-            any::rmarkdown
-            any::testthat
-            any::archive
-            any::curl
-            any::dismo
-            any::dplyr
-            any::PtProcess
-            any::raster
-            any::rasterVis
-            any::RColorBrewer
-            any::Require
-            any::remotes
-            any::scfmutils
-            any::spatstat
-            any::spelling
+          # "all" installs Suggests from DESCRIPTION, so tests under
+          # coverage get the same packages they would in R CMD check,
+          # with no mirrored list to keep in sync. Was '"hard"' plus a
+          # hand-mirrored Suggests list, working around a pak Matrix
+          # metadata bug; retested green in #37. See R-CMD-check.yaml.
+          dependencies: '"all"'
+          extra-packages: any::covr
 
       - name: Test coverage
         run: covr::codecov()

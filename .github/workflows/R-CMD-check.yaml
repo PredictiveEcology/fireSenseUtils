@@ -18,24 +18,19 @@ jobs:
   R-CMD-check:
     uses: PredictiveEcology/actions/.github/workflows/R-CMD-check.yaml@main
     with:
-      extra-packages: |
-        any::archive
-        any::curl
-        any::dismo
-        any::dplyr
-        any::knitr
-        any::PtProcess
-        any::raster
-        any::rasterVis
-        any::RColorBrewer
-        any::Require
-        any::remotes
-        any::rmarkdown
-        any::scfmutils
-        any::spatstat
-        any::spelling
-        any::testthat
-      dependencies: '"hard"'
+      ## DESCRIPTION is the single source of truth: "all" installs
+      ## Depends/Imports/LinkingTo *and* Suggests, so there is no
+      ## extra-packages list to keep in sync (any::rcmdcheck is added by the
+      ## reusable workflow itself).
+      ##
+      ## This used to be '"hard"' plus 16 hand-listed Suggests, working around
+      ## a pak solver bug -- an inconsistent Matrix entry (R>=4.7 from
+      ## /src/contrib/4.7.0/Recommended coexisting with R>=4.4 from the main
+      ## path) that only surfaced when Suggests was traversed transitively.
+      ## Retested in #37: 12/12 green on every platform and R version incl.
+      ## devel. The CRAN metadata that caused it has moved on. If a pak
+      ## resolve error naming Matrix ever returns, that workaround is the fix.
+      dependencies: '"all"'
       ## Legs beyond the org default 8. These still work and are
       ## deliberate back-compat coverage, so they are preserved.
       extra-config: |
