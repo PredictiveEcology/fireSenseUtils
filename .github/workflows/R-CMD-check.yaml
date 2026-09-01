@@ -1,157 +1,37 @@
-# For help debugging build failures open an issue on the RStudio community with the 'github-actions' tag.
-# https://community.rstudio.com/new-topic?category=Package%20development&tags=github-actions
-on:
-  push:
-    branches:
-      - main
-      - development
-  pull_request:
-    branches:
-      - main
-      - development
+## Thin caller -- the matrix, system dependencies, caching, Drive staging
+## and the check itself all live in PredictiveEcology/actions. This file only
+## says which package to check and what it needs on top of the org defaults.
+##
+## Pinned @main deliberately: tags freeze and rot (v0.1/v0.2 kept the
+## ubuntugis PPA for months after the workflows rejected it). The actions repo
+## gates merges with its own self-test CI.
 
 name: R-CMD-check
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
 jobs:
   R-CMD-check:
-    runs-on: ${{ matrix.config.os }}
-
-    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
-
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - {os: macOS-latest,   r: 'release'}
-          - {os: windows-latest, r: 'devel'}
-          - {os: windows-latest, r: 'release'}
-          - {os: windows-latest, r: 'oldrel-1'}
-          - {os: windows-latest, r: 'oldrel-2'}
-          - {os: ubuntu-latest,   r: 'devel'}
-          - {os: ubuntu-latest,   r: 'release'}
-          - {os: ubuntu-latest,   r: 'oldrel-1'}
-          - {os: ubuntu-latest,   r: 'oldrel-2'}
-
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      R_REMOTES_NO_ERRORS_FROM_WARNINGS: true
-
-    steps:
-      - uses: actions/checkout@v4
-
-      # setup-pandoc occasionally fails with HTTP 5xx when its CDN blips.
-      # Three attempts with continue-on-error ride out transient failures.
-      - id: pandoc1
-        continue-on-error: true
-        uses: r-lib/actions/setup-pandoc@v2
-      - if: steps.pandoc1.outcome == 'failure'
-        id: pandoc2
-        continue-on-error: true
-        uses: r-lib/actions/setup-pandoc@v2
-      - if: steps.pandoc1.outcome == 'failure' && steps.pandoc2.outcome == 'failure'
-        uses: r-lib/actions/setup-pandoc@v2
-
-      - uses: PredictiveEcology/actions/install-spatial-deps@v0.2
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          Ncpus: 2
-          r-version: ${{ matrix.config.r }}
-          # `scfmutils` (a Suggests we re-add below) is only on
-          # r-universe, not CRAN, so pak can't resolve `any::scfmutils`
-          # without this. Matches what `test-coverage.yaml` already sets.
-          extra-repositories: 'https://predictiveecology.r-universe.dev/'
-          # PPM is intentionally off: its Linux binaries are compiled
-          # against a specific libgdal that doesn't match the one
-          # `install-spatial-deps` puts on the runner, so `terra` (used
-          # by scfmutils, LandR, etc.) fails to load with
-          # `libgdal.so.34: cannot open shared object file`. Falling
-          # back to source builds keeps the ABI in sync.
-          use-public-rspm: false
-
-      # Cache the resolved R user library so transient GitHub-API failures
-      # during pak dependency resolution (`Cannot query GitHub`) do not
-      # block the job - the previously cached library still satisfies
-      # `R CMD check`. The primary key invalidates whenever DESCRIPTION
-      # changes; the restore-key falls back to any prior cache for the
-      # same OS+R combination so an unrelated DESCRIPTION edit still
-      # benefits from a warm library.
-      - name: Restore R library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-${{ runner.arch }}-r${{ matrix.config.r }}-deps-${{ hashFiles('DESCRIPTION') }}-v1
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-r${{ matrix.config.r }}-deps-
-
-      - id: deps
-        continue-on-error: true
-        uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          # Pin pak stable; devel-pak occasionally regresses on resolve.
-          pak-version: stable
-          # `dependencies: "hard"` sidesteps a pak metadata bug: the
-          # combined Depends+Imports+Suggests dep graph trips pak's
-          # solver over an inconsistent `Matrix` entry (R>=4.7 from the
-          # /src/contrib/4.7.0/Recommended path coexisting with R>=4.4
-          # from the main /src/contrib path). The conflict only
-          # materialises when Suggests is traversed transitively.
-          # Hard-deps-only resolves; the Suggests we actually need for
-          # `R CMD check` (vignettes / tests / examples) are re-added
-          # explicitly via `extra-packages` so they still install.
-          dependencies: '"hard"'
-          extra-packages: |
-            any::rcmdcheck
-            any::knitr
-            any::rmarkdown
-            any::testthat
-            any::archive
-            any::cowplot
-            any::dismo
-            any::dplyr
-            any::PtProcess
-            any::raster
-            any::rasterVis
-            any::RColorBrewer
-            any::Require
-            any::remotes
-            any::scfmutils
-            any::spatstat
-            any::spelling
-            NLMR=?ignore
-          needs: check
-
-      # Retry fallback for setup-r-dependencies. Catches transient
-      # "Cannot query GitHub" / pkgdepends resolution errors that hit
-      # individual matrix entries (windows-latest release was the
-      # casualty today).
-      - name: Install R deps (retry fallback)
-        if: steps.deps.outcome == 'failure'
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          retry_wait_seconds: 60
-          retry_on: error
-          # `shell: Rscript {0}` is rejected by the runner on Windows
-          # (GitHub Actions only registers it when r-lib/actions/setup-r
-          # ran first in the job context, which nick-fields/retry does
-          # not preserve). Use bash — available on all runners via
-          # Git Bash on Windows — and invoke `Rscript -e` inline.
-          shell: bash
-          command: |
-            Rscript -e 'install.packages("pak", repos = "https://r-lib.github.io/p/pak/stable/")'
-            Rscript -e 'pak::local_install_dev_deps(ask = FALSE, dependencies = TRUE)'
-            Rscript -e 'pak::pkg_install(c("any::rcmdcheck"), ask = FALSE)'
-
-      - name: Install additional package dependencies
-        run: |
-          pak::pkg_install("ropensci/NLMR")
-        shell: Rscript {0}
-
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          upload-snapshots: true
+    uses: PredictiveEcology/actions/.github/workflows/R-CMD-check.yaml@main
+    with:
+      ## DESCRIPTION is the single source of truth: "all" installs
+      ## Depends/Imports/LinkingTo *and* Suggests, so there is no
+      ## extra-packages list to keep in sync (any::rcmdcheck is added by the
+      ## reusable workflow itself).
+      ##
+      ## This used to be '"hard"' plus 16 hand-listed Suggests, working around
+      ## a pak solver bug -- an inconsistent Matrix entry (R>=4.7 from
+      ## /src/contrib/4.7.0/Recommended coexisting with R>=4.4 from the main
+      ## path) that only surfaced when Suggests was traversed transitively.
+      ## Retested in #37: 12/12 green on every platform and R version incl.
+      ## devel. The CRAN metadata that caused it has moved on. If a pak
+      ## resolve error naming Matrix ever returns, that workaround is the fix.
+      dependencies: '"all"'
+      ## Legs beyond the org default 8. These still work and are
+      ## deliberate back-compat coverage, so they are preserved.
+      extra-config: |
+        [{"config": {"os": "ubuntu-latest", "nosuggests": false, "r": "oldrel-2"}}, {"config": {"os": "windows-latest", "nosuggests": false, "r": "oldrel-2"}}]
