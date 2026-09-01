@@ -37,5 +37,9 @@ jobs:
         any::spelling
         NLMR=?ignore
       dependencies: '"hard"'
+      ## Legs beyond the org default 8. These still work and are
+      ## deliberate back-compat coverage, so they are preserved.
+      extra-config: |
+        [{"config": {"os": "ubuntu-latest", "nosuggests": false, "r": "oldrel-2"}}, {"config": {"os": "windows-latest", "nosuggests": false, "r": "oldrel-2"}}]
       post-install: |
         pak::pkg_install("ropensci/NLMR")
