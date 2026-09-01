@@ -70,7 +70,7 @@ jobs:
             any::rmarkdown
             any::testthat
             any::archive
-            any::cowplot
+            any::curl
             any::dismo
             any::dplyr
             any::PtProcess
@@ -82,12 +82,6 @@ jobs:
             any::scfmutils
             any::spatstat
             any::spelling
-            NLMR=?ignore
-
-      - name: Install additional package dependencies
-        run: |
-          pak::pkg_install("ropensci/NLMR")
-        shell: Rscript {0}
 
       - name: Test coverage
         run: covr::codecov()
