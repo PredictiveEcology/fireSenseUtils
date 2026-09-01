@@ -264,7 +264,7 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
       ggtitle(p) + xlab(NULL) +
       theme_minimal()
   })
-  invisible(ggpubr::ggarrange(plotlist = ff))
+  invisible(cowplot::plot_grid(plotlist = ff))
 }
 
 #' Iterative `DEoptim` Runner with Caching and Visualization
