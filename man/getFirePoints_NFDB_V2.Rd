@@ -31,12 +31,16 @@ passed to \code{\link[reproducible]{prepInputs}}.}
 \item{NFDB_pointPath}{Passed to \code{destinationPath} in \code{prepInputs}}
 
 \item{fun}{Character. The function (as a string, e.g., \code{"sf::st_read"})
-used to load the downloaded data. Forwarded to \code{prepInputs(fun = ...)}.}
+used to load the downloaded data. Forwarded to \code{prepInputs(fun = ...)}, and
+used to load already-downloaded data, so the class returned does not depend
+on whether a download was needed.}
 
 \item{plot}{logical indicating whether to produce plot of fire points. Default FALSE.}
 }
 \value{
-A \code{sf} spatial points object.
+A \code{sf} spatial points object (or whatever class \code{fun} returns),
+retaining all columns of the source data (notably \code{CAUSE}, \code{YEAR} and
+\code{SIZE_HA}).
 }
 \description{
 Get Fire \code{SpatialPoints} from Canadian Fire Database
