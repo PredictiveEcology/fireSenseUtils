@@ -13,65 +13,31 @@ editor_options:
 
 ```{r setup, include=FALSE}
 library(knitr)
-## The download/extract chunks below pull zips and feed them to
-## reproducible::prepInputs(), which delegates to the `archive` R package
-## via reproducible's internal `.whichExtractFn`. On macOS R-CMD-check
-## runners libarchive is frequently missing as a system dep, so even when
-## requireNamespace("archive") returns TRUE the actual extract call fails
-## with "Please install.packages('archive') to extract files from ...".
-## Probe the *function* (not just the namespace) so we catch the partially-
-## installed case. Skip the live chunks when the probe fails — the code
-## stays visible as documentation.
-## Belt-and-suspenders: requireNamespace + getExportedValue both return TRUE
-## on the macOS R-CMD-check runner even when libarchive isn't actually
-## linkable, so the actual extract still blows up at runtime with
-## "Please install.packages('archive')". Force-skip on macOS where this
-## has been the persistent failure mode.
-.onMac <- isTRUE(Sys.info()[["sysname"]] == "Darwin")
-.canExtract <- !.onMac && tryCatch(
-  {
-    requireNamespace("archive", quietly = TRUE) &&
-      is.function(getExportedValue("archive", "archive_extract"))
-  },
-  error = function(e) FALSE
-)
-
-## The data servers (ftp.maps.canada.ca for LCC, cwfis.cfs.nrcan.gc.ca for the
-## fire polygons) are routinely unreachable from R-CMD-check runners, which made
-## the live build die with "Failed to connect to ... port 443". Probe both hosts
-## with a short HEAD request up front and skip the live chunks when either is
-## down — the code stays visible as documentation, same as the macOS path. Any
-## probe error (including curl being unavailable) degrades to skip, never error.
-lccUrl <- paste0(
-  "https://ftp.maps.canada.ca/pub/nrcan_rncan/Land-cover_Couverture-du-sol/",
-  "canada-landcover_canada-couverture-du-sol/CanadaLandcover2015.zip"
-)
-fireUrl <- "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/current_version/NFDB_poly.zip"
-.canReach <- function(url, timeoutSec = 20) {
-  tryCatch(
-    {
-      h <- curl::new_handle(nobody = TRUE, connecttimeout = timeoutSec)
-      curl::curl_fetch_memory(url, handle = h)
-      TRUE
-    },
-    error = function(e) FALSE
-  )
-}
-.reachable <- requireNamespace("curl", quietly = TRUE) &&
-  .canReach(lccUrl) && .canReach(fireUrl)
+## This vignette ships pre-cropped fixtures (inst/extdata) rather than
+## downloading its inputs, so it needs no network and no `archive` extraction.
+## The live-download code it replaces is preserved verbatim below, commented,
+## so the real workflow stays visible as documentation.
+##
+## Why fixtures: the live version pulled ~2.7 GB per run -- 778 MB of fire
+## polygons plus a 1.9 GB land-cover raster -- to analyse a 50 km square. Under
+## a full CI matrix several legs downloaded that concurrently from two NRCan
+## servers, and truncated responses produced corrupt geometry that surfaced as
+## `ParseException: Unexpected EOF parsing WKB` inside sf::st_crop(). A HEAD
+## reachability probe cannot catch that: the servers are up, the transfer is
+## simply cut short.
 
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  echo = TRUE,
-  eval = .canExtract && .reachable
+  echo = TRUE
 )
 ```
 
 ```{r packages, message=FALSE}
 library(data.table)
 library(ggplot2)
-library(reproducible)
+## reproducible is not needed by the fixture path; the commented live block
+## below uses reproducible::prepInputs(), so load it if you run that.
 library(sf)
 library(terra)
 ```
@@ -87,33 +53,67 @@ Saskatchewan) so the vignette completes in reasonable time; remove `cropTo` to
 analyse the full country.
 
 ```{r compare_LCC_and_fire_data, message=FALSE, warning=FALSE}
-dPath <- file.path(tempdir(), "fireSense_LCC_flammability")
-checkPath(dPath, create = TRUE)
-
-## small study area: 50 km square in central Saskatchewan (lon/lat → LCC's
-## Lambert Conformal Conic via terra::vect + project)
-studyArea <- vect(
-  cbind(c(-106, -105.5, -105.5, -106, -106),
-        c(54, 54, 54.5, 54.5, 54)),
-  type = "polygons", crs = "EPSG:4326"
+## ---------------------------------------------------------------------------
+## Inputs: pre-cropped fixtures shipped with the package (a 50 km square in
+## central Saskatchewan). To run this against the live national datasets
+## instead, use the commented block below.
+## ---------------------------------------------------------------------------
+lcc <- terra::rast(
+  system.file("extdata", "lcc_studyArea.tif", package = "fireSenseUtils")
+)
+firePolygons <- sf::read_sf(
+  system.file("extdata", "firePolygons_studyArea.gpkg", package = "fireSenseUtils")
 )
 
-## lccUrl is defined in the setup chunk (used there for the reachability probe)
-lcc <- prepInputs(
-  url = lccUrl, destinationPath = dPath,
-  targetFile = "CAN_LC_2015_CAL.tif", alsoExtract = NA,
-  cropTo = studyArea, projectTo = NA, maskTo = NA,
-  fun = "terra::rast", overwrite = TRUE
-)
+## --- LIVE VERSION (not run) -------------------------------------------------
+## Land Cover of Canada 2015 (1.9 GB zip) and the National Fire Database
+## polygons (778 MB zip). Both are national-extent; `cropTo`/`st_crop` reduce
+## them to the study area. Remove the crop to analyse the full country.
+##
+## lccUrl <- paste0(
+##   "https://ftp.maps.canada.ca/pub/nrcan_rncan/Land-cover_Couverture-du-sol/",
+##   "canada-landcover_canada-couverture-du-sol/CanadaLandcover2015.zip"
+## )
+## fireUrl <- paste0(
+##   "https://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_poly/",
+##   "current_version/NFDB_poly.zip"
+## )
+##
+## dPath <- file.path(tempdir(), "fireSense_LCC_flammability")
+## checkPath(dPath, create = TRUE)
+##
+## ## study area: 50 km square in central Saskatchewan
+## studyArea <- vect(
+##   cbind(c(-106, -105.5, -105.5, -106, -106),
+##         c(54, 54, 54.5, 54.5, 54)),
+##   type = "polygons", crs = "EPSG:4326"
+## )
+##
+## lcc <- prepInputs(
+##   url = lccUrl, destinationPath = dPath,
+##   targetFile = "CAN_LC_2015_CAL.tif", alsoExtract = NA,
+##   cropTo = studyArea, projectTo = NA, maskTo = NA,
+##   fun = "terra::rast", overwrite = TRUE
+## )
+##
+## firePolygons <- prepInputs(
+##   url = fireUrl, destinationPath = dPath,
+##   fun = "sf::read_sf", overwrite = TRUE
+## )
+## firePolygons <- sf::st_transform(firePolygons, crs = sf::st_crs(lcc))
+## firePolygons <- sf::st_crop(firePolygons, sf::st_bbox(lcc))
+## firePolygons <- firePolygons[firePolygons$YEAR > 2004, ]
+##
+## NOTE: NFDB_poly.zip contains TWO layers -- 1972to2020 and 2021to2024.
+## `sf::read_sf` reads only the first, so the live version above silently
+## excludes fires after 2020. The fixture combines both, then filters
+## YEAR > 2004, and therefore covers 2007-2024.
+##
+## GDAL can also read these archives without downloading them, via
+## `/vsizip//vsicurl/<url>`, which fetches only the byte ranges needed. That
+## is how the fixtures here were built.
+## ---------------------------------------------------------------------------
 
-## fireUrl is defined in the setup chunk (used there for the reachability probe)
-firePolygons <- prepInputs(
-  url = fireUrl, destinationPath = dPath,
-  fun = "sf::read_sf", overwrite = TRUE
-)
-firePolygons <- sf::st_transform(firePolygons, crs = sf::st_crs(lcc))
-firePolygons <- sf::st_crop(firePolygons, sf::st_bbox(lcc))
-firePolygons <- firePolygons[firePolygons$YEAR > 2004, ]
 firePolygons$dummyVar <- 1L
 
 ## rasterize burned area onto the LCC grid, then collapse to one row per LCC class
