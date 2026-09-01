@@ -18,24 +18,11 @@ jobs:
   R-CMD-check:
     uses: PredictiveEcology/actions/.github/workflows/R-CMD-check.yaml@main
     with:
-      extra-packages: |
-        any::archive
-        any::curl
-        any::dismo
-        any::dplyr
-        any::knitr
-        any::PtProcess
-        any::raster
-        any::rasterVis
-        any::RColorBrewer
-        any::Require
-        any::remotes
-        any::rmarkdown
-        any::scfmutils
-        any::spatstat
-        any::spelling
-        any::testthat
-      dependencies: '"hard"'
+      ## EXPERIMENT: org default. Testing whether the pak solver bug that
+      ## forced `dependencies: "hard"` (inconsistent Matrix entry when
+      ## Suggests is traversed transitively) is still live. If this run is
+      ## green, "hard" + the 16 hand-listed Suggests can be deleted.
+      dependencies: '"all"'
       ## Legs beyond the org default 8. These still work and are
       ## deliberate back-compat coverage, so they are preserved.
       extra-config: |
