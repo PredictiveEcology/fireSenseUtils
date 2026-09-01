@@ -1,5 +1,19 @@
 # fireSenseUtils 0.2.3
 
+* Replace the single `ggpubr::ggarrange()` call in `visualizeDE()` with
+  `cowplot::plot_grid()`, and move `cowplot` from Suggests to Imports (it was
+  already used, behind a `requireNamespace()` guard, in `plot_summaries.R`).
+  `ggpubr` is dropped from Imports. This removes 14 packages from the
+  dependency tree -- ggpubr, car, carData, pbkrtest, doBy, Deriv, lme4,
+  quantreg, SparseM, MatrixModels, nloptr, minqa, abind and Formula.
+
+  It also fixes R-CMD-check on the `oldrel-2` leg. `Deriv 4.3.0` (published
+  2026-07-23) uses `R_ClosureFormals`, an R >= 4.5 C-API entry point, but
+  declares no minimum R version, so it fails to compile on R 4.4.x with
+  `'R_ClosureFormals' was not declared in this scope`. The dependency install
+  then aborted and `rcmdcheck` died at `loadVignetteBuilder()`, which made the
+  failure look like a vignette problem.
+
 * `makeTSD()` is now general purpose: the pixels to age from fire history and the
   flammable mask can be supplied directly via the new `pixToUpdate` and
   `flammablePixels` arguments, instead of only through `lcc` (the `landcoverDT`

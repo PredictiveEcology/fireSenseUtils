@@ -18,12 +18,12 @@ Depends:
     R (>= 4.3)
 Imports:
     clusters (>= 0.0.19),
+    cowplot,
     crayon,
     data.table,
     DEoptim,
     EnvStats,
     fastDummies,
-    ggpubr,
     ggplot2,
     googledrive,
     kSamples,
@@ -50,7 +50,6 @@ Imports:
     withr
 Suggests:
     archive,
-    cowplot,
     curl,
     dismo,
     dplyr,
