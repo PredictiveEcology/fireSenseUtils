@@ -5,25 +5,21 @@ utils::globalVariables(c(
 #' Locate per-replicate simulation output files
 #'
 #' @param simFiles character vector of simulation output file paths (e.g. the `file`
-#'    column of `SpaDES.core::outputs(sim)`), or `NULL` to reconstruct the paths from
-#'    `outputDir` using the `repNN` directory convention.
-#'
-#' @param outputDir Path specifying the directory containing the per-replicate
-#'    subdirectories. Only used when `simFiles` is `NULL`.
-#'
-#' @param reps integer vector of replicate numbers. Only used when `simFiles` is `NULL`;
-#'    otherwise the replicates present in `simFiles` are used.
+#'    column of `SpaDES.core::outputs(sim)`).
 #'
 #' @param filename character. The file name to locate within each replicate.
 #'
 #' @return character vector of file paths, named by replicate number, ordered by replicate.
 #'
 #' @noRd
-.repOutputFiles <- function(simFiles, outputDir, reps, filename) {
-  if (is.null(simFiles)) {
-    f <- file.path(outputDir, sprintf("rep%02d", reps), filename)
-    names(f) <- as.character(reps)
-    return(f)
+.repOutputFiles <- function(simFiles, filename) {
+  ## There is no sensible default. Reconstructing these paths from a `repNN`
+  ## convention is what this function exists to avoid: it assumes zero-padded
+  ## directories, which some projects do not use (`rep1`, not `rep01`), and
+  ## silently yields paths that do not exist.
+  if (is.null(simFiles) || length(simFiles) == 0L) {
+    stop("`simFiles` is required: pass the output file paths, e.g. the `file` ",
+         "column of SpaDES.core::outputs(sim).", call. = FALSE)
   }
 
   f <- simFiles[basename(simFiles) == filename]
@@ -32,7 +28,7 @@ utils::globalVariables(c(
   repNum <- repNum[!is.na(repNum)]
 
   if (length(f) == 0L) {
-    stop("no file named '", filename, "' found among `simFiles`.")
+    stop("no file named '", filename, "' found among `simFiles`.", call. = FALSE)
   }
 
   f <- f[order(repNum)]
@@ -103,7 +99,7 @@ utils::globalVariables(c(
 #' @export
 #' @importFrom data.table as.data.table setnames
 plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
-                              pixelSize, firePolys, ignitionPoints, simFiles = NULL) {
+                              pixelSize, firePolys, ignitionPoints, simFiles) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("SpaDES.core", quietly = TRUE)) {
     ## A historical run has no scenario, and carries NA for it -- usually R's
@@ -127,7 +123,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
     historicalBurns[, stat := "observed"]
 
     ## only use the first rep
-    f <- .repOutputFiles(simFiles, outputDir, reps = 1L, filename = "fireSense_burnSummary.csv")[1L]
+    f <- .repOutputFiles(simFiles, filename = "fireSense_burnSummary.csv")[1L]
     rep <- as.integer(names(f))
 
     burnDT <- data.table::fread(f)
@@ -214,15 +210,13 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
 #' @export
 #' @importFrom parallel mclapply
 plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
-                                Nreps, years, rasterToMatch, simFiles = NULL) {
+                                Nreps, years, rasterToMatch, simFiles) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
       requireNamespace("raster", quietly = TRUE) &&
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
     scenLabel <- .scenarioLabel(climateScenario)
-    fs <- .repOutputFiles(simFiles, outputDir,
-                          reps = seq_len(Nreps),
-                          filename = paste0("burnMap_year", years[2], ".tif"))
+    fs <- .repOutputFiles(simFiles, filename = paste0("burnMap_year", years[2], ".tif"))
 
     burnMapAllReps <- parallel::mclapply(fs, function(f) raster::raster(f))
     .stopOnMclapplyErrors(burnMapAllReps,
@@ -285,13 +279,11 @@ plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
 #' @importFrom parallel mclapply
 #' @importFrom stats coefficients lm pf
 plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
-                            Nreps, years, pixelSize, simFiles = NULL) {
+                            Nreps, years, pixelSize, simFiles) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("cowplot", quietly = TRUE)) {
     scenLabel <- .scenarioLabel(climateScenario)
-    fs <- .repOutputFiles(simFiles, outputDir,
-                          reps = seq_len(Nreps),
-                          filename = "fireSense_burnSummary.csv")
+    fs <- .repOutputFiles(simFiles, filename = "fireSense_burnSummary.csv")
 
     burnSummaryPerRep <- parallel::mclapply(names(fs), function(rep) {
       burnDT <- data.table::fread(fs[[rep]])

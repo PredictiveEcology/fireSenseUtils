@@ -11,7 +11,7 @@ plotCumulativeBurns(
   Nreps,
   years,
   rasterToMatch,
-  simFiles = NULL
+  simFiles
 )
 }
 \arguments{
@@ -32,14 +32,13 @@ to take advantage of parallel processing.}
 \item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
 raster operations (i.e., the one used throughout the simulation).}
 
-\item{simFiles}{Optional character vector of simulation output file paths
-(e.g. the \code{file} column of \code{SpaDES.core::outputs(sim)}), used to locate the
-per-replicate files instead of reconstructing them from \code{outputDir}.
-Needed when the replicate outputs do not live in \verb{<outputDir>/repNN/}, e.g.
-when summarizing runs restored from another machine, or when the replicate
-directories are unpadded (\code{rep1} rather than \code{rep01}).
-When supplied, the replicates present in \code{simFiles} are used, and \code{Nreps}
-is ignored.}
+\item{simFiles}{Character vector of simulation output file paths -- e.g. the
+\code{file} column of \code{SpaDES.core::outputs(sim)} -- used to locate the
+per-replicate files. Required: the paths are not reconstructed from
+\code{outputDir}, because doing so assumes replicate directories are zero
+padded (\code{rep01}), which is not true of every project (\code{rep1}), and yields
+paths that silently do not exist. The replicates present in \code{simFiles}
+determine which are summarized, so \code{Nreps} is not used for that.}
 }
 \value{
 list of file names corresponding to the figures and/or objects written to disk
