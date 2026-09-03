@@ -106,8 +106,15 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
                               pixelSize, firePolys, ignitionPoints, simFiles = NULL) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("SpaDES.core", quietly = TRUE)) {
-    gcm <- strsplit(climateScenario, "_")[[1]][1]
-    ssp <- strsplit(climateScenario, "_")[[1]][2]
+    ## A historical run has no scenario, and carries NA for it -- usually R's
+    ## bare *logical* NA, which strsplit() rejects with "non-character
+    ## argument". Split defensively and build the subtitle from whatever parts
+    ## exist, so a historical run plots with no scenario rather than failing.
+    scenLabel <- .scenarioLabel(climateScenario)
+    scenParts <- .scenarioParts(climateScenario)
+    gcm <- if (length(scenParts) >= 1L) scenParts[[1L]] else NA_character_
+    ssp <- if (length(scenParts) >= 2L) scenParts[[2L]] else NA_character_
+    scenSubtitle <- paste(scenParts, collapse = " ")
 
     historicalBurns <- as.data.table(.attributes(firePolys))
 
@@ -154,7 +161,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
       ggplot2::labs(
         y = "number of ignitions",
         title = studyAreaName,
-        subtitle = paste(gcm, ssp)
+        subtitle = scenSubtitle
       )
 
     gEscapes <- ggplot2::ggplot(data = dat, ggplot2::aes(x = year, y = nFires, col = stat)) +
@@ -164,7 +171,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
       ggplot2::labs(
         y = "number of escaped fires",
         title = studyAreaName,
-        subtitle = paste(gcm, ssp)
+        subtitle = scenSubtitle
       )
 
     gBurns <- ggplot2::ggplot(data = dat, ggplot2::aes(x = year, y = sumBurn, col = stat)) +
@@ -174,15 +181,13 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
       ggplot2::labs(
         y = "annual area burned (ha)",
         title = paste(studyAreaName, "rep", rep),
-        subtitle = paste(gcm, ssp)
+        subtitle = scenSubtitle
       )
 
-    figDir <- file.path(outputDir, studyAreaName, "figures")
-    dir.create(figDir, recursive = TRUE, showWarnings = FALSE)
     figs <- list(
-      ignition = file.path(figDir, paste0("simulated_Ignitions_", studyAreaName, "_", climateScenario, ".png")),
-      escape = file.path(figDir, paste0("simulated_Escapes_", studyAreaName, "_", climateScenario, ".png")),
-      spread = file.path(figDir, paste0("simulated_burnArea_", studyAreaName, "_", climateScenario, ".png"))
+      ignition = .figFile("simulated_Ignitions", outputDir, studyAreaName, scenLabel),
+      escape   = .figFile("simulated_Escapes", outputDir, studyAreaName, scenLabel),
+      spread   = .figFile("simulated_burnArea", outputDir, studyAreaName, scenLabel)
     )
     ggplot2::ggsave(plot = gIgnitions, filename = figs$ignition)
     ggplot2::ggsave(plot = gEscapes, filename = figs$escape)
@@ -214,6 +219,7 @@ plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
       requireNamespace("raster", quietly = TRUE) &&
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
+    scenLabel <- .scenarioLabel(climateScenario)
     fs <- .repOutputFiles(simFiles, outputDir,
                           reps = seq_len(Nreps),
                           filename = paste0("burnMap_year", years[2], ".tif"))
@@ -237,15 +243,11 @@ plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
     myPal <- RColorBrewer::brewer.pal("Reds", n = nreps + 1) ## include 0 ## TODO: max 9 cols!
     myTheme <- rasterVis::rasterTheme(region = myPal)
 
-    fburnMap <- file.path(
-      outputDir, studyAreaName, "figures",
-      paste0("cumulBurnMap_", studyAreaName, "_", climateScenario, ".png")
-    )
-    dir.create(dirname(fburnMap), recursive = TRUE, showWarnings = FALSE)
+    fburnMap <- .figFile("cumulBurnMap", outputDir, studyAreaName, scenLabel)
 
     fig <- rasterVis::levelplot(cumulBurnMap,
       margin = list(FUN = "mean"), ## median?
-      main = paste0("Cumulative burn map ", years[1], "-", years[2], "under ", climateScenario),
+      main = paste0("Cumulative burn map ", years[1], "-", years[2], " under ", scenLabel),
       colorkey = list(
         at = seq(0, raster::maxValue(cumulBurnMap), length.out = nreps + 1),
         space = "bottom",
@@ -286,6 +288,7 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
                             Nreps, years, pixelSize, simFiles = NULL) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("cowplot", quietly = TRUE)) {
+    scenLabel <- .scenarioLabel(climateScenario)
     fs <- .repOutputFiles(simFiles, outputDir,
                           reps = seq_len(Nreps),
                           filename = "fireSense_burnSummary.csv")
@@ -428,18 +431,80 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
       ggplot2::labs(y = "mean fire size (ha)")
 
     title <- cowplot::ggdraw() +
-      cowplot::draw_label(paste("Fires in the", studyAreaName, "study area under", climateScenario))
+      cowplot::draw_label(paste("Fires in the", studyAreaName, "study area under",
+                                scenLabel))
 
     p <- cowplot::plot_grid(p1, p2, p3, align = "h", nrow = 3, labels = "AUTO")
 
-    fgg <- file.path(
-      outputDir, studyAreaName, "figures",
-      paste0("burnSummary_", studyAreaName, "_", climateScenario, ".png")
-    )
-    dir.create(dirname(fgg), recursive = TRUE, showWarnings = FALSE)
+    fgg <- .figFile("burnSummary", outputDir, studyAreaName, scenLabel)
     gg <- cowplot::plot_grid(title, p, ncol = 1, rel_heights = c(0.1, 1))
     ggplot2::ggsave(gg, filename = fgg, height = 8, width = 11)
 
     return(fgg)
   }
+}
+
+## Label for a climate scenario, for use in titles and filenames.
+##
+## A run with no climate scenario carries NA -- typically R's bare *logical*
+## NA. Pasting that into a title or filename gives literal "NA" text (e.g.
+## "burnSummary_someArea_NA.png"), so it is rendered as "NRV" instead, and said
+## out loud: an unset scenario and a deliberate NRV run look identical here, so
+## the caller should be told which one we assumed.
+##
+## Anything that cannot be a scenario (NULL, length 0, length > 1) is an error,
+## not an unset value -- relabelling those would hide a bug upstream behind a
+## plausible-looking filename.
+##
+## Call once per function and reuse: it is used in several filenames and titles
+## and should not repeat its message.
+## @noRd
+.scenarioLabel <- function(climateScenario) {
+  if (is.null(climateScenario) || length(climateScenario) == 0L) {
+    stop("`climateScenario` is missing; pass NA for a run with no scenario.",
+         call. = FALSE)
+  }
+  if (length(climateScenario) != 1L) {
+    stop("`climateScenario` must be length 1, got ", length(climateScenario), ".",
+         call. = FALSE)
+  }
+  if (is.na(climateScenario) || !nzchar(as.character(climateScenario))) {
+    message("climateScenario is NA, so declaring it to be NRV; ",
+            "if this is incorrect, pass the name.")
+    return("NRV")
+  }
+  as.character(climateScenario)
+}
+
+## Underscore-separated parts of a climate scenario ("CNRM-ESM2-1_ssp370" ->
+## c("CNRM-ESM2-1", "ssp370")); character() for a historical run. Unlike a bare
+## strsplit(), never errors when climateScenario is a logical NA.
+## @noRd
+.scenarioParts <- function(climateScenario) {
+  if (length(climateScenario) != 1L || is.na(climateScenario)) return(character())
+  parts <- strsplit(as.character(climateScenario), "_")[[1L]]
+  parts[nzchar(parts)]
+}
+
+## Path of a figure file, and the directory to hold it.
+##
+## All three plot functions wrote to the same place under the same naming
+## scheme -- <outputDir>/<studyAreaName>/figures/<prefix>_<studyAreaName>_
+## <scenario>.png -- each building the path and creating the directory itself.
+## One definition means the layout can change in one place, and no caller can
+## forget the dir.create().
+##
+## @param prefix Figure kind, e.g. "burnSummary".
+## @param create Create the containing directory. TRUE except when the caller
+##   only wants the path.
+## @noRd
+.figFile <- function(prefix, outputDir, studyAreaName, scenarioLabel, create = TRUE) {
+  f <- file.path(
+    outputDir, studyAreaName, "figures",
+    paste0(prefix, "_", studyAreaName, "_", scenarioLabel, ".png")
+  )
+  if (isTRUE(create)) {
+    dir.create(dirname(f), recursive = TRUE, showWarnings = FALSE)
+  }
+  f
 }
