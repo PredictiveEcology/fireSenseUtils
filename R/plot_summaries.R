@@ -2,6 +2,90 @@ utils::globalVariables(c(
   "areaBurnedHa", "Nfires", "POLY_HA", "SIZE_HA", "sumAB", "sumBurn", "val", "var", "YEAR"
 ))
 
+#' Locate per-replicate simulation output files
+#'
+#' @param simFiles character vector of simulation output file paths (e.g. the `file`
+#'    column of `SpaDES.core::outputs(sim)`), or `NULL` to reconstruct the paths from
+#'    `outputDir` using the `repNN` directory convention.
+#'
+#' @param outputDir Path specifying the directory containing the per-replicate
+#'    subdirectories. Only used when `simFiles` is `NULL`.
+#'
+#' @param reps integer vector of replicate numbers. Only used when `simFiles` is `NULL`;
+#'    otherwise the replicates present in `simFiles` are used.
+#'
+#' @param filename character. The file name to locate within each replicate.
+#'
+#' @return character vector of file paths, named by replicate number, ordered by replicate.
+#'
+#' @noRd
+.repOutputFiles <- function(simFiles, outputDir, reps, filename) {
+  if (is.null(simFiles)) {
+    f <- file.path(outputDir, sprintf("rep%02d", reps), filename)
+    names(f) <- as.character(reps)
+    return(f)
+  }
+
+  f <- simFiles[basename(simFiles) == filename]
+  repNum <- suppressWarnings(as.integer(sub(".*[/\\\\]rep0*([0-9]+)[/\\\\].*", "\\1", f)))
+  f <- f[!is.na(repNum)]
+  repNum <- repNum[!is.na(repNum)]
+
+  if (length(f) == 0L) {
+    stop("no file named '", filename, "' found among `simFiles`.")
+  }
+
+  f <- f[order(repNum)]
+  names(f) <- as.character(sort(repNum))
+  f
+}
+
+#' Stop with the errors raised inside `mclapply()`
+#'
+#' `mclapply()` returns a `try-error` for each worker that failed, which otherwise
+#' surfaces much later as an unrelated error (e.g. from `rbindlist()`).
+#'
+#' @param res list returned by `parallel::mclapply()`
+#' @param ok logical vector: which elements are valid results
+#' @param what character. What was being read, used in the error message.
+#'
+#' @return `NULL`, invisibly; called for the side effect of stopping on errors.
+#'
+#' @noRd
+.stopOnMclapplyErrors <- function(res, ok, what) {
+  if (!all(ok)) {
+    stop("failed to read ", sum(!ok), " of ", length(ok), " ", what, ":\n",
+         paste(vapply(res[!ok], function(x) paste(as.character(x), collapse = ""),
+                      character(1)), collapse = ""))
+  }
+  invisible(NULL)
+}
+
+#' Extract the attribute table of a spatial object
+#'
+#' Handles `SpatVector`, `sf`, `Spatial*DataFrame`, and lists of any of these.
+#'
+#' @param x a spatial object, or a list of them
+#'
+#' @return a `data.frame` of the object's attributes
+#'
+#' @noRd
+.attributes <- function(x) {
+  if (is.list(x) && !inherits(x, c("sf", "data.frame"))) {
+    return(do.call(rbind, lapply(x, .attributes)))
+  }
+
+  if (inherits(x, "SpatVector")) {
+    terra::values(x)
+  } else if (inherits(x, "sf")) {
+    sf::st_drop_geometry(x)
+  } else if (isTRUE(methods::.hasSlot(x, "data"))) {
+    x@data
+  } else {
+    as.data.frame(x)
+  }
+}
+
 #' Plot historic ignitions, escapes, and area burned
 #'
 #' @template summary_plots
@@ -14,17 +98,18 @@ utils::globalVariables(c(
 #' @param ignitionPoints A `sf` spatial points of historic fire ignitions, from the Canadian
 #'    National Fire Database.
 #'
+#' @template simFiles
+#'
 #' @export
 #' @importFrom data.table as.data.table setnames
 plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
-                              pixelSize, firePolys, ignitionPoints) {
+                              pixelSize, firePolys, ignitionPoints, simFiles = NULL) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("SpaDES.core", quietly = TRUE)) {
     gcm <- strsplit(climateScenario, "_")[[1]][1]
     ssp <- strsplit(climateScenario, "_")[[1]][2]
 
-    historicalBurns <- do.call(what = rbind, args = firePolys)
-    historicalBurns <- as.data.table(historicalBurns@data)
+    historicalBurns <- as.data.table(.attributes(firePolys))
 
     ## restrict to escapes only, but sum poly_ha for burns
     historicalBurns <- historicalBurns[
@@ -34,10 +119,11 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
     setnames(historicalBurns, "YEAR", "year")
     historicalBurns[, stat := "observed"]
 
-    rep <- 1L ## only use the first rep
-    resultsDir <- file.path(outputDir, sprintf("rep%02d", rep))
+    ## only use the first rep
+    f <- .repOutputFiles(simFiles, outputDir, reps = 1L, filename = "fireSense_burnSummary.csv")[1L]
+    rep <- as.integer(names(f))
 
-    burnDT <- file.path(resultsDir, "fireSense_burnSummary.csv") |> data.table::fread()
+    burnDT <- data.table::fread(f)
     burnSummary <- data.table(
       year = burnDT[["year"]],
       N = burnDT[["N"]],
@@ -52,7 +138,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
     projectedBurns[, stat := "projected"]
     dat <- rbind(projectedBurns, historicalBurns)
 
-    trueHistoricalIgs <- as.data.table(ignitionPoints) %>%
+    trueHistoricalIgs <- as.data.table(.attributes(ignitionPoints)) %>%
       .[, .N, .(YEAR)] %>%
       setnames(., "YEAR", "year") %>%
       .[, stat := "observed"] %>%
@@ -87,11 +173,12 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
       ggplot2::ylim(0, max(dat$sumBurn) * 1.1) +
       ggplot2::labs(
         y = "annual area burned (ha)",
-        title = paste(studyAreaName, "rep", run),
+        title = paste(studyAreaName, "rep", rep),
         subtitle = paste(gcm, ssp)
       )
 
     figDir <- file.path(outputDir, studyAreaName, "figures")
+    dir.create(figDir, recursive = TRUE, showWarnings = FALSE)
     figs <- list(
       ignition = file.path(figDir, paste0("simulated_Ignitions_", studyAreaName, "_", climateScenario, ".png")),
       escape = file.path(figDir, paste0("simulated_Escapes_", studyAreaName, "_", climateScenario, ".png")),
@@ -115,38 +202,52 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
 #'
 #' @template rasterToMatch
 #'
+#' @template simFiles
+#'
 #' @return a file path corresponding to the images and/or objects written to disk
 #'
 #' @export
 #' @importFrom parallel mclapply
 plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
-                                Nreps, years, rasterToMatch) {
+                                Nreps, years, rasterToMatch, simFiles = NULL) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
       requireNamespace("raster", quietly = TRUE) &&
       requireNamespace("rasterVis", quietly = TRUE) &&
       requireNamespace("RColorBrewer", quietly = TRUE)) {
-    burnMapAllReps <- parallel::mclapply(1:Nreps, function(rep) {
-      resultsDir <- file.path(outputDir, sprintf("rep%02d", rep))
+    fs <- .repOutputFiles(simFiles, outputDir,
+                          reps = seq_len(Nreps),
+                          filename = paste0("burnMap_year", years[2], ".tif"))
 
-      burnMap <- raster::raster(file.path(resultsDir, paste0("burnMap_year", years[2], ".tif")))
-    })
+    burnMapAllReps <- parallel::mclapply(fs, function(f) raster::raster(f))
+    .stopOnMclapplyErrors(burnMapAllReps,
+                          vapply(burnMapAllReps, inherits, logical(1), "BasicRaster"),
+                          "cumulative burn maps")
 
-    cumulBurnMap <- raster::calc(raster::stack(burnMapAllReps), fun = sum) / Nreps
+    ## `simFiles` determines which reps are actually available
+    nreps <- length(burnMapAllReps)
+
+    cumulBurnMap <- raster::calc(raster::stack(burnMapAllReps), fun = sum) / nreps
+
+    ## TODO: drop this once the function is switched to terra/tidyterra
+    if (inherits(rasterToMatch, "SpatRaster")) {
+      rasterToMatch <- raster::raster(rasterToMatch)
+    }
     cumulBurnMap <- raster::mask(raster::crop(cumulBurnMap, rasterToMatch), rasterToMatch)
 
-    myPal <- RColorBrewer::brewer.pal("Reds", n = Nreps + 1) ## include 0 ## TODO: max 9 cols!
+    myPal <- RColorBrewer::brewer.pal("Reds", n = nreps + 1) ## include 0 ## TODO: max 9 cols!
     myTheme <- rasterVis::rasterTheme(region = myPal)
 
     fburnMap <- file.path(
       outputDir, studyAreaName, "figures",
       paste0("cumulBurnMap_", studyAreaName, "_", climateScenario, ".png")
     )
+    dir.create(dirname(fburnMap), recursive = TRUE, showWarnings = FALSE)
 
     fig <- rasterVis::levelplot(cumulBurnMap,
       margin = list(FUN = "mean"), ## median?
       main = paste0("Cumulative burn map ", years[1], "-", years[2], "under ", climateScenario),
       colorkey = list(
-        at = seq(0, raster::maxValue(cumulBurnMap), length.out = Nreps + 1),
+        at = seq(0, raster::maxValue(cumulBurnMap), length.out = nreps + 1),
         space = "bottom",
         axis.line = list(col = "black"),
         width = 0.75
@@ -175,18 +276,22 @@ plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
 #'
 #' @param pixelSize raster pixel (Cell) size
 #'
+#' @template simFiles
+#'
 #' @export
 #' @importFrom data.table data.table rbindlist
 #' @importFrom parallel mclapply
 #' @importFrom stats coefficients lm pf
 plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
-                            Nreps, years, pixelSize) {
+                            Nreps, years, pixelSize, simFiles = NULL) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("cowplot", quietly = TRUE)) {
-    burnSummaryAllReps <- rbindlist(parallel::mclapply(1:Nreps, function(rep) {
-      resultsDir <- file.path(outputDir, sprintf("rep%02d", rep))
+    fs <- .repOutputFiles(simFiles, outputDir,
+                          reps = seq_len(Nreps),
+                          filename = "fireSense_burnSummary.csv")
 
-      burnDT <- file.path(resultsDir, "fireSense_burnSummary.csv") |> data.table::fread()
+    burnSummaryPerRep <- parallel::mclapply(names(fs), function(rep) {
+      burnDT <- data.table::fread(fs[[rep]])
       burnSummary <- data.table(
         year = burnDT[["year"]],
         N = burnDT[["N"]],
@@ -194,7 +299,12 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
         rep = as.integer(rep)
       )
       burnSummary ## TODO: this is the BUFFERED studyArea, not the REPORTING one!!!!
-    }))
+    })
+    .stopOnMclapplyErrors(burnSummaryPerRep,
+                          vapply(burnSummaryPerRep, is.data.frame, logical(1)),
+                          "burn summaries")
+
+    burnSummaryAllReps <- rbindlist(burnSummaryPerRep)
 
     # totAreaBurned <- burnSummaryAllReps[, lapply(.SD, sum), by = c("year", "rep"), .SDcols = "areaBurnedHa"]
     # totAreaBurend <- totAreaBurned[, lapply(.SD, mean), by = "year", .SDcols = "areaBurnedHa"]
@@ -326,7 +436,10 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
       outputDir, studyAreaName, "figures",
       paste0("burnSummary_", studyAreaName, "_", climateScenario, ".png")
     )
+    dir.create(dirname(fgg), recursive = TRUE, showWarnings = FALSE)
     gg <- cowplot::plot_grid(title, p, ncol = 1, rel_heights = c(0.1, 1))
     ggplot2::ggsave(gg, filename = fgg, height = 8, width = 11)
+
+    return(fgg)
   }
 }

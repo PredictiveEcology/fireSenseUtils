@@ -10,7 +10,8 @@ plotCumulativeBurns(
   outputDir,
   Nreps,
   years,
-  rasterToMatch
+  rasterToMatch,
+  simFiles = NULL
 )
 }
 \arguments{
@@ -30,6 +31,15 @@ to take advantage of parallel processing.}
 
 \item{rasterToMatch}{A \code{RasterLayer} objects to use as the template for all subsequent
 raster operations (i.e., the one used throughout the simulation).}
+
+\item{simFiles}{Optional character vector of simulation output file paths
+(e.g. the \code{file} column of \code{SpaDES.core::outputs(sim)}), used to locate the
+per-replicate files instead of reconstructing them from \code{outputDir}.
+Needed when the replicate outputs do not live in \verb{<outputDir>/repNN/}, e.g.
+when summarizing runs restored from another machine, or when the replicate
+directories are unpadded (\code{rep1} rather than \code{rep01}).
+When supplied, the replicates present in \code{simFiles} are used, and \code{Nreps}
+is ignored.}
 }
 \value{
 list of file names corresponding to the figures and/or objects written to disk
