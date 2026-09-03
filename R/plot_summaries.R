@@ -184,12 +184,10 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
         subtitle = scenSubtitle
       )
 
-    figDir <- file.path(outputDir, studyAreaName, "figures")
-    dir.create(figDir, recursive = TRUE, showWarnings = FALSE)
     figs <- list(
-      ignition = file.path(figDir, paste0("simulated_Ignitions_", studyAreaName, "_", scenLabel, ".png")),
-      escape = file.path(figDir, paste0("simulated_Escapes_", studyAreaName, "_", scenLabel, ".png")),
-      spread = file.path(figDir, paste0("simulated_burnArea_", studyAreaName, "_", scenLabel, ".png"))
+      ignition = .figFile("simulated_Ignitions", outputDir, studyAreaName, scenLabel),
+      escape   = .figFile("simulated_Escapes", outputDir, studyAreaName, scenLabel),
+      spread   = .figFile("simulated_burnArea", outputDir, studyAreaName, scenLabel)
     )
     ggplot2::ggsave(plot = gIgnitions, filename = figs$ignition)
     ggplot2::ggsave(plot = gEscapes, filename = figs$escape)
@@ -245,11 +243,7 @@ plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
     myPal <- RColorBrewer::brewer.pal("Reds", n = nreps + 1) ## include 0 ## TODO: max 9 cols!
     myTheme <- rasterVis::rasterTheme(region = myPal)
 
-    fburnMap <- file.path(
-      outputDir, studyAreaName, "figures",
-      paste0("cumulBurnMap_", studyAreaName, "_", scenLabel, ".png")
-    )
-    dir.create(dirname(fburnMap), recursive = TRUE, showWarnings = FALSE)
+    fburnMap <- .figFile("cumulBurnMap", outputDir, studyAreaName, scenLabel)
 
     fig <- rasterVis::levelplot(cumulBurnMap,
       margin = list(FUN = "mean"), ## median?
@@ -442,11 +436,7 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
 
     p <- cowplot::plot_grid(p1, p2, p3, align = "h", nrow = 3, labels = "AUTO")
 
-    fgg <- file.path(
-      outputDir, studyAreaName, "figures",
-      paste0("burnSummary_", studyAreaName, "_", scenLabel, ".png")
-    )
-    dir.create(dirname(fgg), recursive = TRUE, showWarnings = FALSE)
+    fgg <- .figFile("burnSummary", outputDir, studyAreaName, scenLabel)
     gg <- cowplot::plot_grid(title, p, ncol = 1, rel_heights = c(0.1, 1))
     ggplot2::ggsave(gg, filename = fgg, height = 8, width = 11)
 
@@ -494,4 +484,27 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
   if (length(climateScenario) != 1L || is.na(climateScenario)) return(character())
   parts <- strsplit(as.character(climateScenario), "_")[[1L]]
   parts[nzchar(parts)]
+}
+
+## Path of a figure file, and the directory to hold it.
+##
+## All three plot functions wrote to the same place under the same naming
+## scheme -- <outputDir>/<studyAreaName>/figures/<prefix>_<studyAreaName>_
+## <scenario>.png -- each building the path and creating the directory itself.
+## One definition means the layout can change in one place, and no caller can
+## forget the dir.create().
+##
+## @param prefix Figure kind, e.g. "burnSummary".
+## @param create Create the containing directory. TRUE except when the caller
+##   only wants the path.
+## @noRd
+.figFile <- function(prefix, outputDir, studyAreaName, scenarioLabel, create = TRUE) {
+  f <- file.path(
+    outputDir, studyAreaName, "figures",
+    paste0(prefix, "_", studyAreaName, "_", scenarioLabel, ".png")
+  )
+  if (isTRUE(create)) {
+    dir.create(dirname(f), recursive = TRUE, showWarnings = FALSE)
+  }
+  f
 }

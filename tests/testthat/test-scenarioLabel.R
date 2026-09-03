@@ -41,3 +41,33 @@ test_that(".scenarioLabel errors on values that cannot be a scenario", {
   expect_error(fireSenseUtils:::.scenarioLabel(character()), "is missing")
   expect_error(fireSenseUtils:::.scenarioLabel(c("a_b", "c_d")), "must be length 1")
 })
+
+## .figFile(): all three plot functions wrote to the same place under the same
+## naming scheme, each building the path and creating the directory itself.
+
+test_that(".figFile builds <outputDir>/<studyArea>/figures/<prefix>_<area>_<scen>.png", {
+  od <- withr::local_tempdir()
+  f <- fireSenseUtils:::.figFile("burnSummary", od, "someArea", "CNRM-ESM2-1_ssp370")
+  expect_identical(basename(f), "burnSummary_someArea_CNRM-ESM2-1_ssp370.png")
+  expect_identical(basename(dirname(f)), "figures")
+  expect_identical(basename(dirname(dirname(f))), "someArea")
+})
+
+test_that(".figFile creates the containing directory, unless asked not to", {
+  od <- withr::local_tempdir()
+  f <- fireSenseUtils:::.figFile("burnSummary", od, "a", "s")
+  expect_true(dir.exists(dirname(f)))
+
+  od2 <- withr::local_tempdir()
+  f2 <- fireSenseUtils:::.figFile("burnSummary", od2, "a", "s", create = FALSE)
+  expect_false(dir.exists(dirname(f2)))
+  expect_identical(basename(f2), basename(f))      # path is the same either way
+})
+
+test_that(".figFile composes with .scenarioLabel for a run with no scenario", {
+  od <- withr::local_tempdir()
+  lbl <- suppressMessages(fireSenseUtils:::.scenarioLabel(NA))
+  f <- fireSenseUtils:::.figFile("burnSummary", od, "someArea", lbl)
+  expect_identical(basename(f), "burnSummary_someArea_NRV.png")
+  expect_false(grepl("NA", basename(f)))
+})
