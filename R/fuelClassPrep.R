@@ -45,7 +45,17 @@ fuelClassPrep <- function(pixelGroupMap, cohortData, rstLCC,
   ## Add pixels to cohort data
   speciesData <- addPixels2CohortData(cohortData = cohortData, pixelGroupMap)
 
-  ## Prepare landscape data excluding non-flammable land cover classes
+  ## Prepare landscape data excluding non-flammable land cover classes.
+  ## `lcc` must be the integer land-cover CODE: `nonflammableLCC`, `nonforestLCC`
+  ## and everything downstream (assessFuelClasses() coerces class names back
+  ## with as.numeric(); fuel classes are named "nfLCC_<code>_<code>") are in
+  ## code space. A categorical rstLCC -- makeFireSenseLCC() attaches the
+  ## SCANFI/NTEMS levels -- would otherwise come out of as.data.frame() as
+  ## labels, match nothing, and silently strip every species.
+  if (terra::is.factor(rstLCC)) {
+    rstLCC <- terra::deepcopy(rstLCC)
+    levels(rstLCC) <- NULL
+  }
   landscapeData <- as.data.table(as.data.frame(rstLCC, cells = TRUE)) |>
     setnames(c("cell", "lcc"))
   landscapeData <- landscapeData[!lcc %in% nonflammableLCC]
@@ -168,6 +178,12 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   #this allows forested wetland biomass without it counting towards flammability
   landscape <- landscape[!lcc %in% nonforestLCC & !is.na(B)]
   treeSpecies <- unique(landscape[!is.na(B)]$speciesCode)
+  treeSpecies <- treeSpecies[!is.na(treeSpecies)]
+  if (!length(treeSpecies))
+    stop("assessFuelClasses: no forested pixels with a species remain after removing ",
+         "nonforestLCC (", paste(unlist(nonforestLCC), collapse = ", "), "). ",
+         "Check that nonforestLCC / forestedLCC use the same land-cover codes as the ",
+         "values in rstLCC (a categorical raster yields labels, not codes).")
 
   fuelGLMs <- lapply(treeSpecies, makeGLM, landscape = landscape, form = "burned ~ B_MgHa")
   names(fuelGLMs) <- treeSpecies
