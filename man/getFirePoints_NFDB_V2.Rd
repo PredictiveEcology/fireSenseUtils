@@ -38,9 +38,8 @@ on whether a download was needed.}
 \item{plot}{logical indicating whether to produce plot of fire points. Default FALSE.}
 }
 \value{
-A \code{sf} spatial points object (or whatever class \code{fun} returns),
-retaining all columns of the source data (notably \code{CAUSE}, \code{YEAR} and
-\code{SIZE_HA}).
+A \code{sf} spatial points object (or whatever class \code{fun} returns), retaining
+all columns of the source data (notably \code{CAUSE}, \code{YEAR} and \code{SIZE_HA}).
 }
 \description{
 Get Fire \code{SpatialPoints} from Canadian Fire Database

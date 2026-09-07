@@ -34,8 +34,8 @@ raster operations (i.e., the one used throughout the simulation).}
 }
 \value{
 A \code{sf} spatial points object, retaining all columns of the source data
-(notably \code{CAUSE}, \code{YEAR} and \code{SIZE_HA}). When \code{rasterToMatch} is
-supplied, an additional \code{size} column gives fire size in pixels.
+(notably \code{CAUSE}, \code{YEAR} and \code{SIZE_HA}). When \code{rasterToMatch} is supplied, an
+additional \code{size} column gives fire size in pixels.
 }
 \description{
 Get Fire \code{SpatialPoints} from Canadian Fire Database
