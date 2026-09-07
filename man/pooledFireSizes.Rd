@@ -21,7 +21,7 @@ A list of two numeric vectors, \code{simulated} and \code{observed}, covering th
 same years.
 }
 \description{
-The Anderson-Darling test in \code{\link[=objFunSpread]{objFunSpread()}} compares whole distributions of
+The Anderson-Darling test in \code{objFunSpread()} compares whole distributions of
 fire size, so both samples must be drawn from the \emph{same} set of years. The years
 are simulated in batches (largest-area years first, so a hopeless parameter set
 can bail early), and this assembles the two samples from the per-batch

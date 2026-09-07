@@ -391,7 +391,7 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
 
 #' Pool simulated and observed fire sizes over the same years
 #'
-#' The Anderson-Darling test in [objFunSpread()] compares whole distributions of
+#' The Anderson-Darling test in `objFunSpread()` compares whole distributions of
 #' fire size, so both samples must be drawn from the *same* set of years. The years
 #' are simulated in batches (largest-area years first, so a hopeless parameter set
 #' can bail early), and this assembles the two samples from the per-batch
