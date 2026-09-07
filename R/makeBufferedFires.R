@@ -167,7 +167,8 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
         } else {
           dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
         }
-        if (is(dt, "try-error")) browser() # stop("try error here")
+        if (is(dt, "try-error"))
+          stop("could not sample pixels for fire ", idBig, ": ", conditionMessage(attr(dt, "condition")))
         dtOut <- dt[, list(buffer = 0L, pixelID = pixels, ids)]
 
         dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1L]

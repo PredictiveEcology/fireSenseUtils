@@ -132,7 +132,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
     categories <- terra::cats(ecopR)[[1]]
     names(ecopRseg) <- categories[match(names(ecopRseg), categories$ID), "ECOPROVINC"]
   } else {
-    browser() # this means there is a problem --> they need to be named by the 4.3 type name
+    stop("ecoprovince raster has no categories: segment names must be the '4.3'-style ecoprovince names, got: ",
+         paste(head(names(ecopRseg), 5), collapse = ", "))
     categories <- data.frame(names(ecopRseg)) |> setNames(names(ecopR))
   }
   
@@ -178,7 +179,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
     a[a[] == 0] <- NA
     vec <- terra::as.polygons(a)
     bb <- try(vec[,"ID"] <- nam)
-    if (is(bb, "try-error")) browser()
+    if (is(bb, "try-error"))
+      stop("could not assign ID column '", nam, "' to the polygon layer: ", conditionMessage(attr(bb, "condition")))
     vec[, "buffer"] <- vec[, nam]
     vec[,nam] <- NULL
     vec
@@ -527,7 +529,8 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
         for (addToInd in addTo) {
           curPixelVal <- ca[[addToInd]][] != 2
           arr <- try(a[[addToInd]] <- ca[[addToInd]])
-          if (is(arr, "try-error")) browser()
+          if (is(arr, "try-error"))
+            stop("could not build the pixel array: ", conditionMessage(attr(arr, "condition")))
           a[[addToInd]][lostPixels[[lp]]$pixelID] <- pmax(terra::values(a[[addToInd]])[lostPixels[[lp]]$pixelID], lostPixels[[lp]]$value, na.rm = TRUE)
           theA <- terra::freq(a[[addToInd]])
           # theA <- lapply(a, function(x) if (!is.null(x)) terra::freq(x))
@@ -560,7 +563,8 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
         r[[addTo]][whVals] <- terra::values(bb)[whVals]
       } else {
         numLostPixelsForever <- try(sum(lostPixels[[lp]]$value))
-        if (is(numLostPixelsForever, "try-error")) browser()
+        if (is(numLostPixelsForever, "try-error"))
+          stop("could not count lost pixels: ", conditionMessage(attr(numLostPixelsForever, "condition")))
         if (is.null(names(ca))) {
           message("From ELF ", lp, ", lost ", numLostPixelsForever," isolated pixels that do not exist in another ELF")
         }
