@@ -15,6 +15,13 @@
   computed and discarded) and the test runs once after the loop, via the new
   internal `pooledFireSizes()`. Behaviour on the early-bail path is unchanged: a
   parameter set that fails the first batch still skips `adTest` entirely.
+* Documentation regenerated with roxygen2 8.1.0 (was 8.0.0). Mostly formatting:
+  8.1.0 emits one multi-symbol `importFrom()` per package instead of one line per
+  symbol, so NAMESPACE shrinks considerably with no change to what is imported.
+  One **API change** falls out of the upgrade: `spreadFitAdditionalColNames`
+  (`R/objDefaults.R`) carries `@export` in its source but was not being exported --
+  roxygen2 8.0.0 silently dropped it, and 8.1.0 honours it. It is now exported and
+  documented, alongside the existing `spreadFitAdditionalColNamesTxt`.
 
 * `getFirePoints_NFDB()` no longer drops columns. It previously subset to
   `c("YEAR", fireSizeColName)` and renamed those to `date`/`size_ha`, discarding
