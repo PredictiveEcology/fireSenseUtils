@@ -14,11 +14,40 @@ test_that("objFunInner asks spread() to skip its checks, by the name spread() us
   expect_false(grepl("skipChecks", src))
 })
 
-test_that("`quick` is spread()'s argument and `skipChecks` is not, which is why this matters", {
+test_that("`quick` is the name spread() acts on", {
   skip_if_not_installed("SpaDES.tools")
   args <- names(formals(SpaDES.tools::spread))
   expect_true("quick" %in% args)
-  expect_false("skipChecks" %in% args)   # would land in `...` and be ignored
+})
+
+test_that("spread() honours whichever of the two names is supplied", {
+  ## This test replaces one that asserted `skipChecks` was NOT a formal of
+  ## spread(). That was true when this file was written and is why the objective
+  ## function's `skipChecks = TRUE` was silently ignored -- but SpaDES.tools then
+  ## added `skipChecks` as an alias for `quick` (spread(), R/spread.R: the formal
+  ## `skipChecks = quick`, then `if (isTRUE(skipChecks)) quick <- TRUE`), so the
+  ## assertion became false and reddened this package's CI on development.
+  ## Asserting the behaviour rather than the absence of an argument is what should
+  ## have been tested: whichever name a caller uses, the checks get skipped.
+  skip_if_not_installed("SpaDES.tools")
+  skip_if_not_installed("terra")
+
+  args <- names(formals(SpaDES.tools::spread))
+  skip_if_not("skipChecks" %in% args,
+              "this SpaDES.tools predates the skipChecks alias")
+
+  n <- 100
+  r <- terra::rast(nrows = n, ncols = n, xmin = 0, xmax = n, ymin = 0, ymax = n, vals = 1)
+  loci <- c(2550L, 5050L)
+
+  set.seed(42)
+  viaQuick <- SpaDES.tools::spread(landscape = r, loci = loci, spreadProb = 0.23,
+                                   returnIndices = TRUE, quick = TRUE)
+  set.seed(42)
+  viaAlias <- SpaDES.tools::spread(landscape = r, loci = loci, spreadProb = 0.23,
+                                   returnIndices = TRUE, skipChecks = TRUE)
+
+  expect_equal(viaQuick, viaAlias)
 })
 
 test_that("skipping the checks does not change what spread() returns", {
