@@ -615,7 +615,15 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           # asRaster = FALSE,
           returnIndices = TRUE,
           allowOverlap = FALSE,
-          skipChecks = TRUE
+          ## `quick`, not `skipChecks`: spread() has no skipChecks argument (that
+          ## belongs to spread3()), so it landed in `...` and was ignored, and
+          ## every call re-validated the whole per-cell spreadProb vector --
+          ## na.omit() copies it, inRange() scans it, once per call. That is
+          ## O(ncell) work per call, independent of how much actually burns:
+          ## 5.1x of the call on a 9M-cell landscape, 3.4x at 4M, 1.9x at 1M,
+          ## with identical output. This function calls spread() Nreps times per
+          ## fire year, so it was paid hundreds of times per objective evaluation.
+          quick = TRUE
         )
       }))
       if (SpaDES.core::anyPlotting(plot.it)) {
