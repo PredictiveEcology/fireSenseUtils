@@ -47,12 +47,17 @@ fireSenseCloudParametersMap <-
         ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE)
         ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)
 
-        # terra::plot(ELFs, col = c("turquoise", "yellow")[ELFs$buffer], alpha = 0.5)
-        terra::plot(ELFs)
+        ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
+        ## cf. ELFsInStudyArea(), which already does this. `singleSpatVector` no longer switches the
+        ## return type -- the code that used it is commented out in makeELFs().
+        ELFsPoly <- ELFs$poly
+
+        # terra::plot(ELFsPoly, col = c("turquoise", "yellow")[ELFsPoly$buffer], alpha = 0.5)
+        terra::plot(ELFsPoly)
         terra::plot(oo, add = TRUE, col = rgb(255, 255, 0, alpha = 127, maxColorValue = 255))
         centroids_points <- terra::centroids(oo)
-        keep <- ELFs$buffer %in% 2 & !ELFs$ID %in% centroids_points[[polygonIDTxt]]
-        terra::text(terra::centroids(ELFs[ keep, ]), labels = ELFs$ID[keep], cex = 0.7)
+        keep <- ELFsPoly$buffer %in% 2 & !ELFsPoly$ID %in% centroids_points[[polygonIDTxt]]
+        terra::text(terra::centroids(ELFsPoly[ keep, ]), labels = ELFsPoly$ID[keep], cex = 0.7)
         terra::text(centroids_points, labels = centroids_points[[polygonIDTxt]], cex = 0.8, col = "blue")
       }
 
@@ -69,10 +74,15 @@ plotELFs <- function(destinationPath = ".") {
   ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)|>
     Cache()
 
-  # terra::plot(ELFs, col = c("turquoise", "yellow")[ELFs$buffer], alpha = 0.5)
-  terra::plot(ELFs)
-  keep <- ELFs$buffer %in% 2
-  terra::text(terra::centroids(ELFs[ keep, ]), labels = ELFs$ID[keep], cex = 0.7)
+  ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
+  ## cf. ELFsInStudyArea(), which already does this. `singleSpatVector` no longer switches the
+  ## return type -- the code that used it is commented out in makeELFs().
+  ELFsPoly <- ELFs$poly
+
+  # terra::plot(ELFsPoly, col = c("turquoise", "yellow")[ELFsPoly$buffer], alpha = 0.5)
+  terra::plot(ELFsPoly)
+  keep <- ELFsPoly$buffer %in% 2
+  terra::text(terra::centroids(ELFsPoly[ keep, ]), labels = ELFsPoly$ID[keep], cex = 0.7)
   return(invisible(ELFs))
 }
 

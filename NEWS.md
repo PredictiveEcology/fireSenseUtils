@@ -15,6 +15,26 @@
   computed and discarded) and the test runs once after the loop, via the new
   internal `pooledFireSizes()`. Behaviour on the early-bail path is unchanged: a
   parameter set that fails the first batch still skips `adTest` entirely.
+* `makeELFs()`: only run the NA-hole-filling `focal()` step when `x` is a
+  `SpatRaster`. When `x` is (or defaults to) an `sf` of fire regime polygons there
+  are no NA slivers to fill and `focal()` has no method for it, failing with
+  `no method found for signature sf, data.frame`.
+
+* `mergeAndSplitRas()`: write each call's per-ecoprovince `.tif` files into their own
+  `ELFs_<digest>` subdirectory of `destinationPath`, keyed on `ecopRseg`, `ecopLCC`,
+  `maxArea` and `field`. They previously went straight into `destinationPath` named
+  only by the province code (`4.1.tif`), scattering ~36 anonymous files through a
+  shared inputs directory and letting successive calls overwrite one another. Note
+  this protects `destinationPath` only: `reproducible`'s cache-restore path collapses
+  these to `cachePath/<basename>.tif`, dropping the cacheId, so distinct calls still
+  collide there -- that is a `reproducible` issue this cannot fix.
+
+* `fireSenseCloudParametersMap()` and `plotELFs()`: use `ELFs$poly` rather than
+  treating the `makeELFs()` return value as a `SpatVector`. `makeELFs()` returns a
+  list of rasters plus a `poly` element (`ELFsInStudyArea()` already unwraps it this
+  way), so `terra::plot(ELFs)`, `ELFs$buffer`, `ELFs$ID` and `ELFs[keep, ]` were all
+  operating on the list. Both call sites are fixed.
+
 * Documentation regenerated with roxygen2 8.1.0 (was 8.0.0). Mostly formatting:
   8.1.0 emits one multi-symbol `importFrom()` per package instead of one line per
   symbol, so NAMESPACE shrinks considerably with no change to what is imported.

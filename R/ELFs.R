@@ -77,12 +77,15 @@ makeELFs <- function(x, desiredBuffer = 20000,
   }
   
   # remove tiny NA holes --> this should not exist because this is coming from SCANFI files;
-  #    but there were tiny NA slivers that were being magnified by the aggregate for ELFs
-  # browser()
-  x <- {
-    focal(x, w = 5, fun = "modal", na.policy = "only", na.rm = TRUE) |>
-      terra::mask(dv)
-  } |> Cache()
+  #    but there were tiny NA slivers that were being magnified by the aggregate for ELFs.
+  # Raster-only: when `x` is (or defaults to) an sf of fire regime polygons there are no NA holes
+  # to fill, and focal() has no method for it -- `no method found for signature sf, data.frame`.
+  if (is(x, "SpatRaster")) {
+    x <- {
+      focal(x, w = 5, fun = "modal", na.policy = "only", na.rm = TRUE) |>
+        terra::mask(dv)
+    } |> Cache()
+  }
   
   ecoNames <- c(
     "zone", "region",
@@ -447,6 +450,21 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
                              field = "ECOPROVINC", useCache = TRUE,
                              destinationPath) { # FRU 27 ... or FRU 26 is 4.02075e+11
   # Require::Require(c(sf, dismo))
+  # Each ecoprovince is written to its own .tif below, named by the province code ("4.1.tif").
+  # Those used to go straight into destinationPath, scattering ~36 anonymous files through a shared
+  # inputs directory and letting successive calls overwrite one another. Give each call its own
+  # subdirectory, keyed on the inputs that determine the output.
+  # NOTE: this protects the files in destinationPath only. reproducible's cache-RESTORE path collapses
+  # these to `cachePath/<basename>.tif`, dropping the cacheId, so distinct calls still collide there;
+  # that is a reproducible bug, not something this subdirectory can fix.
+  # .robustDigest() on a list returns one digest PER ELEMENT, so collapse to a single hash.
+  dpKey <- reproducible::.robustDigest(
+    paste(unlist(reproducible::.robustDigest(list(ecopRseg, ecopLCC, maxArea, field))),
+          collapse = "")
+  )
+  destinationPath <- reproducible::checkPath(
+    file.path(destinationPath, paste0("ELFs_", substr(dpKey, 1, 10))), create = TRUE
+  )
   prov1 <- as.character(sort(as.numeric(unique(names(ecopRseg)))))
   out <- Map(prov = prov1, function(prov) {
     provChar <- as.character(prov)
@@ -484,7 +502,9 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
     } else {
       a <- ecopRseg[[provChar]]
     }
-    # Need to write it explicitly because it keeps the original "fullRaster" as its .tif
+    # Need to write it explicitly because it keeps the original "fullRaster" as its .tif.
+    # destinationPath is the per-call subdirectory established above, so `provChar` alone is a
+    # sufficient (and readable) filename within it.
     tmp <- writeRaster(a, filename = file.path(destinationPath, paste0(provChar, ".tif")),
                        overwrite = TRUE)
     message("Done ", prov)
