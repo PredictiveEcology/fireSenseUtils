@@ -450,6 +450,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 
   set(shortAnnDT, NULL, "spreadProb",
       logisticAll(logisticPars, mat = as.matrix(shortAnnDT[, ..colsToUse]), covPars, lowerSpreadProb))
+  ## Initialised here, not inside the branch below, because the function returns
+  ## it unconditionally. With no test selected -- which is how the module's
+  ## `debug` mode calls this, passing tests = "" -- doFitting is FALSE, the branch
+  ## is skipped, and `return(ret)` used to fail with "object 'ret' not found".
+  ## Nothing appends to it before the branch, so this is the same list it always
+  ## was; the only change is that it exists when no test asked for anything.
+  ret <- list()
   doFitting <- any(c(doSNLL_FSTest, doMADTest, doADTest))
   if (isTRUE(doFitting)) {
     
@@ -542,7 +549,6 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     
     medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
     spreadOutEnough <- sdSP / medSP > 0.025
-    ret <- list()
     minLik <- 1e-29 # min(emp$lik[emp$lik > 0])
     loci <- annualFires$cells
     summ <- summary(nonEdgeValues)
