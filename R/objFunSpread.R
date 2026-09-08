@@ -604,7 +604,14 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         maxSizes <- maxSizes[!dups]
         loci <- annualFires$cells[!dups]
       }
-      st <- system.time(spreadState <- lapply(seq_len(Nreps), function(i) {
+      ## No system.time() here. It defaulted to gcFirst = TRUE, so every fire year
+      ## forced a full garbage collection, and `st` was assigned and never read.
+      ## On ELF 12.4 (1.7M cells, 18 fire years, a ~20-40 GB process) that was
+      ## 109.96 s of a 134 s objective-function evaluation -- 82% of self time, with
+      ## the spread() calls it was timing accounting for 6.4 s. It also explained why
+      ## dropping Nreps from 25 to 5 barely moved the total (82.7 s to 77.6 s): the
+      ## forced collection is once per year, outside the replicate loop.
+      spreadState <- lapply(seq_len(Nreps), function(i) {
         SpaDES.tools::spread(
           # SpaDES.tools::spread2(
           landscape = r,
@@ -625,7 +632,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           ## fire year, so it was paid hundreds of times per objective evaluation.
           quick = TRUE
         )
-      }))
+      })
       if (SpaDES.core::anyPlotting(plot.it)) {
         # par(
         #   mfrow = c(7, 7), omi = c(0.5, 0, 0, 0),

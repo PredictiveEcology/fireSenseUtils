@@ -1,3 +1,17 @@
+# fireSenseUtils 0.2.3.9002
+
+## Performance
+
+* `objFunInner()` no longer wraps its `spread()` replicate loop in
+  `system.time()`. `system.time()` defaults to `gcFirst = TRUE`, so every fire year
+  forced a full garbage collection, and the result was assigned to a variable that
+  was never read. Profiled on ELF 12.4 (1.7M cells, 18 fire years, a 20-40 GB
+  process), the forced collections were 109.96 s of a 134 s objective-function
+  evaluation -- 82% of self time -- against 6.4 s for all the `spread()` calls they
+  were timing. It also explains why replicate count barely affected cost: the
+  collection was once per fire year, outside the replicate loop, so dropping `Nreps`
+  from 25 to 5 moved a full evaluation only from 82.7 s to 77.6 s.
+
 # fireSenseUtils 0.2.3.9001
 
 * `objFunInner()` now asks `SpaDES.tools::spread()` to skip its input checks by
