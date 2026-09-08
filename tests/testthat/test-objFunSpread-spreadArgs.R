@@ -8,7 +8,8 @@
 
 test_that("objFunInner asks spread() to skip its checks, by the name spread() uses", {
   ## objFunInner() is where the per-year, per-replicate spread() call lives.
-  src <- paste(deparse(fireSenseUtils::objFunInner), collapse = "\n")
+  ## `:::`: objFunInner() is internal, called from .objfunSpreadFit().
+  src <- paste(deparse(fireSenseUtils:::objFunInner), collapse = "\n")
   expect_match(src, "quick = TRUE")
   expect_false(grepl("skipChecks", src))
 })
