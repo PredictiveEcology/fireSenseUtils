@@ -205,6 +205,9 @@ utils::globalVariables(c(
   smallest <- setdiff(names(fireSizesByYear), names(largest))
   lrgSmallFireYears <- list(large = names(largest), small = smallest)
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
+  fireSizesList <- list() # simulated fire sizes, pooled across batches for the adTest
+  yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
+  bailedEarly <- FALSE
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
@@ -248,6 +251,11 @@ utils::globalVariables(c(
       )
       results <- purrr::transpose(results)
 
+      if (isTRUE(doADTest)) {
+        fireSizesList[[ii]] <- unlist(results$fireSizes)
+        yrsDoneList[[ii]] <- yrs
+      }
+
       mess <- character()
       objFunRes <- 0
 
@@ -270,19 +278,6 @@ utils::globalVariables(c(
         # }
       }
 
-      if (isTRUE(doADTest)) {
-        if (ii == 2) {
-          historicalFiresTr <- unlist(purrr::transpose(historicalFiresAboveMin)$size)
-          simulatedFires <- unlist(results$fireSizes)
-          adTest <- try(ad.test(simulatedFires, historicalFiresTr)[["ad"]][1L, 1L])
-          if (is(adTest, "try-error")) {
-            adTest <- 1e6L
-          }
-          adTest <- adTest * 50
-          objFunRes <- objFunRes + adTest #+ SNLLTest
-          mess <- paste(mess, " adTest:", adTest, "; ")
-        }
-      }
       if (isTRUE(doSNLL_FSTest)) {
         thresh <- round(thresh, 0)
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 0)
@@ -312,6 +307,7 @@ utils::globalVariables(c(
           print(paste0("  ", Sys.getpid(), mess))
         }
         if (SNLL_FSTest == failVal && ii == 1) {
+          bailedEarly <- TRUE
           break
         }
       }
@@ -336,6 +332,25 @@ utils::globalVariables(c(
   }
   if (isTRUE(doSNLL_FSTest)) {
     objFunRes <- sum(unlist(bb$objFunRes))
+  }
+  ## The Anderson-Darling test compares whole distributions, so it runs once, after
+  ## all batches, on the simulated fire sizes pooled across batches -- and against the
+  ## observed sizes from *those same years*. Previously it ran inside the loop under
+  ## `ii == 2`, which pooled only the final batch's simulated sizes while comparing
+  ## them to every year's observed sizes; the omitted years are the 2 with the largest
+  ## area burned, so the observed sample kept an upper tail the simulated sample could
+  ## not have.
+  if (isTRUE(doADTest) && !isTRUE(bailedEarly)) {
+    pooled <- pooledFireSizes(fireSizesList, yrsDoneList, historicalFiresAboveMin)
+    adTest <- try(ad.test(pooled$simulated, pooled$observed)[["ad"]][1L, 1L])
+    if (is(adTest, "try-error")) {
+      adTest <- 1e6L
+    }
+    adTest <- adTest * 50
+    objFunRes <- objFunRes + adTest
+    if (verbose > 1) {
+      print(paste0("  ", Sys.getpid(), " adTest:", adTest, "; "))
+    }
   }
   if (length(objFunResList) > 1) {
     print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; Objective Final: ", round(objFunRes, 0)))
@@ -372,6 +387,34 @@ rescaleKnown2 <- function(x, minNew, maxNew, minOrig, maxOrig) {
   C <- x - minOrig # make it have a new minimum above the minOrig
   D <- C * z
   return(D)
+}
+
+#' Pool simulated and observed fire sizes over the same years
+#'
+#' The Anderson-Darling test in `objFunSpread()` compares whole distributions of
+#' fire size, so both samples must be drawn from the *same* set of years. The years
+#' are simulated in batches (largest-area years first, so a hopeless parameter set
+#' can bail early), and this assembles the two samples from the per-batch
+#' accumulators, skipping any batch that did not run.
+#'
+#' @param fireSizesList List with one element per batch, each a numeric vector of
+#'   simulated fire sizes. Elements for batches that did not run are `NULL`.
+#' @param yrsDoneList List with one element per batch, each the year names
+#'   contributing to the matching element of `fireSizesList`.
+#' @param historicalFiresAboveMin Named list of observed fires, one element per
+#'   year, each with a `size` column.
+#'
+#' @return A list of two numeric vectors, `simulated` and `observed`, covering the
+#'   same years.
+#'
+#' @keywords internal
+#' @rdname pooledFireSizes
+pooledFireSizes <- function(fireSizesList, yrsDoneList, historicalFiresAboveMin) {
+  yrsDone <- unlist(yrsDoneList)
+  list(
+    simulated = unlist(fireSizesList),
+    observed = unlist(purrr::transpose(historicalFiresAboveMin[yrsDone])$size)
+  )
 }
 
 #' @keywords internal

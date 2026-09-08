@@ -1,5 +1,20 @@
 # fireSenseUtils 0.2.3
 
+* `objFunSpread()`: the Anderson-Darling test now compares fire size distributions
+  drawn from the *same* years on both sides. Years are simulated in two batches --
+  the 2 with the largest total area burned, then the rest -- and the `adTest` block
+  was gated on `ii == 2`, reading `results$fireSizes` after `results` had been
+  overwritten by the second batch. So the simulated sample held only the
+  small-fire years, while the observed sample used `historicalFiresAboveMin`
+  unsubset, i.e. *every* year. Since the omitted years are selected as
+  largest-area-burned, the observed sample retained an upper tail the simulated
+  sample structurally could not have; `ad.test` is tail-sensitive and its result is
+  multiplied by 50, so the only way `DEoptim` could shrink it was to inflate
+  simulated fire sizes in ordinary years, biasing the fit toward over-prediction.
+  Simulated sizes are now pooled across both batches (they were already being
+  computed and discarded) and the test runs once after the loop, via the new
+  internal `pooledFireSizes()`. Behaviour on the early-bail path is unchanged: a
+  parameter set that fails the first batch still skips `adTest` entirely.
 * Documentation regenerated with roxygen2 8.1.0 (was 8.0.0). Mostly formatting:
   8.1.0 emits one multi-symbol `importFrom()` per package instead of one line per
   symbol, so NAMESPACE shrinks considerably with no change to what is imported.
