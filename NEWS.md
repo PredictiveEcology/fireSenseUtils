@@ -1,3 +1,14 @@
+# fireSenseUtils 0.2.3.9002
+
+## Bug fixes
+
+* `objFunInner()` returned `ret` unconditionally but built it only inside
+  `if (isTRUE(doFitting))`. With no test selected -- which is how
+  `fireSense_SpreadFit`'s `mode = "debug"` calls the chain, passing `tests = ""`
+  -- the branch is skipped and the call failed with `object 'ret' not found`,
+  making debug mode unusable. `ret` is now initialised before the branch, so the
+  function returns an empty list when nothing was asked of it.
+
 # fireSenseUtils 0.2.3.9001
 
 * `objFunInner()` now asks `SpaDES.tools::spread()` to skip its input checks by
