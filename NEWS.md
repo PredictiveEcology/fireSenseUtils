@@ -1,3 +1,20 @@
+# fireSenseUtils 0.2.3.9003
+
+## Performance
+
+* `objFunInner()` no longer wraps its `spread()` replicate loop in
+  `system.time()`. `system.time()` defaults to `gcFirst = TRUE`, so every fire year
+  forced a full garbage collection, and the result was assigned to a variable that
+  was never read. Measured on ELF 12.4 (1,737,132 cells, 18 fire years, `Nreps = 25`,
+  in a 20-40 GB process), three consecutive objective-function evaluations went from
+  82.7 / 84.0 / 83.9 s to 9.8 / 8.7 / 8.8 s -- about 9.5x -- with warm caches and no
+  other change. In the profile the forced collections were 109.96 s of a 134 s
+  evaluation, 82% of self time, against 6.44 s for all the `spread()` calls they were
+  timing. It also explains why replicate count used to make no difference: the
+  collection is once per fire year, outside the replicate loop. With it gone,
+  `Nreps = 5` takes 3.2 s against 8.8 s at 25, so roughly 80% of an evaluation now
+  scales with replicates as it always should have.
+
 # fireSenseUtils 0.2.3.9002
 
 ## Bug fixes
