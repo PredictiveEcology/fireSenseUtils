@@ -1,71 +1,41 @@
-on:
-  push:
-    branches:
-      - master
-      - development
-  pull_request:
-    branches:
-      - master
-      - development
+## Thin caller -- the runner, geospatial system dependencies, dependency
+## resolution, caching and covr itself all live in PredictiveEcology/actions.
+## This file only says when to run and which secrets to pass.
+##
+## Pinned @main deliberately: tags freeze and rot (v0.1/v0.2 kept the ubuntugis
+## PPA for months after the workflows rejected it). The actions repo gates
+## merges with its own self-test CI.
+##
+## Replaces a 71-line bespoke workflow. Everything it customised is either the
+## reusable workflow's default or one of its inputs:
+##   - dependencies: '"all"'          -> the workflow's default, so not repeated here
+##   - extra-packages: any::covr      -> added by the workflow itself
+##   - brew install gdal/pkg-config   -> `system-deps` (default true), stock Noble apt
+##   - extra-repositories, Ncpus: 2   -> identical in the workflow
+##   - hand-rolled actions/cache      -> setup-r-dependencies@v2 caches natively
 
 name: test-coverage
 
+on:
+  push:
+    ## Was [master, development]. This repo's default branch is `main`, so
+    ## coverage never ran on it -- and a codecov badge only reports for a
+    ## branch the workflow actually runs on.
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
 concurrency:
+  ## Group by github.ref so a PR run and a branch-push run never share a group.
+  ## Never cancel a push/merge run: covr takes ~25 min and merges can land
+  ## minutes apart, so cancelling one surfaces as spurious red. The bespoke
+  ## workflow had `cancel-in-progress: true` unconditionally.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test-coverage:
-    runs-on: macOS-latest
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    uses: PredictiveEcology/actions/.github/workflows/test-coverage.yaml@main
+    secrets:
       GOOGLEDRIVE_AUTH: ${{ secrets.GOOGLEDRIVE_AUTH }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      USING_COVR: true
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: r-lib/actions/setup-pandoc@v2
-
-      - name: Install macOS system dependencies
-        if: runner.os == 'macOS'
-        run: |
-          brew install pkg-config
-          brew install gdal
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          extra-repositories: 'https://predictiveecology.r-universe.dev/'
-          Ncpus: 2
-          # macOS runner -- `use-public-rspm` is a no-op anyway, but
-          # set to false to match R-CMD-check.yaml.
-          use-public-rspm: false
-
-      # Cache the resolved R user library so transient GitHub-API
-      # failures during pak dependency resolution still leave a usable
-      # library for the coverage run. See R-CMD-check.yaml for rationale.
-      - name: Restore R library cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.R_LIBS_USER }}
-          key: ${{ runner.os }}-${{ runner.arch }}-coverage-deps-${{ hashFiles('DESCRIPTION') }}-v1
-          restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-coverage-deps-
-
-      # `continue-on-error` so a transient pak failure does not abort the
-      # job while the restored cache still has a usable library.
-      - id: deps
-        continue-on-error: true
-        uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          # "all" installs Suggests from DESCRIPTION, so tests under
-          # coverage get the same packages they would in R CMD check,
-          # with no mirrored list to keep in sync. Was '"hard"' plus a
-          # hand-mirrored Suggests list, working around a pak Matrix
-          # metadata bug; retested green in #37. See R-CMD-check.yaml.
-          dependencies: '"all"'
-          extra-packages: any::covr
-
-      - name: Test coverage
-        run: covr::codecov()
-        shell: Rscript {0}
