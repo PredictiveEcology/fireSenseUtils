@@ -171,3 +171,52 @@ test_that("combine_fuel_classes behaves reasonably", {
   ## cleanup
   withr::deferred_run()
 })
+
+test_that("cohortsToFuelClasses names a species mapped to two fuel classes", {
+  withr::local_package("data.table")
+
+  ## `unique(sppEquiv[, .(FuelClass, <sppEquivCol>)])` is over both columns, but the join
+  ## keys on the species column alone -- so a species with two fuel classes survives as two
+  ## rows and every one of its cohorts is multiplied. data.table then stops with
+  ## "Join results in N rows; more than nrow(x)+nrow(i)", which names neither the species
+  ## nor this function, and a 15-worker run lost five study areas to it before anyone could
+  ## tell what it meant.
+  ##
+  ## Real case: LandR::sppEquivalencies_CA maps Pseu_men (Douglas-fir) to both "DgFrPoPine"
+  ## and "CedrMplOther", so every area containing Douglas-fir failed and every area without
+  ## it was fine.
+  sppEquiv <- data.table(
+    LandR     = c("Pice_mar", "Pinu_con", "Pseu_men",   "Pseu_men"),
+    FuelClass = c("BlkSprc",  "LdJkPine", "DgFrPoPine", "CedrMplOther")
+  )
+  cohortData <- data.table(
+    pixelGroup  = rep(1:2, each = 2),
+    speciesCode = c("Pice_mar", "Pseu_men", "Pinu_con", "Pseu_men"),
+    age         = c(50L, 60L, 70L, 80L),
+    B           = c(100L, 200L, 300L, 400L)
+  )
+
+  err <- tryCatch(
+    cohortsToFuelClasses(cohortData = cohortData, pixelGroupMap = NULL, flammableRTM = NULL,
+                         sppEquiv = sppEquiv, sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                         requiredFuelClasses = unique(sppEquiv$FuelClass)),
+    error = function(e) conditionMessage(e))
+
+  ## it stops, and the message is actionable: the species, both of its classes, and what to do
+  expect_type(err, "character")
+  expect_match(err, "Pseu_men", fixed = TRUE)
+  expect_match(err, "DgFrPoPine", fixed = TRUE)
+  expect_match(err, "CedrMplOther", fixed = TRUE)
+  expect_match(err, "single FuelClass", fixed = TRUE)
+  ## and it is NOT the opaque data.table message the user used to get
+  expect_false(grepl("nrow(x)+nrow(i)", err, fixed = TRUE))
+
+  ## a clean table gets past this guard (it fails later on the NULL rasters, not here)
+  clean <- sppEquiv[!(LandR == "Pseu_men" & FuelClass == "CedrMplOther")]
+  err2 <- tryCatch(
+    cohortsToFuelClasses(cohortData = cohortData, pixelGroupMap = NULL, flammableRTM = NULL,
+                         sppEquiv = clean, sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                         requiredFuelClasses = unique(clean$FuelClass)),
+    error = function(e) conditionMessage(e))
+  expect_false(grepl("more than one FuelClass", paste(err2, collapse = " "), fixed = TRUE))
+})

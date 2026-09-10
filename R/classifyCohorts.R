@@ -37,6 +37,31 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   # cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
+
+  ## `unique()` above is over BOTH columns, but the join below keys on the species column
+  ## ALONE. A species carrying two different `fuelClassCol` values therefore survives as
+  ## two rows, and every `cohortData` row for it is multiplied -- data.table then stops
+  ## with an opaque "Join results in N rows; more than nrow(x)+nrow(i)" that names neither
+  ## the species nor this function. In LandR::sppEquivalencies_CA, `Pseu_men` (Douglas-fir)
+  ## carries both "DgFrPoPine" and "CedrMplOther", so every study area containing
+  ## Douglas-fir failed here while areas without it were fine.
+  ##
+  ## Naming the species rather than picking one: which fuel class a species belongs to
+  ## decides what fuel the model sees, so silently choosing would quietly change the
+  ## science. This is a fixable problem in the `sppEquiv` table.
+  dupKeys <- sppEquivSubset[, .N, by = c(sppEquivCol)][get("N") > 1L]
+  if (NROW(dupKeys)) {
+    offenders <- dupKeys[[sppEquivCol]]
+    detail <- sppEquivSubset[get(sppEquivCol) %in% offenders]
+    setorderv(detail, c(sppEquivCol, fuelClassCol))
+    stop("`sppEquiv` maps ", length(offenders), " species to more than one ", fuelClassCol,
+         ", so joining it to `cohortData` on `", sppEquivCol, "` would multiply every ",
+         "cohort of those species:\n",
+         paste0("  ", detail[[sppEquivCol]], " -> ", detail[[fuelClassCol]], collapse = "\n"),
+         "\nGive each of those species a single ", fuelClassCol, " in `sppEquiv`.",
+         call. = FALSE)
+  }
+
   cD <- cohortData[sppEquivSubset, on = c("speciesCode" = sppEquivCol)]
   setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
   # data.table needs an argument for which column names are kept during join
