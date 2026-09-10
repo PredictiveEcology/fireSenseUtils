@@ -655,7 +655,8 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
 #' @return
 #' A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
 #' Currently, no high arctic
-#' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.)
+#' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor
+#' 3.2.1 or 3.2.4, which have no SCANFI species.
 #'
 #' @section Side Effects:
 #' Updates a Google Drive file when the current user is \code{"emcintir"} and when
@@ -722,16 +723,21 @@ runELFs <- function(
   # })
   #remove Arctic that is far from treeline
   arcticELFs <- "^1\\.|^2\\."
+  # No SCANFI species at all: LandR::loadSCANFISpeciesLayers() stops with "None of the
+  # selected species were found in the SCANFI layers", so, like the Arctic, there is
+  # nothing to fit
+  noSCANFIELFs <- "^3\\.2\\.1$|^3\\.2\\.4$"
+  excludeELFs <- paste(arcticELFs, noSCANFIELFs, sep = "|")
   if (grepl("^fit|^all", whatOut[1])) {
     if (grepl("^all", whatOut[1])){
-      .ELFinds <- names(sim$ELFs$rasCentered)  
+      .ELFinds <- names(sim$ELFs$rasCentered)
     } else {
       .ELFinds <- sim$spreadFitPreRun[[polygonIDTxt]]
     }
-    .ELFinds <- grep(arcticELFs, invert = TRUE, value = TRUE, .ELFinds)  
+    .ELFinds <- grep(excludeELFs, invert = TRUE, value = TRUE, .ELFinds)
   } else {
     for (i in names(sim$ELFs)) {
-      .ELFinds <- grep(arcticELFs, value = TRUE, names(sim$ELFs[[i]]))
+      .ELFinds <- grep(excludeELFs, value = TRUE, names(sim$ELFs[[i]]))
       sim$ELFs[[i]][.ELFinds] <- NULL
     }
     .ELFinds <- sim$ELFs
