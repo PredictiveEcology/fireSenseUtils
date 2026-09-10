@@ -13,16 +13,16 @@ fireSenseCloudParameters(
 )
 }
 \arguments{
-\item{url}{Http url of the fireSense object with parameters. Default is
-correct on GoogleDrive. Must be a folder.}
+\item{url}{Http url of the fireSense object with parameters on Google Drive:
+either the file itself (the default) or the folder that contains \code{targetFile}.}
 
-\item{targetFile}{A filename to search on the folder on Google Drive. The
+\item{targetFile}{The name of the file to find when \code{url} is a folder. The
 default is correct for fireSense parameters.}
 
-\item{destinationPath}{A path for the downloaded file.}
+\item{destinationPath}{A path where a copy of the downloaded file is saved.}
 
-\item{useCache}{Logical. Forwarded to \code{reproducible::prepInputs(useCache = ...)}
-to control whether downloaded/processed inputs are cached. Default \code{TRUE}.}
+\item{useCache}{Ignored. Kept so existing calls still work: the file is always
+downloaded fresh.}
 }
 \value{
 The object and the \code{rds} file saved to destinationPath.
@@ -30,6 +30,11 @@ The object and the \code{rds} file saved to destinationPath.
 \description{
 Download the FireSense parameter object, strip the list columns and
 convert to a SpatVector or SpatRaster.
+}
+\details{
+The file is downloaded from Google Drive on every call, so the result is always
+the current state of the shared parameter file, never a copy left on disk by an
+earlier call.
 }
 \seealso{
 \code{\link[=fireSenseCloudParametersMap]{fireSenseCloudParametersMap()}}

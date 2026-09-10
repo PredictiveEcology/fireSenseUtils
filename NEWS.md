@@ -1,3 +1,14 @@
+# fireSenseUtils 0.2.3.9004
+
+## Bug fixes
+
+* `fireSenseCloudParameters()` now downloads the shared parameter file from Google
+  Drive on every call. It used `prepInputs(purge = 7, overwrite = TRUE)`, which never
+  downloads again once a copy on disk matches CHECKSUMS.txt (`purge` only rebuilds
+  those entries; `overwrite` only affects the written output), so a changed file on
+  Drive was not seen. `url` may now also be the folder containing `targetFile`;
+  `useCache` is ignored.
+
 # fireSenseUtils 0.2.3.9003
 
 ## Performance

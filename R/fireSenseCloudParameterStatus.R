@@ -92,13 +92,17 @@ plotELFs <- function(destinationPath = ".") {
 #' Download the FireSense parameter object, strip the list columns and
 #' convert to a SpatVector or SpatRaster.
 #'
-#' @param url Http url of the fireSense object with parameters. Default is
-#'   correct on GoogleDrive. Must be a folder.
-#' @param targetFile A filename to search on the folder on Google Drive. The
+#' The file is downloaded from Google Drive on every call, so the result is always
+#' the current state of the shared parameter file, never a copy left on disk by an
+#' earlier call.
+#'
+#' @param url Http url of the fireSense object with parameters on Google Drive:
+#'   either the file itself (the default) or the folder that contains `targetFile`.
+#' @param targetFile The name of the file to find when `url` is a folder. The
 #'   default is correct for fireSense parameters.
-#' @param destinationPath A path for the downloaded file.
-#' @param useCache Logical. Forwarded to `reproducible::prepInputs(useCache = ...)`
-#'   to control whether downloaded/processed inputs are cached. Default `TRUE`.
+#' @param destinationPath A path where a copy of the downloaded file is saved.
+#' @param useCache Ignored. Kept so existing calls still work: the file is always
+#'   downloaded fresh.
 #' @return The object and the `rds` file saved to destinationPath.
 #' @export
 #' @seealso [fireSenseCloudParametersMap()]
@@ -111,8 +115,26 @@ fireSenseCloudParameters <- function(
     destinationPath = ".", useCache = TRUE) {
 
   # KNN = "https://drive.google.com/file/d/1xQGAhBCRimYQC_GWA0lOctZU4VSlyojS/view?usp=drivesdk"
-  prepInputs(targetFile = targetFile,
-                   url = url,
-                   destinationPath = destinationPath,
-                   useCache = useCache, purge = 7, overwrite = TRUE)
+  ## Downloaded directly rather than through prepInputs(): prepInputs() returns the copy
+  ## already on disk (or linked from destinationPathShared) whenever it matches
+  ## CHECKSUMS.txt, and neither `purge` (rebuilds CHECKSUMS.txt entries) nor `overwrite`
+  ## (the written output) makes it download again -- so a changed file on Drive was
+  ## never seen. The file is small, so a fresh download each call is cheap.
+  remote <- googledrive::drive_get(googledrive::as_id(url))
+  if (isTRUE(googledrive::is_folder(remote))) {
+    inFolder <- googledrive::drive_ls(remote)
+    remote <- inFolder[inFolder$name %in% targetFile, ]
+    if (NROW(remote) != 1L)
+      stop("Expected one file named '", targetFile, "' in ", url, "; found ", NROW(remote), ".")
+  }
+  tmp <- tempfile(fileext = ".rds")
+  on.exit(unlink(tmp), add = TRUE)
+  googledrive::drive_download(remote, path = tmp, overwrite = TRUE)
+  out <- readRDS(tmp)
+
+  dir.create(destinationPath, showWarnings = FALSE, recursive = TRUE)
+  dest <- file.path(destinationPath, targetFile)
+  unlink(dest) # a new file, not a write through a hard link into a shared copy
+  file.copy(tmp, dest)
+  out
 }
