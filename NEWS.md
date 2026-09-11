@@ -1,3 +1,12 @@
+# fireSenseUtils 0.2.3.9005
+
+## Bug fixes
+
+* `bufferToArea()` and `rasterFireBufferDT()` with `cores > 1` no longer hang. GDAL keeps one
+  worker-thread pool per process, created at the first multi-threaded raster write. A forked
+  worker inherited that pool but none of its threads, and waited for them forever with 0 CPU.
+  Forked workers now write rasters single-threaded (`terraOptions(threads = 1)`).
+
 # fireSenseUtils 0.2.3.9004
 
 ## Bug fixes

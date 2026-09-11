@@ -34,7 +34,7 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
   cores <- min(min(length(years), cores), maxCores)
   fireBufferListDT <- if (cores > 1) {
     parallel::mclapply(years,
-      FUN = makeFireIDs, fireRaster = fireRaster,
+      FUN = .singleThreadedGDAL(makeFireIDs), fireRaster = fireRaster,
       flammableRTM = flammableRTM, bufferForFireRaster = bufferForFireRaster,
       areaMultiplier = areaMultiplier, minSize = minSize, verb = verb
     )
