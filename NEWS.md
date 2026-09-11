@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9006
+
+## Maintenance
+
+* `parallel` is now declared in `Imports` (it was imported in `NAMESPACE` only). `covr` records
+  coverage in forked children only for packages that declare `parallel`, so the forked code in
+  `bufferToArea()` and `rasterFireBufferDT()` was reported as never run.
+
 # fireSenseUtils 0.2.3.9005
 
 ## Bug fixes
