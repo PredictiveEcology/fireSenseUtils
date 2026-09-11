@@ -1,3 +1,12 @@
+# fireSenseUtils 0.2.3.9007
+
+## Bug fixes
+
+* `getFirePoints_NFDB()` and `getFirePoints_NFDB_V2()` download the National Fire Database
+  points from `.../current_version/NFDB_point_shp.zip`. CFS renamed the archive from
+  `NFDB_point.zip`, which now returns HTTP 404, so no release after the copy already on disk
+  (fires to 2024) could be fetched. The URL is in the internal `nfdbPointUrl()`, with a test.
+
 # fireSenseUtils 0.2.3.9006
 
 ## Maintenance

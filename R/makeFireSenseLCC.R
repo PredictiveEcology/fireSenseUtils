@@ -88,10 +88,10 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   #    - Crops to the extent of to
   #    - Masks to the maskTo polygon(s)
   message("Preparing base NTEMS LCC data...")
-  cp <- capture.output(opts <- terraOptions())
+  cp <- utils::capture.output(opts <- terra::terraOptions())
   optsNow <- list(memmax = 4, todisk = TRUE)
-  newOpts <- do.call(terraOptions, optsNow)
-  on.exit(do.call(terraOptions, opts[names(optsNow)]))
+  newOpts <- do.call(terra::terraOptions, optsNow)
+  on.exit(do.call(terra::terraOptions, opts[names(optsNow)]))
 
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
