@@ -722,16 +722,31 @@ runELFs <- function(
   # })
   #remove Arctic that is far from treeline
   arcticELFs <- "^1\\.|^2\\."
+  # No SCANFI species at all: LandR::loadSCANFISpeciesLayers() stops with "None of the
+  # selected species were found in the SCANFI layers", so, like the Arctic, there is
+  # nothing to fit
+  noSCANFIELFs <- "^3\\.2\\.1$|^3\\.2\\.4$"
+  # ELFs with no fire in the fitted years, counted from the fire records by
+  # fireSense_ELFs (ELFfitStatus() -> ELFsExcluded()). This is the same judgement
+  # dataPrepFit makes only at the end of a cold run ("no ignitions present",
+  # fireSense_dataPrepFit.R:1595-1597); making it here keeps them out of the queue.
+  # Data-driven, and complementary to the two patterns above: a species or Arctic
+  # exclusion is not a statement about fire.
+  zeroFireELFs <- if (is.null(sim$ELFsExcluded)) character(0) else sim$ELFsExcluded
+  excludeELFs <- paste(c(arcticELFs, noSCANFIELFs,
+                         if (length(zeroFireELFs))
+                           paste0("^", gsub(".", "\\.", zeroFireELFs, fixed = TRUE), "$")),
+                       collapse = "|")
   if (grepl("^fit|^all", whatOut[1])) {
     if (grepl("^all", whatOut[1])){
-      .ELFinds <- names(sim$ELFs$rasCentered)  
+      .ELFinds <- names(sim$ELFs$rasCentered)
     } else {
       .ELFinds <- sim$spreadFitPreRun[[polygonIDTxt]]
     }
-    .ELFinds <- grep(arcticELFs, invert = TRUE, value = TRUE, .ELFinds)  
+    .ELFinds <- grep(excludeELFs, invert = TRUE, value = TRUE, .ELFinds)
   } else {
     for (i in names(sim$ELFs)) {
-      .ELFinds <- grep(arcticELFs, value = TRUE, names(sim$ELFs[[i]]))
+      .ELFinds <- grep(excludeELFs, value = TRUE, names(sim$ELFs[[i]]))
       sim$ELFs[[i]][.ELFinds] <- NULL
     }
     .ELFinds <- sim$ELFs
