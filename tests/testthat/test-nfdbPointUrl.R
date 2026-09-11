@@ -10,11 +10,5 @@ test_that("the NFDB point default URL is the full shapefile archive", {
 test_that("the NFDB point default URL is reachable", {
   skip_on_cran()
   skip_if_offline("cwfis.cfs.nrcan.gc.ca")
-  skip_if_not_installed("httr2")
-  resp <- httr2::request(fireSenseUtils:::nfdbPointUrl()) |>
-    httr2::req_method("HEAD") |>
-    httr2::req_error(is_error = function(resp) FALSE) |>
-    httr2::req_timeout(30) |>
-    httr2::req_perform()
-  expect_identical(httr2::resp_status(resp), 200L)
+  expect_identical(attr(curlGetHeaders(fireSenseUtils:::nfdbPointUrl(), timeout = 30), "status"), 200L)
 })
