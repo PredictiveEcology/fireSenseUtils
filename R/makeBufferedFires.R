@@ -58,7 +58,7 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
         cores = 1,
         ...
       ),
-      bufferToArea
+      .singleThreadedGDAL(bufferToArea)
     )
   } else {
     out <- purrr::pmap(
@@ -72,6 +72,17 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
   }
   names(out) <- names(poly)
   out
+}
+
+## Wrap `FUN` for a forked child. GDAL keeps one process-wide worker-thread pool, created at the
+## first multi-threaded raster write (terra passes `NUM_THREADS = terraOptions()$threads`). A child
+## forked after that inherits the pool but none of its threads, so its own multi-threaded write
+## waits for them forever with 0 CPU. Writing single-threaded in the child never uses the pool.
+.singleThreadedGDAL <- function(FUN) {
+  function(...) {
+    terra::terraOptions(threads = 1)
+    FUN(...)
+  }
 }
 
 #' @export
