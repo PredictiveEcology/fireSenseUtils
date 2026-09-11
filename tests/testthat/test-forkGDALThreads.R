@@ -3,9 +3,13 @@
 ## workers waited for them forever with 0 CPU (fits jobs stalled at prepSpreadFitData). The workers
 ## must finish.
 test_that("bufferToArea forked workers do not hang after a multi-threaded write in the parent", {
+  skip_on_cran()
   skip_on_os("windows") # no fork
   skip_if_not_installed("Require")
   skip_if(Require:::isRstudio(), "bufferToArea does not fork in RStudio")
+  ## R CMD check sets _R_CHECK_LIMIT_CORES_, which caps availableCores() at 2; with omit = 1
+  ## bufferToArea() then never forks and this test would skip. It only forks 2 workers.
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = NA))
   skip_if(parallelly::availableCores(constraints = "connections", omit = 1) < 2,
           "needs 2 cores to fork")
 
