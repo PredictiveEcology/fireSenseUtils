@@ -220,3 +220,44 @@ test_that("cohortsToFuelClasses names a species mapped to two fuel classes", {
     error = function(e) conditionMessage(e))
   expect_false(grepl("more than one FuelClass", paste(err2, collapse = " "), fixed = TRUE))
 })
+
+test_that("cohortsToFuelClasses survives 0-row cohortData", {
+  withr::local_package("data.table")
+  withr::local_package("terra")
+
+  ## ELFs 3.2.1, 3.2.4, 3.2.5 and 3.3.2 have no tree species at all, so `cohortData` arrives
+  ## with zero rows. FireSense can still fit on nonForest fuel only, so this must not stop.
+  pixelGroupMap <- rast(nrows = 4, ncols = 4, vals = rep(1:2, 8))
+  flammableRTM <- rast(pixelGroupMap, vals = 1)
+  sppEquiv <- data.table(
+    LandR     = c("Pice_mar", "Pinu_con"),
+    FuelClass = c("BlkSprc",  "LdJkPine")
+  )
+  required <- c("BlkSprc", "LdJkPine")
+
+  noCohorts <- data.table(pixelGroup = integer(), speciesCode = character(),
+                          age = integer(), B = integer())
+  out <- cohortsToFuelClasses(cohortData = noCohorts, pixelGroupMap = pixelGroupMap,
+                              flammableRTM = flammableRTM, sppEquiv = sppEquiv,
+                              sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                              requiredFuelClasses = required)
+
+  ## one zero-filled layer per required class (plus the youngAge layer the function always adds)
+  expect_s4_class(out, "SpatRaster")
+  expect_true(all(required %in% names(out)))
+  expect_equal(sort(names(out)), sort(c(required, youngAgeTxt)))
+  expect_true(all(values(out[[required]]) == 0))
+  ## geometry comes from pixelGroupMap
+  expect_true(compareGeom(out, pixelGroupMap, stopOnError = FALSE))
+
+  ## the with-cohorts path is unchanged: biomass lands in the right class and pixel
+  cohortData <- data.table(pixelGroup = c(1L, 2L), speciesCode = c("Pice_mar", "Pinu_con"),
+                           age = c(50L, 60L), B = c(100L, 200L))
+  out2 <- cohortsToFuelClasses(cohortData = cohortData, pixelGroupMap = pixelGroupMap,
+                               flammableRTM = flammableRTM, sppEquiv = sppEquiv,
+                               sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                               requiredFuelClasses = required)
+  expect_equal(sort(names(out2)), sort(c(required, youngAgeTxt)))
+  expect_equal(unname(values(out2[[required]])[1, ]), c(100, 0))
+  expect_equal(unname(values(out2[[required]])[2, ]), c(0, 200))
+})
