@@ -261,3 +261,34 @@ test_that("cohortsToFuelClasses survives 0-row cohortData", {
   expect_equal(unname(values(out2[[required]])[1, ]), c(100, 0))
   expect_equal(unname(values(out2[[required]])[2, ]), c(0, 200))
 })
+
+test_that("cohortsToFuelClasses with no tree species and no required classes gives youngAge only", {
+  withr::local_package("data.table")
+  withr::local_package("terra")
+
+  ## The fitting path (fireSense_dataPrepFit -> fireSenseCovariatesCreate) passes NO
+  ## requiredFuelClasses. With an ELF that has no tree species, sppEquiv has zero rows too, so
+  ## there is not a single tree fuel-class layer to stack. The result must still carry the
+  ## youngAge layer, on pixelGroupMap's geometry and NA mask, so the nonForest covariates
+  ## can be built on top of it.
+  pixelGroupMap <- rast(nrows = 4, ncols = 4, vals = 0L)
+  pixelGroupMap[1:3] <- NA
+  flammableRTM <- rast(pixelGroupMap, vals = 1)
+  flammableRTM[1:3] <- NA
+  sppEquiv <- data.table(LandR = character(), FuelClass = character())
+  noCohorts <- data.table(pixelGroup = integer(), speciesCode = character(),
+                          age = integer(), B = integer())
+
+  out <- suppressWarnings( ## max(age) over zero rows
+    cohortsToFuelClasses(cohortData = noCohorts, pixelGroupMap = pixelGroupMap,
+                         flammableRTM = flammableRTM, sppEquiv = sppEquiv,
+                         sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                         requiredFuelClasses = NULL)
+  )
+
+  expect_s4_class(out, "SpatRaster")
+  expect_identical(names(out), youngAgeTxt)
+  expect_true(compareGeom(out, pixelGroupMap, stopOnError = FALSE))
+  expect_identical(is.na(values(out, mat = FALSE)), is.na(values(pixelGroupMap, mat = FALSE)))
+  expect_true(all(values(out, mat = FALSE) == 0, na.rm = TRUE))
+})

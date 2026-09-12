@@ -107,8 +107,15 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
     }
     
   }
-  dd <- rast(cc)
-  classList <- dd[[order(names(dd))]]
+  ## No tree fuel classes at all (no tree species and none required): there is nothing to
+  ## stack, and terra cannot build a zero-layer SpatRaster from an empty list. Carry NULL
+  ## until the youngAge layer below gives the stack its first layer.
+  if (length(cc)) {
+    dd <- rast(cc)
+    classList <- dd[[order(names(dd))]]
+  } else {
+    classList <- NULL
+  }
   # })
   
   
@@ -122,7 +129,7 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   # classList <- rast(classList)
   # })
   
-  if (!is.null(landcoverDT)) {
+  if (!is.null(landcoverDT) && !is.null(classList)) {
     # find rows that aren't empty i.e. have non-forest landcover
     landcoverDT[, foo := rowSums(.SD, na.rm = TRUE), .SDcols = setdiff(names(landcoverDT), nonNFColNamesTxt)]
     # terra needs protection from zero-length index
@@ -138,11 +145,14 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   
   # Need to confirm that there was at least 1 youngAge ... sometime there are none e.g., with 9.2.1 plains
   if (!youngAgeTxt %in% names(classList)) {
-    ya <- as.int(is.na(classList[[1]]) )
+    ## every fuel-class layer is NA exactly where pixelGroupMap is, so with no layers the
+    ## map itself is the template
+    template <- if (is.null(classList)) pixelGroupMap else classList[[1]]
+    ya <- as.int(is.na(template))
     vals <- values(ya, mat = FALSE)
     ya[vals == 1L] <- NA
     names(ya) <- youngAgeTxt
-    classList <- c(classList, ya)
+    classList <- if (is.null(classList)) ya else c(classList, ya)
   }
   return(classList)
 }
