@@ -292,3 +292,36 @@ test_that("cohortsToFuelClasses with no tree species and no required classes giv
   expect_identical(is.na(values(out, mat = FALSE)), is.na(values(pixelGroupMap, mat = FALSE)))
   expect_true(all(values(out, mat = FALSE) == 0, na.rm = TRUE))
 })
+
+test_that("assessFuelClasses with no tree species returns the non-forest groups only", {
+  withr::local_package("data.table")
+  set.seed(1)
+  ## a landscape of non-forest pixels only (B is NA everywhere), three land covers that burn
+  ## at different rates so the k-means on the glm coefficients has something to cluster
+  n <- 300L
+  landscape <- data.table(
+    cell = seq_len(n), speciesCode = NA_character_,
+    lcc = rep(c(40L, 50L, 80L), each = n / 3L),
+    B = NA_integer_, totalBiomass = NA_integer_, year = 2020L
+  )
+  landscape[, burned := rbinom(.N, 1, c(`40` = 0.05, `50` = 0.3, `80` = 0.6)[as.character(lcc)])]
+  noSpp <- data.table(LandR = character(0), FuelClass = character(0))
+
+  out <- assessFuelClasses(landscape = landscape, fuelCol = "FuelClass", sppEquiv = noSpp,
+                           sppEquivCol = "LandR", nonforestLCC = c(40L, 50L, 80L))
+
+  expect_named(out, c("modSppEquiv", "nonForestedLCCGroups", "missingLCCgroup"))
+  expect_identical(nrow(out$modSppEquiv), 0L)
+  expect_true(all(c("species", "assignedFuelClass", "FuelClass") %in% names(out$modSppEquiv)))
+  expect_length(out$nonForestedLCCGroups, 2L)
+  expect_setequal(unlist(out$nonForestedLCCGroups), c(40, 50, 80))
+  expect_true(out$missingLCCgroup %in% names(out$nonForestedLCCGroups))
+
+  ## with species declared but no forested pixel left, the land-cover-code mismatch stop stays
+  withSpp <- data.table(LandR = "Pice_mar", FuelClass = "BlkSprc")
+  expect_error(
+    assessFuelClasses(landscape = landscape, fuelCol = "FuelClass", sppEquiv = withSpp,
+                      sppEquivCol = "LandR", nonforestLCC = c(40L, 50L, 80L)),
+    "no forested pixels with a species remain"
+  )
+})
