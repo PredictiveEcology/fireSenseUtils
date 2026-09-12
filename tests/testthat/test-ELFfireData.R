@@ -168,3 +168,28 @@ test_that("flammable area is reported in hectares of the land-cover grid", {
   ## 1000 x 1000 m pixels = 100 ha each, 100 cells fully inside the ELF footprint.
   expect_equal(fa$flammableAreaHa[1], fa$flammablePixels[1] * 100)
 })
+
+## Track A step 6: an ELF with no SCANFI tree species must NOT be excluded. fireSense fits
+## nonForest fuel classes, and the dataPrep chain now carries a zero-layer speciesLayers
+## through, so the old noSCANFIELFs regex would silently withhold fittable ELFs.
+
+test_that("the exclusion regex keeps no-tree ELFs and still drops Arctic and zero-fire ones", {
+  ## Rebuilt exactly as runELFs() builds it (R/ELFs.R, excludeELFs).
+  buildExclude <- function(zeroFireELFs = character(0)) {
+    paste(c("^1\\.|^2\\.",
+            if (length(zeroFireELFs))
+              paste0("^", gsub(".", "\\.", zeroFireELFs, fixed = TRUE), "$")),
+          collapse = "|")
+  }
+
+  ## 3.2.1 and 3.2.4 have no SCANFI species; they must survive now.
+  keep <- c("3.2.1", "3.2.4", "3.2.5", "3.3.2", "10.1", "6.2.2")
+  expect_false(any(grepl(buildExclude(), keep)))
+
+  ## Arctic is still excluded, and zero-fire ELFs still are when named.
+  expect_true(all(grepl(buildExclude(), c("1.2.3", "2.5.4"))))
+  expect_true(all(grepl(buildExclude(c("3.2.2", "3.3.1")), c("3.2.2", "3.3.1"))))
+
+  ## Anchoring: 3.2.2 must not also catch 3.2.25.
+  expect_false(grepl(buildExclude(c("3.2.2")), "3.2.25"))
+})
