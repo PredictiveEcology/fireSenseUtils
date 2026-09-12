@@ -132,11 +132,13 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
     landcoverDT[, foo := NULL]
   }
 
-  names(classList) <- classes
+  ## `classList` already carries its names from `cc` (sorted above); re-assigning `classes`
+  ## here stops with "incorrect number of names" whenever `noFuelForRequiredClass` added a
+  ## layer -- which is every layer when `cohortData` has no rows.
   
   # Need to confirm that there was at least 1 youngAge ... sometime there are none e.g., with 9.2.1 plains
   if (!youngAgeTxt %in% names(classList)) {
-    ya <- as.int(is.na(cc[[1]]) )
+    ya <- as.int(is.na(classList[[1]]) )
     vals <- values(ya, mat = FALSE)
     ya[vals == 1L] <- NA
     names(ya) <- youngAgeTxt
