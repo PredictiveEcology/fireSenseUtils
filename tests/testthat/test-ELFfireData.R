@@ -122,3 +122,49 @@ test_that("a few-fire ELF is not excluded", {
   expect_identical(status$status, "few")
   expect_identical(ELFsExcluded(status), character(0))
 })
+
+## Flammable area is a REPORT, not a gate (Eliot, 2026-09-11: no floor; SpreadFit may try).
+## The cases that matter are the ones VLCE2 leaves unclassified, which measure 0.
+
+makeLCC <- function(codes) {
+  r <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 10000,
+                   ymin = 0, ymax = 10000, crs = "EPSG:3978")
+  terra::setValues(r, rep_len(codes, terra::ncell(r)))
+}
+
+test_that("ELFflammableArea counts only flammable codes", {
+  elfs <- makeTestELFs()
+  ## half coniferous (210, flammable), half water (20, not)
+  fa <- ELFflammableArea(elfs, makeLCC(c(210, 20)))
+
+  expect_s3_class(fa, "data.table")
+  expect_setequal(fa$ELF, names(elfs))
+  expect_true(all(abs(fa$flammableFraction - 0.5) < 0.01))
+  expect_true(all(fa$flammablePixels > 0))
+})
+
+test_that("an ELF outside the land-cover extent measures zero, and is not an error", {
+  ## VLCE2 code 0 over everything: this is 8.2, 10.3.2 and 3.2.4.
+  fa <- ELFflammableArea(makeTestELFs(), makeLCC(0))
+  expect_true(all(fa$flammablePixels == 0))
+  expect_true(all(fa$flammableFraction == 0))
+  ## No stop(), no exclusion: SpreadFit is still allowed to try.
+  expect_identical(nrow(fa), 3L)
+})
+
+test_that("nonflammableLCC is honoured", {
+  elfs <- makeTestELFs()
+  ## Treat coniferous as nonflammable and nothing is left.
+  fa <- ELFflammableArea(elfs, makeLCC(210), nonflammableLCC = c(0, 210))
+  expect_true(all(fa$flammablePixels == 0))
+  ## With the default, all of it burns.
+  fa2 <- ELFflammableArea(elfs, makeLCC(210))
+  expect_true(all(fa2$flammableFraction == 1))
+})
+
+test_that("flammable area is reported in hectares of the land-cover grid", {
+  elfs <- makeTestELFs()
+  fa <- ELFflammableArea(elfs, makeLCC(210))
+  ## 1000 x 1000 m pixels = 100 ha each, 100 cells fully inside the ELF footprint.
+  expect_equal(fa$flammableAreaHa[1], fa$flammablePixels[1] * 100)
+})

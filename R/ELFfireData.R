@@ -157,3 +157,57 @@ ELFsExcluded <- function(status) {
   stopifnot(is.data.frame(status), all(c("ELF", "status") %in% names(status)))
   as.character(status$ELF[status$status == "zero"])
 }
+
+#' Measure flammable area in each ELF
+#'
+#' Counts the land-cover pixels an ELF has that the fit would treat as flammable, i.e.
+#' those not in `nonflammableLCC`. Unclassified cover (VLCE2 code `0`) is nonflammable
+#' by default, which is why ELFs outside VLCE2's mapped extent measure at or near zero
+#' (8.2, 10.3.2 and 3.2.4 are 0; `no-tree-elfs.md` §2, `elf-8.2-ecoregion.md`).
+#'
+#' This does **not** gate anything. Per Eliot's 2026-09-11 decision there is no
+#' flammable floor -- `fireSense_SpreadFit` is allowed to try regardless -- so the result
+#' is a report, and an input to deciding whether merging an ELF with a neighbour would
+#' give it enough to fit.
+#'
+#' @param rasWhole `SpatRaster` of ELF layers, as in [ELFfireCounts()].
+#' @param rstLCC `SpatRaster` of land cover, the same source the fit uses.
+#' @param nonflammableLCC land-cover codes that cannot burn. The default matches
+#'   `fireSense_dataPrepFit`'s `nonflammableLCC` parameter.
+#'
+#' @return A `data.table` with one row per ELF: `ELF`, `flammablePixels`,
+#'   `totalPixels`, `flammableFraction`, `flammableAreaHa`.
+#'
+#' @export
+#' @importFrom data.table data.table rbindlist setkeyv
+#' @importFrom terra crs project res values
+ELFflammableArea <- function(rasWhole, rstLCC, nonflammableLCC = c(0, 20, 31, 32, 33)) {
+  stopifnot(inherits(rasWhole, "SpatRaster"), inherits(rstLCC, "SpatRaster"))
+
+  ## Land cover is normally finer than the ELF grid, so move the ELF footprint onto the
+  ## land-cover grid rather than the reverse: resampling cover codes would invent classes.
+  lccVals <- terra::values(rstLCC, mat = FALSE)
+  pixelAreaHa <- prod(terra::res(rstLCC)) / 1e4
+
+  out <- lapply(names(rasWhole), function(elf) {
+    elfOnLCC <- terra::project(rasWhole[[elf]], rstLCC, method = "near")
+    inELF <- terra::values(elfOnLCC, mat = FALSE) > 0
+    inELF[is.na(inELF)] <- FALSE
+
+    lccHere <- lccVals[inELF]
+    lccHere <- lccHere[!is.na(lccHere)]
+    flammable <- sum(!lccHere %in% nonflammableLCC)
+
+    data.table::data.table(
+      ELF = elf,
+      flammablePixels = flammable,
+      totalPixels = length(lccHere),
+      flammableFraction = if (length(lccHere)) flammable / length(lccHere) else NA_real_,
+      flammableAreaHa = flammable * pixelAreaHa
+    )
+  })
+
+  out <- data.table::rbindlist(out)
+  data.table::setkeyv(out, "ELF")
+  out[]
+}
