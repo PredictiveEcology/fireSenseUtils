@@ -1,3 +1,40 @@
+# fireSenseUtils 0.2.3.9007
+
+## Bug fixes
+
+* `getFirePoints_NFDB()` and `getFirePoints_NFDB_V2()` download the National Fire Database
+  points from `.../current_version/NFDB_point_shp.zip`. CFS renamed the archive from
+  `NFDB_point.zip`, which now returns HTTP 404, so no release after the copy already on disk
+  (fires to 2024) could be fetched. The URL is in the internal `nfdbPointUrl()`, with a test.
+
+# fireSenseUtils 0.2.3.9006
+
+## Maintenance
+
+* `parallel` is now declared in `Imports` (it was imported in `NAMESPACE` only). `covr` records
+  coverage in forked children only for packages that declare `parallel`, so the forked code in
+  `bufferToArea()` and `rasterFireBufferDT()` was reported as never run.
+
+# fireSenseUtils 0.2.3.9005
+
+## Bug fixes
+
+* `bufferToArea()` and `rasterFireBufferDT()` with `cores > 1` no longer hang. GDAL keeps one
+  worker-thread pool per process, created at the first multi-threaded raster write. A forked
+  worker inherited that pool but none of its threads, and waited for them forever with 0 CPU.
+  Forked workers now write rasters single-threaded (`terraOptions(threads = 1)`).
+
+# fireSenseUtils 0.2.3.9004
+
+## Bug fixes
+
+* `fireSenseCloudParameters()` now downloads the shared parameter file from Google
+  Drive on every call. It used `prepInputs(purge = 7, overwrite = TRUE)`, which never
+  downloads again once a copy on disk matches CHECKSUMS.txt (`purge` only rebuilds
+  those entries; `overwrite` only affects the written output), so a changed file on
+  Drive was not seen. `url` may now also be the folder containing `targetFile`;
+  `useCache` is ignored.
+
 # fireSenseUtils 0.2.3.9003
 
 ## Performance

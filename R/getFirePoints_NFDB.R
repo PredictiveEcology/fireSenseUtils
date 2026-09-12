@@ -26,7 +26,7 @@ getFirePoints_NFDB <- function(url = NULL,
                                fireSizeColName = "SIZE_HA",
                                NFDB_pointPath) {
   if (is.null(url)) {
-    url <- "http://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point.zip"
+    url <- nfdbPointUrl()
   }
 
   check <- Checksums(NFDB_pointPath,
@@ -116,7 +116,7 @@ getFirePoints_NFDB_V2 <- function(url = NULL,
     stop("NFDB_pointPath cannot be NULL. Specify a file path.")
   }
   if (is.null(url)) {
-    url <- "http://cwfis.cfs.nrcan.gc.ca/downloads/nfdb/fire_pnt/current_version/NFDB_point.zip"
+    url <- nfdbPointUrl()
   }
   check <- Checksums(NFDB_pointPath,
     checksumFile = file.path(NFDB_pointPath, "CHECKSUMS.txt"),

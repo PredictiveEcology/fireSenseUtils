@@ -29,7 +29,8 @@ attributes.}
 \value{
 A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
 Currently, no high arctic
-ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.)
+ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor
+3.2.1 or 3.2.4, which have no SCANFI species.
 }
 \description{
 Extracting only the "ELF" module, runs the projectmodule

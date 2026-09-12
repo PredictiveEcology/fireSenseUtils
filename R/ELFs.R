@@ -655,7 +655,8 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
 #' @return
 #' A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
 #' Currently, no high arctic
-#' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.)
+#' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor
+#' 3.2.1 or 3.2.4, which have no SCANFI species.
 #'
 #' @section Side Effects:
 #' Updates a Google Drive file when the current user is \code{"emcintir"} and when
@@ -723,9 +724,10 @@ runELFs <- function(
   #remove Arctic that is far from treeline
   arcticELFs <- "^1\\.|^2\\."
   # An ELF with no SCANFI tree species is NOT excluded: fireSense fits nonForest fuel
-  # classes, and the dataPrep chain now carries a zero-layer speciesLayers through
-  # (LandR loadSCANFISpeciesLayers/assertSpeciesLayers, Biomass_speciesData,
-  # Biomass_borealDataPrep no-species branch, fireSenseUtils cohortsToFuelClasses).
+  # classes, and the dataPrep chain now carries speciesLayers = NULL and a zero-row
+  # sppEquiv through (LandR loadSCANFISpeciesLayers/assertSpeciesLayers/sppHarmonize,
+  # Biomass_speciesData, Biomass_borealDataPrep no-species branch, fireSenseUtils
+  # cohortsToFuelClasses/assessFuelClasses, the Biomass_* init guards).
   # Excluding them here was a workaround for that chain stopping; the chain no longer stops.
   # ELFs with no fire in the fitted years, counted from the fire records by
   # fireSense_ELFs (ELFfitStatus() -> ELFsExcluded()). This is the same judgement
