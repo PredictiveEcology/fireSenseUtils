@@ -1,7 +1,8 @@
 ## runELFs() drops ELFs that cannot be fitted before the queue is built from its names:
-## the high Arctic (ecoprovinces 1.x and 2.x), and 3.2.1 and 3.2.4, which have no SCANFI
-## species at all -- LandR::loadSCANFISpeciesLayers() stops with "None of the selected
-## species were found in the SCANFI layers", and only after a full cold run.
+## the high Arctic (ecoprovinces 1.x and 2.x) and, data-driven, ELFs with no fire in the
+## fitted years (sim$ELFsExcluded, from fireSense_ELFs). ELFs with no SCANFI tree species
+## (3.2.1, 3.2.4) are NOT excluded any more: the dataPrep chain carries a zero-row sppEquiv
+## and speciesLayers = NULL through, and fireSense fits nonForest fuel classes only.
 ##
 ## The module run and the cloud calls are stubbed out: what is under test is which ELF
 ## names come back.
@@ -22,15 +23,15 @@ local_runELFs <- function(ids, env = parent.frame()) {
 }
 
 ids <- c("1.1", "2.3", "3.1.1", "3.2.1", "3.2.2", "3.2.4", "13.2.1")
-kept <- c("3.1.1", "3.2.2", "13.2.1") # 13.2.1 shows the no-SCANFI pattern is anchored
+kept <- c("3.1.1", "3.2.1", "3.2.2", "3.2.4", "13.2.1") # the no-tree ELFs 3.2.1 / 3.2.4 stay
 
-test_that("runELFs() leaves out the Arctic and the no-SCANFI ELFs from the name lists", {
+test_that("runELFs() leaves out the Arctic but keeps the no-tree ELFs in the name lists", {
   prj <- local_runELFs(ids)
   expect_identical(runELFs(prj, whatOut = "allNames"), kept)
   expect_identical(runELFs(prj, whatOut = "fittedNamesOnly"), kept)
 })
 
-test_that("runELFs() leaves out the Arctic and the no-SCANFI ELFs from the maps", {
+test_that("runELFs() leaves out the Arctic but keeps the no-tree ELFs in the maps", {
   prj <- local_runELFs(ids)
   maps <- runELFs(prj, whatOut = "maps")
   expect_identical(names(maps$rasWhole), kept)
