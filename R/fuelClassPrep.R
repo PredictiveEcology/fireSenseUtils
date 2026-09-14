@@ -179,11 +179,23 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   landscape <- landscape[!lcc %in% nonforestLCC & !is.na(B)]
   treeSpecies <- unique(landscape[!is.na(B)]$speciesCode)
   treeSpecies <- treeSpecies[!is.na(treeSpecies)]
-  if (!length(treeSpecies))
+  if (!length(treeSpecies)) {
+    if (NROW(sppEquiv) == 0L) {
+      ## no tree species in this study area (fireSense_ELFs found none): there are no forested
+      ## fuel classes to estimate, only the non-forest groups sorted above
+      modSppEquiv <- data.table(species = character(0), coef = numeric(0), sign = character(0),
+                                FuelClass = character(0), above10PctRelB = numeric(0),
+                                assignedFuelClass = character(0))
+      setnames(modSppEquiv, "FuelClass", fuelCol)
+      return(list(modSppEquiv = modSppEquiv,
+                  nonForestedLCCGroups = nf_vals,
+                  missingLCCgroup = missingForest))
+    }
     stop("assessFuelClasses: no forested pixels with a species remain after removing ",
          "nonforestLCC (", paste(unlist(nonforestLCC), collapse = ", "), "). ",
          "Check that nonforestLCC / forestedLCC use the same land-cover codes as the ",
          "values in rstLCC (a categorical raster yields labels, not codes).")
+  }
 
   fuelGLMs <- lapply(treeSpecies, makeGLM, landscape = landscape, form = "burned ~ B_MgHa")
   names(fuelGLMs) <- treeSpecies

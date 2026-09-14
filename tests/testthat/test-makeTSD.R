@@ -141,3 +141,23 @@ test_that("makeTSD: explicit pixToUpdate/flammablePixels override lcc-derived va
                  cutoffForYoungAge = 15)
   expect_false(is.na(terra::values(out, mat = FALSE)[2]))
 })
+
+test_that("makeTSD: firePolys with no fire in the young-age window means nothing is young", {
+  withr::local_package("terra")
+
+  ## ELF 3.2.1, data year 1985: the window 1969-1984 holds no fire polygon, so the per-year
+  ## list is all empty and Reduce(rbind, ...) is NULL. rasterize(NULL) stopped the run.
+  standAgeMap <- terra::rast(nrows = 1, ncols = 3, vals = c(50, 5, NA))
+  firePolys <- setNames(rep(list(list()), 3), paste0("year", 1982:1984))
+  lcc <- data.table(pixelID = 1:3,
+                    nonForest_lowFlam  = c(1L, 1L, 0L),
+                    nonForest_highFlam = 0L)
+  out <- makeTSD(year = 1985, firePolys = firePolys, standAgeMap = standAgeMap,
+                 lcc = lcc, cutoffForYoungAge = 15)
+  vals <- terra::values(out, mat = FALSE)
+  ## no disturbance history: the old pixel keeps its age, the apparently-young one is not young
+  expect_equal(vals[1], 50)
+  expect_equal(vals[2], 16)
+  expect_true(is.na(vals[3]))
+  expect_equal(names(out), "timeSinceDisturbance1985")
+})

@@ -65,11 +65,17 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
     # polysNeeded <- do.call(rbind, polysNeeded)
     polysNeeded <- Reduce(rbind, polysNeeded)
     ## create background raster with TSD
-    initialTSD <- rasterize(polysNeeded,
-      y = standAgeMap,
-      background = year - cutoffForYoungAge - 1,
-      field = "YEAR", fun = "max"
-    ) |> terra::mask(standAgeMap)
+    initialTSD <- if (is.null(polysNeeded)) {
+      ## no fire in the young-age window anywhere in the study area (e.g. a low-fire ELF, or an
+      ## early data year whose window predates the fire record): nothing burned recently
+      setValues(rast(standAgeMap), year - cutoffForYoungAge - 1) |> terra::mask(standAgeMap)
+    } else {
+      rasterize(polysNeeded,
+        y = standAgeMap,
+        background = year - cutoffForYoungAge - 1,
+        field = "YEAR", fun = "max"
+      ) |> terra::mask(standAgeMap)
+    }
     initialTSD <- year - initialTSD
   } else {
     stop("Please provide either firePolys or fireRaster")

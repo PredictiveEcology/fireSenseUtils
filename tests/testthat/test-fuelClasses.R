@@ -220,3 +220,108 @@ test_that("cohortsToFuelClasses names a species mapped to two fuel classes", {
     error = function(e) conditionMessage(e))
   expect_false(grepl("more than one FuelClass", paste(err2, collapse = " "), fixed = TRUE))
 })
+
+test_that("cohortsToFuelClasses survives 0-row cohortData", {
+  withr::local_package("data.table")
+  withr::local_package("terra")
+
+  ## ELFs 3.2.1, 3.2.4, 3.2.5 and 3.3.2 have no tree species at all, so `cohortData` arrives
+  ## with zero rows. FireSense can still fit on nonForest fuel only, so this must not stop.
+  pixelGroupMap <- rast(nrows = 4, ncols = 4, vals = rep(1:2, 8))
+  flammableRTM <- rast(pixelGroupMap, vals = 1)
+  sppEquiv <- data.table(
+    LandR     = c("Pice_mar", "Pinu_con"),
+    FuelClass = c("BlkSprc",  "LdJkPine")
+  )
+  required <- c("BlkSprc", "LdJkPine")
+
+  noCohorts <- data.table(pixelGroup = integer(), speciesCode = character(),
+                          age = integer(), B = integer())
+  out <- cohortsToFuelClasses(cohortData = noCohorts, pixelGroupMap = pixelGroupMap,
+                              flammableRTM = flammableRTM, sppEquiv = sppEquiv,
+                              sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                              requiredFuelClasses = required)
+
+  ## one zero-filled layer per required class (plus the youngAge layer the function always adds)
+  expect_s4_class(out, "SpatRaster")
+  expect_true(all(required %in% names(out)))
+  expect_equal(sort(names(out)), sort(c(required, youngAgeTxt)))
+  expect_true(all(values(out[[required]]) == 0))
+  ## geometry comes from pixelGroupMap
+  expect_true(compareGeom(out, pixelGroupMap, stopOnError = FALSE))
+
+  ## the with-cohorts path is unchanged: biomass lands in the right class and pixel
+  cohortData <- data.table(pixelGroup = c(1L, 2L), speciesCode = c("Pice_mar", "Pinu_con"),
+                           age = c(50L, 60L), B = c(100L, 200L))
+  out2 <- cohortsToFuelClasses(cohortData = cohortData, pixelGroupMap = pixelGroupMap,
+                               flammableRTM = flammableRTM, sppEquiv = sppEquiv,
+                               sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                               requiredFuelClasses = required)
+  expect_equal(sort(names(out2)), sort(c(required, youngAgeTxt)))
+  expect_equal(unname(values(out2[[required]])[1, ]), c(100, 0))
+  expect_equal(unname(values(out2[[required]])[2, ]), c(0, 200))
+})
+
+test_that("cohortsToFuelClasses with no tree species and no required classes gives youngAge only", {
+  withr::local_package("data.table")
+  withr::local_package("terra")
+
+  ## The fitting path (fireSense_dataPrepFit -> fireSenseCovariatesCreate) passes NO
+  ## requiredFuelClasses. With an ELF that has no tree species, sppEquiv has zero rows too, so
+  ## there is not a single tree fuel-class layer to stack. The result must still carry the
+  ## youngAge layer, on pixelGroupMap's geometry and NA mask, so the nonForest covariates
+  ## can be built on top of it.
+  pixelGroupMap <- rast(nrows = 4, ncols = 4, vals = 0L)
+  pixelGroupMap[1:3] <- NA
+  flammableRTM <- rast(pixelGroupMap, vals = 1)
+  flammableRTM[1:3] <- NA
+  sppEquiv <- data.table(LandR = character(), FuelClass = character())
+  noCohorts <- data.table(pixelGroup = integer(), speciesCode = character(),
+                          age = integer(), B = integer())
+
+  out <- suppressWarnings( ## max(age) over zero rows
+    cohortsToFuelClasses(cohortData = noCohorts, pixelGroupMap = pixelGroupMap,
+                         flammableRTM = flammableRTM, sppEquiv = sppEquiv,
+                         sppEquivCol = "LandR", cutoffForYoungAge = 15L,
+                         requiredFuelClasses = NULL)
+  )
+
+  expect_s4_class(out, "SpatRaster")
+  expect_identical(names(out), youngAgeTxt)
+  expect_true(compareGeom(out, pixelGroupMap, stopOnError = FALSE))
+  expect_identical(is.na(values(out, mat = FALSE)), is.na(values(pixelGroupMap, mat = FALSE)))
+  expect_true(all(values(out, mat = FALSE) == 0, na.rm = TRUE))
+})
+
+test_that("assessFuelClasses with no tree species returns the non-forest groups only", {
+  withr::local_package("data.table")
+  set.seed(1)
+  ## a landscape of non-forest pixels only (B is NA everywhere), three land covers that burn
+  ## at different rates so the k-means on the glm coefficients has something to cluster
+  n <- 300L
+  landscape <- data.table(
+    cell = seq_len(n), speciesCode = NA_character_,
+    lcc = rep(c(40L, 50L, 80L), each = n / 3L),
+    B = NA_integer_, totalBiomass = NA_integer_, year = 2020L
+  )
+  landscape[, burned := rbinom(.N, 1, c(`40` = 0.05, `50` = 0.3, `80` = 0.6)[as.character(lcc)])]
+  noSpp <- data.table(LandR = character(0), FuelClass = character(0))
+
+  out <- assessFuelClasses(landscape = landscape, fuelCol = "FuelClass", sppEquiv = noSpp,
+                           sppEquivCol = "LandR", nonforestLCC = c(40L, 50L, 80L))
+
+  expect_named(out, c("modSppEquiv", "nonForestedLCCGroups", "missingLCCgroup"))
+  expect_identical(nrow(out$modSppEquiv), 0L)
+  expect_true(all(c("species", "assignedFuelClass", "FuelClass") %in% names(out$modSppEquiv)))
+  expect_length(out$nonForestedLCCGroups, 2L)
+  expect_setequal(unlist(out$nonForestedLCCGroups), c(40, 50, 80))
+  expect_true(out$missingLCCgroup %in% names(out$nonForestedLCCGroups))
+
+  ## with species declared but no forested pixel left, the land-cover-code mismatch stop stays
+  withSpp <- data.table(LandR = "Pice_mar", FuelClass = "BlkSprc")
+  expect_error(
+    assessFuelClasses(landscape = landscape, fuelCol = "FuelClass", sppEquiv = withSpp,
+                      sppEquivCol = "LandR", nonforestLCC = c(40L, 50L, 80L)),
+    "no forested pixels with a species remain"
+  )
+})
