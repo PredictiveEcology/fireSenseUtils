@@ -1,3 +1,14 @@
+# fireSenseUtils 0.2.3.9015
+
+## Bug fixes
+
+* `bufferToArea()` and `rasterFireBufferDT()` give the same buffers for the same seed. They pick buffer
+  pixels at random, in forked workers when `cores > 1`, and each forked child seeded itself
+  independently: the same call gave different buffers on every run, and different ones again with one
+  core (61 of 5,000 buffer pixels differed between two runs of one year of ELF 11.2). Each polygon set,
+  or year, now runs under a seed drawn from the session's stream, forked or not. Spread-fit data built
+  with these functions change once as a result.
+
 # fireSenseUtils 0.2.3.9007
 
 ## Bug fixes

@@ -32,14 +32,18 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
                                minSize = 5000, verb = 1, cores = 1) {
   maxCores <- parallelly::availableCores(constraints = "connections", omit = 1)
   cores <- min(min(length(years), cores), maxCores)
+  ## Buffer pixels are sampled at random, and a forked child seeds itself independently: draw one seed
+  ## per year here so the same session seed gives the same buffers, forked or not (see bufferToArea.list).
+  seeds <- sample.int(.Machine$integer.max, length(years))
+  oneYear <- function(i, ...) withr::with_seed(seeds[[i]], makeFireIDs(years[[i]], ...))
   fireBufferListDT <- if (cores > 1) {
-    parallel::mclapply(years,
-      FUN = .singleThreadedGDAL(makeFireIDs), fireRaster = fireRaster,
+    parallel::mclapply(seq_along(years),
+      FUN = .singleThreadedGDAL(oneYear), fireRaster = fireRaster,
       flammableRTM = flammableRTM, bufferForFireRaster = bufferForFireRaster,
       areaMultiplier = areaMultiplier, minSize = minSize, verb = verb
     )
   } else {
-    lapply(years, makeFireIDs,
+    lapply(seq_along(years), oneYear,
       fireRaster = fireRaster, flammableRTM = flammableRTM,
       bufferForFireRaster = bufferForFireRaster,
       areaMultiplier = areaMultiplier, minSize = minSize, verb = verb
