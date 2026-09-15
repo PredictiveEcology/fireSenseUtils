@@ -722,7 +722,7 @@ runELFs <- function(
   }
   # })
   #remove Arctic that is far from treeline
-  arcticELFs <- "^1\\.|^2\\."
+  arcticELFs <- .arcticELFsPattern # ecozones 1 and 2, out permanently (ELFsArctic())
   # An ELF with no SCANFI tree species is NOT excluded: fireSense fits nonForest fuel
   # classes, and the dataPrep chain now carries speciesLayers = NULL and a zero-row
   # sppEquiv through (LandR loadSCANFISpeciesLayers/assertSpeciesLayers/sppHarmonize,

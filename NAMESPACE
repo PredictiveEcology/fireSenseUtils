@@ -11,7 +11,17 @@ export(.objFunIgnition)
 export(.objFunIgnitionPW)
 export(.objfunSpreadFit)
 export(DEoptimIterative)
+export(ELFfireCounts)
+export(ELFfitStatus)
+export(ELFflammableArea)
+export(ELFmergePlan)
+export(ELFmergedName)
+export(ELFneighbours)
+export(ELFrunName)
+export(ELFsArctic)
+export(ELFsExcluded)
 export(ELFsInStudyArea)
+export(ELFsSkipped)
 export(ELFtemplateRaster)
 export(annualStackToDTx1000)
 export(assessFuelClasses)
@@ -61,8 +71,10 @@ export(makeLandcoverDT)
 export(makeLociList)
 export(makeMutuallyExclusive)
 export(makeTSD)
+export(mergeELFs)
 export(mergePreparedCovs)
 export(multiplier)
+export(nfdbPointUrl)
 export(nonNFColNamesTxt)
 export(objNlminb)
 export(oom)
@@ -143,6 +155,7 @@ importFrom(data.table,
   copy,
   data.table,
   dcast,
+  fifelse,
   fread,
   is.data.table,
   melt,
@@ -285,18 +298,23 @@ importFrom(terra,
   `values<-`,
   aggregate,
   as.data.frame,
+  as.polygons,
   buffer,
   cats,
   cellFromXY,
   classify,
   compareGeom,
   cover,
+  crds,
   crop,
   crs,
+  expanse,
   ext,
   extract,
   focal,
   freq,
+  ifel,
+  intersect,
   mask,
   mosaic,
   ncell,

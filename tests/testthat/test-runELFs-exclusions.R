@@ -7,10 +7,11 @@
 ## The module run and the cloud calls are stubbed out: what is under test is which ELF
 ## names come back.
 
-local_runELFs <- function(ids, env = parent.frame()) {
+local_runELFs <- function(ids, env = parent.frame(), excluded = NULL) {
   byName <- stats::setNames(as.list(ids), ids)
   sim <- list(ELFs = list(rasWhole = byName, rasCentered = byName),
-              spreadFitPreRun = stats::setNames(list(ids), polygonIDTxt))
+              spreadFitPreRun = stats::setNames(list(ids), polygonIDTxt),
+              ELFsExcluded = excluded)
   local_mocked_bindings(Cache = function(x, ...) x, .env = env)
   local_mocked_bindings(simInitAndSpades2 = function(...) sim,
                         .package = "SpaDES.core", .env = env)
@@ -29,6 +30,14 @@ test_that("runELFs() leaves out the Arctic but keeps the no-tree ELFs in the nam
   prj <- local_runELFs(ids)
   expect_identical(runELFs(prj, whatOut = "allNames"), kept)
   expect_identical(runELFs(prj, whatOut = "fittedNamesOnly"), kept)
+})
+
+test_that("runELFs() keeps merged ELFs and leaves out the ELFs fireSense_ELFs could not fit", {
+  ## After ELFmergePlan(): 3.1.1 and 3.1.2 are one ELF, 3.2.2 and 3.2.4 had too few fires even
+  ## together, and an Arctic merge is still Arctic.
+  merged <- c("1.1_2", "3.1.1_2", "3.2.2", "3.2.4", "3.2.25", "10.1")
+  prj <- local_runELFs(merged, excluded = c("3.2.2", "3.2.4"))
+  expect_identical(runELFs(prj, whatOut = "allNames"), c("3.1.1_2", "3.2.25", "10.1"))
 })
 
 test_that("runELFs() leaves out the Arctic but keeps the no-tree ELFs in the maps", {
