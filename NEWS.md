@@ -1,3 +1,22 @@
+# fireSenseUtils 0.2.3.9016
+
+## New features
+
+* ELFs with too few fires can be merged with a neighbour. `ELFneighbours()` measures the core border each
+  pair of ELFs shares. `ELFmergePlan()` takes every ELF that `ELFfitStatus()` calls `"zero"` or `"few"`
+  and pairs it with the neighbouring ELF of the same base and depth (another piece of the same split
+  ecoprovince, or another whole ecoprovince of the same ecozone) that shares the longest border. If the two
+  together reach both thresholds they merge; otherwise neither is fitted. `mergeELFs()` applies the plan to
+  the ELF maps, `ELFmergedName()` names a merged ELF by its shared base and members' last parts (3.2.1 with
+  3.2.4 is `"3.2.1_4"`), `ELFsSkipped()` lists the ELFs not fitted and `ELFrunName()` maps a merged member
+  to its merged ELF.
+
+## Bug fixes
+
+* `ELFfireCounts()`, `ELFfitStatus()`, `ELFsExcluded()` and `ELFflammableArea()` are exported. They were
+  documented as exported in 0.2.3.9014, but `NAMESPACE` was not regenerated, so no other package or module
+  could call them.
+
 # fireSenseUtils 0.2.3.9015
 
 ## Bug fixes
