@@ -11,6 +11,8 @@
   ignores it, so DEoptim always used its default `c`; it is now DEoptim's `c`. The new
   `DEoptimControl` list carries any other `DEoptim.control()` setting (`CR`, `F`, `p`, `reltol`, ...)
   through `clusters::clusterSetup(controlArgs = )`.
+* `runDEoptim()` no longer fails with "missing value where TRUE/FALSE needed" where R has no
+  OpenMP, as in the CRAN macOS builds: `RhpcBLASctl::omp_get_max_threads()` returns `NA` there.
 
 # fireSenseUtils 0.2.3.9017
 

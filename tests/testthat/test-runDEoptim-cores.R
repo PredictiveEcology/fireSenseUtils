@@ -75,3 +75,13 @@ test_that("DEoptim gets the NP of the cluster that was built and the caller's st
   expect_identical(as.integer(seen$control$NP), 57L)
   expect_identical(as.integer(seen$control$strategy), 2L)
 })
+
+test_that("runDEoptim runs where R has no OpenMP", {
+  ## CI macOS, 2026-09-15: RhpcBLASctl::omp_get_max_threads() is NA there, and `if (origOmp > 1)`
+  ## stopped runDEoptim with "missing value where TRUE/FALSE needed".
+  seen <- new.env()
+  mockCluster(seen)
+  testthat::local_mocked_bindings(omp_get_max_threads = function() NA_integer_)
+  expect_no_error(callRunDEoptim(seen, npar = 12L))
+  expect_identical(as.integer(seen$nCoresNeeded), 120L)
+})

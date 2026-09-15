@@ -164,7 +164,8 @@ runDEoptim <- function(landscape,
     on.exit(blas_set_num_threads(origBlas), add = TRUE)
   }
   origOmp <- omp_get_max_threads()
-  if (origOmp > 1) {
+  ## NA where R has no OpenMP (macOS CRAN builds)
+  if (isTRUE(origOmp > 1)) {
     omp_set_num_threads(1)
     on.exit(omp_set_num_threads(origOmp), add = TRUE)
   }
