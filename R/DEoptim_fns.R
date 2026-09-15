@@ -95,6 +95,16 @@ utils::globalVariables(c(
 #'   so that runs with different `runName` values get distinct cache entries.
 #'   Default `""` (no suffix).
 #'
+#' @param nCoresNeeded Integer. How many workers to request for the DEoptim cluster; defaults to
+#'   about 10 per estimated parameter, `10 * length(lower)`. DEoptim's `NP` is set to the number of
+#'   workers the cluster actually gets, so a smaller allocation means a smaller population.
+#'
+#' @param .c Numeric in `(0, 1]`. DEoptim's `c`, the speed of crossover adaptation (used by
+#'   `strategy = 6`). Passed to [DEoptim::DEoptim.control()]; a `c` in `DEoptimControl` wins.
+#' @param DEoptimControl Named list of further [DEoptim::DEoptim.control()] settings (for example
+#'   `CR`, `F`, `p`, `reltol`), passed through [clusters::clusterSetup()] to DEoptim. `NP` is the
+#'   number of workers the cluster gets.
+#'
 #' @return The result of the [DEoptimIterative()] call. This is typically a list where
 #' each element contains the [DEoptim::DEoptim] object state after a block of `iterStep` iterations.
 #' The final element represents the state after `itermax` iterations or upon early stopping.
@@ -139,12 +149,14 @@ runDEoptim <- function(landscape,
                        Nreps,
                        thresh = 550,
                        .c = 0.5,
+                       DEoptimControl = list(),
                        .verbose,
                        visualizeDEoptim = logPath,
                        .plots = "screen",
                        .plotSize = list(height = 1600, width = 2000),
                        rep = 1L,
-                       runName = "") {
+                       runName = "",
+                       nCoresNeeded = 10L * length(lower)) {
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -152,7 +164,8 @@ runDEoptim <- function(landscape,
     on.exit(blas_set_num_threads(origBlas), add = TRUE)
   }
   origOmp <- omp_get_max_threads()
-  if (origOmp > 1) {
+  ## NA where R has no OpenMP (macOS CRAN builds)
+  if (isTRUE(origOmp > 1)) {
     omp_set_num_threads(1)
     on.exit(omp_set_num_threads(origOmp), add = TRUE)
   }
@@ -177,11 +190,14 @@ runDEoptim <- function(landscape,
     messagePrefix = as.character(rep), # .runName,
     strategy = strategy, itermax = itermax,
     cores = cores, # logPath = file.path(dataPath(sim)),
-    nCoresNeeded = 100L, 
+    ## about 10 workers per estimated parameter; clusterSetup() sets NP to the workers it gets
+    nCoresNeeded = nCoresNeeded,
     libPath = libPath[1], NP = NP,
     logPath = logPath,
     objsNeeded = objsNeeded,
-    pkgsNeeded = neededPkgs, envir = environment()
+    pkgsNeeded = neededPkgs, envir = environment(),
+    ## every DEoptim setting the caller gave reaches DEoptim; .c is DEoptim's c
+    controlArgs = utils::modifyList(list(c = .c), as.list(DEoptimControl))
   )
   cl <- control$cluster # This is to test whether it is actually closed
   
@@ -199,7 +215,9 @@ runDEoptim <- function(landscape,
       itermax = itermax,
       lower = lower,
       upper = upper,
-      control = do.call("DEoptim.control", control),
+      ## only what was set here (NP from the built cluster, strategy, ...); DEoptimIterative2()
+      ## fills the rest, so passing a complete DEoptim.control() would override its defaults
+      control = control,
       formulaToFit = formulaToFit,
       covMinMax = covMinMax,
       # tests = c("mad", "SNLL_FS"),
@@ -213,7 +231,6 @@ runDEoptim <- function(landscape,
       doAssertions = doObjFunAssertions,
       # visualizeDEoptim = visualizeDEoptim,
       .plots = .plots,
-      .c = .c,
       .plotSize = .plotSize,
       iterStep = iterStep,
       thresh = thresh,

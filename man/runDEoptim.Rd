@@ -35,12 +35,14 @@ runDEoptim(
   Nreps,
   thresh = 550,
   .c = 0.5,
+  DEoptimControl = list(),
   .verbose,
   visualizeDEoptim = logPath,
   .plots = "screen",
   .plotSize = list(height = 1600, width = 2000),
   rep = 1L,
-  runName = ""
+  runName = "",
+  nCoresNeeded = 10L * length(lower)
 )
 
 DEoptimIterative(
@@ -162,6 +164,10 @@ This is distinct from the parallelization managed by \link[DEoptim:DEoptim]{DEop
 \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} as \code{c} (the speed of crossover adaptation).
 Default 0.5.}
 
+\item{DEoptimControl}{Named list of further \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} settings (for example
+\code{CR}, \code{F}, \code{p}, \code{reltol}), passed through \code{\link[clusters:clusterSetup]{clusters::clusterSetup()}} to DEoptim. \code{NP} is the
+number of workers the cluster gets.}
+
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of \link[DEoptim:DEoptim]{DEoptim::DEoptim} outputs.}
 
 \item{.plots}{Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
@@ -177,6 +183,10 @@ Used in cache tags and plot filenames. Default 1L.}
 \code{DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
 so that runs with different \code{runName} values get distinct cache entries.
 Default \code{""} (no suffix).}
+
+\item{nCoresNeeded}{Integer. How many workers to request for the DEoptim cluster; defaults to
+about 10 per estimated parameter, \code{10 * length(lower)}. DEoptim's \code{NP} is set to the number of
+workers the cluster actually gets, so a smaller allocation means a smaller population.}
 
 \item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 
