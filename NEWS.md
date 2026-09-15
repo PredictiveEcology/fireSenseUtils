@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9017
+
+## Bug fixes
+
+* `ELFmergePlan()` no longer fails with "non-character argument" when an ELF with too few fires has no
+  neighbour at all, such as an ELF whose core touches no other ELF. That ELF is not fitted, as when its
+  neighbours share no base with it.
+
 # fireSenseUtils 0.2.3.9016
 
 ## New features

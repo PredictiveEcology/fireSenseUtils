@@ -138,7 +138,8 @@ ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePo
   for (elf in thin) {
     if (elf %in% used) next
     touching <- neighbours[neighbours$ELF1 == elf | neighbours$ELF2 == elf, ]
-    other <- ifelse(touching$ELF1 == elf, touching$ELF2, touching$ELF1)
+    ## fifelse keeps the ids' type when no row touches elf; ifelse would give logical(0)
+    other <- data.table::fifelse(touching$ELF1 == elf, touching$ELF2, touching$ELF1)
     ok <- other %in% ids & !other %in% used &
       .ELFparent(other) == .ELFparent(elf) & .ELFdepth(other) == .ELFdepth(elf)
     if (!any(ok)) {
