@@ -47,31 +47,43 @@ bufferToArea.list <- function(poly, rasterToMatch, areaMultiplier = 10,
   }
   maxCores <- parallelly::availableCores(constraints = "connections", omit = 1)
   cores <- min(min(length(poly), cores), maxCores)
+  ## Buffer pixels are sampled at random. A forked child seeds itself independently, so draw one seed per
+  ## polygon set here and run each set under it: the same session seed then gives the same buffers,
+  ## forked or not.
+  seeds <- sample.int(.Machine$integer.max, length(poly))
   if (cores > 1 && !"tools:rstudio" %in% search()) { # no forked workers inside RStudio
     out <- parallel::mcMap(
       mc.cores = cores,
       poly = poly,
       polyName = polyName,
+      .seed = seeds,
       MoreArgs = list(
         rasterToMatch = rasterToMatch, verb = verb,
         areaMultiplier = areaMultiplier, field = field, minSize = minSize,
         cores = 1,
         ...
       ),
-      .singleThreadedGDAL(bufferToArea)
+      .singleThreadedGDAL(.withSeed(bufferToArea))
     )
   } else {
     out <- purrr::pmap(
-      .l = list(poly = poly, polyName = polyName),
+      .l = list(poly = poly, polyName = polyName, .seed = seeds),
       rasterToMatch = rasterToMatch, verb = verb,
       areaMultiplier = areaMultiplier, field = field, minSize = minSize,
       cores = 1,
       ...,
-      .f = bufferToArea
+      .f = .withSeed(bufferToArea)
     )
   }
   names(out) <- names(poly)
   out
+}
+
+## Wrap `FUN` so that it runs under the seed passed as `.seed`, restoring the caller's stream afterwards.
+.withSeed <- function(FUN) {
+  function(..., .seed) {
+    withr::with_seed(.seed, FUN(...))
+  }
 }
 
 ## Wrap `FUN` for a forked child. GDAL keeps one process-wide worker-thread pool, created at the
