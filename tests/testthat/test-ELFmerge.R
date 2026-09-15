@@ -82,6 +82,18 @@ test_that("an ELF with no neighbour sharing its base is not fitted", {
   expect_identical(ELFsSkipped(plan), "4.3")
 })
 
+test_that("an ELF whose core touches no other ELF is not fitted", {
+  ## 4.3 has no row in neighbours at all, like an island or an ELF bordered only by the Arctic
+  plan <- ELFmergePlan(statusOf(c("4.3", "5.1", "5.2"), c(10, 10, 100), c(10, 10, 100)),
+                       neighboursOf("5.1", "5.2", 7000))
+  expect_identical(plan$action, c("skip", "merge"))
+  expect_identical(plan$reason[1], "too few fires; no neighbour shares its base")
+  expect_identical(ELFsSkipped(plan), "4.3")
+  ## and with no neighbours anywhere
+  plan <- ELFmergePlan(statusOf("4.3", 10, 10), neighboursOf(character(0), character(0), numeric(0)))
+  expect_identical(ELFsSkipped(plan), "4.3")
+})
+
 test_that("an ELF is part of at most one merge", {
   ## 3.1.1 and 3.1.3 are thin and both border only 3.1.2; 3.1.1 comes first and takes it
   status <- statusOf(c("3.1.1", "3.1.2", "3.1.3"), c(10, 100, 10), c(10, 100, 10))
