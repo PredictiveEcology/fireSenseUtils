@@ -45,6 +45,29 @@ test_that("the cluster request can be overridden", {
   expect_identical(as.integer(seen$nCoresNeeded), 60L)
 })
 
+test_that("DEoptim settings reach clusterSetup(), and .c is DEoptim's c, not an objective-function argument", {
+  ## Eliot, 2026-09-15: "Any user passed args should pass into the DEoptim processes." `.c` was
+  ## sent to the objective function (which ignores it), so DEoptim always used its default c.
+  seen <- new.env()
+  testthat::local_mocked_bindings(
+    clusterSetup = function(..., nCoresNeeded, NP, controlArgs = NULL) {
+      seen$controlArgs <- controlArgs
+      list(itermax = 5, trace = FALSE, strategy = 6L, NP = 40L)
+    },
+    DEoptimIterative2 = function(fn, lower, upper, control, ...) {
+      seen$dots <- names(list(...))
+      list()
+    },
+    .package = "clusters")
+  testthat::local_mocked_bindings(termsInDEoptim = function(...) invisible(NULL))
+  callRunDEoptim(seen, npar = 12L, .c = 0.9, DEoptimControl = list(CR = 0.7, F = 0.6, p = 0.3))
+  expect_equal(seen$controlArgs, list(c = 0.9, CR = 0.7, F = 0.6, p = 0.3))
+  expect_false(".c" %in% seen$dots)
+  ## a c given in DEoptimControl wins over .c
+  callRunDEoptim(seen, npar = 12L, .c = 0.9, DEoptimControl = list(c = 0.2))
+  expect_equal(seen$controlArgs$c, 0.2)
+})
+
 test_that("DEoptim gets the NP of the cluster that was built and the caller's strategy", {
   seen <- new.env()
   mockCluster(seen, builtWorkers = 57L)

@@ -7,6 +7,10 @@
   cluster was built with (clusters >= 0.0.33). It passes only the settings it chooses to
   `clusters:::DEoptimIterative2()`, whose defaults fill the rest; a complete `DEoptim.control()`
   list would have overridden them.
+* `runDEoptim()` passes DEoptim settings to DEoptim. `.c` was sent to the objective function, which
+  ignores it, so DEoptim always used its default `c`; it is now DEoptim's `c`. The new
+  `DEoptimControl` list carries any other `DEoptim.control()` setting (`CR`, `F`, `p`, `reltol`, ...)
+  through `clusters::clusterSetup(controlArgs = )`.
 
 # fireSenseUtils 0.2.3.9017
 

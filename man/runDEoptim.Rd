@@ -35,6 +35,7 @@ runDEoptim(
   Nreps,
   thresh = 550,
   .c = 0.5,
+  DEoptimControl = list(),
   .verbose,
   visualizeDEoptim = logPath,
   .plots = "screen",
@@ -162,6 +163,10 @@ This is distinct from the parallelization managed by \link[DEoptim:DEoptim]{DEop
 \item{.c}{Numeric scalar in \verb{[0, 1]}. Crossover constant passed through to
 \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} as \code{c} (the speed of crossover adaptation).
 Default 0.5.}
+
+\item{DEoptimControl}{Named list of further \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} settings (for example
+\code{CR}, \code{F}, \code{p}, \code{reltol}), passed through \code{\link[clusters:clusterSetup]{clusters::clusterSetup()}} to DEoptim. \code{NP} is the
+number of workers the cluster gets.}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of \link[DEoptim:DEoptim]{DEoptim::DEoptim} outputs.}
 

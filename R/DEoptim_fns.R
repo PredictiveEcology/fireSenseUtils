@@ -99,6 +99,12 @@ utils::globalVariables(c(
 #'   about 10 per estimated parameter, `10 * length(lower)`. DEoptim's `NP` is set to the number of
 #'   workers the cluster actually gets, so a smaller allocation means a smaller population.
 #'
+#' @param .c Numeric in `(0, 1]`. DEoptim's `c`, the speed of crossover adaptation (used by
+#'   `strategy = 6`). Passed to [DEoptim::DEoptim.control()]; a `c` in `DEoptimControl` wins.
+#' @param DEoptimControl Named list of further [DEoptim::DEoptim.control()] settings (for example
+#'   `CR`, `F`, `p`, `reltol`), passed through [clusters::clusterSetup()] to DEoptim. `NP` is the
+#'   number of workers the cluster gets.
+#'
 #' @return The result of the [DEoptimIterative()] call. This is typically a list where
 #' each element contains the [DEoptim::DEoptim] object state after a block of `iterStep` iterations.
 #' The final element represents the state after `itermax` iterations or upon early stopping.
@@ -143,6 +149,7 @@ runDEoptim <- function(landscape,
                        Nreps,
                        thresh = 550,
                        .c = 0.5,
+                       DEoptimControl = list(),
                        .verbose,
                        visualizeDEoptim = logPath,
                        .plots = "screen",
@@ -187,7 +194,9 @@ runDEoptim <- function(landscape,
     libPath = libPath[1], NP = NP,
     logPath = logPath,
     objsNeeded = objsNeeded,
-    pkgsNeeded = neededPkgs, envir = environment()
+    pkgsNeeded = neededPkgs, envir = environment(),
+    ## every DEoptim setting the caller gave reaches DEoptim; .c is DEoptim's c
+    controlArgs = utils::modifyList(list(c = .c), as.list(DEoptimControl))
   )
   cl <- control$cluster # This is to test whether it is actually closed
   
@@ -221,7 +230,6 @@ runDEoptim <- function(landscape,
       doAssertions = doObjFunAssertions,
       # visualizeDEoptim = visualizeDEoptim,
       .plots = .plots,
-      .c = .c,
       .plotSize = .plotSize,
       iterStep = iterStep,
       thresh = thresh,
