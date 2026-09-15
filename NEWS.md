@@ -1,3 +1,13 @@
+# fireSenseUtils 0.2.3.9018
+
+## Bug fixes
+
+* `runDEoptim()` asks for about 10 workers per estimated parameter (`nCoresNeeded`, default
+  `10 * length(lower)`) instead of a fixed 100, and DEoptim's `NP` is the number of workers the
+  cluster was built with (clusters >= 0.0.33). It passes only the settings it chooses to
+  `clusters:::DEoptimIterative2()`, whose defaults fill the rest; a complete `DEoptim.control()`
+  list would have overridden them.
+
 # fireSenseUtils 0.2.3.9017
 
 ## Bug fixes

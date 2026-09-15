@@ -40,7 +40,8 @@ runDEoptim(
   .plots = "screen",
   .plotSize = list(height = 1600, width = 2000),
   rep = 1L,
-  runName = ""
+  runName = "",
+  nCoresNeeded = 10L * length(lower)
 )
 
 DEoptimIterative(
@@ -177,6 +178,10 @@ Used in cache tags and plot filenames. Default 1L.}
 \code{DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
 so that runs with different \code{runName} values get distinct cache entries.
 Default \code{""} (no suffix).}
+
+\item{nCoresNeeded}{Integer. How many workers to request for the DEoptim cluster; defaults to
+about 10 per estimated parameter, \code{10 * length(lower)}. DEoptim's \code{NP} is set to the number of
+workers the cluster actually gets, so a smaller allocation means a smaller population.}
 
 \item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 
