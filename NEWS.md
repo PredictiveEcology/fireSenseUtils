@@ -1,3 +1,18 @@
+# fireSenseUtils 0.2.3.9019
+
+## Enhancements
+
+* `.objfunSpreadFit()` gains `pruneAbove` (default `Inf`), which makes its existing early-bail
+  test adaptive. After the first of its two batches of fire years it compares the accumulated
+  SNLL against `thresh * numYrsDone` -- a bound fixed for the whole fit, which therefore cannot
+  tighten as the population improves. The test is now `min(thresh * numYrsDone, pruneAbove)`, so a
+  caller running one DEoptim generation per call can pass the worst value the current population
+  would accept. This is exact rather than heuristic: the second batch contributes a non-negative
+  SNLL, so the first batch's value is a lower bound on the total, and any trial above `pruneAbove`
+  would have been rejected by selection anyway -- the search trajectory is unchanged. It is worth
+  doing because a DEoptim generation is synchronous: its wall time is the slowest of its `NP`
+  evaluations, so the tail sets the clock.
+
 # fireSenseUtils 0.2.3.9018
 
 ## Bug fixes
