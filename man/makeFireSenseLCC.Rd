@@ -12,7 +12,8 @@ makeFireSenseLCC(
   flammabilityThreshold = 0.1,
   writeTo = NULL,
   overwrite = TRUE,
-  destinationPath
+  destinationPath,
+  lccSource = getOption("fireSense.lccSource", "SCANFI")
 )
 }
 \arguments{
@@ -45,6 +46,14 @@ not written to disk by this function.}
 \item{destinationPath}{Character string. Directory path where source NTEMS data
 will be downloaded/loaded (via \code{prepInputs_NTEMS_LCC_FAO}) and where the
 output raster will be written if \code{writeTo} is specified.}
+
+\item{lccSource}{\code{"SCANFI"} (default) or \code{"NTEMS"}; the default can be set with
+\code{options(fireSense.lccSource = )}. SCANFI land cover
+(\code{\link[LandR:prepInputs_SCANFI_LCC_FAO]{LandR::prepInputs_SCANFI_LCC_FAO()}}) has no wetland classes, so they are added from the Canadian
+Wetland Inventory Map (\code{LandR::prepInputs_CWIM()}) with \code{LandR::wetlandToLCC()}: wet treed pixels
+become 81, other wet flammable pixels 80, as in NTEMS. This matches Biomass_borealDataPrep's default
+land cover. \code{"NTEMS"} uses \code{\link[LandR:prepInputs_NTEMS_LCC_FAO]{LandR::prepInputs_NTEMS_LCC_FAO()}}, which has 80 and 81 already, exactly
+as before.}
 }
 \value{
 A list of two  \code{SpatRaster} objects:

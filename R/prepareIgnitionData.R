@@ -430,10 +430,11 @@ mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonFore
   
   fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
   
-  ## remove any pixels that are 0 for all classes
+  ## remove any pixels that are 0 for all classes; treed wetland is a site layer, not cover
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
                                .SDcols = setdiff(names(fireSense_ignitionCovariates),
-                                                 c(names(ignitionClimateCoarse), "cell", "ignitions", fireSenseUtils::yearTxt))]
+                                                 c(names(ignitionClimateCoarse), "cell", "ignitions",
+                                                   fireSenseUtils::yearTxt, treedWetlandTxt))]
   fireSense_ignitionCovariates <- fireSense_ignitionCovariates[coverSums > 0]
   set(fireSense_ignitionCovariates, NULL, "coverSums", NULL)
   

@@ -6,6 +6,7 @@
 \alias{nonNFColNamesTxt}
 \alias{yearTxt}
 \alias{youngAgeTxt}
+\alias{treedWetlandTxt}
 \alias{ignitionsTxt}
 \alias{escapesTxt}
 \alias{spreadFitAdditionalColNamesTxt}
