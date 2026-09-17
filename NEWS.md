@@ -1,3 +1,19 @@
+# fireSenseUtils 0.2.3.9022
+
+## Enhancements
+
+* `runDEoptim()` re-scores the final population after the fit: each member is evaluated `rescoreReps`
+  (default 10) more times, on the same workers, with the early stop off, and the result is attached as
+  `attr(DE, "finalRescore")`. New `rescorePopulation()` and `bestByReplicatedMean()` do the work, the
+  second picking the `n` distinct members with the lowest replicated means. DEoptim evaluates a
+  surviving member only once, so the values it holds are partly luck: in eight FireSense fits its best
+  member ranked 1st to 6th of 60 by replicated mean, and the fitted-parameter ledger's "5 best" were five
+  copies of that one member. The re-score costs about ten generations' worth of evaluations.
+
+* `spreadFitAdditionalColNamesTxt` gains `covMinMax_spread`: prediction cannot rescale covariates as the
+  fit did without it, and the ledger never stored it. Ledger readers must tolerate rows that predate it
+  (see `fireSense_dataPrepFit`).
+
 # fireSenseUtils 0.2.3.9020
 
 ## Bug fixes
