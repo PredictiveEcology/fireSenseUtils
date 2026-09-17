@@ -24,17 +24,24 @@ utils::globalVariables(c(
 #'
 #' @param cores number of processor cores to use
 #'
+#' @param seed integer. Seeds the per-year draws of buffer pixels. The default is derived from the
+#'   other inputs, so the same inputs give the same buffers in any session, whatever the state of its
+#'   random number generator, and the session's random stream is left untouched. Supply a value to
+#'   get a different set of buffers for the same inputs.
+#'
 #' @return a list of `data.table`s named by year, with cols `ids`, `buffer`, and `pixelID`
 #'
 #' @export
 #' @importFrom parallelly availableCores
 rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRaster, areaMultiplier,
-                               minSize = 5000, verb = 1, cores = 1) {
+                               minSize = 5000, verb = 1, cores = 1,
+                               seed = .bufferSeed(years, fireRaster, flammableRTM, bufferForFireRaster,
+                                                  areaMultiplier, minSize)) {
   maxCores <- parallelly::availableCores(constraints = "connections", omit = 1)
   cores <- min(min(length(years), cores), maxCores)
   ## Buffer pixels are sampled at random, and a forked child seeds itself independently: draw one seed
-  ## per year here so the same session seed gives the same buffers, forked or not (see bufferToArea.list).
-  seeds <- sample.int(.Machine$integer.max, length(years))
+  ## per year here so the same `seed` gives the same buffers, forked or not (see bufferToArea.list).
+  seeds <- withr::with_seed(seed, sample.int(.Machine$integer.max, length(years)))
   oneYear <- function(i, ...) withr::with_seed(seeds[[i]], makeFireIDs(years[[i]], ...))
   fireBufferListDT <- if (cores > 1) {
     parallel::mclapply(seq_along(years),
@@ -51,6 +58,16 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
   }
   names(fireBufferListDT) <- paste0("year", years)
   return(fireBufferListDT)
+}
+
+## rasterFireBufferDT()'s default seed: a digest of the inputs that decide its buffers, folded into an
+## integer. The rasters enter by their values and geometry, not by their sources, so a file-backed and an
+## in-memory copy of the same raster give the same seed.
+.bufferSeed <- function(years, fireRaster, flammableRTM, bufferForFireRaster, areaMultiplier, minSize) {
+  rasterKey <- function(r) list(terra::values(r, mat = FALSE), dim(r), as.vector(terra::ext(r)))
+  d <- reproducible::.robustDigest(list(as.numeric(years), rasterKey(fireRaster), rasterKey(flammableRTM),
+                                        bufferForFireRaster, areaMultiplier, minSize))
+  strtoi(substr(d, 1, 7), 16L)
 }
 
 #' Identify each year's individual fires and buffer them accordingly

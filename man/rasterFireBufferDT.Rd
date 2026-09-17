@@ -13,7 +13,9 @@ rasterFireBufferDT(
   areaMultiplier,
   minSize = 5000,
   verb = 1,
-  cores = 1
+  cores = 1,
+  seed = .bufferSeed(years, fireRaster, flammableRTM, bufferForFireRaster,
+    areaMultiplier, minSize)
 )
 }
 \arguments{
@@ -36,6 +38,11 @@ This will be imposed after \code{areaMultiplier}.}
 \code{FALSE} or \code{0} is none. \code{TRUE} or \code{1} is some. \code{2} is much more.}
 
 \item{cores}{number of processor cores to use}
+
+\item{seed}{integer. Seeds the per-year draws of buffer pixels. The default is derived from the
+other inputs, so the same inputs give the same buffers in any session, whatever the state of its
+random number generator, and the session's random stream is left untouched. Supply a value to
+get a different set of buffers for the same inputs.}
 }
 \value{
 a list of \code{data.table}s named by year, with cols \code{ids}, \code{buffer}, and \code{pixelID}
