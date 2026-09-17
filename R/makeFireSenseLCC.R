@@ -42,6 +42,13 @@
 #'   will be downloaded/loaded (via `prepInputs_NTEMS_LCC_FAO`) and where the
 #'   output raster will be written if `writeTo` is specified.
 #' @param overwrite Logical. Overwrite NTEMS FAO and flammable pixels rasters.
+#' @param lccSource `"SCANFI"` (default) or `"NTEMS"`; the default can be set with
+#'   `options(fireSense.lccSource = )`. SCANFI land cover
+#'   ([LandR::prepInputs_SCANFI_LCC_FAO()]) has no wetland classes, so they are added from the Canadian
+#'   Wetland Inventory Map (`LandR::prepInputs_CWIM()`) with `LandR::wetlandToLCC()`: wet treed pixels
+#'   become 81, other wet flammable pixels 80, as in NTEMS. This matches Biomass_borealDataPrep's default
+#'   land cover. `"NTEMS"` uses [LandR::prepInputs_NTEMS_LCC_FAO()], which has 80 and 81 already, exactly
+#'   as before.
 #'
 #' @return A list of two  `SpatRaster` objects:
 #'   1) the processed land cover classification at the resolution, extent,
@@ -83,11 +90,15 @@
 makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
                              nonflammableLCC = c(20, 31, 32, 33),
                              flammabilityThreshold = 0.1, writeTo = NULL,
-                             overwrite = TRUE, destinationPath) {
-  # 1. Retrieve and prepare base NTEMS LCC data for the specified year
+                             overwrite = TRUE, destinationPath,
+                             lccSource = getOption("fireSense.lccSource", "SCANFI")) {
+  lccSource <- toupper(lccSource)
+  if (!identical(length(lccSource), 1L) || !lccSource %in% c("SCANFI", "NTEMS"))
+    stop("lccSource must be \"SCANFI\" or \"NTEMS\", not ", paste(lccSource, collapse = ", "))
+  # 1. Retrieve and prepare base LCC data for the specified year
   #    - Crops to the extent of to
   #    - Masks to the maskTo polygon(s)
-  message("Preparing base NTEMS LCC data...")
+  message("Preparing base ", lccSource, " LCC data...")
   cp <- utils::capture.output(opts <- terra::terraOptions())
   optsNow <- list(memmax = 4, todisk = TRUE)
   newOpts <- do.call(terra::terraOptions, optsNow)
@@ -95,13 +106,14 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
 
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
-  rstLCC <- prepInputs_NTEMS_LCC_FAO(year = neededYear,
-                                     disturbedCode = 240, # Optional: specify disturbed code if needed
-                                     overwrite = overwrite,
-                                     destinationPath = destinationPath,
-                                     cropTo = to,
-                                     writeTo = writeTo,
-                                     maskTo = maskToArg)
+  lccFun <- if (lccSource == "NTEMS") prepInputs_NTEMS_LCC_FAO else .scanfiLCC
+  rstLCC <- lccFun(year = neededYear,
+                   disturbedCode = 240, # Optional: specify disturbed code if needed
+                   overwrite = overwrite,
+                   destinationPath = destinationPath,
+                   cropTo = to,
+                   writeTo = writeTo,
+                   maskTo = maskToArg)
   # 2. Determine the dominant *flammable* LCC code at the target resolution
   #    - Mask non-flammable codes to NA in the source resolution LCC
   #    - Project to the target resolution using 'mode' aggregation. This finds
@@ -164,7 +176,7 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
       wopt = list(datatype = "INT2S")
     )
     allFlam <- terra::project(aggClass, y = to, method = "mode")
-    levels(allFlam) <- terra::levels(rstLCC)
+    if (lccSource == "NTEMS") levels(allFlam) <- terra::levels(rstLCC)
     
     # --- proportion flammable at target res (average of binary) ---
     flamBinary <- terra::classify(
@@ -178,6 +190,12 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
     
     # --- threshold (streamed, not in-memory) ---
     allFlam <- terra::ifel(flammableProp < flammabilityThreshold, 0, allFlam)
+  }
+  if (lccSource == "SCANFI") {
+    ## SCANFI has no wetland classes: add NTEMS' 80/81 from the wetland layer, at the target resolution.
+    ## Non-flammable (0) and water are never recoded.
+    wet <- .cwimWetland(to = allFlam)
+    allFlam <- .wetlandToLCC(allFlam, wet, keepClasses = c(0, nonflammableLCC))
   }
   flammableProp <- terra::ifel(is.na(allFlam), NA, flammableProp)
   
@@ -194,3 +212,19 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
 
   return(output)
 }
+
+## SCANFI land cover with FAO forest land (LandR); a seam for the tests
+.scanfiLCC <- function(year, ...) {
+  LandR::prepInputs_SCANFI_LCC_FAO(year = year, ...)
+}
+
+## LandR's wetland layer and recoding (PredictiveEcology/LandR#228). Looked up at run time so this package
+## installs and checks against a LandR that does not have them yet; a clear error says what is missing.
+.landrWetlandFun <- function(name) {
+  if (!name %in% getNamespaceExports("LandR"))
+    stop("lccSource = \"SCANFI\" needs LandR::", name, "() (PredictiveEcology/LandR#228); ",
+         "update LandR, or use lccSource = \"NTEMS\"")
+  getExportedValue("LandR", name)
+}
+.cwimWetland <- function(to, ...) .landrWetlandFun("prepInputs_CWIM")(to = to, ...)
+.wetlandToLCC <- function(lcc, wet, ...) .landrWetlandFun("wetlandToLCC")(lcc, wet, ...)

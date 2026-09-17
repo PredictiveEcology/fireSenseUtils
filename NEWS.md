@@ -1,3 +1,26 @@
+# fireSenseUtils 0.2.3.9023
+
+## Enhancements
+
+* `makeFireSenseLCC()` gains `lccSource`, `"SCANFI"` by default (`options(fireSense.lccSource = )`), with
+  `"NTEMS"` still available and unchanged. Biomass_borealDataPrep's default land cover is moving from NTEMS
+  to SCANFI, and the fire models must be fitted on the land cover the simulation predicts with. SCANFI has
+  no wetland classes, so they are added exactly as that module does: `LandR::prepInputs_CWIM()` for the
+  wetland site layer and `LandR::wetlandToLCC()` to recode it, wet treed pixels to 81 and other wet
+  flammable pixels to 80. Non-flammable (0) and water are never recoded. Checked on ELF 5.3.2's fit grid
+  (8.1 M cells): the NTEMS path gives byte-identical output to 0.2.3.9022.
+
+  The two LandR wetland functions are looked up at run time (PredictiveEcology/LandR#228), so this package
+  installs and checks against a LandR without them; `lccSource = "SCANFI"` then stops with a message naming
+  what is missing.
+
+* `fireSenseCovariatesCreate()` gains `rstLCC` (and `treedWetlandLCC`, default 81). Given it, the covariates
+  carry `treedWetland` (new constant `treedWetlandTxt`), 1 on treed wetland. Class 81 is a forested class, so
+  those pixels otherwise reach the fire models only through their fuel biomass and look like upland forest.
+  It is a site attribute, not a fuel state, so it is added after the `youngAge` exclusivity -- a burned bog is
+  still wet -- and `mergePreparedCovs()` leaves it out of the ignition data's all-cover-is-zero filter.
+  Without `rstLCC` nothing changes, so existing callers and their caches are untouched.
+
 # fireSenseUtils 0.2.3.9020
 
 ## Bug fixes

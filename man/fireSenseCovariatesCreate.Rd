@@ -19,7 +19,9 @@ fireSenseCovariatesCreate(
   cutoffForYoungAge,
   nonForestCanBeYoungAge,
   studyAreaName,
-  useCache = TRUE
+  useCache = TRUE,
+  rstLCC = NULL,
+  treedWetlandLCC = 81
 )
 }
 \arguments{
@@ -60,6 +62,12 @@ based on \code{nonForest_timeSinceDisturbance} and \code{cutoffForYoungAge}.}
 \item{studyAreaName}{Character tag used for caching/user tags.}
 
 \item{useCache}{Logical. If \code{TRUE}, enable caching in \code{Cache()} calls.}
+
+\item{rstLCC}{Optional land-cover \code{SpatRaster} on the same grid as \code{pixelGroupMap}. When given, a
+\code{treedWetland} column (see \link{treedWetlandTxt}) is added: 1 where the land cover is \code{treedWetlandLCC}.}
+
+\item{treedWetlandLCC}{Land-cover code(s) of treed wetland. Default 81 (NTEMS; also what
+\code{\link[=makeFireSenseLCC]{makeFireSenseLCC()}} assigns on SCANFI land cover from the wetland layer).}
 }
 \value{
 A \code{data.table} named \code{spreadCovariates} containing one row per \code{pixelID}, with:

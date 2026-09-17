@@ -505,6 +505,11 @@ abbreviateSpNames <- function(df) {
 #' )
 #' }
 #'
+#' @param rstLCC Optional land-cover `SpatRaster` on the same grid as `pixelGroupMap`. When given, a
+#'   `treedWetland` column (see [treedWetlandTxt]) is added: 1 where the land cover is `treedWetlandLCC`.
+#' @param treedWetlandLCC Land-cover code(s) of treed wetland. Default 81 (NTEMS; also what
+#'   [makeFireSenseLCC()] assigns on SCANFI land cover from the wetland layer).
+#'
 #' @export
 fireSenseCovariatesCreate <- function(cohortData, 
                                    pixelGroupMap,
@@ -519,7 +524,8 @@ fireSenseCovariatesCreate <- function(cohortData,
                                    nonForest_timeSinceDisturbance,
                                    cutoffForYoungAge,
                                    nonForestCanBeYoungAge,
-                                   studyAreaName, useCache = TRUE) {
+                                   studyAreaName, useCache = TRUE,
+                                   rstLCC = NULL, treedWetlandLCC = 81) {
   
   # No non-forest nf happening here
   fuelClassesRas <- cohortsToFuelClasses(
@@ -621,6 +627,13 @@ fireSenseCovariatesCreate <- function(cohortData,
                        isNonForest == TRUE]
     spreadCovariates[YA_NF == TRUE, youngAge := 1]
     spreadCovariates[, c("YA_NF", "isNonForest") := NULL]
+  }
+  ## Treed wetland (land-cover class 81) is forested, so otherwise it enters only through its fuel biomass.
+  ## It describes the SITE, not the fuel state, so it is added after the youngAge exclusivity: a burned bog
+  ## is still wet.
+  if (!is.null(rstLCC)) {
+    lccVals <- terra::values(rstLCC, mat = FALSE)[spreadCovariates$pixelID]
+    set(spreadCovariates, NULL, treedWetlandTxt, as.numeric(lccVals %in% treedWetlandLCC))
   }
   spreadCovariates
 }

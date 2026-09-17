@@ -26,7 +26,7 @@
 #'     `"nonForestedLCCGroups"`, `"missingLCCgroup"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt
 NULL
 
 #' @export
@@ -40,6 +40,9 @@ yearTxt <- "year"
 
 #' @export
 youngAgeTxt <- "youngAge"
+
+#' @export
+treedWetlandTxt <- "treedWetland"
 
 #' @export
 ignitionsTxt <- "ignitions"
