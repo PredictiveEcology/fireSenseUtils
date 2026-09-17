@@ -1,3 +1,15 @@
+# fireSenseUtils 0.2.3.9024
+
+## Bug fixes
+
+* new `makeFireSenseLCCDeps()`: the functions whose code affects what `makeFireSenseLCC()` returns,
+  to pass as a cached call's `.cacheExtra`. `reproducible::Cache()` digests only the called
+  function's own code, so callers have to name the functions it calls -- and which those are depends
+  on `lccSource`, a run-time option. A caller that writes the list out is therefore wrong for the
+  other source and goes stale when the default moves. That already happened: `fireSense_dataPrepFit`
+  pinned `LandR::prepInputs_NTEMS_LCC_FAO()` and kept it after the default became SCANFI, so every
+  SCANFI and CWIM change was invisible to the cache while NTEMS changes invalidated it for nothing.
+
 # fireSenseUtils 0.2.3.9023
 
 ## Enhancements

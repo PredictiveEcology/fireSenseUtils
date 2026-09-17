@@ -92,9 +92,7 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
                              flammabilityThreshold = 0.1, writeTo = NULL,
                              overwrite = TRUE, destinationPath,
                              lccSource = getOption("fireSense.lccSource", "SCANFI")) {
-  lccSource <- toupper(lccSource)
-  if (!identical(length(lccSource), 1L) || !lccSource %in% c("SCANFI", "NTEMS"))
-    stop("lccSource must be \"SCANFI\" or \"NTEMS\", not ", paste(lccSource, collapse = ", "))
+  lccSource <- .checkLccSource(lccSource)
   # 1. Retrieve and prepare base LCC data for the specified year
   #    - Crops to the extent of to
   #    - Masks to the maskTo polygon(s)
@@ -211,6 +209,47 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   output <- list("lcc" = allFlam, "flammableProp" = flammableProp)
 
   return(output)
+}
+
+.checkLccSource <- function(lccSource) {
+  lccSource <- toupper(lccSource)
+  if (!identical(length(lccSource), 1L) || !lccSource %in% c("SCANFI", "NTEMS"))
+    stop("lccSource must be \"SCANFI\" or \"NTEMS\", not ", paste(lccSource, collapse = ", "))
+  lccSource
+}
+
+#' Functions whose code affects what [makeFireSenseLCC()] returns
+#'
+#' `reproducible::Cache()` digests only the called function's own code, so a cached
+#' [makeFireSenseLCC()] call keeps returning its old result when a function it *calls* changes.
+#' Pass this list as that call's `.cacheExtra` and those functions become part of the key.
+#'
+#' Ask for the list rather than writing one out: which functions are in the path depends on
+#' `lccSource`, which is a run-time option, so a hard-coded list is wrong for the other source and
+#' goes stale when the default moves. It already did -- `fireSense_dataPrepFit` pinned
+#' `LandR::prepInputs_NTEMS_LCC_FAO()` and kept it after the default became SCANFI, leaving every
+#' SCANFI and CWIM change invisible to the cache.
+#'
+#' @inheritParams makeFireSenseLCC
+#'
+#' @return A list of functions, to pass as `reproducible::Cache()`'s `.cacheExtra`.
+#'
+#' @export
+#' @seealso [makeFireSenseLCC()]
+#' @examples
+#' \dontrun{
+#'   Cache(makeFireSenseLCC(neededYear = 2020, to = rtm, destinationPath = dPath),
+#'         .cacheExtra = makeFireSenseLCCDeps())
+#' }
+makeFireSenseLCCDeps <- function(lccSource = getOption("fireSense.lccSource", "SCANFI")) {
+  lccSource <- .checkLccSource(lccSource)
+  if (identical(lccSource, "NTEMS"))
+    return(list(prepInputs_NTEMS_LCC_FAO))
+  ## SCANFI: the land cover itself, plus the wetland classes that are added to it. The wrappers are
+  ## listed alongside the LandR functions they reach because Cache digests neither.
+  list(.scanfiLCC, LandR::prepInputs_SCANFI_LCC_FAO,
+       .cwimWetland, .wetlandToLCC,
+       .landrWetlandFun("prepInputs_CWIM"), .landrWetlandFun("wetlandToLCC"))
 }
 
 ## SCANFI land cover with FAO forest land (LandR); a seam for the tests
