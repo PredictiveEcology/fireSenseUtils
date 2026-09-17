@@ -30,7 +30,8 @@ prefix on year-suffixed layer/column names (currently \code{"year"}).
 \item \code{spreadFitAdditionalColNamesTxt}: \code{character} vector of extra
 simList-slot/column names attached to spread-fit outputs
 (\code{"numIterations"}, \code{"objFunVal"}, \code{"params"}, \code{"sppEquiv"},
-\code{"nonForestedLCCGroups"}, \code{"missingLCCgroup"}).
+\code{"nonForestedLCCGroups"}, \code{"missingLCCgroup"}, \code{"covMinMax_spread"}). \code{covMinMax_spread} is
+what prediction needs to rescale covariates exactly as the fit did.
 }
 }
 \description{

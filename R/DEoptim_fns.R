@@ -99,6 +99,9 @@ utils::globalVariables(c(
 #'   about 10 per estimated parameter, `10 * length(lower)`. DEoptim's `NP` is set to the number of
 #'   workers the cluster actually gets, so a smaller allocation means a smaller population.
 #'
+#' @param rescoreReps Integer. After the fit, each member of the final population is evaluated this
+#'   many more times (full evaluations, no early stop) and the result is attached to the returned
+#'   object as `attr(DE, "finalRescore")`, for [bestByReplicatedMean()]. `0` skips it.
 #' @param .c Numeric in `(0, 1]`. DEoptim's `c`, the speed of crossover adaptation (used by
 #'   `strategy = 6`). Passed to [DEoptim::DEoptim.control()]; a `c` in `DEoptimControl` wins.
 #' @param DEoptimControl Named list of further [DEoptim::DEoptim.control()] settings (for example
@@ -156,7 +159,8 @@ runDEoptim <- function(landscape,
                        .plotSize = list(height = 1600, width = 2000),
                        rep = 1L,
                        runName = "",
-                       nCoresNeeded = 10L * length(lower)) {
+                       nCoresNeeded = 10L * length(lower),
+                       rescoreReps = 10L) {
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -241,6 +245,24 @@ runDEoptim <- function(landscape,
     , .functionName = paste0("DEoptimIterative2_", runName)
     # , cacheId = "8448b6a37b54361b"
   ) # iteration 201 to 300
+
+  ## Re-score the final population `rescoreReps` times each, on the same workers, with the early stop
+  ## off (thresh = Inf) so every replicate is a full evaluation. DEoptim's own values are partly luck;
+  ## the caller picks its best members from these means (bestByReplicatedMean()).
+  finalPop <- if (length(DE)) DE[[length(DE)]]$member$pop
+  if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
+    colnames(finalPop) <- names(lower)
+    attr(DE, "finalRescore") <- Cache(
+      rescorePopulation,
+      pop = finalPop, fn = fireSenseUtils::.objfunSpreadFit, reps = as.integer(rescoreReps), cl = cl,
+      fnArgs = list(formulaToFit = formulaToFit, covMinMax = covMinMax, tests = tests,
+                    maxFireSpread = maxFireSpread, objFunCoresInternal = objFunCoresInternal,
+                    Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
+                    thresh = Inf, verbose = 0),
+      omitArgs = "cl",
+      cachePath = paths$cachePath,
+      .functionName = paste0("rescoreFinalPopulation_", runName))
+  }
   DE
 }
 
