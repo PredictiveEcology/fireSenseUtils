@@ -73,6 +73,18 @@ utils::globalVariables(c(
 #'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be `2L` or `3L`).
 #'
 #' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
+#' @param pruneAbove Numeric. An upper bound on the accumulated SNLL after the *first* batch of
+#'   fire years, past which the evaluation stops early and returns the fail value. Default `Inf`,
+#'   which leaves `thresh * <years done>` as the only bound -- i.e. no change in behaviour.
+#'
+#'   A caller that runs one DEoptim generation per call knows the current population, and can pass
+#'   the worst objective value that population would accept. Doing so is *exact*, not a heuristic:
+#'   the second batch contributes a non-negative SNLL, so the first batch's accumulated value is a
+#'   lower bound on the evaluation's final value. A trial exceeding `pruneAbove` would therefore
+#'   have finished at or above a value every parent already beats, and selection would have
+#'   discarded it. Pruning cannot change which trials DEoptim keeps; it only avoids finishing an
+#'   evaluation whose outcome is already decided. This matters because a generation is
+#'   synchronous -- its wall time is the slowest of its `NP` evaluations, not the median one.
 #'   Lowering the threshold value will be more restrictive, but being too restrictive will result
 #'   in [DEoptim::DEoptim] rejecting more tests and using the "fail value" of 10000.
 #'   Too high a threshold, and more years will be run and it will take longer to find values.
@@ -134,6 +146,7 @@ utils::globalVariables(c(
                              objFunCoresInternal = 1,
                              lanscape1stQuantileThresh = 0.265,
                              thresh = 550,
+                             pruneAbove = Inf,
                              weighted = TRUE,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
@@ -283,7 +296,11 @@ utils::globalVariables(c(
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 0)
         failVal <- 1e6L
         numYrsDone <- length(results$SNLL_FS)
-        threshold <- thresh * numYrsDone ## lower is _more_ restrictive; too high takes too long
+        ## lower is _more_ restrictive; too high takes too long. `pruneAbove` (default Inf, i.e. no
+        ## effect) lets the caller tighten this with the worst value the current population would
+        ## accept: block 2's SNLL is non-negative, so this block's value is a lower bound on the
+        ## total, and a trial above `pruneAbove` is one every parent already beats.
+        threshold <- min(thresh * numYrsDone, pruneAbove)
         mess <- character()
         annualSNLL <- round(SNLL_FSTest / numYrsDone, 0)
         if (any(SNLL_FSTest > threshold) && ii == 1) {

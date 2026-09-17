@@ -24,6 +24,7 @@
   objFunCoresInternal = 1,
   lanscape1stQuantileThresh = 0.265,
   thresh = 550,
+  pruneAbove = Inf,
   weighted = TRUE,
   verbose = 2,
   ...
@@ -108,7 +109,20 @@ number, then the \code{.objFunSpredFit} will bail because it is "too burny" a la
 Default 0.265, meaning if only 25\%\% of the pixels on the landscape are below
 this \code{spreadProb}, then it will bail.}
 
-\item{thresh}{Threshold multiplier used in SNLL fire size (\code{"snll_fs"}) test. Default 550.
+\item{thresh}{Threshold multiplier used in SNLL fire size (\code{"snll_fs"}) test. Default 550.}
+
+\item{pruneAbove}{Numeric. An upper bound on the accumulated SNLL after the \emph{first} batch of
+fire years, past which the evaluation stops early and returns the fail value. Default \code{Inf},
+which leaves \verb{thresh * <years done>} as the only bound -- i.e. no change in behaviour.
+
+A caller that runs one DEoptim generation per call knows the current population, and can pass
+the worst objective value that population would accept. Doing so is \emph{exact}, not a heuristic:
+the second batch contributes a non-negative SNLL, so the first batch's accumulated value is a
+lower bound on the evaluation's final value. A trial exceeding \code{pruneAbove} would therefore
+have finished at or above a value every parent already beats, and selection would have
+discarded it. Pruning cannot change which trials DEoptim keeps; it only avoids finishing an
+evaluation whose outcome is already decided. This matters because a generation is
+synchronous -- its wall time is the slowest of its \code{NP} evaluations, not the median one.
 Lowering the threshold value will be more restrictive, but being too restrictive will result
 in \link[DEoptim:DEoptim]{DEoptim::DEoptim} rejecting more tests and using the "fail value" of 10000.
 Too high a threshold, and more years will be run and it will take longer to find values.}
