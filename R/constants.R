@@ -23,7 +23,8 @@
 #'   - `spreadFitAdditionalColNamesTxt`: `character` vector of extra
 #'     simList-slot/column names attached to spread-fit outputs
 #'     (`"numIterations"`, `"objFunVal"`, `"params"`, `"sppEquiv"`,
-#'     `"nonForestedLCCGroups"`, `"missingLCCgroup"`).
+#'     `"nonForestedLCCGroups"`, `"missingLCCgroup"`, `"covMinMax_spread"`). `covMinMax_spread` is
+#'     what prediction needs to rescale covariates exactly as the fit did.
 #'
 #' @name fireSenseUtils-constants
 #' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt
@@ -53,5 +54,6 @@ escapesTxt <- "escapes"
 #' @export
 spreadFitAdditionalColNamesTxt <- c(
   "numIterations", "objFunVal", "params",
-  "sppEquiv", "nonForestedLCCGroups", "missingLCCgroup"
+  "sppEquiv", "nonForestedLCCGroups", "missingLCCgroup",
+  "covMinMax_spread"
 )

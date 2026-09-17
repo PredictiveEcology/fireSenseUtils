@@ -42,7 +42,8 @@ runDEoptim(
   .plotSize = list(height = 1600, width = 2000),
   rep = 1L,
   runName = "",
-  nCoresNeeded = 10L * length(lower)
+  nCoresNeeded = 10L * length(lower),
+  rescoreReps = 10L
 )
 
 DEoptimIterative(
@@ -187,6 +188,10 @@ Default \code{""} (no suffix).}
 \item{nCoresNeeded}{Integer. How many workers to request for the DEoptim cluster; defaults to
 about 10 per estimated parameter, \code{10 * length(lower)}. DEoptim's \code{NP} is set to the number of
 workers the cluster actually gets, so a smaller allocation means a smaller population.}
+
+\item{rescoreReps}{Integer. After the fit, each member of the final population is evaluated this
+many more times (full evaluations, no early stop) and the result is attached to the returned
+object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean]{bestByReplicatedMean()}}. \code{0} skips it.}
 
 \item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 
