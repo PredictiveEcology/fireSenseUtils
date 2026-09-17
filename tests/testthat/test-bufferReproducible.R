@@ -43,9 +43,8 @@ test_that("bufferToArea gives the same buffers for the same seed, forked or not"
   expect_identical(forked, serial)
 })
 
-test_that("rasterFireBufferDT gives the same buffers for the same seed, forked or not", {
-  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = NA))
-  skipUnlessFork()
+## A small study area with three fire years, shared by the rasterFireBufferDT tests
+fireRasterFixture <- function() {
   flammable <- terra::rast(nrows = 300, ncols = 300, extent = c(0, 120000, 0, 120000),
                            crs = "EPSG:3978", vals = 1L)
   fireRaster <- terra::rast(flammable)
@@ -57,11 +56,18 @@ test_that("rasterFireBufferDT gives the same buffers for the same seed, forked o
       fireRaster[r0:(r0 + sample(5:15, 1)), c0:(c0 + sample(5:15, 1))] <- yr
     }
   })
+  list(fireRaster = fireRaster, flammable = flammable)
+}
+
+test_that("rasterFireBufferDT gives the same buffers for the same seed, forked or not", {
+  withr::local_envvar(c("_R_CHECK_LIMIT_CORES_" = NA))
+  skipUnlessFork()
+  fx <- fireRasterFixture()
   run <- function(seed, cores) {
-    withr::with_seed(seed, asFrames(
-      rasterFireBufferDT(years = 2001:2003, fireRaster = fireRaster, flammableRTM = flammable,
+    asFrames(
+      rasterFireBufferDT(years = 2001:2003, fireRaster = fx$fireRaster, flammableRTM = fx$flammable,
                          bufferForFireRaster = 1000, areaMultiplier = 10, minSize = 500,
-                         verb = 0, cores = cores)))
+                         verb = 0, cores = cores, seed = seed))
   }
 
   serial <- run(1, cores = 1)
@@ -69,4 +75,33 @@ test_that("rasterFireBufferDT gives the same buffers for the same seed, forked o
   forked <- run(1, cores = 2)
   expect_identical(forked, run(1, cores = 2))
   expect_identical(forked, serial)
+})
+
+## fireSense_dataPrepFit caches this call. Two runs with identical inputs used to draw their seeds from
+## whatever state the session's RNG was in, so they built different buffers -- and different spread-fit
+## covariates -- under cache keys that differed only by accident (SpaDES.core #456 would have merged them).
+## By default the seed now comes from the inputs, so the same inputs give the same buffers in any session.
+test_that("rasterFireBufferDT's default buffers depend on its inputs, not on the session's RNG", {
+  fx <- fireRasterFixture()
+  run <- function(ambientSeed, areaMultiplier = 10) {
+    withr::with_seed(ambientSeed, asFrames(
+      rasterFireBufferDT(years = 2001:2003, fireRaster = fx$fireRaster, flammableRTM = fx$flammable,
+                         bufferForFireRaster = 1000, areaMultiplier = areaMultiplier, minSize = 500,
+                         verb = 0, cores = 1)))
+  }
+
+  base <- run(1)
+  expect_identical(run(2), base)
+  expect_identical(run(3), base)
+  ## ... while the inputs still matter
+  expect_false(identical(run(1, areaMultiplier = 5), base))
+
+  ## and the call leaves the session's random stream where it was
+  set.seed(42)
+  before <- .Random.seed
+  run2 <- asFrames(rasterFireBufferDT(years = 2001:2003, fireRaster = fx$fireRaster,
+                                      flammableRTM = fx$flammable, bufferForFireRaster = 1000,
+                                      areaMultiplier = 10, minSize = 500, verb = 0, cores = 1))
+  expect_true(identical(.Random.seed, before))
+  expect_identical(run2, base)
 })

@@ -1,3 +1,16 @@
+# fireSenseUtils 0.2.3.9020
+
+## Bug fixes
+
+* `rasterFireBufferDT()` drew its per-year seeds from the session's random stream, so two calls with
+  identical inputs built different buffers unless the caller happened to have set the same seed --
+  and nothing upstream did. `fireSense_dataPrepFit` caches this call, so its spread-fit buffers,
+  spread points and covariates changed between runs of the same study area, and cached entries holding
+  different data were kept apart only by an accident of their cache keys. #57 made the buffers the same
+  across forked workers; this makes them the same across sessions. The new `seed` argument defaults to
+  a digest of the inputs, the draws run under `withr::with_seed()`, and the session's random stream is
+  no longer advanced. Buffers differ from those built by earlier versions, so cached buffers are rebuilt.
+
 # fireSenseUtils 0.2.3.9019
 
 ## Enhancements
