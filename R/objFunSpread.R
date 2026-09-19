@@ -984,14 +984,7 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
   shortAnnDT <- shortAnnDTx1000
 
   if (doAssertions) {
-    test1 <- sum(apply(round(shortAnnDT[, ..colsToUse], 3), 2, min) < 0) == 0
-    test2 <- sum(apply(round(shortAnnDT[, ..colsToUse], 3), 2, max) > 1) == 0
-
-    # test1 <- sum(apply(round(mat[, colsToUse], 3), 2, min) < 0) == 0
-    # test2 <- sum(apply(round(mat[, colsToUse], 3), 2, max) > 1) == 0
-    if (!all(test1, test2)) {
-      stop("Covariates are not all between 0 and 1, which they should be")
-    }
+    assertCovariateRange(shortAnnDT, colsToUse)
     if (logisticPars[1] > maxFireSpread) {
       warning(
         "The first parameter of the logistic is > ", maxFireSpread, ".",

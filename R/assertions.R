@@ -70,3 +70,27 @@ chk_duplicatedStartPixels <- function(cells, size) {
     stop(moduleName, "> The formula describes an empty model.")
   }
 }
+
+#' Assert that rescaled spread covariates are usable
+#'
+#' Covariates were historically required to lie in `[0, 1]`. That upper bound was a
+#' convention of the log-biomass parameterisation, not a requirement of the objective
+#' function: covariates enter only through `exp(mat %*% covPars)` inside [logistic3p()],
+#' which saturates gracefully (`exp(Inf)^(-b)` is `0`, giving `maxAsymptote`) and never
+#' produces `NaN`. Fuel covariates expressed as `biomass / 1e4` legitimately exceed 1,
+#' so only non-negativity and finiteness are enforced.
+#'
+#' @param dt A `data.table` of rescaled covariates.
+#' @param colsToUse Character vector of covariate column names to check.
+#'
+#' @return `invisible(TRUE)`, or an error.
+#' @export
+assertCovariateRange <- function(dt, colsToUse) {
+  vals <- dt[, ..colsToUse]
+  bad <- vapply(vals, function(x) any(!is.finite(x)) || any(round(x, 3) < 0), logical(1))
+  if (any(bad)) {
+    stop("Covariates must be non-negative and finite; these are not: ",
+         paste(colsToUse[bad], collapse = ", "))
+  }
+  invisible(TRUE)
+}
