@@ -73,6 +73,8 @@ utils::globalVariables(c(
 #'   hyperthreaded cores here, internally will speed things up (i.e., this maybe could be `2L` or `3L`).
 #'
 #' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
+#' @param covCentre Optional named list or vector of values subtracted from the rescaled covariates
+#'   of the same name. `NULL` (default) does no centring. Must be the same at fit and predict.
 #' @param pruneAbove Numeric. An upper bound on the accumulated SNLL after the *first* batch of
 #'   fire years, past which the evaluation stops early and returns the fail value. Default `Inf`,
 #'   which leaves `thresh * <years done>` as the only bound -- i.e. no change in behaviour.
@@ -147,6 +149,7 @@ utils::globalVariables(c(
                              lanscape1stQuantileThresh = 0.265,
                              thresh = 550,
                              pruneAbove = Inf,
+                             covCentre = NULL,
                              weighted = TRUE,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
@@ -253,6 +256,7 @@ utils::globalVariables(c(
         doSNLL_FSTest = doSNLL_FSTest,
         doMADTest = doMADTest, doADTest = doADTest,
         cells = cells,
+        covCentre = covCentre,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -448,7 +452,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
-                        plot.it, verbose = 2) {
+                        plot.it, verbose = 2, covCentre = NULL) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -462,7 +466,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   shortAnnDT <- spreadProbFromIntegerCovs(
     shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
     indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
-    doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb
+    doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
   )
 
   set(shortAnnDT, NULL, "spreadProb",
@@ -911,6 +915,9 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 #' @param yr A single character or numeric/integer representing the full year (e.g., 2020) to
 #'   but used. This year will be extracted from both the `annDTx1000` and `nonAnnualDTx1000` if
 #'   they are supplied
+#' @param covCentre Optional named list or vector: `covCentre[[col]]` is subtracted from column `col`
+#'   after rescaling, mutual exclusivity and the range assertion. `NULL` (default) does no centring.
+#'   Supply the fitted values at prediction.
 #' @param covMinMax A data.table, one column for each column in `shortAnnDTx1000` (or the
 #'   ann and nonAnnual alternatives), where the two rows represent the minimum and maximum
 #'   values in the original fitting dataset. This MUST be supplied if this is prediction
@@ -934,7 +941,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
 spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
                                       indexNonAnnual, yr, covMinMax = NULL, mutuallyExclusive, colsToUse,
                                       doAssertions, logisticPars, covPars, maxFireSpread,
-                                      lowerSpreadProb) {
+                                      lowerSpreadProb, covCentre = NULL) {
   # rescaleA <- function(annDTx1000, shortAnnDTx1000, nonAnnualDTx1000, indexNonAnnual,
   #                      yr, covMinMax, mutuallyExclusive, colsToUse, doAssertions, logisticPars,
   #                      maxFireSpread, covPars, lowerSpreadProb) {
@@ -990,6 +997,15 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
         "The first parameter of the logistic is > ", maxFireSpread, ".",
         "The parameter should be lowered."
       )
+    }
+  }
+
+  ## Centre last: after the mutual-exclusivity step, whose 0 means "this pixel does not have this
+  ## cover" only on the uncentred scale, and after the range assertion, which centred (negative)
+  ## values would fail. Fitting and prediction both pass through here, so both centre identically.
+  if (!is.null(covCentre)) {
+    for (cn in intersect(names(covCentre), colsToUse)) {
+      set(shortAnnDT, NULL, cn, shortAnnDT[[cn]] - covCentre[[cn]])
     }
   }
 
