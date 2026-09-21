@@ -17,7 +17,8 @@ spreadProbFromIntegerCovs(
   logisticPars,
   covPars,
   maxFireSpread,
-  lowerSpreadProb
+  lowerSpreadProb,
+  covCentre = NULL
 )
 }
 \arguments{
@@ -85,6 +86,10 @@ Default 0.28, which is overly generous unless there are many non-flammable pixel
 \item{lowerSpreadProb}{Numeric. Lower bound for \code{spreadProb}; if a candidate
 \code{spreadProb} falls at or below this, the call exits early to avoid wasted
 simulation work. Default \code{0.13}.}
+
+\item{covCentre}{Optional named list or vector: \code{covCentre[[col]]} is subtracted from column \code{col}
+after rescaling, mutual exclusivity and the range assertion. \code{NULL} (default) does no centring.
+Supply the fitted values at prediction.}
 }
 \value{
 This returns the full data.table to be used for fireSense, on the original numeric

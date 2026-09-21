@@ -25,6 +25,7 @@
   lanscape1stQuantileThresh = 0.265,
   thresh = 550,
   pruneAbove = Inf,
+  covCentre = NULL,
   weighted = TRUE,
   verbose = 2,
   ...
@@ -126,6 +127,9 @@ synchronous -- its wall time is the slowest of its \code{NP} evaluations, not th
 Lowering the threshold value will be more restrictive, but being too restrictive will result
 in \link[DEoptim:DEoptim]{DEoptim::DEoptim} rejecting more tests and using the "fail value" of 10000.
 Too high a threshold, and more years will be run and it will take longer to find values.}
+
+\item{covCentre}{Optional named list or vector of values subtracted from the rescaled covariates
+of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.}
 
 \item{weighted}{Logical. Should empirical likelihood be weighted by log of the actual fire size?
 This will give large fires more influence on the SNLL.}

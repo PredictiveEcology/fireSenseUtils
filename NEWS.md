@@ -9,6 +9,13 @@
   `fuelLogToLinear()`. `fuelLinearRange` (`c(0, 1e4)`) is the `covMinMax` that performs the division,
   and `isLinearFuelRange()` recognises a linear fit from its stored `covMinMax_spread`, so parameters
   fitted on the log scale keep predicting as before. (0.2.3.9028 is `covCentre`, #67.)
+# fireSenseUtils 0.2.3.9028
+
+## Enhancements
+
+* `.objfunSpreadFit()`, `objFunInner()` and `spreadProbFromIntegerCovs()` gain `covCentre`: values
+  subtracted from the rescaled covariates. `NULL` (default) changes nothing. Centring is applied after
+  the mutual-exclusivity step and the covariate range assertion.
 
 # fireSenseUtils 0.2.3.9027
 
