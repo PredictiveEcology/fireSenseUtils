@@ -1,3 +1,14 @@
+# fireSenseUtils 0.2.3.9026
+
+## Performance
+
+* `objFunInner()` no longer scans the whole landscape once per fire year. The spreadProb values its
+  bail tests summarise were recovered with `cells[cells > a | cells > b]`, four passes over a
+  landscape-length vector that is zero except at that year's pixels (6.0M cells for ~41k pixels on
+  ELF 5.3.1); they are now read from the spreadProb column. The vector is filled only when
+  `spread()` will run, and is allocated numeric so filling it does not coerce it. Identical
+  objective values with identical seeds; an evaluation is 1.1-1.4x faster on ELF 5.3.1.
+
 # fireSenseUtils 0.2.3.9024
 
 ## Bug fixes
