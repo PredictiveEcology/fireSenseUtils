@@ -780,9 +780,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## TODO: occasional errors during fitting because `obs` < 2; suggests N <2 (#8)
         # Eliot: If this errors, it means that only one simulated fire had 2 pixels (i.e., N>1); if only one
         #   fire has 2+ pixels, need more fires, or call it a fail
+        ## Observed and simulated sizes on the SAME (square-root) scale. With `x = size[1]` the
+        ## observed size sat beyond sqrt(maxSize) for any fire above ~12 pixels, so its likelihood
+        ## was the `minLik` floor whatever the parameters.
         emp <- emp[N > 1, list(size = size[1],
                                lik = if(.N > 1) {
-                                 EnvStats::demp(x = size[1], obs = sqrt(N))
+                                 EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N))
                                } else {
                                  0
                                }), by = "ids"]
