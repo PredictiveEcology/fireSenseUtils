@@ -213,7 +213,6 @@ importFrom(graphics,
   mtext,
   par
 )
-importFrom(kSamples,ad.test)
 importFrom(magrittr,"%>%")
 importFrom(mclust,
   Mclust,

@@ -130,7 +130,6 @@ utils::globalVariables(c(
 #' @importFrom data.table := rbindlist set setDT setDTthreads setnames setorderv
 #' @importFrom EnvStats demp
 #' @importFrom graphics abline axis hist mtext
-#' @importFrom kSamples ad.test
 #' @importFrom purrr map2 pmap
 #' @importFrom quickPlot clearPlot dev gpar Plot
 #' @importFrom terra buffer crop ext ncell rast trim xyFromCell
@@ -284,7 +283,7 @@ utils::globalVariables(c(
       results <- purrr::transpose(results)
 
       if (isTRUE(doADTest)) {
-        fireSizesList[[ii]] <- unlist(results$fireSizes)
+        fireSizesList[[ii]] <- unlist(results$allFireSizes)
         yrsDoneList[[ii]] <- yrs
       }
 
@@ -378,7 +377,7 @@ utils::globalVariables(c(
   ## not have.
   if (isTRUE(doADTest) && !isTRUE(bailedEarly)) {
     pooled <- pooledFireSizes(fireSizesList, yrsDoneList, historicalFiresAboveMin)
-    adTest <- try(ad.test(pooled$simulated, pooled$observed)[["ad"]][1L, 1L])
+    adTest <- try(adStatistic(pooled$simulated, pooled$observed))
     if (is(adTest, "try-error")) {
       adTest <- 1e6L
     }
@@ -451,6 +450,31 @@ pooledFireSizes <- function(fireSizesList, yrsDoneList, historicalFiresAboveMin)
     simulated = unlist(fireSizesList),
     observed = unlist(purrr::transpose(historicalFiresAboveMin[yrsDone])$size)
   )
+}
+
+#' Two-sample Anderson-Darling statistic
+#'
+#' The statistic `kSamples::ad.test(x, y)$ad[1, 1]` reports (version 1, ties allowed), and nothing
+#' else. `ad.test()` also standardises it, which takes a loop over every observation: 4 s for the
+#' 44,000 simulated and 1,800 observed fires of one evaluation on ELF 4.3, quadratic in the number
+#' of fires. The objective uses only the statistic.
+#'
+#' @param x,y Numeric vectors: the two samples.
+#'
+#' @return A single numeric.
+#' @keywords internal
+adStatistic <- function(x, y) {
+  ## as ad.test() does: when every year bailed there are no simulated fires, and 0 / 0 below is NaN
+  stopifnot(length(x) > 0, length(y) > 0)
+  N <- length(x) + length(y)
+  z <- sort(unique(c(x, y)))
+  l <- tabulate(match(c(x, y), z), length(z)) # multiplicity of each distinct value in the pooled sample
+  B <- cumsum(l)
+  j <- seq_len(length(z) - 1L)
+  sum(vapply(list(x, y), function(s) {
+    M <- cumsum(tabulate(match(s, z), length(z)))
+    sum((l / N * (N * M - length(s) * B)^2 / (B * (N - B)))[j]) / length(s)
+  }, numeric(1)))
 }
 
 #' @keywords internal
@@ -805,6 +829,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       if (isTRUE(doMADTest) || isTRUE(doADTest)) {
         fireSizes <- round(spreadState[, .N, .(initialLocus)][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
         ret <- append(ret, list(fireSizes = fireSizes))
+      }
+      if (isTRUE(doADTest)) {
+        ## The adTest compares distributions, and the observed sample is single fires, so it gets
+        ## every replicate's fire, not `fireSizes`: a per-fire mean over Nreps has a far shorter tail.
+        ret <- append(ret, list(allFireSizes = spreadState[, .N, by = c("rep", "initialLocus")][["N"]]))
       }
       if (SpaDES.core::anyPlotting(plot.it)) { # THIS IS PLOTTING STUFF
         # if (isTRUE(doSNLLTest)) {

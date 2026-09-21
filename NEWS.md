@@ -9,6 +9,18 @@
   `minLik` floor however far off it is; the t has no floor and penalises a miss by its distance.
   The default, `"kde"`, is unchanged. (0.2.3.9031 is the adTest fix, #72.)
 
+# fireSenseUtils 0.2.3.9031
+
+## Bug fixes
+
+* The `"adTest"` term of `.objfunSpreadFit()` compared observed fires with each simulated fire's
+  *mean* size over `Nreps`, which has a much shorter tail than single fires: on ELF 4.3 a model
+  compared with one of its own replicates scored `50 * AD` = 3260. It now gets every replicate's
+  fire (42 on the same comparison). Objective values change.
+* New internal `adStatistic()` computes the Anderson-Darling statistic directly. `kSamples::ad.test()`
+  also standardises it, in time quadratic in the sample: 4 s per evaluation with the larger sample,
+  against 0.003 s. `kSamples` moves to Suggests.
+  
 # fireSenseUtils 0.2.3.9030
 
 ## Bug fixes
