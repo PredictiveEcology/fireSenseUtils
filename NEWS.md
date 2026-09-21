@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9034
+
+## Bug fixes
+
+* `adStatistic()` (0.2.3.9031) multiplied integer counts, which overflow past about 46,000 simulated
+  fires (e.g. 1,800 fires at `Nreps = 50`): the adTest term became `NA` with a warning, and DEoptim
+  stops on a non-finite objective. It now computes in doubles. (9032 and 9033 are #73 and #74.)
+
 # fireSenseUtils 0.2.3.9031
 
 ## Bug fixes
