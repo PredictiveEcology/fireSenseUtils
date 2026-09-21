@@ -97,8 +97,10 @@ utils::globalVariables(c(
 #'   Default 0.265, meaning if only 25%% of the pixels on the landscape are below
 #'   this `spreadProb`, then it will bail.
 #'
-#' @param weighted Logical. Should empirical likelihood be weighted by log of the actual fire size?
-#'    This will give large fires more influence on the SNLL.
+#' @param weighted Should each fire's log-likelihood be multiplied by a weight that grows with its
+#'   observed size, to give large fires more influence on the SNLL? `FALSE`: no. `TRUE` or `"log"`:
+#'   `log(size)`. `"sqrt"`: `sqrt(size)`. Weights are divided by their mean over the fitted fires, so
+#'   the SNLL keeps its scale against the other tests.
 #'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
@@ -212,6 +214,8 @@ utils::globalVariables(c(
     x
   })
 
+  sizeWeightMean <- mean(sizeWeight(unlist(lapply(historicalFiresAboveMin, function(x) x$size)), weighted))
+
   ## can't fit fires for years with no data; drop these years
   omitYears <- names(historicalFiresAboveMin[which(lapply(historicalFiresAboveMin, nrow) == 0)])
   if (length(omitYears > 0)) {
@@ -254,7 +258,7 @@ utils::globalVariables(c(
         lanscape1stQuantileThresh = lanscape1stQuantileThresh,
         Nreps = Nreps,
         plot.it = plot.it,
-        r = r, weighted = weighted,
+        r = r, weighted = weighted, sizeWeightMean = sizeWeightMean,
         doSNLL_FSTest = doSNLL_FSTest,
         doMADTest = doMADTest, doADTest = doADTest,
         cells = cells,
@@ -454,7 +458,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
-                        plot.it, verbose = 2, covCentre = NULL) {
+                        plot.it, verbose = 2, covCentre = NULL, sizeWeightMean = 1) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -602,7 +606,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     
     if (medSPRight && spreadOutEnough && lowSPLowEnough) {
       if (verbose > 1) {
-        ww <- if (isTRUE(weighted)) "weighted" else "unweighted"
+        ww <- if (isFALSE(weighted)) "unweighted" else "weighted"
         print(paste0(
           " ",
           Sys.getpid(), ": ", yr, ", ", ww, ", spreadProbs: ",
@@ -772,11 +776,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         #                                         EnvStats::demp(x = size[1], obs = sqrt(N)),
         #                                         0)), by = "ids"]
         # emp <- emp[N > 1, list(size = size[1], lik = EnvStats::demp(x = size[1], obs = N)), by = "ids"]
-        if (isTRUE(weighted)) {
-          set(emp, NULL, "lik", log(pmax(minLik, emp$lik * log(emp$size))))
-        } else {
-          set(emp, NULL, "lik", log(pmax(minLik, emp$lik)))
-        }
+        ## A weight MULTIPLIES the log-likelihood. This was log(lik * log(size)), i.e.
+        ## log(lik) + log(log(size)): an offset, under which a fire's likelihood moved the SNLL by the
+        ## same amount whatever its size.
+        set(emp, NULL, "lik", sizeWeight(emp$size, weighted) / sizeWeightMean * log(pmax(minLik, emp$lik)))
         
         # set(emp3, NULL, "lik", log(pmax(minLik, emp3$lik)))
         SNLL_FS <- -sum(emp$lik)
@@ -912,6 +915,19 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   }
 
   return(ret)
+}
+
+#' Size weights for the fire-size likelihood
+#'
+#' @param size Observed fire sizes, in pixels.
+#' @param weighted `FALSE` (weights of 1), `TRUE` or `"log"` (`log(size)`), or `"sqrt"` (`sqrt(size)`).
+#'
+#' @return A numeric vector the length of `size`.
+#' @keywords internal
+sizeWeight <- function(size, weighted) {
+  if (isFALSE(weighted)) return(rep(1, length(size)))
+  if (isTRUE(weighted)) weighted <- "log"
+  switch(match.arg(weighted, c("log", "sqrt")), log = log(size), sqrt = sqrt(size))
 }
 
 #' Convert covariates from their `x1000` integer to usable by spread

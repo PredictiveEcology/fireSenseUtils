@@ -1,3 +1,14 @@
+# fireSenseUtils 0.2.3.9033
+
+## Bug fixes
+
+* `weighted = TRUE` did not weight. It computed `log(lik * log(size))`, which is
+  `log(lik) + log(log(size))`: an offset, under which every fire's likelihood moved the SNLL by the
+  same amount whatever its size. The weight now multiplies the log-likelihood. `weighted` takes
+  `FALSE`, `TRUE` or `"log"` (`log(size)`), or `"sqrt"` (`sqrt(size)`); weights are divided by their
+  mean over the fitted fires, so the SNLL keeps its scale. Objective values change when
+  `weighted` is not `FALSE`. (0.2.3.9031 is #72, 0.2.3.9032 is #73.)
+
 # fireSenseUtils 0.2.3.9030
 
 ## Bug fixes
