@@ -100,6 +100,15 @@ utils::globalVariables(c(
 #' @param weighted Logical. Should empirical likelihood be weighted by log of the actual fire size?
 #'    This will give large fires more influence on the SNLL.
 #'
+#' @param sizeLik How a fire's likelihood is taken from its `Nreps` simulated sizes, on the
+#'   square-root scale. `"kde"` (default): their kernel density at the observed size
+#'   ([EnvStats::demp()]); it is zero away from the simulated sizes, so a fire they never reach
+#'   scores the `minLik` floor however far off it is. `"t"`: a Student-t centred on their mean with
+#'   their standard deviation as scale; no floor, and a miss costs more the further it is.
+#'
+#' @param sizeLikDf Degrees of freedom of the Student-t when `sizeLik = "t"`. Default 5. Lower
+#'   values forgive a missed fire more.
+#'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
 #' @param lowerSpreadProb Numeric. Lower bound for `spreadProb`; if a candidate
@@ -151,6 +160,8 @@ utils::globalVariables(c(
                              pruneAbove = Inf,
                              covCentre = NULL,
                              weighted = TRUE,
+                             sizeLik = "kde",
+                             sizeLikDf = 5,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              ...) { # fireSense_SpreadFitRaster
@@ -158,6 +169,7 @@ utils::globalVariables(c(
   # lapply(historicalFires, setDT)
 
   data.table::setDTthreads(1)
+  sizeLik <- match.arg(sizeLik, c("kde", "t"))
 
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
@@ -259,6 +271,7 @@ utils::globalVariables(c(
         doMADTest = doMADTest, doADTest = doADTest,
         cells = cells,
         covCentre = covCentre,
+        sizeLik = sizeLik, sizeLikDf = sizeLikDf,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -454,7 +467,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
-                        plot.it, verbose = 2, covCentre = NULL) {
+                        plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -763,7 +776,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## was the `minLik` floor whatever the parameters.
         emp <- emp[N > 1, list(size = size[1],
                                lik = if(.N > 1) {
-                                 EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N))
+                                 if (identical(sizeLik, "t")) {
+                                   sizeLikT(size[1], N, sizeLikDf)
+                                 } else {
+                                   EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N))
+                                 }
                                } else {
                                  0
                                }), by = "ids"]
@@ -912,6 +929,24 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   }
 
   return(ret)
+}
+
+#' Student-t likelihood of an observed fire size given simulated sizes
+#'
+#' The density, at `sqrt(size)`, of a Student-t centred on the mean of `sqrt(N)` with the standard
+#' deviation of `sqrt(N)` as its scale. The scale has a lower bound of 0.5, because replicates that
+#' all stop at the same size (e.g. at `maxSize`) have a standard deviation of 0.
+#'
+#' @param size Observed fire size, in pixels.
+#' @param N Simulated sizes of that fire, in pixels; at least two.
+#' @param df Degrees of freedom.
+#'
+#' @return A single numeric: the likelihood.
+#' @keywords internal
+#' @importFrom stats dt sd
+sizeLikT <- function(size, N, df) {
+  sc <- max(sd(sqrt(N)), 0.5)
+  dt((sqrt(size) - mean(sqrt(N))) / sc, df) / sc
 }
 
 #' Convert covariates from their `x1000` integer to usable by spread
