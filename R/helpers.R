@@ -281,3 +281,53 @@ logMinB <- function(x) {
   x[x < minimumB] <- minimumB
   x <- log(x)
 }
+
+#' Range that puts linear fuel biomass on the scale the spread fit uses
+#'
+#' Fuel covariates of the spread model are biomass on the LINEAR scale, divided by a fixed
+#' `1e4`. The division is not done to the data: it is the `covMinMax` given to
+#' [rescaleKnown2()], which is affine and does not clamp, so `c(0, 1e4)` is exactly
+#' `biomass / 1e4`. The constant is fixed, not `max(biomass)`, so that
+#' `fireSense_SpreadPredict` reproduces the fit's scaling in every year from the stored
+#' `covMinMax_spread` alone. It is also how a fit is recognised as linear: see
+#' [isLinearFuelRange()].
+#'
+#' @export
+fuelLinearRange <- c(0, 1e4)
+
+#' Fuel biomass from the log scale back to the linear scale
+#'
+#' `fireSenseCovariatesCreate()` returns fuel-class biomass as [logMinB()]: logged, with
+#' everything below `exp(log(100) - 1)` (36.8) raised to that floor. On that scale the spread
+#' model cannot use the fuel gradient: on ELF 5.3.2, 45% of pixels sit on the floor and the
+#' treed ones fall in 16% of the covariate range (rescaled sd 0.05), so the coefficient
+#' estimates little more than treed against treeless. On the linear scale the treed pixels
+#' span twice the range and an absent fuel is exactly 0, so it contributes exactly nothing.
+#'
+#' This undoes the log where the spread model needs it, instead of removing it at the source,
+#' because `fireSenseCovariatesCreate()` also builds the ignition covariates and its output is
+#' cached for every fitted polygon. Both `fireSense_SpreadFit` and `fireSense_SpreadPredict`
+#' call this function, so the fit and the prediction cannot drift apart.
+#'
+#' @param x Numeric vector of fuel biomass as returned by [logMinB()].
+#'
+#' @return Biomass on the linear scale; values on the [logMinB()] floor become 0.
+#' @export
+fuelLogToLinear <- function(x) {
+  floorLog <- log(100) - 1 # the floor logMinB() applies
+  out <- exp(x)
+  out[x <= floorLog + 1e-3] <- 0
+  out
+}
+
+#' Was this covariate rescaled as linear fuel biomass?
+#'
+#' @param range Length-2 numeric: a covariate's entry in `covMinMax`.
+#'
+#' @return `TRUE` when `range` is [fuelLinearRange], i.e. the fit used linear fuel biomass, so
+#'   a prediction must apply [fuelLogToLinear()] to that covariate before rescaling it. `FALSE`
+#'   for a fit made on the log scale, whose covariates must be left as they are.
+#' @export
+isLinearFuelRange <- function(range) {
+  length(range) == 2L && isTRUE(all.equal(as.numeric(range), fuelLinearRange))
+}

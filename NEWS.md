@@ -1,3 +1,15 @@
+# fireSenseUtils 0.2.3.9029
+
+## New features
+
+* `fuelLogToLinear()`, `fuelLinearRange` and `isLinearFuelRange()`: the spread model now takes fuel
+  biomass on the linear scale, divided by a fixed 1e4. `fireSenseCovariatesCreate()` still returns it
+  as `logMinB()`, because it also builds the ignition covariates and its output is cached for every
+  fitted polygon; `fireSense_SpreadFit` and `fireSense_SpreadPredict` both undo the log with
+  `fuelLogToLinear()`. `fuelLinearRange` (`c(0, 1e4)`) is the `covMinMax` that performs the division,
+  and `isLinearFuelRange()` recognises a linear fit from its stored `covMinMax_spread`, so parameters
+  fitted on the log scale keep predicting as before. (0.2.3.9028 is `covCentre`, #67.)
+
 # fireSenseUtils 0.2.3.9027
 
 ## Performance
