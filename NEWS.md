@@ -1,3 +1,13 @@
+# fireSenseUtils 0.2.3.9030
+
+## Bug fixes
+
+* `objFunInner()`: the fire-size likelihood compared the observed size with the square root of the
+  simulated sizes (`demp(x = size, obs = sqrt(N))`, since 2021-02-10). Simulated fires are capped at
+  `multiplier(size)`, so any fire above ~12 pixels scored the `minLik` floor whatever the parameters;
+  only the smallest fires informed a fit. Both are now square-rooted. Objective values change, so
+  the early-bail `thresh` of an existing fit no longer applies.
+
 # fireSenseUtils 0.2.3.9029
 
 ## New features
