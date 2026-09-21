@@ -70,3 +70,9 @@ test_that("adStatistic() is the statistic kSamples::ad.test() reports, ties incl
     expect_equal(adStatistic(sim, obs), kSamples::ad.test(sim, obs)$ad[1, 1], tolerance = 1e-4)
   }
 })
+
+test_that("adStatistic() errors on an empty sample, so the objective returns its fail value, not NaN", {
+  ## every year can bail before simulating; DEoptim stops on a NaN objective
+  expect_error(adStatistic(NULL, c(5, 10)))
+  expect_error(adStatistic(c(5, 10), numeric(0)))
+})

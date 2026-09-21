@@ -451,6 +451,8 @@ pooledFireSizes <- function(fireSizesList, yrsDoneList, historicalFiresAboveMin)
 #' @return A single numeric.
 #' @keywords internal
 adStatistic <- function(x, y) {
+  ## as ad.test() does: when every year bailed there are no simulated fires, and 0 / 0 below is NaN
+  stopifnot(length(x) > 0, length(y) > 0)
   N <- length(x) + length(y)
   z <- sort(unique(c(x, y)))
   l <- tabulate(match(c(x, y), z), length(z)) # multiplicity of each distinct value in the pooled sample
