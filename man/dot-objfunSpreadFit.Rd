@@ -27,6 +27,8 @@
   pruneAbove = Inf,
   covCentre = NULL,
   weighted = TRUE,
+  sizeLik = "kde",
+  sizeLikDf = 5,
   verbose = 2,
   ...
 )
@@ -135,6 +137,15 @@ of the same name. \code{NULL} (default) does no centring. Must be the same at fi
 observed size, to give large fires more influence on the SNLL? \code{FALSE}: no. \code{TRUE} or \code{"log"}:
 \code{log(size)}. \code{"sqrt"}: \code{sqrt(size)}. Weights are divided by their mean over the fitted fires, so
 the SNLL keeps its scale against the other tests.}
+
+\item{sizeLik}{How a fire's likelihood is taken from its \code{Nreps} simulated sizes, on the
+square-root scale. \code{"kde"} (default): their kernel density at the observed size
+(\code{\link[EnvStats:demp]{EnvStats::demp()}}); it is zero away from the simulated sizes, so a fire they never reach
+scores the \code{minLik} floor however far off it is. \code{"t"}: a Student-t centred on their mean with
+their standard deviation as scale; no floor, and a miss costs more the further it is.}
+
+\item{sizeLikDf}{Degrees of freedom of the Student-t when \code{sizeLik = "t"}. Default 5. Lower
+values forgive a missed fire more.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 

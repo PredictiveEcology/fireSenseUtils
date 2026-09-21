@@ -7,7 +7,17 @@
   same amount whatever its size. The weight now multiplies the log-likelihood. `weighted` takes
   `FALSE`, `TRUE` or `"log"` (`log(size)`), or `"sqrt"` (`sqrt(size)`); weights are divided by their
   mean over the fitted fires, so the SNLL keeps its scale. Objective values change when
-  `weighted` is not `FALSE`. (0.2.3.9031 is #72, 0.2.3.9032 is #73.)
+  `weighted` is not `FALSE`. (0.2.3.9034 is #75.)
+# fireSenseUtils 0.2.3.9032
+
+## New features
+
+* `.objfunSpreadFit()` and `objFunInner()` gain `sizeLik` and `sizeLikDf`. `sizeLik = "t"` takes a
+  fire's size likelihood from a Student-t on the square-root scale (mean and standard deviation of
+  its simulated sizes, `sizeLikDf` degrees of freedom, default 5) instead of their kernel density.
+  The kernel density is zero away from the simulated sizes, so a fire they never reach scores the
+  `minLik` floor however far off it is; the t has no floor and penalises a miss by its distance.
+  The default, `"kde"`, is unchanged. (0.2.3.9031 is the adTest fix, #72.)
 
 # fireSenseUtils 0.2.3.9031
 
