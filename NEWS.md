@@ -1,3 +1,14 @@
+# fireSenseUtils 0.2.3.9035
+
+## New features
+
+* `.objfunSpreadFit()` gains `adWeight`: what the `"adTest"` statistic is multiplied by before it is
+  added to the fire-size SNLL. It defaults to `"auto"`, the new `adWeightAuto()` = `c * sqrt(nFires)`,
+  which holds the AD term's share of the influence on the objective to 0.36-0.68 across six ELFs and
+  the four `sizeLik` x `weighted` combinations. **This changes the default objective**: it was a fixed
+  50, which gave 0.16-0.94 over the same range, balancing the two terms only for `sizeLik = "kde"`
+  with `weighted = FALSE`. Pass `adWeight = 50` for the old behaviour.
+
 # fireSenseUtils 0.2.3.9034
 
 ## Bug fixes

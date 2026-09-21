@@ -29,6 +29,7 @@
   weighted = TRUE,
   sizeLik = "kde",
   sizeLikDf = 5,
+  adWeight = "auto",
   verbose = 2,
   ...
 )
@@ -146,6 +147,11 @@ their standard deviation as scale; no floor, and a miss costs more the further i
 
 \item{sizeLikDf}{Degrees of freedom of the Student-t when \code{sizeLik = "t"}. Default 5. Lower
 values forgive a missed fire more.}
+
+\item{adWeight}{What the \code{"adTest"} statistic is multiplied by before it is added to the fire-size
+SNLL. \code{"auto"} (default) uses \code{\link[=adWeightAuto]{adWeightAuto()}}, which gives the two terms about equal influence
+for any \code{sizeLik} and \code{weighted}. A number is used as given; the former fixed default, \code{50},
+balanced the two only for \code{sizeLik = "kde"} with \code{weighted = FALSE}.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 

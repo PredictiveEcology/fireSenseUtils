@@ -111,6 +111,11 @@ utils::globalVariables(c(
 #' @param sizeLikDf Degrees of freedom of the Student-t when `sizeLik = "t"`. Default 5. Lower
 #'   values forgive a missed fire more.
 #'
+#' @param adWeight What the `"adTest"` statistic is multiplied by before it is added to the fire-size
+#'   SNLL. `"auto"` (default) uses [adWeightAuto()], which gives the two terms about equal influence
+#'   for any `sizeLik` and `weighted`. A number is used as given; the former fixed default, `50`,
+#'   balanced the two only for `sizeLik = "kde"` with `weighted = FALSE`.
+#'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
 #' @param lowerSpreadProb Numeric. Lower bound for `spreadProb`; if a candidate
@@ -163,6 +168,7 @@ utils::globalVariables(c(
                              weighted = TRUE,
                              sizeLik = "kde",
                              sizeLikDf = 5,
+                             adWeight = "auto",
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              ...) { # fireSense_SpreadFitRaster
@@ -385,7 +391,11 @@ utils::globalVariables(c(
     if (is(adTest, "try-error")) {
       adTest <- 1e6L
     }
-    adTest <- adTest * 50
+    adTest <- adTest * if (identical(adWeight, "auto")) {
+      adWeightAuto(sum(vapply(historicalFiresAboveMin, nrow, integer(1))), sizeLik, weighted)
+    } else {
+      adWeight
+    }
     objFunRes <- objFunRes + adTest
     if (verbose > 1) {
       print(paste0("  ", Sys.getpid(), " adTest:", adTest, "; "))
@@ -962,6 +972,32 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   }
 
   return(ret)
+}
+
+#' Automatic weight for the Anderson-Darling term
+#'
+#' The multiplier that gives the `"adTest"` term and the fire-size SNLL about equal influence on the
+#' objective, `c * sqrt(nFires)`. Both terms are sums over the fitted fires, so both grow with how
+#' many there are; measured across six ELFs (138 to 1624 fires, 2,708 to 1,114,569 pixels burned,
+#' 14 members of each fit's final population), the spread of the SNLL across members grew with
+#' `nFires^0.5` to `nFires^1`, and neither term scaled with the ELF's area or its area burned. `c`
+#' comes from the same measurements, one per `sizeLik` and `weighted` combination. Under it the AD
+#' term's share of the influence stayed within 0.36-0.68 of the total, against 0.16-0.94 under the
+#' fixed 50.
+#'
+#' The constants were measured on populations fitted with an older objective, and a spread estimated
+#' from 14 members is coarse, so treat the result as the right order of magnitude rather than exact.
+#'
+#' @param nFires Number of fires being fitted (after `minFireSize`).
+#' @param sizeLik As in [.objfunSpreadFit()].
+#' @param weighted As in [.objfunSpreadFit()]; `TRUE` uses the unweighted constants.
+#'
+#' @return A single numeric.
+#' @export
+adWeightAuto <- function(nFires, sizeLik = "kde", weighted = FALSE) {
+  cc <- c(kde = 1.897, kde_sqrt = 5.098, t = 0.282, t_sqrt = 0.804)
+  key <- paste0(match.arg(sizeLik, c("kde", "t")), if (identical(weighted, "sqrt")) "_sqrt" else "")
+  unname(cc[[key]]) * sqrt(nFires)
 }
 
 #' Student-t likelihood of an observed fire size given simulated sizes
