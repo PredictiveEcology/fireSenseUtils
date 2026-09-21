@@ -76,3 +76,11 @@ test_that("adStatistic() errors on an empty sample, so the objective returns its
   expect_error(adStatistic(NULL, c(5, 10)))
   expect_error(adStatistic(c(5, 10), numeric(0)))
 })
+
+test_that("adStatistic() does not overflow on the sample sizes of a real fit", {
+  ## 1800 fires x 50 replicates: N * M passes .Machine$integer.max
+  set.seed(3)
+  sim <- round(rlnorm(90000, 3, 2)); obs <- round(rlnorm(1800, 3, 2))
+  expect_no_warning(ad <- adStatistic(sim, obs))
+  expect_true(is.finite(ad))
+})

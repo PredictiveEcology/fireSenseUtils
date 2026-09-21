@@ -470,13 +470,13 @@ pooledFireSizes <- function(fireSizesList, yrsDoneList, historicalFiresAboveMin)
 adStatistic <- function(x, y) {
   ## as ad.test() does: when every year bailed there are no simulated fires, and 0 / 0 below is NaN
   stopifnot(length(x) > 0, length(y) > 0)
-  N <- length(x) + length(y)
+  N <- as.numeric(length(x) + length(y)) # numeric: N * M below overflows integers past ~46,000 fires
   z <- sort(unique(c(x, y)))
   l <- tabulate(match(c(x, y), z), length(z)) # multiplicity of each distinct value in the pooled sample
-  B <- cumsum(l)
+  B <- cumsum(as.numeric(l))
   j <- seq_len(length(z) - 1L)
   sum(vapply(list(x, y), function(s) {
-    M <- cumsum(tabulate(match(s, z), length(z)))
+    M <- cumsum(as.numeric(tabulate(match(s, z), length(z))))
     sum((l / N * (N * M - length(s) * B)^2 / (B * (N - B)))[j]) / length(s)
   }, numeric(1)))
 }
