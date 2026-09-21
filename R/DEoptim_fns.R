@@ -186,7 +186,7 @@ runDEoptim <- function(landscape,
     "mutuallyExclusive"
   )
 
-  neededPkgs <- c("kSamples", "magrittr", "raster", "data.table", "SpaDES.core",
+  neededPkgs <- c("magrittr", "raster", "data.table", "SpaDES.core",
                   "SpaDES.tools", "fireSenseUtils", "sf", "plyr",# "mirai",
                   "munsell")
 
