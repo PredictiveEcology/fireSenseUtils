@@ -1,10 +1,32 @@
-# fireSenseUtils 0.2.3.9026
+# fireSenseUtils 0.2.3.9028
 
 ## Enhancements
 
 * `.objfunSpreadFit()`, `objFunInner()` and `spreadProbFromIntegerCovs()` gain `covCentre`: values
   subtracted from the rescaled covariates. `NULL` (default) changes nothing. Centring is applied after
   the mutual-exclusivity step and the covariate range assertion.
+
+# fireSenseUtils 0.2.3.9027
+
+## Performance
+
+* `objFunInner()` runs `SpaDES.tools::spread()` on the bounding box of each fire year's pixels
+  instead of the whole landscape (new internal `cropToCells()`). `spread()` allocates
+  landscape-length state on every call, and it is called `Nreps` times per fire year. With a
+  one-cell margin the crop draws the same random numbers, so results do not change: identical
+  objective values with identical seeds on ELFs 5.3.1, 5.3.2 and 13.1, and an evaluation 1.6-2.7x,
+  2.6-3.8x and 1.4-1.7x faster.
+
+# fireSenseUtils 0.2.3.9026
+
+## Performance
+
+* `objFunInner()` no longer scans the whole landscape once per fire year. The spreadProb values its
+  bail tests summarise were recovered with `cells[cells > a | cells > b]`, four passes over a
+  landscape-length vector that is zero except at that year's pixels (6.0M cells for ~41k pixels on
+  ELF 5.3.1); they are now read from the spreadProb column. The vector is filled only when
+  `spread()` will run, and is allocated numeric so filling it does not coerce it. Identical
+  objective values with identical seeds; an evaluation is 1.1-1.4x faster on ELF 5.3.1.
 
 # fireSenseUtils 0.2.3.9024
 
