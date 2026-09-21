@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9028
+
+## Enhancements
+
+* `.objfunSpreadFit()`, `objFunInner()` and `spreadProbFromIntegerCovs()` gain `covCentre`: values
+  subtracted from the rescaled covariates. `NULL` (default) changes nothing. Centring is applied after
+  the mutual-exclusivity step and the covariate range assertion.
+
 # fireSenseUtils 0.2.3.9027
 
 ## Performance
