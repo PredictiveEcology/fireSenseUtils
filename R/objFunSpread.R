@@ -626,17 +626,27 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       }
       maxSizes <- fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
       # maxSizes <- annualFires$size * 2
-      ## Filled here, inside the branch, so a year that bails never copies the landscape-length
-      ## vector. Nothing between the bail tests and here reads `cells`.
-      cells[shortAnnDT$pixelID] <- shortAnnDT$spreadProb
-      # if (any(cells[loci] == 0)) {
-      cells[loci] <- 1
-      # }
       dups <- duplicated(annualFires$cells)
       if (any(dups)) {
         annualFires <- annualFires[which(!dups), ] #
         maxSizes <- maxSizes[!dups]
         loci <- annualFires$cells[!dups]
+      }
+      ## spread() runs on this year's bounding box, not the whole landscape. It allocates
+      ## landscape-length state on every call (SpaDES.tools spread.R: `integer(ncells)`), Nreps
+      ## times per fire year, and the year's pixels fill a small part of the landscape (a median
+      ## 10-33% by bounding box on ELFs 5.3.1, 5.3.2, 13.1). See cropToCells() for why the result
+      ## is the same. Indices are mapped back below, so nothing after spread() sees the crop.
+      crop <- cropToCells(r, c(shortAnnDT$pixelID, loci))
+      spreadProbCrop <- numeric(crop$ncell)
+      spreadProbCrop[crop$toCrop(shortAnnDT$pixelID)] <- shortAnnDT$spreadProb
+      # if (any(cells[loci] == 0)) {
+      spreadProbCrop[crop$toCrop(loci)] <- 1
+      # }
+      if (SpaDES.core::anyPlotting(plot.it)) {
+        ## the plotting code further down reads the landscape-length vector
+        cells[shortAnnDT$pixelID] <- shortAnnDT$spreadProb
+        cells[loci] <- 1
       }
       ## No system.time() here. It defaulted to gcFirst = TRUE, so every fire year
       ## forced a full garbage collection, and `st` was assigned and never read.
@@ -648,11 +658,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       spreadState <- lapply(seq_len(Nreps), function(i) {
         SpaDES.tools::spread(
           # SpaDES.tools::spread2(
-          landscape = r,
+          landscape = crop$r,
           maxSize = maxSizes,
           # start = loci,
-          loci = loci,
-          spreadProb = cells,
+          loci = crop$toCrop(loci),
+          spreadProb = spreadProbCrop,
           # asRaster = FALSE,
           returnIndices = TRUE,
           allowOverlap = FALSE,
@@ -686,6 +696,9 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       }
       
       spreadState <- rbindlist(spreadState, idcol = "rep")
+      ## back to landscape cell indices
+      set(spreadState, NULL, "initialLocus", crop$toFull(spreadState$initialLocus))
+      set(spreadState, NULL, "indices", crop$toFull(spreadState$indices))
       if (isTRUE(doSNLL_FSTest)) {
         emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")] # N is "size of simulated fire"
         emp <- emp[annualFires, on = c("initialLocus" = "cells")]
@@ -1007,4 +1020,49 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
   # covPars <- tail(x = par, n = parsModel)
   # logisticPars <- head(x = par, n = length(par) - parsModel)
   shortAnnDT
+}
+
+#' Crop a raster's cell index to the bounding box of some cells
+#'
+#' `SpaDES.tools::spread()` allocates landscape-length state on every call, so its cost grows with
+#' the landscape even when the fires touch a few thousand cells. This gives it a smaller landscape:
+#' the bounding box of `cells`, plus a margin, as an empty raster with functions that map cell
+#' indices into it and back.
+#'
+#' A spread on the crop is the same as on the full landscape, random draws included, when every
+#' cell with a non-zero `spreadProb` is in `cells`: a fire can then only occupy those cells, the
+#' one-cell margin keeps all eight neighbours of each inside the crop (so each step draws for the
+#' same neighbours), and both mappings are monotonic, so neighbours keep their order. The margin
+#' stops at the landscape's own edge, where the full landscape has no neighbour either.
+#'
+#' @param r A `SpatRaster`; only its geometry is used.
+#' @param cells Integer vector of cell indices of `r` that must be inside the crop.
+#' @param margin Number of cells to add on each side.
+#'
+#' @return A list: `r`, the empty cropped `SpatRaster`; `ncell`, its number of cells; `toCrop()`
+#'   and `toFull()`, functions mapping cell indices of `r` to the crop's and back.
+#' @keywords internal
+cropToCells <- function(r, cells, margin = 1L) {
+  nc <- as.integer(terra::ncol(r))
+  nr <- as.integer(terra::nrow(r))
+  cells <- as.integer(cells)
+  rows <- (cells - 1L) %/% nc # 0-based
+  cols <- (cells - 1L) %% nc
+  r0 <- max(min(rows) - margin, 0L)
+  r1 <- min(max(rows) + margin, nr - 1L)
+  c0 <- max(min(cols) - margin, 0L)
+  c1 <- min(max(cols) + margin, nc - 1L)
+  nrCrop <- r1 - r0 + 1L
+  ncCrop <- c1 - c0 + 1L
+  res <- terra::res(r)
+  rCrop <- terra::rast(
+    nrows = nrCrop, ncols = ncCrop, crs = terra::crs(r),
+    xmin = terra::xmin(r) + c0 * res[1], xmax = terra::xmin(r) + (c1 + 1L) * res[1],
+    ymin = terra::ymax(r) - (r1 + 1L) * res[2], ymax = terra::ymax(r) - r0 * res[2]
+  )
+  list(
+    r = rCrop, ncell = nrCrop * ncCrop,
+    toCrop = function(x) ((x - 1L) %/% nc - r0) * ncCrop + ((x - 1L) %% nc - c0) + 1L,
+    toFull = function(x) ((x - 1L) %/% ncCrop + r0) * nc + ((x - 1L) %% ncCrop + c0) + 1L
+  )
 }

@@ -1,3 +1,14 @@
+# fireSenseUtils 0.2.3.9027
+
+## Performance
+
+* `objFunInner()` runs `SpaDES.tools::spread()` on the bounding box of each fire year's pixels
+  instead of the whole landscape (new internal `cropToCells()`). `spread()` allocates
+  landscape-length state on every call, and it is called `Nreps` times per fire year. With a
+  one-cell margin the crop draws the same random numbers, so results do not change: identical
+  objective values with identical seeds on ELFs 5.3.1, 5.3.2 and 13.1, and an evaluation 1.6-2.7x,
+  2.6-3.8x and 1.4-1.7x faster.
+
 # fireSenseUtils 0.2.3.9026
 
 ## Performance
