@@ -133,8 +133,10 @@ Too high a threshold, and more years will be run and it will take longer to find
 \item{covCentre}{Optional named list or vector of values subtracted from the rescaled covariates
 of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.}
 
-\item{weighted}{Logical. Should empirical likelihood be weighted by log of the actual fire size?
-This will give large fires more influence on the SNLL.}
+\item{weighted}{Should each fire's log-likelihood be multiplied by a weight that grows with its
+observed size, to give large fires more influence on the SNLL? \code{FALSE}: no. \code{TRUE} or \code{"log"}:
+\code{log(size)}. \code{"sqrt"}: \code{sqrt(size)}. Weights are divided by their mean over the fitted fires, so
+the SNLL keeps its scale against the other tests.}
 
 \item{sizeLik}{How a fire's likelihood is taken from its \code{Nreps} simulated sizes, on the
 square-root scale. \code{"kde"} (default): their kernel density at the observed size
