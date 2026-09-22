@@ -1,3 +1,15 @@
+# fireSenseUtils 0.2.3.9039
+
+* Fit diagnostics (`?fitDiagnostics`), the checks made by hand on the phase-2 fits, as functions:
+  `simulateFireSizes()` (the observed fires simulated without the size cap or the "too burny" gate),
+  `scoreFireSizes()` (per-fire and per-year error, quantiles, AD), `linkSaturation()` (share of pixel-years at the
+  spread-probability ceiling), `coefIdentifiability()`, `profileCoefficients()` and `identifiedInIsolation()` (is
+  each covariate's coefficient pinned by the population, and does dropping it worsen the fit), `fitConvergence()`.
+* `.objfunSpreadFit(returnSims = TRUE)` returns the simulated fires instead of the objective; `capSizes = FALSE`
+  lifts the size cap. These replace the `trace()` used for held-out validation.
+* `runDEoptim()` gains `profileReps` and `simulateMembers` (both off by default), which run the profile and the
+  uncapped simulations on the fit's workers after the re-score, as `attr(DE, "profile")` and `attr(DE, "fitSims")`.
+
 # fireSenseUtils 0.2.3.9038
 
 * New spread link `logistic3pUpper()`: `logistic3p()` with Stukel's (1988) generalized-logistic upper tail, one

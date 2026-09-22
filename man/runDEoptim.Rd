@@ -48,7 +48,9 @@ runDEoptim(
   sizeLikDf = 5,
   weighted = TRUE,
   adWeight = "auto",
-  link = NULL
+  link = NULL,
+  profileReps = 0L,
+  simulateMembers = 0L
 )
 
 DEoptimIterative(
@@ -204,6 +206,14 @@ Before these existed, every fit used those defaults whatever the caller wanted.}
 
 \item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL} or
 \code{"logistic3pUpper"}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
+
+\item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
+of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.
+Needs \code{rescoreReps > 0}. Costs about \code{6 * nCoefficients * profileReps} evaluations.}
+
+\item{simulateMembers}{Integer. If above 0, that many best members of the re-score simulate the
+observed fires without the size cap (\code{\link[=simulateFireSizes]{simulateFireSizes()}}), attached as \code{attr(DE, "fitSims")}
+for \code{\link[=scoreFireSizes]{scoreFireSizes()}} and \code{\link[=linkSaturation]{linkSaturation()}}. Needs \code{rescoreReps > 0}.}
 
 \item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 

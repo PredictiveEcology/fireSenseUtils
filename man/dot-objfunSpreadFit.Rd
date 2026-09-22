@@ -31,6 +31,8 @@
   sizeLikDf = 5,
   adWeight = "auto",
   link = NULL,
+  returnSims = FALSE,
+  capSizes = TRUE,
   verbose = 2,
   ...
 )
@@ -157,6 +159,19 @@ balanced the two only for \code{sizeLik = "kde"} with \code{weighted = FALSE}.}
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
 parameter is \code{upperTail1}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
+
+\item{returnSims}{If \code{TRUE}, return the simulated fires instead of the objective value: a
+\code{data.table} with one row per fire year x fire x replicate -- \code{yr}, \code{rep}, \code{initialLocus}, \code{ids},
+the simulated size \code{sim} and the observed \code{size}, in pixels. A year the objective declines to
+simulate (its spread probabilities fail the sanity checks) keeps its fires with \code{rep} and \code{sim}
+\code{NA}, so the caller can count them. Every year is simulated: the early stop (\code{thresh}) is not
+applied. For diagnostics and validation; the value is not an objective.
+The result carries \code{attr(, "spreadProb")}: the spread probabilities of every fitted pixel-year,
+summarised by \code{\link[=spreadProbSummary]{spreadProbSummary()}}, for \code{\link[=linkSaturation]{linkSaturation()}}.}
+
+\item{capSizes}{If \code{FALSE}, simulated fires are not capped at \code{\link[=multiplier]{multiplier()}} of their observed
+size. The fit needs the cap; validation should not have it, or a model that predicts fires far
+too large cannot show it.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 
