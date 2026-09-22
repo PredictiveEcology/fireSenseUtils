@@ -711,26 +711,19 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## the spread() calls it was timing accounting for 6.4 s. It also explained why
       ## dropping Nreps from 25 to 5 barely moved the total (82.7 s to 77.6 s): the
       ## forced collection is once per year, outside the replicate loop.
+      ## spreadCpp() instead of spread(): same rules (generations, one draw per
+      ## burning-cell/unburned-neighbour pair against the neighbour's probability,
+      ## one fire per cell, a maxSize that is never exceeded, NA unburnable) but a
+      ## plain C++ loop, 2-3x faster on this call shape. It is NOT bit-compatible
+      ## with spread(), so cached fits from before this change are not comparable.
+      ## The landscape is already cropped above, which matters more for spreadCpp()
+      ## than it did for spread().
       spreadState <- lapply(seq_len(Nreps), function(i) {
-        SpaDES.tools::spread(
-          # SpaDES.tools::spread2(
+        SpaDES.tools::spreadCpp(
           landscape = crop$r,
-          maxSize = maxSizes,
-          # start = loci,
           loci = crop$toCrop(loci),
           spreadProb = spreadProbCrop,
-          # asRaster = FALSE,
-          returnIndices = TRUE,
-          allowOverlap = FALSE,
-          ## `quick`, not `skipChecks`: spread() has no skipChecks argument (that
-          ## belongs to spread3()), so it landed in `...` and was ignored, and
-          ## every call re-validated the whole per-cell spreadProb vector --
-          ## na.omit() copies it, inRange() scans it, once per call. That is
-          ## O(ncell) work per call, independent of how much actually burns:
-          ## 5.1x of the call on a 9M-cell landscape, 3.4x at 4M, 1.9x at 1M,
-          ## with identical output. This function calls spread() Nreps times per
-          ## fire year, so it was paid hundreds of times per objective evaluation.
-          quick = TRUE
+          maxSize = maxSizes
         )
       })
       if (SpaDES.core::anyPlotting(plot.it)) {
