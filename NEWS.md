@@ -1,3 +1,10 @@
+# fireSenseUtils 0.2.3.9037
+
+* `runDEoptim()` gains `sizeLik`, `sizeLikDf`, `weighted` and `adWeight`, passed to `.objfunSpreadFit()` both in
+  the fit and in the re-score of the final population. Before this, every fit and every re-score used the
+  objective's defaults whatever the caller wanted -- `weighted = TRUE` (a log(size) weight) with `sizeLik = "kde"`.
+  The defaults here are the objective's, so a caller who sets nothing sees no change.
+
 # fireSenseUtils 0.2.3.9036
 
 * The spread objective uses `SpaDES.tools::spreadCpp()` instead of `spread()`. It follows the same rules
