@@ -20,7 +20,7 @@ callInner <- function(sp, cells = numeric(100), loci = 24L, lanscape1stQuantileT
     .package = "fireSenseUtils"
   )
   local_mocked_bindings(
-    spread = function(...) {
+    spreadCpp = function(...) {
       captured <<- list(...)
       if (!is.null(spreadReturns)) return(spreadReturns(list(...)))
       stop(structure(class = c("reachedSpread", "error", "condition"),
