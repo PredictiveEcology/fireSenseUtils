@@ -30,6 +30,7 @@
   sizeLik = "kde",
   sizeLikDf = 5,
   adWeight = "auto",
+  link = NULL,
   verbose = 2,
   ...
 )
@@ -152,6 +153,10 @@ values forgive a missed fire more.}
 SNLL. \code{"auto"} (default) uses \code{\link[=adWeightAuto]{adWeightAuto()}}, which gives the two terms about equal influence
 for any \code{sizeLik} and \code{weighted}. A number is used as given; the former fixed default, \code{50},
 balanced the two only for \code{sizeLik = "kde"} with \code{weighted = FALSE}.}
+
+\item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
+\code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
+parameter is \code{upperTail1}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 

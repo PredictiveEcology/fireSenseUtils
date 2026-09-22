@@ -1,3 +1,13 @@
+# fireSenseUtils 0.2.3.9038
+
+* New spread link `logistic3pUpper()`: `logistic3p()` with Stukel's (1988) generalized-logistic upper tail, one
+  extra parameter `upperTail1`. In `logistic3p()` the curve approaches its ceiling at a rate set by the slope alone,
+  so no parameter could change the upper end without moving everything else; in fitted models most spreadable
+  pixels sat pressed against the ceiling (72% of pixel-years in ELF 5.2.1). `upperTail1 < 0` slows that approach,
+  `> 0` speeds it, and `0` is `logistic3p()` exactly. `logisticAll()` chooses it when the logistic parameters
+  include `upperTail1` or when `link = "logistic3pUpper"`; `.objfunSpreadFit()` and `runDEoptim()` pass `link`
+  through to the fit and its re-score. Checked against `sirt::pgenlogis()`.
+
 # fireSenseUtils 0.2.3.9037
 
 * `runDEoptim()` gains `sizeLik`, `sizeLikDf`, `weighted` and `adWeight`, passed to `.objfunSpreadFit()` both in
