@@ -19,7 +19,7 @@ snllFor <- function(annualFires, ...) {
     .package = "fireSenseUtils"
   )
   local_mocked_bindings(
-    spread = function(...) {
+    spreadCpp = function(...) {
       i <<- i + 1L
       data.table::rbindlist(lapply(as.character(annualFires$cells), function(cl)
         data.table::data.table(initialLocus = as.integer(cl), indices = seq_len(simsOf[[cl]][i]), id = 1L, active = FALSE)))

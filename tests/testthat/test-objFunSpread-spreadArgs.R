@@ -6,12 +6,15 @@
 ## inRange() scans it. Measured on synthetic landscapes with identical output:
 ## 1.9x the whole call at 1M cells, 3.4x at 4M, 5.1x at 9M.
 
-test_that("objFunInner asks spread() to skip its checks, by the name spread() uses", {
-  ## objFunInner() is where the per-year, per-replicate spread() call lives.
+test_that("objFunInner spreads with spreadCpp(), not spread()", {
+  ## objFunInner() is where the per-year, per-replicate spread call lives.
+  ## It now calls SpaDES.tools::spreadCpp(), which has no `quick`/`skipChecks`:
+  ## it never re-validates spreadProb, so the per-call cost described above is
+  ## gone by construction. Guard against a silent revert to spread().
   ## `:::`: objFunInner() is internal, called from .objfunSpreadFit().
   src <- paste(deparse(fireSenseUtils:::objFunInner), collapse = "\n")
-  expect_match(src, "quick = TRUE")
-  expect_false(grepl("skipChecks", src))
+  expect_match(src, "SpaDES.tools::spreadCpp(", fixed = TRUE)
+  expect_false(grepl("SpaDES.tools::spread(", src, fixed = TRUE))
 })
 
 test_that("`quick` is the name spread() acts on", {

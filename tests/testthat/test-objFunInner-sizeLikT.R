@@ -19,7 +19,7 @@ snllFor <- function(simSizes, obs, ...) {
     .package = "fireSenseUtils"
   )
   local_mocked_bindings(
-    spread = function(...) {
+    spreadCpp = function(...) {
       i <<- i + 1L
       data.table::data.table(initialLocus = list(...)$loci, indices = seq_len(simSizes[i]), id = 1L, active = FALSE)
     },

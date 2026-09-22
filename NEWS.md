@@ -1,3 +1,10 @@
+# fireSenseUtils 0.2.3.9036
+
+* The spread objective uses `SpaDES.tools::spreadCpp()` instead of `spread()`. It follows the same rules
+  but makes its own random draws, so **results change** and fits made before this are not comparable
+  with fits made after. A full objective evaluation is 2.3-2.5x faster; end to end through DEoptim it saves
+  a median ~9.5 s per evaluation on both ELFs tested. Requires `SpaDES.tools (>= 2.1.3.9008)`.
+
 # fireSenseUtils 0.2.3.9035
 
 ## New features
