@@ -144,12 +144,13 @@ test_that("logisticAll: vectorised over mat rows", {
 # logisticParamNames (constants)
 # ---------------------------------------------------------------------------
 test_that("logisticParamNames has correct names", {
-  expect_named(logisticParamNames, c("2p", "3p", "4p", "5p"))
+  expect_named(logisticParamNames, c("2p", "3p", "3pUpper", "4p", "5p"))
 })
 
 test_that("logisticParamNames element lengths match parameter counts", {
   expect_length(logisticParamNames[["2p"]], 2)
   expect_length(logisticParamNames[["3p"]], 3)
+  expect_length(logisticParamNames[["3pUpper"]], 4)
   expect_length(logisticParamNames[["4p"]], 4)
   expect_length(logisticParamNames[["5p"]], 5)
 })

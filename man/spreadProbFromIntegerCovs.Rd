@@ -74,8 +74,9 @@ annual or nonAnnual, that will be used.}
 for consistency. This should be set to \code{FALSE} for operational situations, as the assertions
 take some small amount of time.}
 
-\item{logisticPars}{Numeric vector of logistic parameters; its length
-selects which variant \code{logisticAll} dispatches to.}
+\item{logisticPars}{Numeric vector of logistic parameters. Unless \code{link} names the form, its
+length selects the variant \code{logisticAll} dispatches to -- except that a vector with an element
+named \code{upperTail1} is always \code{logistic3pUpper}, whatever its length.}
 
 \item{covPars}{Numeric vector of covariate coefficients (same length as
 \code{ncol(mat)}); \code{mat \%*\% covPars} forms the linear predictor.}

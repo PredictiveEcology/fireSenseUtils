@@ -14,13 +14,17 @@
 #' @param par Numeric vector of logistic parameters whose length matches the
 #'   variant: 2 for `logistic2p`, 3 for `logistic3p`, etc. See
 #'   [logisticParamNames] for the meaning of each position.
-#' @param logisticPars Numeric vector of logistic parameters; its length
-#'   selects which variant `logisticAll` dispatches to.
+#' @param logisticPars Numeric vector of logistic parameters. Unless `link` names the form, its
+#'   length selects the variant `logisticAll` dispatches to -- except that a vector with an element
+#'   named `upperTail1` is always `logistic3pUpper`, whatever its length.
 #' @param mat Numeric matrix of covariate values, one row per observation.
 #' @param covPars Numeric vector of covariate coefficients (same length as
 #'   `ncol(mat)`); `mat %*% covPars` forms the linear predictor.
 #' @param lowerSpreadProb Numeric scalar in `[0, 1]`. The lower asymptote
 #'   (`par1`) used for the 2- and 3-parameter forms.
+#' @param link `NULL` (the default) to choose the form from `logisticPars` as above, or
+#'   `"logistic3pUpper"` to use the 3-parameter form with Stukel's upper tail. Pass it explicitly
+#'   wherever `logisticPars` may arrive without names, as inside the objective function.
 #'
 #' @return Numeric vector of logistic values; same length as `x` (or
 #'   `nrow(mat)` for `logisticAll`).
@@ -45,6 +49,39 @@ logistic3p <- function(x, par, par1 = 0.1) {
   par1 + (par[1L] - par1) / (1 + exp(x)^(-par[2L]))^par[3L]
 }
 
+#' @details `logistic3pUpper` is `logistic3p` with Stukel's (1988) generalized-logistic upper tail
+#'   applied to the linear predictor: `par1 + (par[1] - par1) / (1 + exp(-H(par[2] * x)))^par[3]`,
+#'   where `H` leaves negative values alone and, for `u = par[2] * x >= 0` and `a = par[4]`, is
+#'   `(exp(a * u) - 1) / a` for `a > 0`, `u` for `a = 0` and `-log(1 - a * u) / a` for `a < 0`
+#'   (Stukel, T. A. (1988), Generalized logistic models, JASA 83:426-431; as `sirt::pgenlogis()`).
+#'   `par[4]` changes only how the curve approaches its upper asymptote: negative values slow the
+#'   approach, so pixels with a high linear predictor are no longer all pressed against the ceiling;
+#'   `par[4] = 0` is `logistic3p` exactly. In `logistic3p` the approach to the ceiling is set by the
+#'   slope `par[2]` alone -- `par[3]` shapes only the lower end -- so this is the one parameter that
+#'   changes the upper end independently.
+#' @export
+#' @rdname logistic
+logistic3pUpper <- function(x, par, par1 = 0.1) {
+  par1 + (par[1L] - par1) / (1 + exp(-upperTail(par[2L] * x, par[4L])))^par[3L]
+}
+
+#' Stukel's upper-tail transformation
+#'
+#' The upper half of the generalized logistic link of Stukel (1988): values below zero are returned
+#' unchanged; values `u >= 0` become `(exp(a * u) - 1) / a` (`a > 0`), `u` (`a = 0`) or
+#' `-log(1 - a * u) / a` (`a < 0`). Matches the upper branch of `sirt::pgenlogis()`.
+#'
+#' @param u Numeric vector.
+#' @param a Numeric scalar, the upper-tail parameter.
+#' @return Numeric vector the length of `u`.
+#' @keywords internal
+upperTail <- function(u, a) {
+  if (a == 0) return(u)
+  pos <- u >= 0
+  u[pos] <- if (a > 0) (exp(a * u[pos]) - 1) / a else -log(1 - a * u[pos]) / a
+  u
+}
+
 #' @param par4 Numeric scalar. Asymmetry factor (replaces `par[4]` of the
 #'   4-parameter form).
 #' @export
@@ -55,7 +92,12 @@ logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
 
 #' @export
 #' @rdname logistic
-logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb) {
+logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL) {
+  if (is.null(link) && "upperTail1" %in% names(logisticPars)) link <- "logistic3pUpper"
+  if (!is.null(link)) {
+    link <- match.arg(link, c("logistic3pUpper"))
+    return(logistic3pUpper(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
+  }
   if (length(logisticPars) == 4) {
     stop("logistic with 4 parameters not tested yet")
     logistic4p(mat %*% covPars, logisticPars)
@@ -74,6 +116,7 @@ logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb) {
 #'   2-parameter etc. logistic curve.
 logisticParamNames <- list("2p" = c("maxAsymptote", "hillSlope1"),
                            "3p" = c("maxAsymptote", "hillSlope1", "inflectionPoint1"),
+                           "3pUpper" = c("maxAsymptote", "hillSlope1", "inflectionPoint1", "upperTail1"),
                            "4p" = c("minAsymptote", "maxAsymptote", "inflectionPoint1", "hillSlope1"),
                            "5p" = c("minAsymptote", "maxAsymptote", "inflectionPoint1", "hillSlope1", "asymmetryFactor"))
 # logisticAll <- function(logisticPars, covsDT, mat, covPars, lowerSpreadProb) {

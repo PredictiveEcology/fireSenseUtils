@@ -4,6 +4,7 @@
 \alias{logistic4p}
 \alias{logistic5p}
 \alias{logistic3p}
+\alias{logistic3pUpper}
 \alias{logistic2p}
 \alias{logisticAll}
 \title{Multiple-parameter versions of logistic functions}
@@ -14,9 +15,11 @@ logistic5p(x, par)
 
 logistic3p(x, par, par1 = 0.1)
 
+logistic3pUpper(x, par, par1 = 0.1)
+
 logistic2p(x, par, par1 = 0.1, par4 = 0.5)
 
-logisticAll(logisticPars, mat, covPars, lowerSpreadProb)
+logisticAll(logisticPars, mat, covPars, lowerSpreadProb, link = NULL)
 }
 \arguments{
 \item{x}{Numeric vector. Linear predictor (e.g. \code{mat \%*\% covPars}) at which
@@ -32,8 +35,9 @@ variant: 2 for \code{logistic2p}, 3 for \code{logistic3p}, etc. See
 \item{par4}{Numeric scalar. Asymmetry factor (replaces \code{par[4]} of the
 4-parameter form).}
 
-\item{logisticPars}{Numeric vector of logistic parameters; its length
-selects which variant \code{logisticAll} dispatches to.}
+\item{logisticPars}{Numeric vector of logistic parameters. Unless \code{link} names the form, its
+length selects the variant \code{logisticAll} dispatches to -- except that a vector with an element
+named \code{upperTail1} is always \code{logistic3pUpper}, whatever its length.}
 
 \item{mat}{Numeric matrix of covariate values, one row per observation.}
 
@@ -42,6 +46,10 @@ selects which variant \code{logisticAll} dispatches to.}
 
 \item{lowerSpreadProb}{Numeric scalar in \verb{[0, 1]}. The lower asymptote
 (\code{par1}) used for the 2- and 3-parameter forms.}
+
+\item{link}{\code{NULL} (the default) to choose the form from \code{logisticPars} as above, or
+\code{"logistic3pUpper"} to use the 3-parameter form with Stukel's upper tail. Pass it explicitly
+wherever \code{logisticPars} may arrive without names, as inside the objective function.}
 }
 \value{
 Numeric vector of logistic values; same length as \code{x} (or
@@ -57,4 +65,15 @@ The general form is the 5-parameter sigmoid (Richards' curve):
 The 4-, 3-, and 2-parameter variants successively fix the lower asymptote
 (\code{par1}), the inflection-point scale (\code{par3 = 1}), and the asymmetry
 factor (\code{par5 = 0.5}) to reduce the parameter count.
+
+\code{logistic3pUpper} is \code{logistic3p} with Stukel's (1988) generalized-logistic upper tail
+applied to the linear predictor: \code{par1 + (par[1] - par1) / (1 + exp(-H(par[2] * x)))^par[3]},
+where \code{H} leaves negative values alone and, for \code{u = par[2] * x >= 0} and \code{a = par[4]}, is
+\code{(exp(a * u) - 1) / a} for \code{a > 0}, \code{u} for \code{a = 0} and \code{-log(1 - a * u) / a} for \code{a < 0}
+(Stukel, T. A. (1988), Generalized logistic models, JASA 83:426-431; as \code{sirt::pgenlogis()}).
+\code{par[4]} changes only how the curve approaches its upper asymptote: negative values slow the
+approach, so pixels with a high linear predictor are no longer all pressed against the ceiling;
+\code{par[4] = 0} is \code{logistic3p} exactly. In \code{logistic3p} the approach to the ceiling is set by the
+slope \code{par[2]} alone -- \code{par[3]} shapes only the lower end -- so this is the one parameter that
+changes the upper end independently.
 }

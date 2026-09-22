@@ -116,6 +116,10 @@ utils::globalVariables(c(
 #'   for any `sizeLik` and `weighted`. A number is used as given; the former fixed default, `50`,
 #'   balanced the two only for `sizeLik = "kde"` with `weighted = FALSE`.
 #'
+#' @param link Passed to [logisticAll()]: `NULL` for the form implied by the logistic parameters, or
+#'   `"logistic3pUpper"` for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
+#'   parameter is `upperTail1`. Pass it explicitly when fitting: `par` may arrive unnamed.
+#'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
 #' @param lowerSpreadProb Numeric. Lower bound for `spreadProb`; if a candidate
@@ -169,6 +173,7 @@ utils::globalVariables(c(
                              sizeLik = "kde",
                              sizeLikDf = 5,
                              adWeight = "auto",
+                             link = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              ...) { # fireSense_SpreadFitRaster
@@ -280,7 +285,7 @@ utils::globalVariables(c(
         doMADTest = doMADTest, doADTest = doADTest,
         cells = cells,
         covCentre = covCentre,
-        sizeLik = sizeLik, sizeLikDf = sizeLikDf,
+        sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -506,7 +511,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
-                        sizeWeightMean = 1) {
+                        sizeWeightMean = 1, link = NULL) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -524,7 +529,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   )
 
   set(shortAnnDT, NULL, "spreadProb",
-      logisticAll(logisticPars, mat = as.matrix(shortAnnDT[, ..colsToUse]), covPars, lowerSpreadProb))
+      logisticAll(logisticPars, mat = as.matrix(shortAnnDT[, ..colsToUse]), covPars, lowerSpreadProb,
+                  link = link))
   ## Initialised here, not inside the branch below, because the function returns
   ## it unconditionally. With no test selected -- which is how the module's
   ## `debug` mode calls this, passing tests = "" -- doFitting is FALSE, the branch

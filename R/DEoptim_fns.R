@@ -102,6 +102,8 @@ utils::globalVariables(c(
 #' @param rescoreReps Integer. After the fit, each member of the final population is evaluated this
 #'   many more times (full evaluations, no early stop) and the result is attached to the returned
 #'   object as `attr(DE, "finalRescore")`, for [bestByReplicatedMean()]. `0` skips it.
+#' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL` or
+#'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
 #'   final-population re-score, so both evaluate the same objective. The defaults are that function's.
 #'   Before these existed, every fit used those defaults whatever the caller wanted.
@@ -167,7 +169,8 @@ runDEoptim <- function(landscape,
                        sizeLik = "kde",
                        sizeLikDf = 5,
                        weighted = TRUE,
-                       adWeight = "auto") {
+                       adWeight = "auto",
+                       link = NULL) {
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -249,6 +252,7 @@ runDEoptim <- function(landscape,
       sizeLikDf = sizeLikDf,
       weighted = weighted,
       adWeight = adWeight,
+      link = link,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -270,7 +274,7 @@ runDEoptim <- function(landscape,
                     maxFireSpread = maxFireSpread, objFunCoresInternal = objFunCoresInternal,
                     Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
                     thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
-                    weighted = weighted, adWeight = adWeight),
+                    weighted = weighted, adWeight = adWeight, link = link),
       omitArgs = "cl",
       cachePath = paths$cachePath,
       .functionName = paste0("rescoreFinalPopulation_", runName))

@@ -47,7 +47,8 @@ runDEoptim(
   sizeLik = "kde",
   sizeLikDf = 5,
   weighted = TRUE,
-  adWeight = "auto"
+  adWeight = "auto",
+  link = NULL
 )
 
 DEoptimIterative(
@@ -200,6 +201,9 @@ object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean
 \item{sizeLik, sizeLikDf, weighted, adWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit AND in the
 final-population re-score, so both evaluate the same objective. The defaults are that function's.
 Before these existed, every fit used those defaults whatever the caller wanted.}
+
+\item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL} or
+\code{"logistic3pUpper"}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
 
 \item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 
