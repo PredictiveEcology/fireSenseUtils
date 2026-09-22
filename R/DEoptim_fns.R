@@ -102,6 +102,12 @@ utils::globalVariables(c(
 #' @param rescoreReps Integer. After the fit, each member of the final population is evaluated this
 #'   many more times (full evaluations, no early stop) and the result is attached to the returned
 #'   object as `attr(DE, "finalRescore")`, for [bestByReplicatedMean()]. `0` skips it.
+#' @param profileReps Integer. If above 0, [profileCoefficients()] is run around the best member
+#'   of the re-score, each point evaluated this many times, and attached as `attr(DE, "profile")`.
+#'   Needs `rescoreReps > 0`. Costs about `6 * nCoefficients * profileReps` evaluations.
+#' @param simulateMembers Integer. If above 0, that many best members of the re-score simulate the
+#'   observed fires without the size cap ([simulateFireSizes()]), attached as `attr(DE, "fitSims")`
+#'   for [scoreFireSizes()] and [linkSaturation()]. Needs `rescoreReps > 0`.
 #' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL` or
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
@@ -170,7 +176,9 @@ runDEoptim <- function(landscape,
                        sizeLikDf = 5,
                        weighted = TRUE,
                        adWeight = "auto",
-                       link = NULL) {
+                       link = NULL,
+                       profileReps = 0L,
+                       simulateMembers = 0L) {
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -265,19 +273,38 @@ runDEoptim <- function(landscape,
   ## off (thresh = Inf) so every replicate is a full evaluation. DEoptim's own values are partly luck;
   ## the caller picks its best members from these means (bestByReplicatedMean()).
   finalPop <- if (length(DE)) DE[[length(DE)]]$member$pop
+  rescoreArgs <- list(formulaToFit = formulaToFit, covMinMax = covMinMax, tests = tests,
+                      maxFireSpread = maxFireSpread, objFunCoresInternal = objFunCoresInternal,
+                      Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
+                      thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
+                      weighted = weighted, adWeight = adWeight, link = link)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(
       rescorePopulation,
       pop = finalPop, fn = fireSenseUtils::.objfunSpreadFit, reps = as.integer(rescoreReps), cl = cl,
-      fnArgs = list(formulaToFit = formulaToFit, covMinMax = covMinMax, tests = tests,
-                    maxFireSpread = maxFireSpread, objFunCoresInternal = objFunCoresInternal,
-                    Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
-                    thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
-                    weighted = weighted, adWeight = adWeight, link = link),
+      fnArgs = rescoreArgs,
       omitArgs = "cl",
       cachePath = paths$cachePath,
       .functionName = paste0("rescoreFinalPopulation_", runName))
+  }
+
+  ## Diagnostics that need the workers, while they still hold the data (see ?fitDiagnostics)
+  if (!is.null(attr(DE, "finalRescore")) && isTRUE(profileReps > 0 || simulateMembers > 0)) {
+    top <- bestByReplicatedMean(finalPop, attr(DE, "finalRescore"), n = max(1L, simulateMembers))
+    if (isTRUE(profileReps > 0))
+      attr(DE, "profile") <- Cache(
+        profileCoefficients,
+        best = unlist(top$params[1]), pop = finalPop, fn = fireSenseUtils::.objfunSpreadFit,
+        reps = as.integer(profileReps), cl = cl, fnArgs = rescoreArgs,
+        omitArgs = "cl", cachePath = paths$cachePath,
+        .functionName = paste0("profileBestMember_", runName))
+    if (isTRUE(simulateMembers > 0))
+      attr(DE, "fitSims") <- Cache(
+        simulateFireSizes,
+        pop = top$params, fn = fireSenseUtils::.objfunSpreadFit, cl = cl, fnArgs = rescoreArgs,
+        omitArgs = "cl", cachePath = paths$cachePath,
+        .functionName = paste0("simulateBestMembers_", runName))
   }
   DE
 }

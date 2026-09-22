@@ -120,6 +120,18 @@ utils::globalVariables(c(
 #'   `"logistic3pUpper"` for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
 #'   parameter is `upperTail1`. Pass it explicitly when fitting: `par` may arrive unnamed.
 #'
+#' @param returnSims If `TRUE`, return the simulated fires instead of the objective value: a
+#'   `data.table` with one row per fire year x fire x replicate -- `yr`, `rep`, `initialLocus`, `ids`,
+#'   the simulated size `sim` and the observed `size`, in pixels. A year the objective declines to
+#'   simulate (its spread probabilities fail the sanity checks) keeps its fires with `rep` and `sim`
+#'   `NA`, so the caller can count them. Every year is simulated: the early stop (`thresh`) is not
+#'   applied. For diagnostics and validation; the value is not an objective.
+#'   The result carries `attr(, "spreadProb")`: the spread probabilities of every fitted pixel-year,
+#'   summarised by [spreadProbSummary()], for [linkSaturation()].
+#' @param capSizes If `FALSE`, simulated fires are not capped at [multiplier()] of their observed
+#'   size. The fit needs the cap; validation should not have it, or a model that predicts fires far
+#'   too large cannot show it.
+#'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
 #' @param lowerSpreadProb Numeric. Lower bound for `spreadProb`; if a candidate
@@ -174,6 +186,8 @@ utils::globalVariables(c(
                              sizeLikDf = 5,
                              adWeight = "auto",
                              link = NULL,
+                             returnSims = FALSE,
+                             capSizes = TRUE,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              ...) { # fireSense_SpreadFitRaster
@@ -252,6 +266,8 @@ utils::globalVariables(c(
   fireSizesList <- list() # simulated fire sizes, pooled across batches for the adTest
   yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
   bailedEarly <- FALSE
+  simsList <- list() # returnSims: the simulated fires of each batch of years
+  pSumList <- list() #   ... and the spread probabilities of their pixels
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
@@ -286,6 +302,7 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
+        returnSims = returnSims, capSizes = capSizes,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -296,6 +313,11 @@ utils::globalVariables(c(
         #  verbose = TRUE)
       )
       results <- purrr::transpose(results)
+      if (isTRUE(returnSims)) {
+        simsList[[ii]] <- data.table::rbindlist(results$sims, use.names = TRUE)
+        pSumList[[ii]] <- results$pSummary
+        next
+      }
 
       if (isTRUE(doADTest)) {
         fireSizesList[[ii]] <- unlist(results$allFireSizes)
@@ -370,6 +392,11 @@ utils::globalVariables(c(
     }
   } # run through 2nd batch of smaller fires
 
+  if (isTRUE(returnSims)) {
+    out <- data.table::rbindlist(simsList, use.names = TRUE)
+    data.table::setattr(out, "spreadProb", combineSpreadProbSummaries(unlist(pSumList, recursive = FALSE)))
+    return(out)
+  }
   bb <- purrr::transpose(objFunResList)
   bb <- purrr::map(bb, unlist)
 
@@ -511,7 +538,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
-                        sizeWeightMean = 1, link = NULL) {
+                        sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -531,6 +558,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   set(shortAnnDT, NULL, "spreadProb",
       logisticAll(logisticPars, mat = as.matrix(shortAnnDT[, ..colsToUse]), covPars, lowerSpreadProb,
                   link = link))
+  pSummary <- if (isTRUE(returnSims)) spreadProbSummary(shortAnnDT$spreadProb, ceiling = logisticPars[1])
   ## Initialised here, not inside the branch below, because the function returns
   ## it unconditionally. With no test selected -- which is how the module's
   ## `debug` mode calls this, passing tests = "" -- doFitting is FALSE, the branch
@@ -538,7 +566,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   ## Nothing appends to it before the branch, so this is the same list it always
   ## was; the only change is that it exists when no test asked for anything.
   ret <- list()
-  doFitting <- any(c(doSNLL_FSTest, doMADTest, doADTest))
+  doFitting <- any(c(doSNLL_FSTest, doMADTest, doADTest)) || isTRUE(returnSims)
   if (isTRUE(doFitting)) {
     
     # shortAnnDTx1000 <- rescaleAllCovsFromX1000(annDTx1000 = annDTx1000,
@@ -686,7 +714,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           )
         }
       }
-      maxSizes <- fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
+      maxSizes <- if (isTRUE(capSizes)) {
+        fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
+      } else {
+        rep(Inf, NROW(annualFires))
+      }
       # maxSizes <- annualFires$size * 2
       dups <- duplicated(annualFires$cells)
       if (any(dups)) {
@@ -754,6 +786,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## back to landscape cell indices
       set(spreadState, NULL, "initialLocus", crop$toFull(spreadState$initialLocus))
       set(spreadState, NULL, "indices", crop$toFull(spreadState$indices))
+      if (isTRUE(returnSims)) {
+        simSize <- spreadState[, list(sim = .N), by = c("rep", "initialLocus")]
+        f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
+        return(list(sims = data.table::data.table(yr = as.character(yr), simSize[f, on = "initialLocus"]),
+                    pSummary = pSummary))
+      }
       if (isTRUE(doSNLL_FSTest)) {
         emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")] # N is "size of simulated fire"
         emp <- emp[annualFires, on = c("initialLocus" = "cells")]
@@ -960,6 +998,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         # ), na.rm = TRUE) # Sum of the negative log likelihood
       }
     } else {
+      if (isTRUE(returnSims)) {
+        f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
+        return(list(sims = data.table::data.table(yr = as.character(yr), rep = NA_integer_, f,
+                                                  sim = NA_integer_), pSummary = pSummary))
+      }
       llik <- rep(log(minLik), length(loci))
       SNLL_FS <- -sum(llik)
       ret <- append(ret, list(SNLL_FS = SNLL_FS))
