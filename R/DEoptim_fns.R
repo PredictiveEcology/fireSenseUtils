@@ -102,6 +102,9 @@ utils::globalVariables(c(
 #' @param rescoreReps Integer. After the fit, each member of the final population is evaluated this
 #'   many more times (full evaluations, no early stop) and the result is attached to the returned
 #'   object as `attr(DE, "finalRescore")`, for [bestByReplicatedMean()]. `0` skips it.
+#' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
+#'   final-population re-score, so both evaluate the same objective. The defaults are that function's.
+#'   Before these existed, every fit used those defaults whatever the caller wanted.
 #' @param .c Numeric in `(0, 1]`. DEoptim's `c`, the speed of crossover adaptation (used by
 #'   `strategy = 6`). Passed to [DEoptim::DEoptim.control()]; a `c` in `DEoptimControl` wins.
 #' @param DEoptimControl Named list of further [DEoptim::DEoptim.control()] settings (for example
@@ -160,7 +163,11 @@ runDEoptim <- function(landscape,
                        rep = 1L,
                        runName = "",
                        nCoresNeeded = 10L * length(lower),
-                       rescoreReps = 10L) {
+                       rescoreReps = 10L,
+                       sizeLik = "kde",
+                       sizeLikDf = 5,
+                       weighted = TRUE,
+                       adWeight = "auto") {
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -238,6 +245,10 @@ runDEoptim <- function(landscape,
       .plotSize = .plotSize,
       iterStep = iterStep,
       thresh = thresh,
+      sizeLik = sizeLik,
+      sizeLikDf = sizeLikDf,
+      weighted = weighted,
+      adWeight = adWeight,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -258,7 +269,8 @@ runDEoptim <- function(landscape,
       fnArgs = list(formulaToFit = formulaToFit, covMinMax = covMinMax, tests = tests,
                     maxFireSpread = maxFireSpread, objFunCoresInternal = objFunCoresInternal,
                     Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
-                    thresh = Inf, verbose = 0),
+                    thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
+                    weighted = weighted, adWeight = adWeight),
       omitArgs = "cl",
       cachePath = paths$cachePath,
       .functionName = paste0("rescoreFinalPopulation_", runName))

@@ -43,7 +43,11 @@ runDEoptim(
   rep = 1L,
   runName = "",
   nCoresNeeded = 10L * length(lower),
-  rescoreReps = 10L
+  rescoreReps = 10L,
+  sizeLik = "kde",
+  sizeLikDf = 5,
+  weighted = TRUE,
+  adWeight = "auto"
 )
 
 DEoptimIterative(
@@ -192,6 +196,10 @@ workers the cluster actually gets, so a smaller allocation means a smaller popul
 \item{rescoreReps}{Integer. After the fit, each member of the final population is evaluated this
 many more times (full evaluations, no early stop) and the result is attached to the returned
 object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean]{bestByReplicatedMean()}}. \code{0} skips it.}
+
+\item{sizeLik, sizeLikDf, weighted, adWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit AND in the
+final-population re-score, so both evaluate the same objective. The defaults are that function's.
+Before these existed, every fit used those defaults whatever the caller wanted.}
 
 \item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
 
