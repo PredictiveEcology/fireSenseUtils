@@ -1,3 +1,13 @@
+# fireSenseUtils 0.2.3.9040
+
+* Per-fire random effect in the spread objective. Weather during a fire is not in the model, so every fire of a year
+  saw identical spread probabilities and the simulated sizes were too alike: medians too large and the largest fires
+  too small at once; weighting big fires (`weighted = "sqrt"`) only shifted the whole distribution. With
+  `fireSpreadSD` as the last parameter, each fire draws `eps ~ N(0, fireSpreadSD^2)` per replicate and every pixel
+  of its buffer spreads with `plogis(qlogis(p) + eps)`; `spreadCpp()` is unchanged. `.objfunSpreadFit()` uses it
+  when `par` names it (`fitFireSpreadSD = NULL`); `runDEoptim()` when `lower` names it. `fireSpreadSD = 0` is the
+  previous model exactly.
+
 # fireSenseUtils 0.2.3.9039
 
 * Fit diagnostics (`?fitDiagnostics`), the checks made by hand on the phase-2 fits, as functions:

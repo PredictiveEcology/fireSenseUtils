@@ -1,3 +1,5 @@
+fireSpreadSDTxt <- "fireSpreadSD"
+
 utils::globalVariables(c(
   "..colsToKeep", "..colsToUse", ".N", "buffer", "burned", "burnedClass",
   "id", "ids", "initialLocus", "N", "numAvailPixels", "pixelID", "prob",
@@ -128,6 +130,13 @@ utils::globalVariables(c(
 #'   applied. For diagnostics and validation; the value is not an objective.
 #'   The result carries `attr(, "spreadProb")`: the spread probabilities of every fitted pixel-year,
 #'   summarised by [spreadProbSummary()], for [linkSaturation()].
+#' @param fitFireSpreadSD If `TRUE`, the last element of `par` is the sd of a per-fire random effect on
+#'   the logit of spread probability: in each replicate every fire draws `eps ~ N(0, sd^2)` and every pixel
+#'   of its buffer spreads with `plogis(qlogis(p) + eps)`. Weather during a fire is not in the model, so
+#'   without it every fire of a year sees identical probabilities and the simulated fire sizes are too
+#'   alike: medians too large and the largest fires too small at once (2026-09-23). `sd = 0` is the model
+#'   without it, exactly (no random numbers are drawn). `NULL` (default): `TRUE` when `par` is named and
+#'   includes `fireSpreadSD`. DEoptim passes `par` unnamed, so `runDEoptim()` sets it explicitly.
 #' @param capSizes If `FALSE`, simulated fires are not capped at [multiplier()] of their observed
 #'   size. The fit needs the cap; validation should not have it, or a model that predicts fires far
 #'   too large cannot show it.
@@ -188,6 +197,7 @@ utils::globalVariables(c(
                              link = NULL,
                              returnSims = FALSE,
                              capSizes = TRUE,
+                             fitFireSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              ...) { # fireSense_SpreadFitRaster
@@ -196,6 +206,15 @@ utils::globalVariables(c(
 
   data.table::setDTthreads(1)
   sizeLik <- match.arg(sizeLik, c("kde", "t"))
+  ## the per-fire random effect's sd, fitted as the LAST element of `par`
+  fireSpreadSD <- 0
+  if (is.null(fitFireSpreadSD)) fitFireSpreadSD <- fireSpreadSDTxt %in% names(par)
+  if (isTRUE(fitFireSpreadSD)) {
+    if (!is.null(names(par)) && !identical(names(par)[length(par)], fireSpreadSDTxt))
+      stop("`", fireSpreadSDTxt, "` must be the last parameter")
+    fireSpreadSD <- unname(par[length(par)])
+    par <- par[-length(par)]
+  }
 
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
@@ -302,7 +321,7 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
-        returnSims = returnSims, capSizes = capSizes,
+        returnSims = returnSims, capSizes = capSizes, fireSpreadSD = fireSpreadSD,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -538,7 +557,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
-                        sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE) {
+                        sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE,
+                        fireSpreadSD = 0) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -756,11 +776,30 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## with spread(), so cached fits from before this change are not comparable.
       ## The landscape is already cropped above, which matters more for spreadCpp()
       ## than it did for spread().
+      ## Per-fire random effect (fitFireSpreadSD in .objfunSpreadFit): each fire's buffer pixels get
+      ## that fire's eps on the logit scale, drawn anew in each replicate. A pixel in two buffers takes
+      ## the first fire's. Still one spreadCpp() call per replicate.
+      if (fireSpreadSD > 0) {
+        fb <- unique(annualFireBufferedDT[, list(pixelID, ids)], by = "pixelID")
+        fireIds <- unique(annualFires$ids)
+        pixFire <- match(fb$ids[match(shortAnnDT$pixelID, fb$pixelID)], fireIds)
+        pixCrop <- crop$toCrop(shortAnnDT$pixelID)
+        lp <- stats::qlogis(shortAnnDT$spreadProb)
+        lociCrop <- crop$toCrop(loci)
+      }
       spreadState <- lapply(seq_len(Nreps), function(i) {
+        sp <- spreadProbCrop
+        if (fireSpreadSD > 0) {
+          eps <- stats::rnorm(length(fireIds), 0, fireSpreadSD)
+          e <- eps[pixFire]
+          e[is.na(e)] <- 0
+          sp[pixCrop] <- stats::plogis(lp + e)
+          sp[lociCrop] <- 1
+        }
         SpaDES.tools::spreadCpp(
           landscape = crop$r,
           loci = crop$toCrop(loci),
-          spreadProb = spreadProbCrop,
+          spreadProb = sp,
           maxSize = maxSizes
         )
       })

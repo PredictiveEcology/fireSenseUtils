@@ -142,7 +142,10 @@ each step, this function will plot, optionally, the parameter histograms (if
 \code{visualizeDEoptim} is \code{TRUE})}
 
 \item{lower}{Numeric vector. Lower bounds for the parameters being optimized.
-Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}.}
+Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}.
+
+If named and including \code{fireSpreadSD} (which must be last), the per-fire random effect of
+\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} (\code{fitFireSpreadSD}) is fitted, in the fit and in the re-score.}
 
 \item{upper}{Numeric vector. Upper bounds for the parameters being optimized.
 Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}.}
