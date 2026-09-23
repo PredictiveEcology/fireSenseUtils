@@ -33,6 +33,7 @@
   link = NULL,
   returnSims = FALSE,
   capSizes = TRUE,
+  fitFireSpreadSD = NULL,
   verbose = 2,
   ...
 )
@@ -172,6 +173,14 @@ summarised by \code{\link[=spreadProbSummary]{spreadProbSummary()}}, for \code{\
 \item{capSizes}{If \code{FALSE}, simulated fires are not capped at \code{\link[=multiplier]{multiplier()}} of their observed
 size. The fit needs the cap; validation should not have it, or a model that predicts fires far
 too large cannot show it.}
+
+\item{fitFireSpreadSD}{If \code{TRUE}, the last element of \code{par} is the sd of a per-fire random effect on
+the logit of spread probability: in each replicate every fire draws \code{eps ~ N(0, sd^2)} and every pixel
+of its buffer spreads with \code{plogis(qlogis(p) + eps)}. Weather during a fire is not in the model, so
+without it every fire of a year sees identical probabilities and the simulated fire sizes are too
+alike: medians too large and the largest fires too small at once (2026-09-23). \code{sd = 0} is the model
+without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{TRUE} when \code{par} is named and
+includes \code{fireSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 
