@@ -34,6 +34,10 @@
   returnSims = FALSE,
   capSizes = TRUE,
   fitYearSpreadSD = NULL,
+  escapeSizeHa = NULL,
+  yearAreaWeight = 0,
+  areaDistWeight = 0,
+  returnTerms = FALSE,
   verbose = 2,
   ...
 )
@@ -181,6 +185,20 @@ year's fires are bigger or smaller together. Without it the simulated fire sizes
 medians too large and the largest fires too small at once (2026-09-23). \code{sd = 0} is the model
 without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{TRUE} when \code{par} is named and
 includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
+
+\item{escapeSizeHa}{Size (ha) a fire must reach to count as escaped. Observed fires smaller than this
+are not fitted, and simulated fires smaller than this are left out of every term. \code{NULL} (default)
+keeps the original rule: more than 1 pixel.}
+
+\item{yearAreaWeight}{Weight of the annual-area term (see \code{yearAreaNLL()}): each fit year's observed
+area burned scored against its simulated totals, with the per-fire size likelihood. \code{0} (default)
+leaves it out; \code{"auto"} is (number of fitted fires) / (number of fit years), so the year view and
+the per-fire view carry equal total weight.}
+
+\item{areaDistWeight}{Weight of the area-weighted size-distribution term (\code{areaWeightedCvM()}).
+\code{0} (default) leaves it out; \code{"auto"} uses the AD term's weight, \code{adWeightAuto()}.}
+
+\item{returnTerms}{Logical. \code{TRUE} returns the objective with each term separately (diagnostics).}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 

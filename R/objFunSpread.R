@@ -113,6 +113,16 @@ utils::globalVariables(c(
 #' @param sizeLikDf Degrees of freedom of the Student-t when `sizeLik = "t"`. Default 5. Lower
 #'   values forgive a missed fire more.
 #'
+#' @param escapeSizeHa Size (ha) a fire must reach to count as escaped. Observed fires smaller than this
+#'   are not fitted, and simulated fires smaller than this are left out of every term. `NULL` (default)
+#'   keeps the original rule: more than 1 pixel.
+#' @param yearAreaWeight Weight of the annual-area term (see `yearAreaNLL()`): each fit year's observed
+#'   area burned scored against its simulated totals, with the per-fire size likelihood. `0` (default)
+#'   leaves it out; `"auto"` is (number of fitted fires) / (number of fit years), so the year view and
+#'   the per-fire view carry equal total weight.
+#' @param areaDistWeight Weight of the area-weighted size-distribution term (`areaWeightedCvM()`).
+#'   `0` (default) leaves it out; `"auto"` uses the AD term's weight, `adWeightAuto()`.
+#' @param returnTerms Logical. `TRUE` returns the objective with each term separately (diagnostics).
 #' @param adWeight What the `"adTest"` statistic is multiplied by before it is added to the fire-size
 #'   SNLL. `"auto"` (default) uses [adWeightAuto()], which gives the two terms about equal influence
 #'   for any `sizeLik` and `weighted`. A number is used as given; the former fixed default, `50`,
@@ -198,6 +208,10 @@ utils::globalVariables(c(
                              returnSims = FALSE,
                              capSizes = TRUE,
                              fitYearSpreadSD = NULL,
+                             escapeSizeHa = NULL,
+                             yearAreaWeight = 0,
+                             areaDistWeight = 0,
+                             returnTerms = FALSE,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              ...) { # fireSense_SpreadFitRaster
@@ -263,6 +277,12 @@ utils::globalVariables(c(
       function(ind, date) data.table(ind = ind, date = date)
     )
   )
+  ## A fire "escaped" when it reached `escapeSizeHa`; only escaped fires are fitted, observed or simulated.
+  ## NULL keeps the original rule: more than 1 pixel.
+  escapePx <- escapePixels(escapeSizeHa, landscape)
+  minFireSize <- max(minFireSize, escapePx)
+  doYearArea <- !identical(yearAreaWeight, 0) && !identical(yearAreaWeight, 0L)
+  doAreaDist <- !identical(areaDistWeight, 0) && !identical(areaDistWeight, 0L)
   historicalFiresAboveMin <- lapply(historicalFires, function(x) {
     x <- x[x$size >= minFireSize, ]
     x <- x[!duplicated(x$cells), ]
@@ -284,6 +304,7 @@ utils::globalVariables(c(
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
   fireSizesList <- list() # simulated fire sizes, pooled across batches for the adTest
   yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
+  yearAreaList <- list() # yearAreaWeight: each year's simulated annual totals, one per replicate
   bailedEarly <- FALSE
   simsList <- list() # returnSims: the simulated fires of each batch of years
   pSumList <- list() #   ... and the spread probabilities of their pixels
@@ -317,7 +338,8 @@ utils::globalVariables(c(
         plot.it = plot.it,
         r = r, weighted = weighted, sizeWeightMean = sizeWeightMean,
         doSNLL_FSTest = doSNLL_FSTest,
-        doMADTest = doMADTest, doADTest = doADTest,
+        doMADTest = doMADTest, doADTest = doADTest || doAreaDist,
+        escapePx = escapePx, doYearArea = doYearArea,
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
@@ -338,9 +360,12 @@ utils::globalVariables(c(
         next
       }
 
-      if (isTRUE(doADTest)) {
+      if (isTRUE(doADTest) || isTRUE(doAreaDist)) {
         fireSizesList[[ii]] <- unlist(results$allFireSizes)
         yrsDoneList[[ii]] <- yrs
+      }
+      if (isTRUE(doYearArea)) {
+        yearAreaList[yrs] <- results$annualAreaByRep
       }
 
       mess <- character()
@@ -452,9 +477,30 @@ utils::globalVariables(c(
       print(paste0("  ", Sys.getpid(), " adTest:", adTest, "; "))
     }
   }
+  snllPart <- if (isTRUE(doSNLL_FSTest)) sum(unlist(bb$objFunRes)) else NA_real_
+  adPart <- if (isTRUE(doADTest) && !isTRUE(bailedEarly)) adTest else NA_real_
+  nFitFires <- sum(vapply(historicalFiresAboveMin, nrow, integer(1)))
+  yearAreaTerm <- areaDistTerm <- NA_real_
+  if (isTRUE(doYearArea) && !isTRUE(bailedEarly)) {
+    obsYear <- vapply(historicalFiresAboveMin[names(yearAreaList)], function(x) sum(x$size), numeric(1))
+    yearAreaTerm <- yearAreaNLL(obsYear, yearAreaList, sizeLik = sizeLik, sizeLikDf = sizeLikDf) *
+      if (identical(yearAreaWeight, "auto")) nFitFires / length(yearAreaList) else yearAreaWeight
+    objFunRes <- objFunRes + yearAreaTerm
+  }
+  if (isTRUE(doAreaDist) && !isTRUE(bailedEarly)) {
+    pooled <- pooledFireSizes(fireSizesList, yrsDoneList, historicalFiresAboveMin)
+    areaDistTerm <- areaWeightedCvM(pooled$simulated, pooled$observed) *
+      if (identical(areaDistWeight, "auto")) adWeightAuto(nFitFires, sizeLik, weighted) else areaDistWeight
+    objFunRes <- objFunRes + areaDistTerm
+  }
+  if (verbose > 1 && (isTRUE(doYearArea) || isTRUE(doAreaDist)))
+    print(paste0("  ", Sys.getpid(), " yearArea:", round(yearAreaTerm, 1), "; areaDist:", round(areaDistTerm, 1), "; "))
   if (length(objFunResList) > 1) {
     print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; Objective Final: ", round(objFunRes, 0)))
   }
+  if (isTRUE(returnTerms))
+    return(c(objective = objFunRes, SNLL_FS = snllPart, adTest = adPart, yearArea = yearAreaTerm,
+             areaDist = areaDistTerm, escapePx = escapePx, nFires = nFitFires))
   ## Figure out what we want from these.
   ## This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
@@ -542,6 +588,70 @@ adStatistic <- function(x, y) {
   }, numeric(1)))
 }
 
+#' Smallest fire size, in pixels, that counts as escaped
+#'
+#' @param escapeSizeHa Size in hectares a fire must reach to count as escaped, or `NULL` for the
+#'   original rule: more than 1 pixel.
+#' @param landscape The fitting landscape (`SpatRaster`); its resolution, in metres, gives the pixel area.
+#'
+#' @return An integer number of pixels: `ceiling(escapeSizeHa / pixel area in ha)`, or 2 when `NULL`.
+#' @keywords internal
+escapePixels <- function(escapeSizeHa, landscape) {
+  if (is.null(escapeSizeHa)) return(2L)
+  pixHa <- prod(terra::res(landscape)) / 1e4
+  max(2L, as.integer(ceiling(escapeSizeHa / pixHa - 1e-9)))
+}
+
+#' Negative log-likelihood of each year's observed area burned
+#'
+#' Scores each fit year's observed total area burned against that year's simulated totals, one per
+#' replicate, with the same size likelihood the per-fire term uses (`sizeLik`): a Student-t on the
+#' square-root scale (`sizeLikT()`) or the empirical kernel density of `sqrt(sims)`.
+#'
+#' @param obsYear Named numeric: observed total area burned per year, in pixels (escaped fires only).
+#' @param simYear Named list, per year: the simulated totals, one per replicate.
+#' @param sizeLik,sizeLikDf As for `.objfunSpreadFit()`.
+#' @param minLik Floor on each year's likelihood.
+#'
+#' @return A single numeric: the summed negative log-likelihood over the years in both.
+#' @keywords internal
+yearAreaNLL <- function(obsYear, simYear, sizeLik = "t", sizeLikDf = 5, minLik = 1e-29) {
+  simYear <- Filter(function(x) length(x) >= 2, simYear)
+  yrs <- intersect(names(obsYear), names(simYear))
+  if (!length(yrs)) return(0)
+  lik <- vapply(yrs, function(y) {
+    N <- simYear[[y]]
+    if (identical(sizeLik, "t")) sizeLikT(obsYear[[y]], N, sizeLikDf)
+    else EnvStats::demp(x = sqrt(obsYear[[y]]), obs = sqrt(N))
+  }, numeric(1))
+  -sum(log(pmax(minLik, lik)))
+}
+
+#' Area-weighted Cramér-von Mises distance between two fire-size samples
+#'
+#' Compares the share of total area burned that comes from fires up to each size: `F_w(x) =
+#' sum(size[size <= x]) / sum(size)`, for the simulated and the observed fires. The squared difference
+#' is averaged over the observed fires, each weighted by its share of the observed area, and
+#' multiplied by the number of observed fires, so it grows with the sample like the AD statistic.
+#' It depends only on the order of the sizes, so it is the same on the log scale. Large fires dominate
+#' it, which is where area burned comes from.
+#'
+#' @param sim,obs Numeric vectors of fire sizes (pixels).
+#'
+#' @return A single non-negative numeric; 0 when the two samples are identical.
+#' @keywords internal
+areaWeightedCvM <- function(sim, obs) {
+  stopifnot(length(sim) > 0, length(obs) > 0)
+  Fw <- function(s, x) {
+    s <- sort(s)
+    cs <- c(0, cumsum(as.numeric(s)) / sum(s))
+    cs[findInterval(x, s) + 1L]
+  }
+  x <- sort(obs)
+  w <- x / sum(x)
+  length(obs) * sum(w * (Fw(sim, x) - Fw(obs, x))^2)
+}
+
 #' @keywords internal
 #'
 #' @importFrom data.table set setDT
@@ -558,7 +668,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE,
-                        yearSpreadSD = 0) {
+                        yearSpreadSD = 0, escapePx = 2L, doYearArea = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -884,7 +994,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## Observed and simulated sizes on the SAME (square-root) scale. With `x = size[1]` the
         ## observed size sat beyond sqrt(maxSize) for any fire above ~12 pixels, so its likelihood
         ## was the `minLik` floor whatever the parameters.
-        emp <- emp[N > 1, list(size = size[1],
+        emp <- emp[N >= escapePx, list(size = size[1],
                                lik = if(.N > 1) {
                                  if (identical(sizeLik, "t")) {
                                    sizeLikT(size[1], N, sizeLikDf)
@@ -918,7 +1028,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       if (isTRUE(doADTest)) {
         ## The adTest compares distributions, and the observed sample is single fires, so it gets
         ## every replicate's fire, not `fireSizes`: a per-fire mean over Nreps has a far shorter tail.
-        ret <- append(ret, list(allFireSizes = spreadState[, .N, by = c("rep", "initialLocus")][N > 1][["N"]]))  # escaped fires only, as SNLL
+        ret <- append(ret, list(allFireSizes = spreadState[, .N, by = c("rep", "initialLocus")][N >= escapePx][["N"]]))  # escaped fires only, as SNLL
+      }
+      if (isTRUE(doYearArea)) {
+        ## this year's simulated total per replicate, escaped fires only; a replicate with none burns 0
+        a <- spreadState[, .N, by = c("rep", "initialLocus")][N >= escapePx][, list(A = sum(N)), by = "rep"]
+        tot <- numeric(Nreps); tot[a$rep] <- a$A
+        ret <- append(ret, list(annualAreaByRep = tot))
       }
       if (SpaDES.core::anyPlotting(plot.it)) { # THIS IS PLOTTING STUFF
         # if (isTRUE(doSNLLTest)) {
