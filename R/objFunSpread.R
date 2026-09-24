@@ -918,7 +918,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       if (isTRUE(doADTest)) {
         ## The adTest compares distributions, and the observed sample is single fires, so it gets
         ## every replicate's fire, not `fireSizes`: a per-fire mean over Nreps has a far shorter tail.
-        ret <- append(ret, list(allFireSizes = spreadState[, .N, by = c("rep", "initialLocus")][["N"]]))
+        ret <- append(ret, list(allFireSizes = spreadState[, .N, by = c("rep", "initialLocus")][N > 1][["N"]]))  # escaped fires only, as SNLL
       }
       if (SpaDES.core::anyPlotting(plot.it)) { # THIS IS PLOTTING STUFF
         # if (isTRUE(doSNLLTest)) {
