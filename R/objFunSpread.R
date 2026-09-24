@@ -114,8 +114,10 @@ utils::globalVariables(c(
 #'   values forgive a missed fire more.
 #'
 #' @param escapeSizeHa Size (ha) a fire must reach to count as escaped. Observed fires smaller than this
-#'   are not fitted, and simulated fires smaller than this are left out of every term. `NULL` (default)
-#'   keeps the original rule: more than 1 pixel.
+#'   are not fitted, and every simulated fire starts as an escaped fire: `SpaDES.tools::spreadCpp(minSize)`
+#'   burns every burnable neighbour until the fire reaches this size, then `spreadProb` applies. No
+#'   simulated fire is dropped. `NULL` (default) keeps the original rule: observed and simulated fires of
+#'   1 pixel are left out.
 #' @param yearAreaWeight Weight of the annual-area term (see `yearAreaNLL()`): each fit year's observed
 #'   area burned scored against its simulated totals, with the per-fire size likelihood. `0` (default)
 #'   leaves it out; `"auto"` is (number of fitted fires) / (number of fit years), so the year view and
@@ -281,6 +283,12 @@ utils::globalVariables(c(
   ## NULL keeps the original rule: more than 1 pixel.
   escapePx <- escapePixels(escapeSizeHa, landscape)
   minFireSize <- max(minFireSize, escapePx)
+  ## With escapeSizeHa, every simulated fire starts as an escaped fire: spreadCpp(minSize) burns every burnable
+  ## neighbour until the fire has escapePx cells, then spreadProb applies. So no simulated fire is dropped
+  ## (one that cannot reach escapePx, for lack of burnable land, stays in). Without it, fires of 1 pixel are dropped.
+  esc <- escapeSimRule(escapeSizeHa, escapePx)
+  spreadMinSize <- esc$spreadMinSize
+  simMinPx <- esc$simMinPx
   doYearArea <- !identical(yearAreaWeight, 0) && !identical(yearAreaWeight, 0L)
   doAreaDist <- !identical(areaDistWeight, 0) && !identical(areaDistWeight, 0L)
   historicalFiresAboveMin <- lapply(historicalFires, function(x) {
@@ -339,7 +347,7 @@ utils::globalVariables(c(
         r = r, weighted = weighted, sizeWeightMean = sizeWeightMean,
         doSNLL_FSTest = doSNLL_FSTest,
         doMADTest = doMADTest, doADTest = doADTest || doAreaDist,
-        escapePx = escapePx, doYearArea = doYearArea,
+        escapePx = simMinPx, spreadMinSize = spreadMinSize, doYearArea = doYearArea,
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
@@ -602,6 +610,22 @@ escapePixels <- function(escapeSizeHa, landscape) {
   max(2L, as.integer(ceiling(escapeSizeHa / pixHa - 1e-9)))
 }
 
+#' How simulated fires are made to match the escape rule
+#'
+#' @param escapeSizeHa As for `.objfunSpreadFit()`.
+#' @param escapePx The escape size in pixels, from `escapePixels()`.
+#'
+#' @return A list: `spreadMinSize`, passed to `SpaDES.tools::spreadCpp(minSize)` (`NULL` without an escape size),
+#'   and `simMinPx`, the smallest simulated fire that is scored (2 without an escape size: fires of 1 pixel
+#'   are dropped; 1 with one, since every fire then starts at the escape size).
+#' @keywords internal
+escapeSimRule <- function(escapeSizeHa, escapePx) {
+  if (is.null(escapeSizeHa)) return(list(spreadMinSize = NULL, simMinPx = 2L))
+  if (!"minSize" %in% names(formals(SpaDES.tools::spreadCpp)))
+    stop("escapeSizeHa needs a SpaDES.tools whose spreadCpp() has `minSize`")
+  list(spreadMinSize = as.integer(escapePx), simMinPx = 1L)
+}
+
 #' Negative log-likelihood of each year's observed area burned
 #'
 #' Scores each fit year's observed total area burned against that year's simulated totals, one per
@@ -668,7 +692,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE,
-                        yearSpreadSD = 0, escapePx = 2L, doYearArea = FALSE) {
+                        yearSpreadSD = 0, escapePx = 2L, spreadMinSize = NULL, doYearArea = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -901,12 +925,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           sp[pixCrop] <- stats::plogis(lp + stats::rnorm(1, 0, yearSpreadSD))
           sp[lociCrop] <- 1
         }
-        SpaDES.tools::spreadCpp(
-          landscape = crop$r,
-          loci = crop$toCrop(loci),
-          spreadProb = sp,
-          maxSize = maxSizes
-        )
+        if (is.null(spreadMinSize)) {
+          SpaDES.tools::spreadCpp(landscape = crop$r, loci = crop$toCrop(loci), spreadProb = sp, maxSize = maxSizes)
+        } else {
+          SpaDES.tools::spreadCpp(landscape = crop$r, loci = crop$toCrop(loci), spreadProb = sp, maxSize = maxSizes,
+                                  minSize = spreadMinSize)
+        }
       })
       if (SpaDES.core::anyPlotting(plot.it)) {
         # par(

@@ -187,8 +187,10 @@ without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{
 includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
 
 \item{escapeSizeHa}{Size (ha) a fire must reach to count as escaped. Observed fires smaller than this
-are not fitted, and simulated fires smaller than this are left out of every term. \code{NULL} (default)
-keeps the original rule: more than 1 pixel.}
+are not fitted, and every simulated fire starts as an escaped fire: \code{SpaDES.tools::spreadCpp(minSize)}
+burns every burnable neighbour until the fire reaches this size, then \code{spreadProb} applies. No
+simulated fire is dropped. \code{NULL} (default) keeps the original rule: observed and simulated fires of
+1 pixel are left out.}
 
 \item{yearAreaWeight}{Weight of the annual-area term (see \code{yearAreaNLL()}): each fit year's observed
 area burned scored against its simulated totals, with the per-fire size likelihood. \code{0} (default)
