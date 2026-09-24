@@ -1,11 +1,10 @@
-## Per-fire random effect (fitFireSpreadSD). Weather during a fire is not in the model, so every fire of a year
-## saw identical spread probabilities and simulated fire sizes were too alike: medians too large and the largest
-## fires too small at once, and weighting big fires only shifted the whole distribution (2026-09-23). Each fire
-## now draws eps ~ N(0, sd^2) per replicate, applied on the logit scale to its buffer pixels, inside the
-## objective; spreadCpp() is unchanged.
+## Per-year random effect (fitYearSpreadSD), a seasonal departure. Without it the simulated fire sizes were too
+## alike: medians too large and the largest fires too small at once, and weighting big fires only shifted the whole
+## distribution (2026-09-23). Each replicate draws one eps ~ N(0, sd^2) for the year, applied on the logit scale to
+## every pixel of that year, inside the objective; spreadCpp() is unchanged.
 
 ## objFunInner with the spread mocked: 400 pixels, two fires with separate buffers (pixels 1:200, 201:400)
-innerNoise <- function(seen, fireSpreadSD, Nreps = 2L) {
+innerNoise <- function(seen, yearSpreadSD, Nreps = 2L) {
   local_mocked_bindings(
     paramsSeparate = function(...) list(logisticPars = c(0.27, 1, 1), covPars = 1),
     spreadProbFromIntegerCovs = function(...) data.table::data.table(pixelID = 1:400, cov = 0),
@@ -29,30 +28,29 @@ innerNoise <- function(seen, fireSpreadSD, Nreps = 2L) {
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = Inf,
     weighted = FALSE, r = r20, Nreps = Nreps,
     doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
-    plot.it = FALSE, verbose = 0, returnSims = TRUE, fireSpreadSD = fireSpreadSD)
+    plot.it = FALSE, verbose = 0, returnSims = TRUE, yearSpreadSD = yearSpreadSD)
 }
 
 test_that("sd = 0 leaves the spread probabilities as they were and draws no random numbers", {
   seen <- new.env()
   set.seed(1); before <- .Random.seed
-  innerNoise(seen, fireSpreadSD = 0)
+  innerNoise(seen, yearSpreadSD = 0)
   expect_identical(.Random.seed, before)
   sp <- seen$sp[[1]]
   expect_equal(sp[c(1, 49, 51, 200)], rep(0.2, 4))
   expect_equal(sp[c(50, 350)], c(1, 1))          # ignition cells
 })
 
-test_that("with sd > 0 each fire's buffer shifts together on the logit scale, differently per fire", {
+test_that("with sd > 0 every pixel of the year shifts by one eps, shared by all its fires", {
   seen <- new.env()
   set.seed(2)
-  innerNoise(seen, fireSpreadSD = 1, Nreps = 3L)
+  innerNoise(seen, yearSpreadSD = 1, Nreps = 3L)
   for (sp in seen$sp) {
     e1 <- qlogis(sp[setdiff(1:200, 50)]) - qlogis(0.2)
     e2 <- qlogis(sp[setdiff(201:400, 350)]) - qlogis(0.22)
-    expect_lt(diff(range(e1)), 1e-9)                # one eps per fire
-    expect_lt(diff(range(e2)), 1e-9)
-    expect_gt(abs(e1[1] - e2[1]), 1e-6)             # fires differ
-    expect_equal(sp[c(50, 350)], c(1, 1))
+    expect_lt(diff(range(c(e1, e2))), 1e-9)          # one eps for the whole year: both fires share it
+    expect_gt(abs(e1[1]), 1e-6)                      # and it is not zero
+    expect_equal(sp[c(50, 350)], c(1, 1))            # ignition cells
   }
   ## and replicates redraw
   expect_gt(abs(qlogis(seen$sp[[1]][1]) - qlogis(seen$sp[[2]][1])), 1e-6)
@@ -61,8 +59,8 @@ test_that("with sd > 0 each fire's buffer shifts together on the logit scale, di
 test_that(".objfunSpreadFit takes the sd from the end of a named par, and only when it is last", {
   skip_if_not_installed("purrr")
   seen <- new.env()
-  local_mocked_bindings(objFunInner = function(par, fireSpreadSD, ...) {
-    seen$par <- par; seen$sd <- fireSpreadSD; list(SNLL_FS = 1)
+  local_mocked_bindings(objFunInner = function(par, yearSpreadSD, ...) {
+    seen$par <- par; seen$sd <- yearSpreadSD; list(SNLL_FS = 1)
   })
   dt <- function(...) data.table::data.table(...)
   call <- function(par, ...) fireSenseUtils:::.objfunSpreadFit(
@@ -73,27 +71,27 @@ test_that(".objfunSpreadFit takes the sd from the end of a named par, and only w
     historicalFires = list(year2001 = data.frame(size = c(100, 200), cells = 1:2)),
     fireBufferedListDT = list(year2001 = dt(pixelID = 1:2, buffer = c(1L, 0L), ids = 1L)),
     formulaToFit = "~ cov1", tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0, ...)
-  call(c(a = 0.26, b = 1, c = 1, cov1 = 2, fireSpreadSD = 0.7))
+  call(c(a = 0.26, b = 1, c = 1, cov1 = 2, yearSpreadSD = 0.7))
   expect_equal(seen$sd, 0.7)
   expect_identical(names(seen$par), c("a", "b", "c", "cov1"))
   call(c(0.26, 1, 1, 2))                                       # unnamed: off unless asked
   expect_equal(seen$sd, 0)
-  call(c(0.26, 1, 1, 2, 0.4), fitFireSpreadSD = TRUE)           # DEoptim's unnamed par, told explicitly
+  call(c(0.26, 1, 1, 2, 0.4), fitYearSpreadSD = TRUE)           # DEoptim's unnamed par, told explicitly
   expect_equal(seen$sd, 0.4)
-  expect_error(call(c(a = 0.26, fireSpreadSD = 0.7, b = 1, c = 1, cov1 = 2)), "must be the last")
+  expect_error(call(c(a = 0.26, yearSpreadSD = 0.7, b = 1, c = 1, cov1 = 2)), "must be the last")
 })
 
 test_that("runDEoptim fits the sd when the bounds name it, in the fit and the re-score", {
   seen <- new.env()
-  lower <- stats::setNames(c(0.25, 0.2, 0.1, 0, 0), c("maxAsymptote", "hillSlope1", "inflectionPoint1", "x", "fireSpreadSD"))
+  lower <- stats::setNames(c(0.25, 0.2, 0.1, 0, 0), c("maxAsymptote", "hillSlope1", "inflectionPoint1", "x", "yearSpreadSD"))
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
-    DEoptimIterative2 = function(fn, lower, ...) { seen$fit <- list(...)$fitFireSpreadSD; list(list(member = list(pop = matrix(lower + 0.1, 1)))) },
+    DEoptimIterative2 = function(fn, lower, ...) { seen$fit <- list(...)$fitYearSpreadSD; list(list(member = list(pop = matrix(lower + 0.1, 1)))) },
     .package = "clusters")
   testthat::local_mocked_bindings(
     termsInDEoptim = function(...) invisible(NULL),
     rescorePopulation = function(pop, fn, reps, cl, seed = 1L, fnArgs = list()) {
-      seen$rescore <- fnArgs$fitFireSpreadSD; data.table::data.table(member = 1L, rep = 1L, value = 1) })
+      seen$rescore <- fnArgs$fitYearSpreadSD; data.table::data.table(member = 1L, rep = 1L, value = 1) })
   run <- function(lower) suppressMessages(runDEoptim(
     landscape = NULL, annualDTx1000 = NULL, nonAnnualDTx1000 = NULL, fireBufferedListDT = NULL,
     historicalFires = NULL, itermax = 5, trace = FALSE, strategy = 2L, cores = c("hostA", "hostB"),
