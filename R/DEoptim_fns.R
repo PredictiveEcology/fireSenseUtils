@@ -113,6 +113,8 @@ utils::globalVariables(c(
 #'   for [scoreFireSizes()] and [linkSaturation()]. Needs `rescoreReps > 0`.
 #' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL` or
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
+#' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
+#'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
 #'   final-population re-score, so both evaluate the same objective. The defaults are that function's.
 #'   Before these existed, every fit used those defaults whatever the caller wanted.
@@ -180,6 +182,7 @@ runDEoptim <- function(landscape,
                        weighted = TRUE,
                        adWeight = "auto",
                        link = NULL,
+                       escapeSizeHa = NULL,
                        profileReps = 0L,
                        simulateMembers = 0L) {
   if (isTRUE(is.na(cores))) cores <- NULL
@@ -270,6 +273,7 @@ runDEoptim <- function(landscape,
       adWeight = adWeight,
       link = link,
       fitYearSpreadSD = fitYearSpreadSD,
+      escapeSizeHa = escapeSizeHa,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -287,7 +291,7 @@ runDEoptim <- function(landscape,
                       Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
                       thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
                       weighted = weighted, adWeight = adWeight, link = link,
-                      fitYearSpreadSD = fitYearSpreadSD)
+                      fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(

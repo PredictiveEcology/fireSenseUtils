@@ -49,6 +49,7 @@ runDEoptim(
   weighted = TRUE,
   adWeight = "auto",
   link = NULL,
+  escapeSizeHa = NULL,
   profileReps = 0L,
   simulateMembers = 0L
 )
@@ -209,6 +210,9 @@ Before these existed, every fit used those defaults whatever the caller wanted.}
 
 \item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL} or
 \code{"logistic3pUpper"}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
+
+\item{escapeSizeHa}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: the size (ha) a
+fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.
