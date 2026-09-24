@@ -1,3 +1,10 @@
+# fireSenseUtils 0.2.3.9042
+
+* Needs `LandR >= 1.2.0.9022` (was `>= 1.1.0.9066`). The default land cover, SCANFI with wetland classes,
+  calls `LandR::prepInputs_CWIM()` and `LandR::wetlandToLCC()`, which arrived in 1.2.0.9022
+  (PredictiveEcology/LandR#228). With an older LandR the package installed and the run stopped at the land
+  cover instead.
+
 # fireSenseUtils 0.2.3.9041
 
 * The spread objective's random effect is now per YEAR, not per fire, and is named `yearSpreadSD`
