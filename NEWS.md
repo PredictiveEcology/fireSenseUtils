@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9041
+
+* The spread objective's random effect is now per YEAR, not per fire, and is named `yearSpreadSD`
+  (was `fireSpreadSD`; `fitYearSpreadSD` was `fitFireSpreadSD`). It is a seasonal departure: each replicate draws
+  one `eps ~ N(0, yearSpreadSD^2)` for the year, and every pixel of that year spreads with
+  `plogis(qlogis(p) + eps)`, so all of a year's fires are bigger or smaller together. fireSense does the same in a
+  forecast. `yearSpreadSD = 0` is the model without it, exactly.
+
 # fireSenseUtils 0.2.3.9040
 
 * Per-fire random effect in the spread objective. Weather during a fire is not in the model, so every fire of a year

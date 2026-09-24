@@ -71,8 +71,8 @@ utils::globalVariables(c(
 #' @param lower Numeric vector. Lower bounds for the parameters being optimized.
 #'   Passed to [DEoptim::DEoptim].
 #'
-#'   If named and including `fireSpreadSD` (which must be last), the per-fire random effect of
-#'   [.objfunSpreadFit()] (`fitFireSpreadSD`) is fitted, in the fit and in the re-score.
+#'   If named and including `yearSpreadSD` (which must be last), the per-year random effect (a seasonal departure) of
+#'   [.objfunSpreadFit()] (`fitYearSpreadSD`) is fitted, in the fit and in the re-score.
 #'
 #' @param upper Numeric vector. Upper bounds for the parameters being optimized.
 #'   Passed to [DEoptim::DEoptim].
@@ -230,11 +230,11 @@ runDEoptim <- function(landscape,
   # DEOptim call
   #####################################################################
   termsInDEoptim(formulaToFit, thresh, length(lower))
-  ## the per-fire random effect is fitted when the bounds include it (its sd is the LAST parameter);
+  ## the per-year random effect is fitted when the bounds include it (its sd is the LAST parameter);
   ## DEoptim passes `par` unnamed, so the objective is told explicitly
-  fitFireSpreadSD <- fireSpreadSDTxt %in% names(lower)
-  if (fitFireSpreadSD && !identical(names(lower)[length(lower)], fireSpreadSDTxt))
-    stop("runDEoptim: `", fireSpreadSDTxt, "` must be the last element of `lower` and `upper`")
+  fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)
+  if (fitYearSpreadSD && !identical(names(lower)[length(lower)], yearSpreadSDTxt))
+    stop("runDEoptim: `", yearSpreadSDTxt, "` must be the last element of `lower` and `upper`")
 
   # aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
   DE <- Cache(
@@ -269,7 +269,7 @@ runDEoptim <- function(landscape,
       weighted = weighted,
       adWeight = adWeight,
       link = link,
-      fitFireSpreadSD = fitFireSpreadSD,
+      fitYearSpreadSD = fitYearSpreadSD,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -287,7 +287,7 @@ runDEoptim <- function(landscape,
                       Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
                       thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
                       weighted = weighted, adWeight = adWeight, link = link,
-                      fitFireSpreadSD = fitFireSpreadSD)
+                      fitYearSpreadSD = fitYearSpreadSD)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(
