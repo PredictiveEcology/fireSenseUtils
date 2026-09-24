@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9043
+
+* `latestSpreadFits()` reads the shared SpreadFit ledger when a module's `spreadFitFilename` is `"latest"`: for
+  each polygon, its rows from the most recently modified `fireSenseParams_*_linearFuel.rds` file in the Drive folder
+  that has it, reading newest first and stopping once the polygons asked for are found. Files without the
+  `spreadFitFileTag` (`"_linearFuel"`) hold log-fuel fits and are never read. `spreadFitFilenameFor(fireYears)`
+  names the file a fit is written to.
+
 # fireSenseUtils 0.2.3.9042
 
 * Needs `LandR >= 1.2.0.9022` (was `>= 1.1.0.9066`). The default land cover, SCANFI with wetland classes,
