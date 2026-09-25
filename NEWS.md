@@ -1,3 +1,13 @@
+# fireSenseUtils 0.2.3.9044
+
+* New argument `escapeSizeHa` in `.objfunSpreadFit()` and `runDEoptim()` (default `NULL`, the old behaviour). When
+  set, the spread model is fitted as "given the fire escaped": only observed fires of at least
+  `escapeSizePixels(escapeSizeHa, landscape)` pixels are fitted, and every simulated fire burns its first that
+  many cells regardless of spread probability (`SpaDES.tools::spreadCpp(minSize =)`) before spreading normally.
+  Before, an escaped fire was any fire over 1 pixel, and 11-16% of simulated fires never left their first pixel.
+  New exported helper `escapeSizePixels()`, so fireSense uses the same threshold.
+  Needs SpaDES.tools >= 2.1.3.9009 (`spreadCpp(minSize =)`).
+
 # fireSenseUtils 0.2.3.9043
 
 * `latestSpreadFits()` reads the shared SpreadFit ledger when a module's `spreadFitFilename` is `"latest"`: for

@@ -16,6 +16,7 @@
   maxFireSpread = 0.28,
   lowerSpreadProb = 0.13,
   minFireSize = 2,
+  escapeSizeHa = NULL,
   tests = "snll_fs",
   Nreps = 10,
   mutuallyExclusive = list(youngAge = c("class", "nf")),
@@ -86,6 +87,12 @@ simulation work. Default \code{0.13}.}
 \item{minFireSize}{Integer. Minimum fire size (in pixels) to include when
 scoring simulated against historical fires; fires smaller than this are
 filtered out of the comparison. Default \code{1}.}
+
+\item{escapeSizeHa}{Numeric or \code{NULL}. Size (ha) a fire must reach to count as escaped. \code{NULL} (the
+default) keeps the historical rule: observed fires of at least \code{minFireSize} pixels, simulated fires
+of more than 1 pixel in the size likelihood, and every simulated fire in the AD test. When set, the
+observed fires AND the simulated fires in both tests are limited to fires of at least
+\code{\link[=escapeSizePixels]{escapeSizePixels()}} pixels, so the spread model is fitted as "given the fire escaped".}
 
 \item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
 

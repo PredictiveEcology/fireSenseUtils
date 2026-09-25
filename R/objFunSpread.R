@@ -52,6 +52,12 @@ utils::globalVariables(c(
 #'   scoring simulated against historical fires; fires smaller than this are
 #'   filtered out of the comparison. Default `1`.
 #'
+#' @param escapeSizeHa Numeric or `NULL`. Size (ha) a fire must reach to count as escaped. `NULL` (the
+#'   default) keeps the historical behaviour. When set, only observed fires of at least
+#'   [escapeSizePixels()] pixels are fitted, and every simulated fire starts as an escaped fire: it burns
+#'   its first [escapeSizePixels()] cells regardless of `spreadProb` (`SpaDES.tools::spreadCpp(minSize =)`),
+#'   then spreads with the fitted probabilities. So the spread model is fitted as "given the fire escaped".
+#'
 #' @template mutuallyExclusive
 #'
 #' @param doAssertions Logical. If `TRUE`, the default, the function will test a few minor things
@@ -180,6 +186,7 @@ utils::globalVariables(c(
                              maxFireSpread = 0.28, # 0.257 makes gigantic fires
                              lowerSpreadProb = 0.13,
                              minFireSize = 2,
+                             escapeSizeHa = NULL,
                              tests = "snll_fs",
                              Nreps = 10,
                              mutuallyExclusive = list("youngAge" = c("class", "nf")),
@@ -249,6 +256,10 @@ utils::globalVariables(c(
   ncells <- ncell(landscape)
 
   r <- rast(landscape)
+  ## an escaped fire has at least `escapeMinPx` pixels: only such observed fires are fitted, and every
+  ## simulated fire burns that many cells first (spreadCpp(minSize =)). NULL keeps the historical rules.
+  escapeMinPx <- if (!is.null(escapeSizeHa)) escapeSizePixels(escapeSizeHa, landscape)
+  if (!is.null(escapeMinPx)) minFireSize <- max(minFireSize, escapeMinPx)
   years <- as.character(names(annualDTx1000))
   names(years) <- years
   ## numeric, not integer: it receives spreadProb (double), and assigning doubles into an
@@ -322,6 +333,7 @@ utils::globalVariables(c(
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
         returnSims = returnSims, capSizes = capSizes, yearSpreadSD = yearSpreadSD,
+        escapeMinPx = escapeMinPx,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -558,7 +570,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE,
-                        yearSpreadSD = 0) {
+                        yearSpreadSD = 0, escapeMinPx = NULL) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -791,12 +803,22 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           sp[pixCrop] <- stats::plogis(lp + stats::rnorm(1, 0, yearSpreadSD))
           sp[lociCrop] <- 1
         }
-        SpaDES.tools::spreadCpp(
-          landscape = crop$r,
-          loci = crop$toCrop(loci),
-          spreadProb = sp,
-          maxSize = maxSizes
-        )
+        if (is.null(escapeMinPx)) {
+          SpaDES.tools::spreadCpp(
+            landscape = crop$r,
+            loci = crop$toCrop(loci),
+            spreadProb = sp,
+            maxSize = maxSizes
+          )
+        } else { ## an escaped fire burns its first escapeMinPx cells whatever spreadProb
+          SpaDES.tools::spreadCpp(
+            landscape = crop$r,
+            loci = crop$toCrop(loci),
+            spreadProb = sp,
+            maxSize = maxSizes,
+            minSize = escapeMinPx
+          )
+        }
       })
       if (SpaDES.core::anyPlotting(plot.it)) {
         # par(
@@ -1277,4 +1299,21 @@ cropToCells <- function(r, cells, margin = 1L) {
     toCrop = function(x) ((x - 1L) %/% nc - r0) * ncCrop + ((x - 1L) %% nc - c0) + 1L,
     toFull = function(x) ((x - 1L) %/% ncCrop + r0) * nc + ((x - 1L) %% ncCrop + c0) + 1L
   )
+}
+
+#' Pixels a fire must burn to count as escaped
+#'
+#' The smallest whole number of pixels whose area is at least `escapeSizeHa`. Shared by the spread
+#' fit ([.objfunSpreadFit()]) and fireSense's burning, so "escaped" means the same in both.
+#'
+#' @param escapeSizeHa Size (ha) a fire must reach to count as escaped.
+#' @param landscape A `SpatRaster` (or anything with [terra::res()]) in metres.
+#' @return An integer, at least 1.
+#' @export
+#' @examples
+#' r <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 2400, ymin = 0, ymax = 2400)
+#' escapeSizePixels(50, r) # 240 m pixels are 5.76 ha: 9 pixels
+escapeSizePixels <- function(escapeSizeHa, landscape) {
+  pixHa <- prod(terra::res(landscape)) / 1e4
+  max(1L, as.integer(ceiling(escapeSizeHa / pixHa - 1e-9)))
 }
