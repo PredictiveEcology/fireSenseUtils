@@ -1,3 +1,20 @@
+# fireSenseUtils 0.2.3.9044
+
+* `.objfunSpreadFit()` and `runDEoptim()` gain options for the spread objective, all off by default, so existing
+  fits give the same objective values:
+  - `escapeSizeHa`: only fires that reached this size are fitted. Observed fires below it are left out, and
+    every simulated fire starts at this size (`SpaDES.tools::spreadCpp(minSize)`). Needs a SpaDES.tools with
+    `minSize`, `jumpTries` and `jumpMeanDist` (TODO: floor it once that PR is merged). `jumpTries` and
+    `jumpMeanDist` let a fire stuck below the escape size jump to nearby burnable land (default 0, off).
+  - `yearAreaWeight`: scores each fit year's observed area burned against its simulated totals, with the same
+    size likelihood as the per-fire term. `"auto"` weights it equally with the per-fire term.
+  - `areaDistWeight`: compares simulated and observed fire sizes by the share of area burned they make up
+    (`areaWeightedCvM()`), which weights the large fires that make most of it. `"auto"` uses the AD term's weight.
+  - `returnTerms = TRUE` returns each term separately.
+* Changed: the Anderson-Darling term now uses only simulated fires larger than 1 pixel, as the per-fire likelihood
+  already did; fires that never spread were counted as a size mismatch. Objective values of fits that use
+  `adTest` change, and, as for any change to the objective, cached DEoptim generations are not reused.
+
 # fireSenseUtils 0.2.3.9043
 
 * `latestSpreadFits()` reads the shared SpreadFit ledger when a module's `spreadFitFilename` is `"latest"`: for

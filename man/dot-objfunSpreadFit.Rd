@@ -35,6 +35,8 @@
   capSizes = TRUE,
   fitYearSpreadSD = NULL,
   escapeSizeHa = NULL,
+  jumpTries = 0,
+  jumpMeanDist = 0,
   yearAreaWeight = 0,
   areaDistWeight = 0,
   returnTerms = FALSE,
@@ -191,6 +193,10 @@ are not fitted, and every simulated fire starts as an escaped fire: \code{SpaDES
 burns every burnable neighbour until the fire reaches this size, then \code{spreadProb} applies. No
 simulated fire is dropped. \code{NULL} (default) keeps the original rule: observed and simulated fires of
 1 pixel are left out.}
+
+\item{jumpTries, jumpMeanDist}{Used with \code{escapeSizeHa}: passed to \code{SpaDES.tools::spreadCpp()}, so a fire
+that is stuck below the escape size (no burnable neighbour left) can jump. \code{jumpTries} is how many times
+it may try; \code{jumpMeanDist} the mean jump distance, in pixels. \code{0} (default) is off.}
 
 \item{yearAreaWeight}{Weight of the annual-area term (see \code{yearAreaNLL()}): each fit year's observed
 area burned scored against its simulated totals, with the per-fire size likelihood. \code{0} (default)

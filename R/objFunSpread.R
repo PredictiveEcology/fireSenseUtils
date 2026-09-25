@@ -118,6 +118,9 @@ utils::globalVariables(c(
 #'   burns every burnable neighbour until the fire reaches this size, then `spreadProb` applies. No
 #'   simulated fire is dropped. `NULL` (default) keeps the original rule: observed and simulated fires of
 #'   1 pixel are left out.
+#' @param jumpTries,jumpMeanDist Used with `escapeSizeHa`: passed to `SpaDES.tools::spreadCpp()`, so a fire
+#'   that is stuck below the escape size (no burnable neighbour left) can jump. `jumpTries` is how many times
+#'   it may try; `jumpMeanDist` the mean jump distance, in pixels. `0` (default) is off.
 #' @param yearAreaWeight Weight of the annual-area term (see `yearAreaNLL()`): each fit year's observed
 #'   area burned scored against its simulated totals, with the per-fire size likelihood. `0` (default)
 #'   leaves it out; `"auto"` is (number of fitted fires) / (number of fit years), so the year view and
@@ -211,6 +214,8 @@ utils::globalVariables(c(
                              capSizes = TRUE,
                              fitYearSpreadSD = NULL,
                              escapeSizeHa = NULL,
+                             jumpTries = 0,
+                             jumpMeanDist = 0,
                              yearAreaWeight = 0,
                              areaDistWeight = 0,
                              returnTerms = FALSE,
@@ -348,6 +353,7 @@ utils::globalVariables(c(
         doSNLL_FSTest = doSNLL_FSTest,
         doMADTest = doMADTest, doADTest = doADTest || doAreaDist,
         escapePx = simMinPx, spreadMinSize = spreadMinSize, doYearArea = doYearArea,
+        jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
@@ -621,8 +627,8 @@ escapePixels <- function(escapeSizeHa, landscape) {
 #' @keywords internal
 escapeSimRule <- function(escapeSizeHa, escapePx) {
   if (is.null(escapeSizeHa)) return(list(spreadMinSize = NULL, simMinPx = 2L))
-  if (!"minSize" %in% names(formals(SpaDES.tools::spreadCpp)))
-    stop("escapeSizeHa needs a SpaDES.tools whose spreadCpp() has `minSize`")
+  if (!all(c("minSize", "jumpTries", "jumpMeanDist") %in% names(formals(SpaDES.tools::spreadCpp))))
+    stop("escapeSizeHa needs a SpaDES.tools whose spreadCpp() has `minSize`, `jumpTries` and `jumpMeanDist`")
   list(spreadMinSize = as.integer(escapePx), simMinPx = 1L)
 }
 
@@ -692,7 +698,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE,
-                        yearSpreadSD = 0, escapePx = 2L, spreadMinSize = NULL, doYearArea = FALSE) {
+                        yearSpreadSD = 0, escapePx = 2L, spreadMinSize = NULL, doYearArea = FALSE,
+                        jumpTries = 0, jumpMeanDist = 0) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -929,7 +936,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           SpaDES.tools::spreadCpp(landscape = crop$r, loci = crop$toCrop(loci), spreadProb = sp, maxSize = maxSizes)
         } else {
           SpaDES.tools::spreadCpp(landscape = crop$r, loci = crop$toCrop(loci), spreadProb = sp, maxSize = maxSizes,
-                                  minSize = spreadMinSize)
+                                  minSize = spreadMinSize, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist)
         }
       })
       if (SpaDES.core::anyPlotting(plot.it)) {

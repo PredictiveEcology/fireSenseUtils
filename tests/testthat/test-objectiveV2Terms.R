@@ -48,7 +48,7 @@ test_that("the new arguments are off by default", {
 
 test_that("escapeSimRule(): no escape size drops 1-pixel fires; an escape size starts fires at it", {
   expect_identical(fireSenseUtils:::escapeSimRule(NULL, 2L), list(spreadMinSize = NULL, simMinPx = 2L))
-  if ("minSize" %in% names(formals(SpaDES.tools::spreadCpp))) {
+  if (all(c("minSize", "jumpTries", "jumpMeanDist") %in% names(formals(SpaDES.tools::spreadCpp)))) {
     expect_identical(fireSenseUtils:::escapeSimRule(50, 9L), list(spreadMinSize = 9L, simMinPx = 1L))
     ## with spreadProb 0 a fire stops exactly at minSize (open landscape, far from edges)
     r <- terra::rast(nrows = 50, ncols = 50, xmin = 0, xmax = 50, ymin = 0, ymax = 50)
@@ -58,4 +58,11 @@ test_that("escapeSimRule(): no escape size drops 1-pixel fires; an escape size s
   } else {
     expect_error(fireSenseUtils:::escapeSimRule(50, 9L), "minSize")
   }
+})
+
+test_that("runDEoptim() passes the new objective arguments, off by default", {
+  f <- formals(fireSenseUtils::runDEoptim)
+  expect_null(f$escapeSizeHa); expect_identical(f$yearAreaWeight, 0); expect_identical(f$areaDistWeight, 0)
+  b <- paste(deparse(body(fireSenseUtils::runDEoptim)), collapse = "\n")
+  expect_equal(lengths(regmatches(b, gregexpr("escapeSizeHa = escapeSizeHa", b))), 2L)  # fit and re-score
 })

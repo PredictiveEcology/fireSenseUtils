@@ -116,6 +116,8 @@ utils::globalVariables(c(
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
 #'   final-population re-score, so both evaluate the same objective. The defaults are that function's.
 #'   Before these existed, every fit used those defaults whatever the caller wanted.
+#' @param escapeSizeHa,jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit and the
+#'   final-population re-score. Off by default (`NULL`, `0`, `0`).
 #' @param .c Numeric in `(0, 1]`. DEoptim's `c`, the speed of crossover adaptation (used by
 #'   `strategy = 6`). Passed to [DEoptim::DEoptim.control()]; a `c` in `DEoptimControl` wins.
 #' @param DEoptimControl Named list of further [DEoptim::DEoptim.control()] settings (for example
@@ -179,6 +181,11 @@ runDEoptim <- function(landscape,
                        sizeLikDf = 5,
                        weighted = TRUE,
                        adWeight = "auto",
+                       escapeSizeHa = NULL,
+                       jumpTries = 0,
+                       jumpMeanDist = 0,
+                       yearAreaWeight = 0,
+                       areaDistWeight = 0,
                        link = NULL,
                        profileReps = 0L,
                        simulateMembers = 0L) {
@@ -268,6 +275,11 @@ runDEoptim <- function(landscape,
       sizeLikDf = sizeLikDf,
       weighted = weighted,
       adWeight = adWeight,
+      escapeSizeHa = escapeSizeHa,
+      jumpTries = jumpTries,
+      jumpMeanDist = jumpMeanDist,
+      yearAreaWeight = yearAreaWeight,
+      areaDistWeight = areaDistWeight,
       link = link,
       fitYearSpreadSD = fitYearSpreadSD,
       rep = rep,
@@ -287,6 +299,8 @@ runDEoptim <- function(landscape,
                       Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
                       thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
                       weighted = weighted, adWeight = adWeight, link = link,
+                      escapeSizeHa = escapeSizeHa, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
+                      yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
                       fitYearSpreadSD = fitYearSpreadSD)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)

@@ -48,6 +48,11 @@ runDEoptim(
   sizeLikDf = 5,
   weighted = TRUE,
   adWeight = "auto",
+  escapeSizeHa = NULL,
+  jumpTries = 0,
+  jumpMeanDist = 0,
+  yearAreaWeight = 0,
+  areaDistWeight = 0,
   link = NULL,
   profileReps = 0L,
   simulateMembers = 0L
@@ -206,6 +211,9 @@ object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean
 \item{sizeLik, sizeLikDf, weighted, adWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit AND in the
 final-population re-score, so both evaluate the same objective. The defaults are that function's.
 Before these existed, every fit used those defaults whatever the caller wanted.}
+
+\item{escapeSizeHa, jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the
+final-population re-score. Off by default (\code{NULL}, \code{0}, \code{0}).}
 
 \item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL} or
 \code{"logistic3pUpper"}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
