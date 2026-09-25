@@ -50,6 +50,10 @@ runDEoptim(
   adWeight = "auto",
   link = NULL,
   escapeSizeHa = NULL,
+  jumpTries = 0,
+  jumpMeanDist = 0,
+  yearAreaWeight = 0,
+  areaDistWeight = 0,
   profileReps = 0L,
   simulateMembers = 0L
 )
@@ -213,6 +217,9 @@ Before these existed, every fit used those defaults whatever the caller wanted.}
 
 \item{escapeSizeHa}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: the size (ha) a
 fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
+
+\item{jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit
+and the final-population re-score. Off by default (\code{0}).}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.

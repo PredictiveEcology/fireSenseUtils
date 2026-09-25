@@ -1,3 +1,20 @@
+# fireSenseUtils 0.2.3.9045
+
+* `.objfunSpreadFit()` and `runDEoptim()` gain options, off by default:
+  - `jumpTries`, `jumpMeanDist`: with `escapeSizeHa`, passed to `SpaDES.tools::spreadCpp()` so a fire stuck
+    below the escape size can jump to nearby burnable land.
+  - `yearAreaWeight`: scores each fit year's observed area burned against its simulated totals with the per-fire
+    size likelihood (`yearAreaNLL()`); a year the objective refused to simulate gets `minLik`. `"auto"` weights
+    it equally with the per-fire term.
+  - `areaDistWeight`: compares simulated and observed sizes by the share of area burned they make up
+    (`areaWeightedCvM()`), which weights the large fires. `"auto"` uses the AD term's weight.
+  - `returnTerms = TRUE` returns each term separately.
+* With `escapeSizeHa`, a fire's size cap is raised to the escape size where it was smaller, as `spreadCpp()`
+  needs `minSize <= maxSize`.
+* Changed: the Anderson-Darling term now uses only simulated fires larger than 1 pixel, as the per-fire
+  likelihood already did; fires that never spread were counted as a size mismatch. Objective values of fits
+  that use `adTest` change.
+
 # fireSenseUtils 0.2.3.9044
 
 * New argument `escapeSizeHa` in `.objfunSpreadFit()` and `runDEoptim()` (default `NULL`, the old behaviour). When
