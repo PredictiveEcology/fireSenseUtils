@@ -1,3 +1,9 @@
+# fireSenseUtils 0.2.3.9046
+
+* `spreadFitFileTag` is now `"_linearFuel_esc50"`: fits made with the 50-ha escape and the new objective terms go
+  to a new ledger file (`fireSenseParams_<years>_linearFuel_esc50.rds`), and `"latest"` no longer reads the
+  `_linearFuel` files of the previous model. An ELF with only an old fit counts as unfitted and is fitted again.
+
 # fireSenseUtils 0.2.3.9045
 
 * `.objfunSpreadFit()` and `runDEoptim()` gain options, off by default:

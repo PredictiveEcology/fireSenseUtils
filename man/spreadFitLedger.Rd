@@ -23,7 +23,7 @@ latestSpreadFits(cloudFolderID, destinationPath, polygonIDs = NULL)
 }
 \value{
 \code{spreadFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
-e.g. \code{"fireSenseParams_1985-2024_linearFuel.rds"}.
+e.g. \code{"fireSenseParams_1985-2024_linearFuel_esc50.rds"}.
 
 \code{latestSpreadFits()}: the ledger rows, in the form fireSense_SpreadFit writes them
 (a \code{data.frame} with a \code{geometry} column), or \code{NULL} when no file matches. Attribute
@@ -41,7 +41,9 @@ downloaded again.
 }
 \details{
 \code{spreadFitFileTag} marks the files whose fits use the current model: fuel biomass on the
-linear scale (\code{\link[=fuelLogToLinear]{fuelLogToLinear()}}). Files without it hold fits on log fuel, which an older
+linear scale (\code{\link[=fuelLogToLinear]{fuelLogToLinear()}}), escaped fires starting at 50 ha (\code{escapeSizeHa}), and the
+objective with the annual-area and area-distribution terms. Files with an older tag
+(\code{"_linearFuel"}: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
 fireSense_SpreadPredict would apply wrongly, so \code{"latest"} never reads them.
 A fit made under a new model needs a new tag, so the old files drop out of \code{"latest"}.
 }
