@@ -17,6 +17,11 @@
   lowerSpreadProb = 0.13,
   minFireSize = 2,
   escapeSizeHa = NULL,
+  jumpTries = 0,
+  jumpMeanDist = 0,
+  yearAreaWeight = 0,
+  areaDistWeight = 0,
+  returnTerms = FALSE,
   tests = "snll_fs",
   Nreps = 10,
   mutuallyExclusive = list(youngAge = c("class", "nf")),
@@ -89,10 +94,25 @@ scoring simulated against historical fires; fires smaller than this are
 filtered out of the comparison. Default \code{1}.}
 
 \item{escapeSizeHa}{Numeric or \code{NULL}. Size (ha) a fire must reach to count as escaped. \code{NULL} (the
-default) keeps the historical rule: observed fires of at least \code{minFireSize} pixels, simulated fires
-of more than 1 pixel in the size likelihood, and every simulated fire in the AD test. When set, the
-observed fires AND the simulated fires in both tests are limited to fires of at least
-\code{\link[=escapeSizePixels]{escapeSizePixels()}} pixels, so the spread model is fitted as "given the fire escaped".}
+default) keeps the historical behaviour. When set, only observed fires of at least
+\code{\link[=escapeSizePixels]{escapeSizePixels()}} pixels are fitted, and every simulated fire starts as an escaped fire: it burns
+its first \code{\link[=escapeSizePixels]{escapeSizePixels()}} cells regardless of \code{spreadProb} (\code{SpaDES.tools::spreadCpp(minSize =)}),
+then spreads with the fitted probabilities. So the spread model is fitted as "given the fire escaped".}
+
+\item{jumpTries, jumpMeanDist}{Used with \code{escapeSizeHa}: passed to \code{SpaDES.tools::spreadCpp()}, so a fire
+stuck below the escape size (no burnable neighbour left) can jump to nearby burnable land. \code{jumpTries}
+is how many times it may try, \code{jumpMeanDist} the mean jump distance in pixels. \code{0} (default) is off.}
+
+\item{yearAreaWeight}{Weight of the annual-area term: each fit year's observed area burned scored against
+that year's simulated totals, one per replicate, with the per-fire size likelihood (\code{yearAreaNLL()}).
+\code{0} (default) leaves it out; \code{"auto"} is (number of fitted fires) / (number of fit years), so the year
+view and the per-fire view carry equal total weight.}
+
+\item{areaDistWeight}{Weight of the area-weighted size-distribution term (\code{areaWeightedCvM()}), which
+compares simulated and observed fires by the share of area burned they make up. \code{0} (default) leaves
+it out; \code{"auto"} uses the AD term's weight, \code{adWeightAuto()}.}
+
+\item{returnTerms}{Logical. \code{TRUE} returns the objective with each term separately (diagnostics).}
 
 \item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
 

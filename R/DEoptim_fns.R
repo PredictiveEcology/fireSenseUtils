@@ -113,6 +113,8 @@ utils::globalVariables(c(
 #'   for [scoreFireSizes()] and [linkSaturation()]. Needs `rescoreReps > 0`.
 #' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL` or
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
+#' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
+#'   and the final-population re-score. Off by default (`0`).
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
@@ -183,6 +185,10 @@ runDEoptim <- function(landscape,
                        adWeight = "auto",
                        link = NULL,
                        escapeSizeHa = NULL,
+                       jumpTries = 0,
+                       jumpMeanDist = 0,
+                       yearAreaWeight = 0,
+                       areaDistWeight = 0,
                        profileReps = 0L,
                        simulateMembers = 0L) {
   if (isTRUE(is.na(cores))) cores <- NULL
@@ -274,6 +280,10 @@ runDEoptim <- function(landscape,
       link = link,
       fitYearSpreadSD = fitYearSpreadSD,
       escapeSizeHa = escapeSizeHa,
+      jumpTries = jumpTries,
+      jumpMeanDist = jumpMeanDist,
+      yearAreaWeight = yearAreaWeight,
+      areaDistWeight = areaDistWeight,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -291,7 +301,9 @@ runDEoptim <- function(landscape,
                       Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
                       thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
                       weighted = weighted, adWeight = adWeight, link = link,
-                      fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa)
+                      fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa,
+                      jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
+                      yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(
