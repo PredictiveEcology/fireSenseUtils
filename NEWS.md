@@ -4,7 +4,7 @@
   fits give the same objective values:
   - `escapeSizeHa`: only fires that reached this size are fitted. Observed fires below it are left out, and
     every simulated fire starts at this size (`SpaDES.tools::spreadCpp(minSize)`). Needs a SpaDES.tools with
-    `minSize`, `jumpTries` and `jumpMeanDist` (TODO: floor it once that PR is merged). `jumpTries` and
+    `minSize`, `jumpTries` and `jumpMeanDist`: now `SpaDES.tools (>= 2.1.3.9009)`. `jumpTries` and
     `jumpMeanDist` let a fire stuck below the escape size jump to nearby burnable land (default 0, off).
   - `yearAreaWeight`: scores each fit year's observed area burned against its simulated totals, with the same
     size likelihood as the per-fire term. `"auto"` weights it equally with the per-fire term.
