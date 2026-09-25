@@ -42,7 +42,7 @@ Imports:
     sp,
     SpaDES.core,
     SpaDES.project,
-    SpaDES.tools (>= 2.1.3.9008),
+    SpaDES.tools (>= 2.1.3.9009),
     stats,
     terra,
     tidyr,

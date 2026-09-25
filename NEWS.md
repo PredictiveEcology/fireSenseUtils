@@ -6,6 +6,7 @@
   many cells regardless of spread probability (`SpaDES.tools::spreadCpp(minSize =)`) before spreading normally.
   Before, an escaped fire was any fire over 1 pixel, and 11-16% of simulated fires never left their first pixel.
   New exported helper `escapeSizePixels()`, so fireSense uses the same threshold.
+  Needs SpaDES.tools >= 2.1.3.9009 (`spreadCpp(minSize =)`).
 
 # fireSenseUtils 0.2.3.9043
 
