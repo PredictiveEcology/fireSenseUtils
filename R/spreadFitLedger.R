@@ -5,14 +5,16 @@
 #' With `spreadFitFilename = "latest"` those modules use these functions instead of one named file.
 #'
 #' `spreadFitFileTag` marks the files whose fits use the current model: fuel biomass on the
-#' linear scale ([fuelLogToLinear()]). Files without it hold fits on log fuel, which an older
+#' linear scale ([fuelLogToLinear()]), escaped fires starting at 50 ha (`escapeSizeHa`), and the
+#' objective with the annual-area and area-distribution terms. Files with an older tag
+#' (`"_linearFuel"`: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
 #' fireSense_SpreadPredict would apply wrongly, so `"latest"` never reads them.
 #' A fit made under a new model needs a new tag, so the old files drop out of `"latest"`.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
 #'
 #' @return `spreadFitFilenameFor()`: the file name a fit over `fireYears` is written to,
-#'   e.g. `"fireSenseParams_1985-2024_linearFuel.rds"`.
+#'   e.g. `"fireSenseParams_1985-2024_linearFuel_esc50.rds"`.
 #' @export
 #' @rdname spreadFitLedger
 spreadFitFilenameFor <- function(fireYears) {
@@ -24,7 +26,7 @@ spreadFitFilenameFor <- function(fireYears) {
 
 #' @export
 #' @rdname spreadFitLedger
-spreadFitFileTag <- "_linearFuel"
+spreadFitFileTag <- "_linearFuel_esc50"
 
 #' @description
 #' `latestSpreadFits()` returns, for every polygon, its rows from the most recently modified
