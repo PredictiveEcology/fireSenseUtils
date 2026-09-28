@@ -61,7 +61,7 @@ getFirePolygons <- function(url, years, useInnerCache = FALSE, ...) {
   if (is(firePolys, "SpatVector"))
     firePolys$POLY_HA <- round(terra::expanse(firePolys, unit = "ha"), 2)
   else
-    firePolys$POLY_HA <- round(sf::st_area(firePolys, unit = "ha"), 2)
+    firePolys$POLY_HA <- round(as.numeric(sf::st_area(firePolys)) / 1e4, 2) # st_area() gives m2
 
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
     firePoly <- polys[polys$YEAR == x, ]
