@@ -69,6 +69,55 @@ test_that("makeMutuallyExclusive: all cov1 zero – nothing changed", {
 })
 
 # ---------------------------------------------------------------------------
+# makeMutuallyExclusive: youngAge is exclusive with everything, not zeroed itself
+#
+# fireSense_SpreadFit::spreadFitPrep() appends every non-annual column name to youngAge's own
+# pattern list, so when youngAge itself is a non-annual column, one of those patterns is
+# "youngAge" (see fireSense_SpreadFit's own tests). Column order (youngAge before or after the
+# other covariates in the pattern list) must not matter.
+# ---------------------------------------------------------------------------
+test_that("makeMutuallyExclusive: youngAge stays 1 and is not zeroed by its own pattern (youngAge first)", {
+  dt <- data.table(youngAge = c(1, 0, 1), nfLCC_40 = c(1, 1, 0), nfLCC_50 = c(0, 1, 1))
+  out <- makeMutuallyExclusive(dt,
+    mutuallyExclusiveCols = list(youngAge = c("youngAge", "nfLCC_40", "nfLCC_50")))
+  expect_equal(out$youngAge, c(1, 0, 1))     # never zeroed by its own pattern
+  expect_equal(out$nfLCC_40, c(0, 1, 0))     # zeroed on young rows only
+  expect_equal(out$nfLCC_50, c(0, 1, 0))
+})
+
+test_that("makeMutuallyExclusive: youngAge stays 1 regardless of pattern order (youngAge last)", {
+  dt <- data.table(nfLCC_40 = c(1, 1, 0), nfLCC_50 = c(0, 1, 1), youngAge = c(1, 0, 1))
+  out <- makeMutuallyExclusive(dt,
+    mutuallyExclusiveCols = list(youngAge = c("nfLCC_40", "nfLCC_50", "youngAge")))
+  expect_equal(out$youngAge, c(1, 0, 1))
+  expect_equal(out$nfLCC_40, c(0, 1, 0))
+  expect_equal(out$nfLCC_50, c(0, 1, 0))
+})
+
+test_that("makeMutuallyExclusive: an earlier pattern zeroing a column does not blind a later pattern", {
+  ## if whToZero were recomputed from dt[[cov1]] after an earlier pattern zeroed cov1 (the old
+  ## bug), a pattern's own column would go quiet and later patterns would see no rows to zero
+  dt <- data.table(youngAge = c(1, 0), youngAgeAlias = c(1, 0), nfLCC_40 = c(1, 1))
+  out <- makeMutuallyExclusive(dt,
+    mutuallyExclusiveCols = list(youngAge = c("youngAgeAlias", "nfLCC_40")))
+  expect_equal(out$youngAge, c(1, 0))
+  expect_equal(out$youngAgeAlias, c(0, 0))
+  expect_equal(out$nfLCC_40, c(0, 1))  # still zeroed on the young row
+})
+
+# ---------------------------------------------------------------------------
+# youngAgeExclusiveCols
+# ---------------------------------------------------------------------------
+test_that("youngAgeExclusiveCols: matches nfLCC_*, treedWetland and supplied fuel columns, not youngAge", {
+  covNames <- c("youngAge", "BlkSprc", "nfLCC_40", "nfLCC_50_80", "treedWetland", "CMDsm")
+  out <- youngAgeExclusiveCols(covNames, fuelCols = "BlkSprc")
+  expect_named(out, "youngAge")
+  expect_setequal(out$youngAge, c("BlkSprc", "nfLCC_40", "nfLCC_50_80", "treedWetland"))
+  expect_false("CMDsm" %in% out$youngAge)     # climate is left alone
+  expect_false("youngAge" %in% out$youngAge)
+})
+
+# ---------------------------------------------------------------------------
 # extractSpecial
 # ---------------------------------------------------------------------------
 test_that("extractSpecial: returns list with variable and knot", {

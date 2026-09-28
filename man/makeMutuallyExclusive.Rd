@@ -15,7 +15,8 @@ content should be a "grep" pattern with which to match column names, e.g., \code
 The values of all column names that match the grep value will be set to \code{0}, whenever
 the name of that list element is non-zero. Default is \code{list("youngAge" = list("vegPC"))},
 meaning that all columns with \code{vegPC} in their name will be set to zero wherever \code{youngAge}
-is non-zero.}
+is non-zero. Patterns are matched anchored to the start of the column name, and the key
+column itself (\code{cov1}) is never zeroed, even if it matches its own pattern.}
 }
 \value{
 a data.table with relevant columns made mutually exclusive
