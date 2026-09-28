@@ -48,6 +48,8 @@ stackAndExtract <- function(years, fuel, LCC, climate, fires = NULL) {
         as.data.table(.) %>% # some ignitions are not in cells
         .[, .(ignitions = .N), .(cell)]
       noIgnitionsDT <- ignitionDT[noIgnitionsDT, on = c("cell")]
+    } else {
+      noIgnitionsDT[, ignitions := 0L]
     }
     ## join and assign 0 to non-ignited pixels
     noIgnitionsDT[is.na(ignitions), ignitions := 0]

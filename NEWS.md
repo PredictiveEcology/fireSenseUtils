@@ -1,6 +1,8 @@
 # fireSenseUtils 0.2.3.9058
 
 * Fixed: `getFirePolygons()` gave `POLY_HA` in m2, not ha, for `sf` polygons (`sf::st_area()` has no `unit` argument).
+* Fixed: `rescaleCovariates()` failed for non-xgboost models (`inRange()` was not imported).
+* Fixed: `stackAndExtract()` gave `NA` ignitions, not 0, when `fires` is `NULL`.
 
 # fireSenseUtils 0.2.3.9057
 
