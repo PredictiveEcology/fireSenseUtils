@@ -8,7 +8,9 @@ utils::globalVariables(c(
 
 #' Objective function for `fireSense_spreadFit` module
 #'
-#' @param par parameters
+#' @param par parameters: the logistic parameters (`maxAsymptote` first, without `hillSlope1`, which
+#'   is fixed at 1 -- see `fixHillSlope1()`), then the covariate coefficients, and optionally
+#'   `yearSpreadSD` last (see `fitYearSpreadSD`).
 #'
 #' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
 #'   [SpaDES.tools::spread2].
@@ -242,6 +244,9 @@ utils::globalVariables(c(
     yearSpreadSD <- unname(par[length(par)])
     par <- par[-length(par)]
   }
+
+  ## hillSlope1 is fixed at 1, not fitted -- see fixHillSlope1() for why.
+  par <- fixHillSlope1(par)
 
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))

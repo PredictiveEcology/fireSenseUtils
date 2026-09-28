@@ -27,6 +27,8 @@ cleanUpSpreadFirePoints <- function(firePoints, bufferDT, flammableRTM, idCol) {
   }
   FlamPoints <- as.data.table(extract(flammableRTM, firePoints, cells = TRUE))
   setnames(FlamPoints, c("ID", "isFlammable", "cells"))
+  ## extract()'s ID is the row of firePoints, not the fire's ID
+  FlamPoints[, ID := firePoints[[idCol]][ID]]
   FlamPoints[, isFlammable := as.numeric(as.character(isFlammable))] # otherwise factor = 1 and 2
   FlamPoints[is.na(isFlammable), isFlammable := 0]
   if (any(FlamPoints$isFlammable == 0)) {

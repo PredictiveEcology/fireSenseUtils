@@ -45,7 +45,9 @@
 )
 }
 \arguments{
-\item{par}{parameters}
+\item{par}{parameters: the logistic parameters (\code{maxAsymptote} first, without \code{hillSlope1}, which
+is fixed at 1 -- see \code{fixHillSlope1()}), then the covariate coefficients, and optionally
+\code{yearSpreadSD} last (see \code{fitYearSpreadSD}).}
 
 \item{landscape}{A \code{SpatRaster} with extent, resolution, and projection (crs) used for
 \link[SpaDES.tools:spread2]{SpaDES.tools::spread2}.}
