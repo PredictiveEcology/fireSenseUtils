@@ -457,12 +457,13 @@ abbreviateSpNames <- function(df) {
 #'   \item All covariate columns must be non-\code{NA}; the function stops with an error if any \code{NA}
 #'         are detected after joining \code{fuelClasses} and \code{landcoverDT}.
 #'   \item Pixels where all covariates sum to zero are flagged by setting \code{missingLCCgroup := 1}.
-#'   \item Mutual exclusivity is enforced via \code{makeMutuallyExclusive()} using all fuel-class columns
-#'         and the land-cover columns (excluding \code{pixelID}); \code{youngAge} is made exclusive to them.
-#'   \item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
 #'   \item When \code{nonForestCanBeYoungAge = TRUE}, \code{youngAge} for non-forest is derived using
 #'         \code{nonForest_timeSinceDisturbance} and \code{cutoffForYoungAge}. Any existing \code{youngAge}
 #'         from fuel classes is combined with this non-forest contribution.
+#'   \item Once \code{youngAge} is final, mutual exclusivity is enforced via \code{makeMutuallyExclusive()}
+#'         using all fuel-class columns, the land-cover columns (excluding \code{pixelID}) and
+#'         \code{treedWetland} (if \code{rstLCC} is supplied); \code{youngAge} is made exclusive to them.
+#'   \item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
 #' }
 #'
 #' @return A \code{data.table} named \code{spreadCovariates} containing one row per \code{pixelID}, with:
@@ -560,16 +561,6 @@ fireSenseCovariatesCreate <- function(cohortData,
   spreadCovariates[rowcheck == 0, (missingLCCgroup) := 1]
   set(spreadCovariates, NULL, "rowcheck", NULL)
   
-  # Making exclusive has to be prior to logMinB, or else the 0 biomass become -0.59 or so
-  #   --> they need to stay at the minimum of 3.605
-  exclusiveCols <- c(fcs, names(landcoverDT))
-  exclusiveCols <- setdiff(exclusiveCols, "pixelID")
-  spreadCovariates <- makeMutuallyExclusive(dt = spreadCovariates,
-                                            mutuallyExclusiveCols = list("youngAge" = exclusiveCols))
-  
-  spreadCovariates <- spreadCovariates[, eval(fcs) := lapply(.SD, FUN = logMinB), .SDcols = fcs]
-  
-  
   if (nonForestCanBeYoungAge) {
     dig1 <- reproducible::.robustDigest(list(landcoverDT, flammableRTM))
     
@@ -629,12 +620,26 @@ fireSenseCovariatesCreate <- function(cohortData,
     spreadCovariates[, c("YA_NF", "isNonForest") := NULL]
   }
   ## Treed wetland (land-cover class 81) is forested, so otherwise it enters only through its fuel biomass.
-  ## It describes the SITE, not the fuel state, so it is added after the youngAge exclusivity: a burned bog
-  ## is still wet.
+  ## youngAge is mutually exclusive with every other non-climate covariate: a burned bog is not
+  ## "wet" for fire-spread purposes while it is young, so treedWetland is zeroed below along with
+  ## the fuel and land-cover columns.
   if (!is.null(rstLCC)) {
     lccVals <- terra::values(rstLCC, mat = FALSE)[spreadCovariates$pixelID]
     set(spreadCovariates, NULL, treedWetlandTxt, as.numeric(lccVals %in% treedWetlandLCC))
   }
+
+  # Making exclusive has to be prior to logMinB, or else the 0 biomass become -0.59 or so
+  #   --> they need to stay at the minimum of 3.605. youngAge must be final (including the
+  #   non-forest contribution above) before this runs, or young non-forest pixels keep their
+  #   nfLCC value.
+  exclusiveCols <- c(fcs, names(landcoverDT))
+  if (!is.null(rstLCC)) exclusiveCols <- c(exclusiveCols, treedWetlandTxt)
+  exclusiveCols <- setdiff(exclusiveCols, "pixelID")
+  spreadCovariates <- makeMutuallyExclusive(dt = spreadCovariates,
+                                            mutuallyExclusiveCols = list("youngAge" = exclusiveCols))
+
+  spreadCovariates <- spreadCovariates[, eval(fcs) := lapply(.SD, FUN = logMinB), .SDcols = fcs]
+
   spreadCovariates
 }
 

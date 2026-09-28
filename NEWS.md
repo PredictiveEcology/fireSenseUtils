@@ -1,3 +1,17 @@
+# fireSenseUtils 0.2.3.9047
+
+* Fixed: `makeMutuallyExclusive()` recomputed the rows to zero from the key column after each
+  pattern, so once the key column itself matched one of its own patterns (as `youngAge` could) it
+  was zeroed and every later pattern zeroed nothing. Rows are now fixed once, before any zeroing,
+  and a pattern can no longer match the key column itself.
+* Fixed: `fireSenseCovariatesCreate()` applied `makeMutuallyExclusive()` before `youngAge` was
+  finalized for non-forest pixels, so those pixels kept their `nfLCC_*` land-cover value. The
+  exclusivity step now runs after `youngAge` is final, and also zeroes `treedWetland`: a burned bog
+  is no longer treated as "still wet" once it is young.
+* New: `youngAgeExclusiveCols()`, exported, builds the `youngAge` mutually-exclusive column list
+  from a covariate name vector and a caller-supplied fuel-column list (`fireSense_SpreadPredict`
+  uses this; `fireSense_SpreadFit` derives its own list from its non-annual covariate table).
+
 # fireSenseUtils 0.2.3.9046
 
 * `spreadFitFileTag` is now `"_linearFuel_esc50"`: fits made with the 50-ha escape and the new objective terms go

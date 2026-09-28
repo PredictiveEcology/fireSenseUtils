@@ -2,9 +2,10 @@
 ##
 ## Land-cover class 81 (treed wetland) is a forested class, so its pixels enter the fire models only through
 ## their fuel biomass and look exactly like upland forest. With `rstLCC` given, fireSenseCovariatesCreate()
-## adds `treedWetland` (1 on class 81). It is a SITE attribute, not a fuel state, so it is added after the
-## youngAge exclusivity (a burned bog is still wet) and it is not "cover" for the ignition data's
-## all-cover-is-zero filter. Without `rstLCC` the output is unchanged.
+## adds `treedWetland` (1 on class 81). youngAge is mutually exclusive with every other non-climate
+## covariate, so a young treed-wetland pixel has treedWetland cleared along with its fuel: young is not
+## anything else, including "still wet". It is not "cover" for the ignition data's all-cover-is-zero filter.
+## Without `rstLCC` the output is unchanged.
 
 skip_if_not_installed("terra")
 
@@ -32,10 +33,10 @@ test_that("without rstLCC the covariates are unchanged: no treedWetland column",
   expect_false(treedWetlandTxt %in% names(covs()))
 })
 
-test_that("with rstLCC, treedWetland is 1 exactly on class 81, and youngAge does not clear it", {
+test_that("with rstLCC, treedWetland is 1 exactly on class 81, except where youngAge clears it", {
   out <- covs(lccRas())[order(pixelID)]
-  expect_identical(out[[treedWetlandTxt]], c(1, 0, 0, 1, 1, 0))
-  expect_identical(out$youngAge[4], 1)             # pixel 4: young, and still a treed wetland
+  expect_identical(out[[treedWetlandTxt]], c(1, 0, 0, 0, 1, 0))
+  expect_identical(out$youngAge[4], 1)             # pixel 4: young
   expect_identical(out$Pice_mar[4], logMinB(0))    # its fuel was cleared by youngAge as before
 })
 

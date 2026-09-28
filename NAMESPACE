@@ -133,6 +133,7 @@ export(treedWetlandTxt)
 export(updateStackYearNames)
 export(visualizeDE)
 export(yearTxt)
+export(youngAgeExclusiveCols)
 export(youngAgeTxt)
 import(methods)
 importFrom(DEoptim,
