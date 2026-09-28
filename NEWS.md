@@ -3,6 +3,12 @@
 ## Removed
 
 * `DEoptimIterative()`: unused since `runDEoptim()` switched to `clusters:::DEoptimIterative2()`. Its plotting helpers go with it; `DEoptim` moves to Suggests.
+
+# fireSenseUtils 0.2.3.9054
+
+* Fixed: `ELFsInStudyArea()` failed when the study area overlapped a single ELF.
+* Changed: `ELFsInStudyArea()` labels a buffer cell shared by several ELFs with the ELF whose core is nearest, rather than the one listed last.
+
 # fireSenseUtils 0.2.3.9053
 
 * Fixed: `harmonizeFireData()` lost the fire polygons of later years when a whole year was dropped for lying outside the study area.
