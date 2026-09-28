@@ -93,6 +93,13 @@ utils::globalVariables(c(
 #'
 #' @param .plotSize List specifying plot `height` and `width`, in pixels.
 #'
+#' @param rep Integer. An identifier for the replication number of this optimization run.
+#'   Used in cache tags and plot filenames. Default 1L.
+#'
+#' @param .plots Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
+#'   Passed to internal plotting functions (likely via [SpaDES.core::Plots()]).
+#'   Default "screen".
+#'
 #' @param runName Character string used to label this run. Forwarded to
 #'   `clusters:::DEoptimIterative2()` and used as a suffix for the cache `.functionName`
 #'   so that runs with different `runName` values get distinct cache entries.

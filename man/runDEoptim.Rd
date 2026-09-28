@@ -159,7 +159,14 @@ number of workers the cluster gets.}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of \link[DEoptim:DEoptim]{DEoptim::DEoptim} outputs.}
 
+\item{.plots}{Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
+Passed to internal plotting functions (likely via \code{\link[SpaDES.core:Plots]{SpaDES.core::Plots()}}).
+Default "screen".}
+
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
+
+\item{rep}{Integer. An identifier for the replication number of this optimization run.
+Used in cache tags and plot filenames. Default 1L.}
 
 \item{runName}{Character string used to label this run. Forwarded to
 \code{clusters:::DEoptimIterative2()} and used as a suffix for the cache \code{.functionName}
