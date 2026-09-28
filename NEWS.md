@@ -1,3 +1,19 @@
+# fireSenseUtils 0.2.3.9056
+
+## Removed
+
+* `DEoptimIterative()`: unused since `runDEoptim()` switched to `clusters:::DEoptimIterative2()`. Its plotting helpers go with it; `DEoptim` moves to Suggests.
+
+# fireSenseUtils 0.2.3.9054
+
+* Fixed: `ELFsInStudyArea()` failed when the study area overlapped a single ELF.
+* Changed: `ELFsInStudyArea()` labels a buffer cell shared by several ELFs with the ELF whose core is nearest, rather than the one listed last.
+
+# fireSenseUtils 0.2.3.9053
+
+* Fixed: `harmonizeFireData()` lost the fire polygons of later years when a whole year was dropped for lying outside the study area.
+* New `harmonizeFireDataDeps()`: the functions `harmonizeFireData()` calls, for a cached call's `.cacheExtra`.
+
 # fireSenseUtils 0.2.3.9052
 
 * Fixed: `cleanUpSpreadFirePoints()` matched points by row number instead of fire ID, so ignition points on non-flammable pixels were never moved and fires with no flammable pixel were never dropped.
