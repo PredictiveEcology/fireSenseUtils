@@ -50,6 +50,7 @@ Imports:
     withr
 Suggests:
     archive,
+    codetools,
     curl,
     deldir,
     dismo,

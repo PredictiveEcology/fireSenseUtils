@@ -167,3 +167,20 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
               firePolys = firePolys[newYears$Year], #should be returned because some years may have been converted to NULL
               spreadFirePoints = harmonized$SpatialPoints))
 }
+
+#' Functions whose code affects what [harmonizeFireData()] returns
+#'
+#' `reproducible::Cache()` digests only the called function's own code, so a cached
+#' [harmonizeFireData()] call keeps returning its old result when a function it *calls*
+#' changes. Pass this list as that call's `.cacheExtra` and those functions become part
+#' of the key.
+#'
+#' @return A list of functions, to pass as `reproducible::Cache()`'s `.cacheExtra`.
+#'
+#' @export
+#' @seealso [harmonizeFireData()], [makeFireSenseLCCDeps()]
+harmonizeFireDataDeps <- function() {
+  list(bufferToArea, bufferToArea.list, bufferToArea.sf, bufferToArea.SpatialPolygons,
+       removeBufferedFiresOutsideRTM, harmonizeBufferAndPoints, cleanUpSpreadFirePoints,
+       .withSeed, .singleThreadedGDAL)
+}

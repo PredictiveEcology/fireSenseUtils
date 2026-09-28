@@ -30,3 +30,28 @@ test_that("harmonizeFireData keeps each year's fires when an earlier year is dro
   expect_identical(res$firePolys$year2001$FIRE_ID, 1)
   expect_identical(res$spreadFirePoints$year2003$FIRE_ID, 3)
 })
+
+## Every package function harmonizeFireData() reaches, directly or through the functions it calls
+## (including S3 methods and functions passed as arguments), must be in harmonizeFireDataDeps();
+## otherwise a cached call misses its change.
+test_that("harmonizeFireDataDeps() lists every package function harmonizeFireData() reaches", {
+  ns <- asNamespace("fireSenseUtils")
+  own <- Filter(function(o) is.function(get(o, ns)), ls(ns, all.names = TRUE))
+  reached <- character()
+  todo <- "harmonizeFireData"
+  while (length(todo)) {
+    f <- todo[1]
+    todo <- todo[-1]
+    if (f %in% reached) next
+    reached <- c(reached, f)
+    fn <- get(f, ns)
+    calls <- intersect(codetools::findGlobals(fn), own)
+    if (any(grepl("UseMethod", deparse(body(fn)))))
+      calls <- c(calls, grep(paste0("^", f, "\\."), own, value = TRUE))
+    todo <- c(todo, setdiff(calls, reached))
+  }
+  deps <- harmonizeFireDataDeps()
+  inDeps <- vapply(setdiff(reached, "harmonizeFireData"), function(f)
+    any(vapply(deps, identical, logical(1), get(f, ns))), logical(1))
+  expect_true(all(inDeps), info = paste("missing:", paste(names(inDeps)[!inDeps], collapse = ", ")))
+})
