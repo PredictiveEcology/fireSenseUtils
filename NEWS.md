@@ -1,3 +1,15 @@
+# fireSenseUtils 0.2.3.9050
+
+* New spread-fuel representation: `fireSenseCovariatesCreate(fuelCovariates = "domSecOther")`
+  collapses the per-species fuel-class columns to exactly four AGB terms, `dom_agb_<class>` and
+  `sec_agb_<class>` (the ELF's two fuel classes with the most total treed AGB), `other_agb` (the
+  rest, pooled) and `treedWetland_agb` (all tree AGB on treed-wetland pixels, removed from the
+  other three there). New `chooseDomSecFuelClasses()` picks `domClass`/`secClass` once per ELF, so
+  a prediction can be told the same classes the fit used instead of re-choosing them from its own
+  area. The default remains `fuelCovariates = "species"` (the previous per-species columns),
+  unchanged.
+* New constant `treedWetlandAgbTxt` (`"treedWetland_agb"`).
+
 # fireSenseUtils 0.2.3.9049
 
 * `hillSlope1` (the spread link's slope) is fixed at 1, not fitted. With the linear predictor

@@ -26,8 +26,12 @@
 #'     `"nonForestedLCCGroups"`, `"missingLCCgroup"`, `"covMinMax_spread"`). `covMinMax_spread` is
 #'     what prediction needs to rescale covariates exactly as the fit did.
 #'
+#'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
+#'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecOther")` (currently
+#'     `"treedWetland_agb"`).
+#'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt
 NULL
 
 #' @export
@@ -44,6 +48,9 @@ youngAgeTxt <- "youngAge"
 
 #' @export
 treedWetlandTxt <- "treedWetland"
+
+#' @export
+treedWetlandAgbTxt <- "treedWetland_agb"
 
 #' @export
 ignitionsTxt <- "ignitions"
