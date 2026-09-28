@@ -7,6 +7,7 @@
 \alias{yearTxt}
 \alias{youngAgeTxt}
 \alias{treedWetlandTxt}
+\alias{treedWetlandAgbTxt}
 \alias{ignitionsTxt}
 \alias{escapesTxt}
 \alias{spreadFitAdditionalColNamesTxt}
@@ -33,6 +34,9 @@ simList-slot/column names attached to spread-fit outputs
 (\code{"numIterations"}, \code{"objFunVal"}, \code{"params"}, \code{"sppEquiv"},
 \code{"nonForestedLCCGroups"}, \code{"missingLCCgroup"}, \code{"covMinMax_spread"}). \code{covMinMax_spread} is
 what prediction needs to rescale covariates exactly as the fit did.
+\item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
+built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecOther")} (currently
+\code{"treedWetland_agb"}).
 }
 }
 \description{

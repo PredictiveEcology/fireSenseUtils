@@ -21,7 +21,10 @@ fireSenseCovariatesCreate(
   studyAreaName,
   useCache = TRUE,
   rstLCC = NULL,
-  treedWetlandLCC = 81
+  treedWetlandLCC = 81,
+  fuelCovariates = c("species", "domSecOther"),
+  domClass = NULL,
+  secClass = NULL
 )
 }
 \arguments{
@@ -63,11 +66,27 @@ based on \code{nonForest_timeSinceDisturbance} and \code{cutoffForYoungAge}.}
 
 \item{useCache}{Logical. If \code{TRUE}, enable caching in \code{Cache()} calls.}
 
-\item{rstLCC}{Optional land-cover \code{SpatRaster} on the same grid as \code{pixelGroupMap}. When given, a
-\code{treedWetland} column (see \link{treedWetlandTxt}) is added: 1 where the land cover is \code{treedWetlandLCC}.}
+\item{rstLCC}{Optional land-cover \code{SpatRaster} on the same grid as \code{pixelGroupMap}. When given
+and \code{fuelCovariates = "species"}, a \code{treedWetland} column (see \link{treedWetlandTxt}) is added:
+1 where the land cover is \code{treedWetlandLCC}. When \code{fuelCovariates = "domSecOther"}, all tree
+AGB on those pixels is moved into \code{treedWetland_agb} (see \link{treedWetlandAgbTxt}) instead, and
+removed from \verb{dom_agb_*}/\verb{sec_agb_*}/\code{other_agb} there.}
 
 \item{treedWetlandLCC}{Land-cover code(s) of treed wetland. Default 81 (NTEMS; also what
 \code{\link[=makeFireSenseLCC]{makeFireSenseLCC()}} assigns on SCANFI land cover from the wetland layer).}
+
+\item{fuelCovariates}{\code{"species"} (default; one covariate column per fuel class, as
+\code{assignedFuelClass} in \code{sppEquiv}) or \code{"domSecOther"}: exactly four AGB columns,
+\verb{dom_agb_<domClass>} and \verb{sec_agb_<secClass>} (the ELF's two fuel classes with the most
+total treed AGB), \code{other_agb} (the sum of the rest) and, when \code{rstLCC} is supplied,
+\code{treedWetland_agb}.}
+
+\item{domClass, secClass}{Only used when \code{fuelCovariates = "domSecOther"}. The fuel classes to
+use for \verb{dom_agb_*}/\verb{sec_agb_*}. \code{NULL} (the default) chooses them from this call's own data
+(highest total AGB first); a prediction should instead pass the classes the fit chose (e.g.
+from \code{\link[=chooseDomSecFuelClasses]{chooseDomSecFuelClasses()}}), so the columns it builds match the fitted model's terms
+even when a different class dominates the prediction area. \code{secClass = NA_character_} means
+no secondary class (fewer than two fuel classes present).}
 }
 \value{
 A \code{data.table} named \code{spreadCovariates} containing one row per \code{pixelID}, with:
@@ -107,6 +126,10 @@ from fuel classes is combined with this non-forest contribution.
 using all fuel-class columns, the land-cover columns (excluding \code{pixelID}) and
 \code{treedWetland} (if \code{rstLCC} is supplied); \code{youngAge} is made exclusive to them.
 \item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
+\item When \code{fuelCovariates = "domSecOther"}, the per-species fuel-class columns are
+collapsed to \code{dom_agb_*}, \code{sec_agb_*}, \code{other_agb} (and
+\code{treedWetland_agb}, if \code{rstLCC} is supplied) before mutual exclusivity and
+\code{logMinB} are applied to them, exactly as for the per-species columns.
 }
 }
 \section{Expectations/Assumptions}{
