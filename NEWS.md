@@ -1,3 +1,7 @@
+# fireSenseUtils 0.2.3.9052
+
+* Fixed: `cleanUpSpreadFirePoints()` matched points by row number instead of fire ID, so ignition points on non-flammable pixels were never moved and fires with no flammable pixel were never dropped.
+
 # fireSenseUtils 0.2.3.9049
 
 * `hillSlope1` (the spread link's slope) is fixed at 1, not fitted. With the linear predictor
