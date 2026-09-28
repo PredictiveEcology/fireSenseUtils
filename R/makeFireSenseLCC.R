@@ -49,6 +49,11 @@
 #'   become 81, other wet flammable pixels 80, as in NTEMS. This matches Biomass_borealDataPrep's default
 #'   land cover. `"NTEMS"` uses [LandR::prepInputs_NTEMS_LCC_FAO()], which has 80 and 81 already, exactly
 #'   as before.
+#' @param scanfiVersion Character. Only used when `lccSource = "SCANFI"`; forwarded to
+#'   [LandR::prepInputs_SCANFI_LCC_FAO()]'s `dataVersion`. Default `"V3"` (annual, 1985-2025). The
+#'   installed LandR is checked for `dataVersion = "V3"` support before it is called; an older LandR
+#'   stops with a message asking for one that has it, rather than silently building V2 land cover
+#'   under a `"V3"` request.
 #'
 #' @return A list of two  `SpatRaster` objects:
 #'   1) the processed land cover classification at the resolution, extent,
@@ -91,8 +96,10 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
                              nonflammableLCC = fireSenseNonflammableLCC,
                              flammabilityThreshold = 0.1, writeTo = NULL,
                              overwrite = TRUE, destinationPath,
-                             lccSource = getOption("fireSense.lccSource", "SCANFI")) {
+                             lccSource = getOption("fireSense.lccSource", "SCANFI"),
+                             scanfiVersion = "V3") {
   lccSource <- .checkLccSource(lccSource)
+  if (identical(lccSource, "SCANFI")) .checkScanfiVersionSupported(scanfiVersion)
   # 1. Retrieve and prepare base LCC data for the specified year
   #    - Crops to the extent of to
   #    - Masks to the maskTo polygon(s)
@@ -105,13 +112,15 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
   lccFun <- if (lccSource == "NTEMS") prepInputs_NTEMS_LCC_FAO else .scanfiLCC
-  rstLCC <- lccFun(year = neededYear,
+  lccArgs <- list(year = neededYear,
                    disturbedCode = 240, # Optional: specify disturbed code if needed
                    overwrite = overwrite,
                    destinationPath = destinationPath,
                    cropTo = to,
                    writeTo = writeTo,
                    maskTo = maskToArg)
+  if (identical(lccSource, "SCANFI")) lccArgs$scanfiVersion <- scanfiVersion
+  rstLCC <- do.call(lccFun, lccArgs)
   # 2. Determine the dominant *flammable* LCC code at the target resolution
   #    - Mask non-flammable codes to NA in the source resolution LCC
   #    - Project to the target resolution using 'mode' aggregation. This finds
@@ -253,8 +262,27 @@ makeFireSenseLCCDeps <- function(lccSource = getOption("fireSense.lccSource", "S
 }
 
 ## SCANFI land cover with FAO forest land (LandR); a seam for the tests
-.scanfiLCC <- function(year, ...) {
-  LandR::prepInputs_SCANFI_LCC_FAO(year = year, ...)
+.scanfiLCC <- function(year, scanfiVersion = "V2", ...) {
+  LandR::prepInputs_SCANFI_LCC_FAO(year = year, dataVersion = scanfiVersion, ...)
+}
+
+## LandR::prepInputs_SCANFI_LCC_FAO()'s own dataVersion == "V1" / "V2" checks (as of LandR
+## 1.2.0.9035) fall through silently to V2 behaviour for anything else, including "V3" -- it does
+## not error, it just builds the wrong land cover. So a "V3" request is checked here against the
+## installed LandR's own source code, not by trying it and hoping for an error.
+.checkScanfiVersionSupported <- function(scanfiVersion) {
+  if (!identical(scanfiVersion, "V3")) return(invisible(TRUE))
+  supported <- tryCatch(
+    any(grepl("\"V3\"", deparse(body(LandR::prepInputs_SCANFI_LCC_FAO)), fixed = TRUE)),
+    error = function(e) FALSE
+  )
+  if (!isTRUE(supported)) {
+    stop("makeFireSenseLCC(scanfiVersion = \"V3\") needs a LandR::prepInputs_SCANFI_LCC_FAO() ",
+         "that supports dataVersion = \"V3\" (SCANFI v3, annual 1985-2025); the installed LandR (",
+         utils::packageVersion("LandR"), ") does not have it yet. Update LandR once its SCANFI V3 ",
+         "support has merged, or pass scanfiVersion = \"V2\".")
+  }
+  invisible(TRUE)
 }
 
 ## LandR's wetland layer and recoding (PredictiveEcology/LandR#228). Looked up at run time so this package

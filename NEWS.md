@@ -1,3 +1,15 @@
+# fireSenseUtils 0.2.3.9061
+
+* Added: `makeFireSenseLCC()` gains `scanfiVersion` (default `"V3"`, SCANFI's annual 1985-2025
+  land cover), forwarded to `LandR::prepInputs_SCANFI_LCC_FAO(dataVersion = )`. LandR's own
+  `dataVersion` check silently treats anything other than `"V1"` as `"V2"`, so `makeFireSenseLCC()`
+  now checks the installed LandR for `"V3"` support itself and stops with a clear message instead
+  of building V2 land cover under a `"V3"` request.
+* Verified: SCANFI v3's new "burn scar" land-cover code (value not yet settled upstream) needs no
+  change to non-forest grouping -- `assessFuelClasses()`/`makeLandcoverDT()` already group whatever
+  non-forest codes are handed to them, so an unrecognized flammable non-forest code is kept and
+  clustered like any other, not dropped. Added a test confirming this for a synthetic code.
+
 # fireSenseUtils 0.2.3.9060
 
 * Fixed: SCANFI's rock/exposed land-cover code (`30`, from `LandR::convert_SCANFI_LCC_codes()`)
