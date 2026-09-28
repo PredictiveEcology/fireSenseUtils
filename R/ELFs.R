@@ -766,10 +766,9 @@ runELFs <- function(
 #' Intersects a study area with a set of Ecologically-based Low
 #' Fractal-dimensional (ELF) polygons, identifies which ELFs overlap the study
 #' area, and constructs a single categorical raster combining each ELF's
-#' per-cell classification. The output raster encodes three priority layers:
-#' cells classified as `2` in any ELF (highest priority, labelled by ELF ID),
-#' cells classified as `1` in two or more ELFs (shared agreement, labelled by
-#' ELF ID), and a `0` background for all other in-domain cells.
+#' per-cell classification. A cell in an ELF's core (`2`) is labelled with that
+#' ELF. A cell in the buffer (`1`) of one or more ELFs is labelled with the ELF,
+#' among those, whose core is nearest. All other in-domain cells are `0`.
 #'
 #' The function assumes that `ELFs` (a list-like object with `rasWhole` rasters
 #' and an `ID` field) and `rastTemplate` are available in the calling
@@ -795,12 +794,12 @@ runELFs <- function(
 #' @details
 #' The three layers are combined with `terra::cover()` so that:
 #' \itemize{
-#'   \item `2` hits override everything else,
-#'   \item `1` hits appear only where at least two ELFs agree, and
+#'   \item cores override everything else,
+#'   \item a buffer cell takes the ELF with the nearest core (`terra::distance()`), and
 #'   \item the `0` background fills remaining in-domain cells.
 #' }
 #'
-#' @seealso [makeELFs()], [terra::classify()], [terra::mosaic()],
+#' @seealso [makeELFs()], [terra::distance()], [terra::mosaic()],
 #'   [terra::cover()]
 #'
 #' @export
@@ -825,59 +824,27 @@ ELFsInStudyArea <- function(studyArea, inputPath, ELFsRaster = NULL, ELFsPolygon
   # Pick the ones you want
   keep <- ELFsHere
   sub  <- ELFsRaster$rasWhole[keep]
-  
+
   codes <- seq_along(sub)
   names(codes) <- keep
-  
-  # --- Layer A: the "2" hits, coded by ELFind ---
-  twos <- lapply(seq_along(sub), function(i) {
-    terra::classify(sub[[i]], rbind(
-      c(0,  NA),
-      c(1,  NA),
-      c(2,  codes[i])
-    ))
-  })
-  twos_mosaic <- do.call(terra::mosaic, c(twos, list(fun = "max")))
-  # (use "first" if 2s never overlap between layers; "max" is safe either way)
 
-  # --- Layer B: the "1" hits, but only where >=2 layers have a 1 ---
-  ones_binary <- lapply(sub, function(r) terra::classify(r, rbind(
-    c(0, 0),
-    c(1, 1),
-    c(2, 0)   # 2s don't count toward the "shared 1s" rule
-  )))
-  ones_count <- Reduce("+", ones_binary)
-  # ones_count <- do.call(sum, c(ones_binary, list(na.rm = TRUE)))
+  # the ELF rasters on one grid: their union; 0 wherever any ELF has a value
+  zero_bg <- terra::mosaic(terra::sprc(lapply(sub, function(r) r * 0)), fun = "min")
+  onGrid <- terra::rast(lapply(sub, function(r) terra::crop(terra::extend(r, zero_bg), zero_bg)))
 
-  ones_labelled <- lapply(seq_along(sub), function(i) {
-    terra::classify(sub[[i]], rbind(
-      c(0, NA),
-      c(1, codes[i]),
-      c(2, NA)
-    ))
-  })
-  ones_mosaic <- do.call(terra::mosaic, c(ones_labelled, list(fun = "max")))
-  # mask to pixels where the count was >= 2
-  ones_mosaic <- terra::mask(ones_mosaic, ones_count >= 2, maskvalues = c(0, NA))
+  # a core (2) is labelled with its ELF; cores do not overlap
+  isCore <- onGrid == 2
+  cores <- terra::mask(terra::which.max(isCore), any(isCore), maskvalues = FALSE)
 
-  # --- Layer C: the 0 background (in-domain but unlabelled) ---
-  zero_bg <- terra::mosaic(
-    terra::sprc(lapply(sub, function(r) terra::classify(r, rbind(
-      c(0, 0),
-      c(1, 0),
-      c(2, 0)
-    )))),
-    fun = "min"
-  )
+  # a buffer (1) cell is labelled with the ELF, among those it is buffer of, whose core is nearest
+  distToCore <- terra::rast(lapply(seq_along(sub), function(i) {
+    terra::ifel(onGrid[[i]] == 1, terra::distance(terra::ifel(isCore[[i]], 1, NA)), NA)
+  }))
+  buffers <- terra::which.min(distToCore)
 
-  twos_mosaic <- terra::mosaic(terra::sprc(twos), fun = "max")
-  ones_mosaic <- terra::mosaic(terra::sprc(ones_labelled), fun = "max")
+  # --- Stack with priority: cores > buffers > 0 background ---
+  out <- terra::cover(cores, terra::cover(buffers, zero_bg))
 
-  out <- terra::cover(twos_mosaic, terra::cover(ones_mosaic, zero_bg))
-  
-  # --- Stack with priority: 2s > shared 1s > 0 background ---
-  # out <- cover(twos_mosaic, cover(ones_mosaic, zero_bg))
-  
   # Attach ELFind labels
   lvls <- data.frame(
     value  = c(0, codes),

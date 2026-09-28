@@ -1,3 +1,8 @@
+# fireSenseUtils 0.2.3.9054
+
+* Fixed: `ELFsInStudyArea()` failed when the study area overlapped a single ELF.
+* Changed: `ELFsInStudyArea()` labels a buffer cell shared by several ELFs with the ELF whose core is nearest, rather than the one listed last.
+
 # fireSenseUtils 0.2.3.9048
 
 * Fixed: `makeMutuallyExclusive()` recomputed the rows to zero from the key column after each

@@ -119,6 +119,34 @@ test_that("ELFsInStudyArea labels cores, shared buffer and background", {
   expect_setequal(out$poly$ID, c("A", "B"))
 })
 
+## One row of 12 cells: A's core is cells 1-3 and its buffer 4-8; B's core is 10-12, buffer 5-9.
+overlapELFs <- function() {
+  r <- terra::rast(nrows = 1, ncols = 12, xmin = 0, xmax = 12000, ymin = 0, ymax = 1000,
+                   crs = "EPSG:3978")
+  a <- terra::setValues(r, c(2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0))
+  b <- terra::setValues(r, c(0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2))
+  poly <- terra::vect(c(sq(0, 8000, 0, 1000), sq(4000, 12000, 0, 1000)), crs = "EPSG:3978")
+  poly$ID <- c("A", "B")
+  list(ras = list(rasWhole = list(A = a, B = b)), poly = poly)
+}
+labelsOf <- function(r) as.character(terra::as.data.frame(r, na.rm = FALSE)[[1]])
+
+test_that("ELFsInStudyArea gives a shared buffer cell to the ELF with the nearest core", {
+  x <- overlapELFs()
+  studyArea <- terra::vect(sq(0, 12000, 0, 1000), crs = "EPSG:3978")
+  out <- ELFsInStudyArea(studyArea, tempdir(), ELFsRaster = x$ras, ELFsPolygon = x$poly)
+  ## cells 5-6 are nearer A's core, 7-8 nearer B's; 4 and 9 are buffer of one ELF only
+  expect_identical(labelsOf(out$rast), c(rep("A", 6), rep("B", 6)))
+})
+
+test_that("ELFsInStudyArea works when the study area overlaps one ELF", {
+  x <- overlapELFs()
+  studyArea <- terra::vect(sq(0, 3000, 0, 1000), crs = "EPSG:3978")   # A's core only
+  poly <- x$poly[x$poly$ID == "A"]
+  out <- ELFsInStudyArea(studyArea, tempdir(), ELFsRaster = x$ras, ELFsPolygon = poly)
+  expect_identical(labelsOf(out$rast), c(rep("A", 8), rep("none", 4)))
+})
+
 test_that("ELFsInStudyArea builds the ELF polygons when none are given", {
   ras <- makeTestELFRasters()
   poly <- terra::vect(c(sq(0, 6000, 0, 4000), sq(4000, 10000, 0, 4000)), crs = "EPSG:3978")
