@@ -1,4 +1,4 @@
-# fireSenseUtils 0.2.3.9055
+# fireSenseUtils 0.2.3.9057
 
 * New spread-fuel representation: `fireSenseCovariatesCreate(fuelCovariates = "domSecOther")`
   collapses the per-species fuel-class columns to exactly four AGB terms, `dom_agb_<class>` and
@@ -9,6 +9,22 @@
   area. The default remains `fuelCovariates = "species"` (the previous per-species columns),
   unchanged.
 * New constant `treedWetlandAgbTxt` (`"treedWetland_agb"`).
+
+# fireSenseUtils 0.2.3.9056
+
+## Removed
+
+* `DEoptimIterative()`: unused since `runDEoptim()` switched to `clusters:::DEoptimIterative2()`. Its plotting helpers go with it; `DEoptim` moves to Suggests.
+
+# fireSenseUtils 0.2.3.9054
+
+* Fixed: `ELFsInStudyArea()` failed when the study area overlapped a single ELF.
+* Changed: `ELFsInStudyArea()` labels a buffer cell shared by several ELFs with the ELF whose core is nearest, rather than the one listed last.
+
+# fireSenseUtils 0.2.3.9053
+
+* Fixed: `harmonizeFireData()` lost the fire polygons of later years when a whole year was dropped for lying outside the study area.
+* New `harmonizeFireDataDeps()`: the functions `harmonizeFireData()` calls, for a cached call's `.cacheExtra`.
 
 # fireSenseUtils 0.2.3.9052
 
