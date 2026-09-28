@@ -9,7 +9,7 @@ utils::globalVariables(c(
 #' Objective function for `fireSense_spreadFit` module
 #'
 #' @param par parameters: the logistic parameters (`maxAsymptote` first, without `hillSlope1`, which
-#'   is fixed at 1 -- see [fixHillSlope1()]), then the covariate coefficients, and optionally
+#'   is fixed at 1 -- see `fixHillSlope1()`), then the covariate coefficients, and optionally
 #'   `yearSpreadSD` last (see `fitYearSpreadSD`).
 #'
 #' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
