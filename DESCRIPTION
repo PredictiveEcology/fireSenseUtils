@@ -51,6 +51,7 @@ Imports:
 Suggests:
     archive,
     curl,
+    deldir,
     dismo,
     dplyr,
     knitr,
