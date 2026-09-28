@@ -71,14 +71,16 @@ test_that(".objfunSpreadFit takes the sd from the end of a named par, and only w
     historicalFires = list(year2001 = data.frame(size = c(100, 200), cells = 1:2)),
     fireBufferedListDT = list(year2001 = dt(pixelID = 1:2, buffer = c(1L, 0L), ids = 1L)),
     formulaToFit = "~ cov1", tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0, ...)
-  call(c(a = 0.26, b = 1, c = 1, cov1 = 2, yearSpreadSD = 0.7))
+  ## `par` no longer carries hillSlope1 (fixed at 1); .objfunSpreadFit() reinserts it as the 2nd
+  ## element before objFunInner() sees it -- see fixHillSlope1().
+  call(c(a = 0.26, b = 1, cov1 = 2, yearSpreadSD = 0.7))
   expect_equal(seen$sd, 0.7)
-  expect_identical(names(seen$par), c("a", "b", "c", "cov1"))
-  call(c(0.26, 1, 1, 2))                                       # unnamed: off unless asked
+  expect_identical(names(seen$par), c("a", "hillSlope1", "b", "cov1"))
+  call(c(0.26, 1, 2))                                          # unnamed: off unless asked
   expect_equal(seen$sd, 0)
-  call(c(0.26, 1, 1, 2, 0.4), fitYearSpreadSD = TRUE)           # DEoptim's unnamed par, told explicitly
+  call(c(0.26, 1, 2, 0.4), fitYearSpreadSD = TRUE)              # DEoptim's unnamed par, told explicitly
   expect_equal(seen$sd, 0.4)
-  expect_error(call(c(a = 0.26, yearSpreadSD = 0.7, b = 1, c = 1, cov1 = 2)), "must be the last")
+  expect_error(call(c(a = 0.26, yearSpreadSD = 0.7, b = 1, cov1 = 2)), "must be the last")
 })
 
 test_that("runDEoptim fits the sd when the bounds name it, in the fit and the re-score", {

@@ -310,6 +310,17 @@ paramsSeparate <- function(par, parsModel) {
   list(covPars = covPars, logisticPars = logisticPars)
 }
 
+## hillSlope1 (the logistic link's slope) is fixed at 1, not fitted: with the linear predictor
+## x = covariates %*% beta, hillSlope1 enters logistic3p()/logistic3pUpper() only as hillSlope1 * x,
+## so scaling every covariate coefficient by k and dividing hillSlope1 by k leaves every prediction
+## unchanged -- hillSlope1 is not identifiable, and letting DEoptim fit it let every coefficient
+## drift along that ridge. `par` (as DEoptim, or a caller mimicking it, supplies it) is always the
+## logistic parameters (maxAsymptote first) followed by the covariates, so hillSlope1 is inserted at
+## its fixed position, second, before `.objfunSpreadFit()` splits and evaluates it.
+fixHillSlope1 <- function(par) {
+  append(par, c(hillSlope1 = 1), after = 1L)
+}
+
 #' Log with a minimum
 #'
 #' Used for transforming Biomass to the log scale
