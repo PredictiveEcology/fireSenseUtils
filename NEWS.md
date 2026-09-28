@@ -1,3 +1,9 @@
+# fireSenseUtils 0.2.3.9051
+
+## Removed
+
+* `DEoptimIterative()`: unused since `runDEoptim()` switched to `clusters:::DEoptimIterative2()`. Its plotting helpers go with it; `DEoptim` moves to Suggests.
+
 # fireSenseUtils 0.2.3.9047
 
 * `plotELFs()` gains `which` and `fill`, to fill the named ELFs, e.g. `plotELFs("inputs", which = c("13.1", "4.1"), fill = "green")`.

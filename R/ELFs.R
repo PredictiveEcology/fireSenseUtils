@@ -43,6 +43,7 @@
 #'   and lat0 = ymin and lat1 = ymax of the individual ELF. This will create ELFs
 #'   with the least amount of pixel deformation.
 #' @export
+#' @importFrom stats setNames
 makeELFs <- function(x, desiredBuffer = 20000,
                      maxArea = 2.4e+11, destinationPath = ".", singleSpatVector = FALSE,
                      useCache = TRUE) {

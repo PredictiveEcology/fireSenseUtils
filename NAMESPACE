@@ -10,7 +10,6 @@ export(.doDataChecks)
 export(.objFunIgnition)
 export(.objFunIgnitionPW)
 export(.objfunSpreadFit)
-export(DEoptimIterative)
 export(ELFfireCounts)
 export(ELFfitStatus)
 export(ELFflammableArea)
@@ -135,10 +134,6 @@ export(visualizeDE)
 export(yearTxt)
 export(youngAgeTxt)
 import(methods)
-importFrom(DEoptim,
-  DEoptim,
-  DEoptim.control
-)
 importFrom(EnvStats,demp)
 importFrom(LandR,
   .compareCRS,
@@ -195,7 +190,6 @@ importFrom(data.table,
   setkeyv,
   setnafill,
   setnames,
-  setorder,
   setorderv
 )
 importFrom(fastDummies,dummy_cols)
@@ -203,11 +197,8 @@ importFrom(ggplot2,
   aes,
   coord_cartesian,
   facet_wrap,
-  geom_abline,
   geom_histogram,
-  geom_jitter,
   geom_line,
-  geom_point,
   geom_smooth,
   ggplot,
   ggtitle,
@@ -254,8 +245,7 @@ importFrom(quickPlot,
   Plot,
   clearPlot,
   dev,
-  gpar,
-  isRstudioServer
+  gpar
 )
 importFrom(reproducible,
   .robustDigest,
@@ -267,10 +257,7 @@ importFrom(reproducible,
   asPath,
   cacheId,
   checkPath,
-  isUpdated,
   loadFromCache,
-  messageDF,
-  paddedFloatToChar,
   postProcess,
   postProcessTo,
   prepInputs,
@@ -298,7 +285,6 @@ importFrom(stats,
   binomial,
   coefficients,
   dbinom,
-  dnorm,
   dt,
   glm,
   is.empty.model,
@@ -312,7 +298,6 @@ importFrom(stats,
   predict,
   quantile,
   rbeta,
-  rnorm,
   sd,
   setNames,
   terms,

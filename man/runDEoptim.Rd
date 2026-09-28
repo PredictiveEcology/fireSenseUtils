@@ -2,7 +2,6 @@
 % Please edit documentation in R/DEoptim_fns.R
 \name{runDEoptim}
 \alias{runDEoptim}
-\alias{DEoptimIterative}
 \alias{termsInDEoptim}
 \title{Run \code{DEoptim}}
 \usage{
@@ -56,31 +55,6 @@ runDEoptim(
   areaDistWeight = 0,
   profileReps = 0L,
   simulateMembers = 0L
-)
-
-DEoptimIterative(
-  itermax,
-  lower,
-  upper,
-  control,
-  formulaToFit,
-  covMinMax,
-  tests = c("SNLL", "adTest"),
-  objFunCoresInternal,
-  maxFireSpread,
-  Nreps,
-  visualizeDEoptim,
-  figPath,
-  cachePath,
-  mutuallyExclusive,
-  doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
-  iterStep = 25,
-  thresh = 550,
-  .c = 0.5,
-  .verbose,
-  .plots = "screen",
-  .plotSize = list(height = 1600, width = 2000),
-  rep = 1L
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -176,9 +150,8 @@ This is distinct from the parallelization managed by \link[DEoptim:DEoptim]{DEop
 
 \item{thresh}{The threshold for accepting fits; e.g., from \code{mod$thresh}.}
 
-\item{.c}{Numeric scalar in \verb{[0, 1]}. Crossover constant passed through to
-\code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} as \code{c} (the speed of crossover adaptation).
-Default 0.5.}
+\item{.c}{Numeric in \verb{(0, 1]}. DEoptim's \code{c}, the speed of crossover adaptation (used by
+\code{strategy = 6}). Passed to \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}}; a \code{c} in \code{DEoptimControl} wins.}
 
 \item{DEoptimControl}{Named list of further \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} settings (for example
 \code{CR}, \code{F}, \code{p}, \code{reltol}), passed through \code{\link[clusters:clusterSetup]{clusters::clusterSetup()}} to DEoptim. \code{NP} is the
@@ -186,17 +159,10 @@ number of workers the cluster gets.}
 
 \item{visualizeDEoptim}{Logical. If \code{TRUE}, then histograms will be made of \link[DEoptim:DEoptim]{DEoptim::DEoptim} outputs.}
 
-\item{.plots}{Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
-Passed to internal plotting functions (likely via \code{\link[SpaDES.core:Plots]{SpaDES.core::Plots()}}).
-Default "screen".}
-
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
 
-\item{rep}{Integer. An identifier for the replication number of this optimization run.
-Used in cache tags and plot filenames. Default 1L.}
-
 \item{runName}{Character string used to label this run. Forwarded to
-\code{DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
+\code{clusters:::DEoptimIterative2()} and used as a suffix for the cache \code{.functionName}
 so that runs with different \code{runName} values get distinct cache entries.
 Default \code{""} (no suffix).}
 
@@ -229,26 +195,17 @@ Needs \code{rescoreReps > 0}. Costs about \code{6 * nCoefficients * profileReps}
 observed fires without the size cap (\code{\link[=simulateFireSizes]{simulateFireSizes()}}), attached as \code{attr(DE, "fitSims")}
 for \code{\link[=scoreFireSizes]{scoreFireSizes()}} and \code{\link[=linkSaturation]{linkSaturation()}}. Needs \code{rescoreReps > 0}.}
 
-\item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
-
-\item{figPath}{directory where figures will be saved, if relevant}
-
-\item{cachePath}{A \code{cacheRepo} (see \code{\link[reproducible:Cache]{reproducible::Cache()}}).}
-
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
 
 \item{numParams}{The number of parameters (TODO: improve description)}
 }
 \value{
-The result of the \code{\link[=DEoptimIterative]{DEoptimIterative()}} call. This is typically a list where
+The result of the \code{clusters:::DEoptimIterative2()} call. This is typically a list where
 each element contains the \link[DEoptim:DEoptim]{DEoptim::DEoptim} object state after a block of \code{iterStep} iterations.
 The final element represents the state after \code{itermax} iterations or upon early stopping.
 }
 \description{
 Provides a wrapper around \link[DEoptim:DEoptim]{DEoptim::DEoptim}, setting up the multiple cluster connections.
 This will only work if ssh keys are preconfigured on all machines (if using multiple machines).
-
-Internal function called by \code{runDEoptim}. Runs \link[DEoptim:DEoptim]{DEoptim::DEoptim} in steps,
-caching results and optionally visualizing progress after each step.
 }
