@@ -14,7 +14,7 @@ makeELFs(
   useCache = TRUE
 )
 
-plotELFs(destinationPath = ".")
+plotELFs(destinationPath = ".", which = NULL, fill = "green")
 }
 \arguments{
 \item{x}{A polygon layer (\code{SpatVector} or \code{sf}) or gridded layer (\code{SpatRaster})
@@ -37,6 +37,11 @@ individual ecozones plus buffer.}
 
 \item{useCache}{Logical. If \code{TRUE}, then some internal steps will be cached.
 If \code{FALSE}, then some (or most) will not be cached.}
+
+\item{which}{Character. ELF names (e.g., \code{c("13.1", "4.1")}) whose cores \code{plotELFs()}
+fills with \code{fill}. Default \code{NULL} fills none.}
+
+\item{fill}{The colour used to fill the \code{which} ELFs.}
 }
 \value{
 A list of length 2, with \code{rasWhole} and \code{rasCentered}. Each of these
