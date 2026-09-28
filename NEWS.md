@@ -1,3 +1,7 @@
+# fireSenseUtils 0.2.3.9047
+
+* `plotELFs()` gains `which` and `fill`, to fill the named ELFs, e.g. `plotELFs("inputs", which = c("13.1", "4.1"), fill = "green")`.
+
 # fireSenseUtils 0.2.3.9046
 
 * `spreadFitFileTag` is now `"_linearFuel_esc50"`: fits made with the 50-ha escape and the new objective terms go
