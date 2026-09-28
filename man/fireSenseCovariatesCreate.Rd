@@ -100,12 +100,13 @@ using \code{nonForest_timeSinceDisturbance} and the \code{cutoffForYoungAge}.
 \item All covariate columns must be non-\code{NA}; the function stops with an error if any \code{NA}
 are detected after joining \code{fuelClasses} and \code{landcoverDT}.
 \item Pixels where all covariates sum to zero are flagged by setting \code{missingLCCgroup := 1}.
-\item Mutual exclusivity is enforced via \code{makeMutuallyExclusive()} using all fuel-class columns
-and the land-cover columns (excluding \code{pixelID}); \code{youngAge} is made exclusive to them.
-\item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
 \item When \code{nonForestCanBeYoungAge = TRUE}, \code{youngAge} for non-forest is derived using
 \code{nonForest_timeSinceDisturbance} and \code{cutoffForYoungAge}. Any existing \code{youngAge}
 from fuel classes is combined with this non-forest contribution.
+\item Once \code{youngAge} is final, mutual exclusivity is enforced via \code{makeMutuallyExclusive()}
+using all fuel-class columns, the land-cover columns (excluding \code{pixelID}) and
+\code{treedWetland} (if \code{rstLCC} is supplied); \code{youngAge} is made exclusive to them.
+\item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
 }
 }
 \section{Expectations/Assumptions}{

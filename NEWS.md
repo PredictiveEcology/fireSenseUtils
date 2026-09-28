@@ -1,8 +1,36 @@
-# fireSenseUtils 0.2.3.9051
+# fireSenseUtils 0.2.3.9056
 
 ## Removed
 
 * `DEoptimIterative()`: unused since `runDEoptim()` switched to `clusters:::DEoptimIterative2()`. Its plotting helpers go with it; `DEoptim` moves to Suggests.
+
+# fireSenseUtils 0.2.3.9052
+
+* Fixed: `cleanUpSpreadFirePoints()` matched points by row number instead of fire ID, so ignition points on non-flammable pixels were never moved and fires with no flammable pixel were never dropped.
+
+# fireSenseUtils 0.2.3.9049
+
+* `hillSlope1` (the spread link's slope) is fixed at 1, not fitted. With the linear predictor
+  `x = covariates %*% beta`, `hillSlope1` enters `logistic3p()`/`logistic3pUpper()` only as
+  `hillSlope1 * x`, so scaling every covariate coefficient by `k` and dividing `hillSlope1` by `k`
+  leaves every prediction unchanged: it was never identifiable, and letting DEoptim fit it let every
+  coefficient drift along that ridge. `.objfunSpreadFit()` now calls the new internal
+  `fixHillSlope1()` on every `par` it receives, reinserting `hillSlope1 = 1` as the 2nd logistic
+  parameter, so callers (`fireSense_SpreadFit`) no longer include it in `lower`/`upper`.
+
+# fireSenseUtils 0.2.3.9048
+
+* Fixed: `makeMutuallyExclusive()` recomputed the rows to zero from the key column after each
+  pattern, so once the key column itself matched one of its own patterns (as `youngAge` could) it
+  was zeroed and every later pattern zeroed nothing. Rows are now fixed once, before any zeroing,
+  and a pattern can no longer match the key column itself.
+* Fixed: `fireSenseCovariatesCreate()` applied `makeMutuallyExclusive()` before `youngAge` was
+  finalized for non-forest pixels, so those pixels kept their `nfLCC_*` land-cover value. The
+  exclusivity step now runs after `youngAge` is final, and also zeroes `treedWetland`: a burned bog
+  is no longer treated as "still wet" once it is young.
+* New: `youngAgeExclusiveCols()`, exported, builds the `youngAge` mutually-exclusive column list
+  from a covariate name vector and a caller-supplied fuel-column list (`fireSense_SpreadPredict`
+  uses this; `fireSense_SpreadFit` derives its own list from its non-annual covariate table).
 
 # fireSenseUtils 0.2.3.9047
 
