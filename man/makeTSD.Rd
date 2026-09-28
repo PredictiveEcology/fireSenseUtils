@@ -10,7 +10,7 @@ makeTSD(
   fireRaster = NULL,
   standAgeMap,
   lcc = NULL,
-  cutoffForYoungAge = 15,
+  cutoffForYoungAge = fireSenseYoungAgeCutoff,
   pixToUpdate = NULL,
   flammablePixels = NULL
 )

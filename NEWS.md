@@ -1,3 +1,13 @@
+# fireSenseUtils 0.2.3.9062
+
+* Added: exported defaults shared by `fireSense_dataPrepFit` and `fireSense_dataPrepPredict`
+  (`fireSenseForestedLCC`, `fireSenseYoungAgeCutoff`, `fireSenseNonForestCanBeYoungAge`,
+  `fireSenseFlammabilityThreshold`, `fireSenseFuelClassCol`, `fireSenseIgAggFactor`,
+  `fireSenseSCANFIVersion`; see `?fireSenseSharedDefaults`). The modules take their parameter
+  defaults from them, so a fit and its predictions cannot silently use different values. The
+  functions here with the same arguments (`makeTSD()`, `calcYoungAge()`, `castCohortData()`,
+  `cohortsToFuelClasses()`, `makeFireSenseLCC()`) default to them too. Values are unchanged.
+
 # fireSenseUtils 0.2.3.9061
 
 * Added: `makeFireSenseLCC()` gains `scanfiVersion` (default `"V3"`, SCANFI's annual 1985-2025

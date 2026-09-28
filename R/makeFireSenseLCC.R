@@ -94,10 +94,10 @@
 #' }
 makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
                              nonflammableLCC = fireSenseNonflammableLCC,
-                             flammabilityThreshold = 0.1, writeTo = NULL,
+                             flammabilityThreshold = fireSenseFlammabilityThreshold, writeTo = NULL,
                              overwrite = TRUE, destinationPath,
                              lccSource = getOption("fireSense.lccSource", "SCANFI"),
-                             scanfiVersion = "V3") {
+                             scanfiVersion = fireSenseSCANFIVersion) {
   lccSource <- .checkLccSource(lccSource)
   if (identical(lccSource, "SCANFI")) .checkScanfiVersionSupported(scanfiVersion)
   # 1. Retrieve and prepare base LCC data for the specified year

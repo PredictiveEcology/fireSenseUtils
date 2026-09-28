@@ -11,7 +11,7 @@ castCohortData(
   ageMap = NULL,
   missingLCC,
   year = NULL,
-  cutoffForYoungAge = 15
+  cutoffForYoungAge = fireSenseYoungAgeCutoff
 )
 }
 \arguments{

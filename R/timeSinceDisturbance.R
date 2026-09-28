@@ -49,7 +49,7 @@ utils::globalVariables(c(
 #' @importFrom data.table data.table as.data.table
 #' @importFrom terra values rast setValues rasterize vect set.names
 makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
-                    standAgeMap, lcc = NULL, cutoffForYoungAge = 15,
+                    standAgeMap, lcc = NULL, cutoffForYoungAge = fireSenseYoungAgeCutoff,
                     pixToUpdate = NULL, flammablePixels = NULL) {
   if (!is.null(fireRaster)) {
     baseYear <- rast(fireRaster)
@@ -142,7 +142,7 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
 #' @importFrom data.table data.table
 #' @importFrom terra rast setValues values
 calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListDT,
-                         cutoffForYoungAge = 15) {
+                         cutoffForYoungAge = fireSenseYoungAgeCutoff) {
   # this is safest way to subset given the NULL year
   yearsIsCorrectNaming <- all(years %in% names(annualCovariates))
   if (yearsIsCorrectNaming %in% FALSE) {
