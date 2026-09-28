@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "areaBurnedHa", "Nfires", "POLY_HA", "SIZE_HA", "sumAB", "sumBurn", "val", "var", "YEAR"
+  "areaBurnedHa", "Nfires", "POLY_HA", "SIZE_HA", "stat", "sumAB", "sumBurn", "val", "var", "YEAR"
 ))
 
 #' Locate per-replicate simulation output files

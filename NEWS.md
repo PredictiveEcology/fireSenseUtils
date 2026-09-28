@@ -1,3 +1,9 @@
+# fireSenseUtils 0.2.3.9059
+
+## Removed
+
+* Unused functions, with no callers found in PredictiveEcology code: `compareClimate()`, `compareMDC()`, `burnClassGenerator()`, `burnClassSummary()`, `burnClassPredict()`, `burnProbFromClass()`, `bufferIgnitionPoints()`, and the old ignition-fit objective functions `pw()`, `oom()`, `extractSpecial()`, `.objFunIgnition()`, `.objFunIgnitionPW()`, `objNlminb()`. `mclust` and `pROC` are no longer imported. To use one, install fireSenseUtils 0.2.3.9058.
+
 # fireSenseUtils 0.2.3.9058
 
 * Fixed: `getFirePolygons()` gave `POLY_HA` in m2, not ha, for `sf` polygons (`sf::st_area()` has no `unit` argument).

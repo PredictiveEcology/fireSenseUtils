@@ -7,8 +7,6 @@ S3method(bufferToArea,SpatialPolygons)
 S3method(bufferToArea,list)
 S3method(bufferToArea,sf)
 export(.doDataChecks)
-export(.objFunIgnition)
-export(.objFunIgnitionPW)
 export(.objfunSpreadFit)
 export(ELFfireCounts)
 export(ELFfitStatus)
@@ -27,13 +25,8 @@ export(annualStackToDTx1000)
 export(assertCovariateRange)
 export(assessFuelClasses)
 export(bestByReplicatedMean)
-export(bufferIgnitionPoints)
 export(bufferToArea)
 export(bufferToAreaRast)
-export(burnClassGenerator)
-export(burnClassPredict)
-export(burnClassSummary)
-export(burnProbFromClass)
 export(calcNonForestYoungAge)
 export(calcYoungAge)
 export(castCohortData)
@@ -44,13 +37,10 @@ export(climateRasterToDataTable)
 export(coefIdentifiability)
 export(cohortsToFuelClasses)
 export(combineSpreadProbSummaries)
-export(compareClimate)
-export(compareMDC)
 export(covsX1000AndSetDF)
 export(dtReplaceNAwith0)
 export(escapeSizePixels)
 export(escapesTxt)
-export(extractSpecial)
 export(fireSenseCloudParameters)
 export(fireSenseCloudParametersMap)
 export(fireSenseCovariatesCreate)
@@ -92,8 +82,6 @@ export(mergePreparedCovs)
 export(multiplier)
 export(nfdbPointUrl)
 export(nonNFColNamesTxt)
-export(objNlminb)
-export(oom)
 export(paramsSeparate)
 export(plotBurnSummary)
 export(plotCumulativeBurns)
@@ -107,7 +95,6 @@ export(prepare_LightningData)
 export(prepare_ignitionClimate)
 export(profileCoefficients)
 export(putBackIntoRaster)
-export(pw)
 export(rasterFireBufferDT)
 export(rasterFireSpreadPoints)
 export(rbetaBetween)
@@ -202,11 +189,8 @@ importFrom(ggplot2,
   coord_cartesian,
   facet_wrap,
   geom_histogram,
-  geom_line,
-  geom_smooth,
   ggplot,
   ggtitle,
-  labs,
   theme_minimal,
   xlab
 )
@@ -224,11 +208,6 @@ importFrom(graphics,
   par
 )
 importFrom(magrittr,"%>%")
-importFrom(mclust,
-  Mclust,
-  mclustBIC
-)
-importFrom(pROC,roc)
 importFrom(parallel,
   clusterEvalQ,
   clusterExport,
@@ -295,9 +274,7 @@ importFrom(stats,
   kmeans,
   lm,
   median,
-  model.matrix,
   na.omit,
-  nlminb,
   pf,
   predict,
   quantile,
@@ -331,14 +308,12 @@ importFrom(terra,
   mask,
   mosaic,
   ncell,
-  nlyr,
   patches,
   project,
   rast,
   rasterize,
   res,
   set.names,
-  set.values,
   setValues,
   sprc,
   trim,
@@ -353,7 +328,6 @@ importFrom(utils,
   head,
   install.packages,
   installed.packages,
-  modifyList,
   packageVersion,
   tail
 )
