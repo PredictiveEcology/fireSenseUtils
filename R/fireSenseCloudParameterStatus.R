@@ -65,10 +65,13 @@ fireSenseCloudParametersMap <-
     oo
   }
 
+#' @param which Character. ELF names (e.g., `c("13.1", "4.1")`) whose cores `plotELFs()`
+#'   fills with `fill`. Default `NULL` fills none.
+#' @param fill The colour used to fill the `which` ELFs.
 #' @export
 #' @rdname makeELFs
 #' @seealso [fireSenseCloudParameters()]
-plotELFs <- function(destinationPath = ".") {
+plotELFs <- function(destinationPath = ".", which = NULL, fill = "green") {
   ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE) |>
     Cache()
   ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)|>
@@ -82,6 +85,12 @@ plotELFs <- function(destinationPath = ".") {
   # terra::plot(ELFsPoly, col = c("turquoise", "yellow")[ELFsPoly$buffer], alpha = 0.5)
   terra::plot(ELFsPoly)
   keep <- ELFsPoly$buffer %in% 2
+  if (length(which)) {
+    missingELFs <- setdiff(which, ELFsPoly$ID)
+    if (length(missingELFs))
+      warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
+    terra::plot(ELFsPoly[keep & ELFsPoly$ID %in% which, ], col = fill, add = TRUE)
+  }
   terra::text(terra::centroids(ELFsPoly[ keep, ]), labels = ELFsPoly$ID[keep], cex = 0.7)
   return(invisible(ELFs))
 }
