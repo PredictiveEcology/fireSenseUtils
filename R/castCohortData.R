@@ -22,7 +22,7 @@ globalVariables(c(
 #' @rdname castCohortData
 castCohortData <- function(cohortData, pixelGroupMap, lcc, ageMap = NULL,
                            missingLCC, year = NULL,
-                           cutoffForYoungAge = 15) {
+                           cutoffForYoungAge = fireSenseYoungAgeCutoff) {
   cohortData <- copy(cohortData)
 
   # need stand age for predictions

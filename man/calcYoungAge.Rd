@@ -9,7 +9,7 @@ calcYoungAge(
   annualCovariates,
   standAgeMap,
   fireBufferedListDT,
-  cutoffForYoungAge = 15
+  cutoffForYoungAge = fireSenseYoungAgeCutoff
 )
 }
 \arguments{

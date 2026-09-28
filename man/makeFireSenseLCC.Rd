@@ -9,12 +9,12 @@ makeFireSenseLCC(
   to,
   maskTo = NULL,
   nonflammableLCC = fireSenseNonflammableLCC,
-  flammabilityThreshold = 0.1,
+  flammabilityThreshold = fireSenseFlammabilityThreshold,
   writeTo = NULL,
   overwrite = TRUE,
   destinationPath,
   lccSource = getOption("fireSense.lccSource", "SCANFI"),
-  scanfiVersion = "V3"
+  scanfiVersion = fireSenseSCANFIVersion
 )
 }
 \arguments{

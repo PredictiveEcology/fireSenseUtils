@@ -12,7 +12,7 @@ cohortsToFuelClasses(
   sppEquiv,
   sppEquivCol,
   cutoffForYoungAge,
-  fuelClassCol = "FuelClass",
+  fuelClassCol = fireSenseFuelClassCol,
   requiredFuelClasses
 )
 }

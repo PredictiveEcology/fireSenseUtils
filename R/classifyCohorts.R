@@ -32,7 +32,7 @@ globalVariables(c(
 #' @importFrom terra values rast
 #'
 cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landcoverDT = NULL,
-                                 sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass",
+                                 sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = fireSenseFuelClassCol,
                                  requiredFuelClasses) {
   # cD <- copy(cohortData)
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
