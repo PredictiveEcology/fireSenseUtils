@@ -1,3 +1,7 @@
+# fireSenseUtils 0.2.3.9053
+
+* Fixed: `harmonizeFireData()` lost the fire polygons of later years when a whole year was dropped for lying outside the study area.
+
 # fireSenseUtils 0.2.3.9048
 
 * Fixed: `makeMutuallyExclusive()` recomputed the rows to zero from the key column after each

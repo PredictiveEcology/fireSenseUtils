@@ -145,7 +145,9 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
 
   # Remove all the fires that were eliminated because they crossed outside of studyArea buffer
   if (NROW(harmonized))
-    firePolys <- Map(fp = firePolys, fb = harmonized$FireBuffered, function(fp, fb) {
+    ## by year name: firePolys still has the years dropped above
+    firePolys <- Map(fp = firePolys[names(harmonized$FireBuffered)], fb = harmonized$FireBuffered,
+                     function(fp, fb) {
       fp[fp[[pointsIDcolumn]] %in% fb$ids, ]
     })
 
