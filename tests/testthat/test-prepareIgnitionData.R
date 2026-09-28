@@ -144,4 +144,12 @@ test_that("readLightningData rasterizes the Lat/Long/density triples at 10 km", 
   expect_s4_class(out, "SpatRaster")
   expect_identical(terra::res(out), c(1e4, 1e4))
   expect_equal(range(terra::values(out), na.rm = TRUE), c(1.5, 4.5))
+
+  ## with a target grid: back on that grid, in its projection
+  to <- terra::rast(terra::ext(terra::project(out, "EPSG:3978")), res = 5000, crs = "EPSG:3978",
+                    vals = 1)   # it is also the mask
+  ## sf warns about point attributes when reproducible crops and masks them
+  onTo <- suppressWarnings(readLightningData(csv, to = to))
+  expect_true(terra::compareGeom(onTo, to, stopOnError = FALSE))
+  expect_true(any(!is.na(terra::values(onTo))))
 })
