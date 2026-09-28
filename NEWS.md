@@ -2,6 +2,16 @@
 
 * Fixed: `cleanUpSpreadFirePoints()` matched points by row number instead of fire ID, so ignition points on non-flammable pixels were never moved and fires with no flammable pixel were never dropped.
 
+# fireSenseUtils 0.2.3.9049
+
+* `hillSlope1` (the spread link's slope) is fixed at 1, not fitted. With the linear predictor
+  `x = covariates %*% beta`, `hillSlope1` enters `logistic3p()`/`logistic3pUpper()` only as
+  `hillSlope1 * x`, so scaling every covariate coefficient by `k` and dividing `hillSlope1` by `k`
+  leaves every prediction unchanged: it was never identifiable, and letting DEoptim fit it let every
+  coefficient drift along that ridge. `.objfunSpreadFit()` now calls the new internal
+  `fixHillSlope1()` on every `par` it receives, reinserting `hillSlope1 = 1` as the 2nd logistic
+  parameter, so callers (`fireSense_SpreadFit`) no longer include it in `lower`/`upper`.
+
 # fireSenseUtils 0.2.3.9048
 
 * Fixed: `makeMutuallyExclusive()` recomputed the rows to zero from the key column after each
