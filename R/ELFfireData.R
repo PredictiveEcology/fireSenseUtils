@@ -172,8 +172,9 @@ ELFsExcluded <- function(status) {
 #'
 #' @param rasWhole `SpatRaster` of ELF layers, as in [ELFfireCounts()].
 #' @param rstLCC `SpatRaster` of land cover, the same source the fit uses.
-#' @param nonflammableLCC land-cover codes that cannot burn. The default matches
-#'   `fireSense_dataPrepFit`'s `nonflammableLCC` parameter.
+#' @param nonflammableLCC land-cover codes that cannot burn. The default,
+#'   [fireSenseNonflammableLCC], matches `fireSense_dataPrepFit`'s `nonflammableLCC`
+#'   parameter.
 #'
 #' @return A `data.table` with one row per ELF: `ELF`, `flammablePixels`,
 #'   `totalPixels`, `flammableFraction`, `flammableAreaHa`.
@@ -181,7 +182,7 @@ ELFsExcluded <- function(status) {
 #' @export
 #' @importFrom data.table data.table rbindlist setkeyv
 #' @importFrom terra crs project res values
-ELFflammableArea <- function(rasWhole, rstLCC, nonflammableLCC = c(0, 20, 31, 32, 33)) {
+ELFflammableArea <- function(rasWhole, rstLCC, nonflammableLCC = fireSenseNonflammableLCC) {
   stopifnot(inherits(rasWhole, "SpatRaster"), inherits(rstLCC, "SpatRaster"))
 
   ## Land cover is normally finer than the ELF grid, so move the ELF footprint onto the

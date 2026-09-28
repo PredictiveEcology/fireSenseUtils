@@ -4,15 +4,16 @@
 \alias{ELFflammableArea}
 \title{Measure flammable area in each ELF}
 \usage{
-ELFflammableArea(rasWhole, rstLCC, nonflammableLCC = c(0, 20, 31, 32, 33))
+ELFflammableArea(rasWhole, rstLCC, nonflammableLCC = fireSenseNonflammableLCC)
 }
 \arguments{
 \item{rasWhole}{\code{SpatRaster} of ELF layers, as in \code{\link[=ELFfireCounts]{ELFfireCounts()}}.}
 
 \item{rstLCC}{\code{SpatRaster} of land cover, the same source the fit uses.}
 
-\item{nonflammableLCC}{land-cover codes that cannot burn. The default matches
-\code{fireSense_dataPrepFit}'s \code{nonflammableLCC} parameter.}
+\item{nonflammableLCC}{land-cover codes that cannot burn. The default,
+\link{fireSenseNonflammableLCC}, matches \code{fireSense_dataPrepFit}'s \code{nonflammableLCC}
+parameter.}
 }
 \value{
 A \code{data.table} with one row per ELF: \code{ELF}, \code{flammablePixels},

@@ -29,7 +29,7 @@
 #'   the output. Forwarded to `reproducible::postProcessTo(maskTo = ...)`.
 #'   Default `NULL` (no extra mask beyond `to`).
 #' @param nonflammableLCC Numeric vector. LCC codes representing non-flammable
-#'   land cover types (e.g., water, rock, urban). Defaults to `c(20, 31, 32, 33)`.
+#'   land cover types (e.g., water, rock, urban). Defaults to [fireSenseNonflammableLCC].
 #'   Pixels with these values are initially masked or converted for thresholding.
 #' @param flammabilityThreshold Numeric. A value between 0 and 1. Target pixels
 #'   where the proportion of underlying *flammable* source pixels is below this
@@ -88,7 +88,7 @@
 #'   # plot(fireLCC)
 #' }
 makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
-                             nonflammableLCC = c(20, 31, 32, 33),
+                             nonflammableLCC = fireSenseNonflammableLCC,
                              flammabilityThreshold = 0.1, writeTo = NULL,
                              overwrite = TRUE, destinationPath,
                              lccSource = getOption("fireSense.lccSource", "SCANFI")) {

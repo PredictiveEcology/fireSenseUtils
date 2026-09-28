@@ -8,7 +8,7 @@ makeFireSenseLCC(
   neededYear,
   to,
   maskTo = NULL,
-  nonflammableLCC = c(20, 31, 32, 33),
+  nonflammableLCC = fireSenseNonflammableLCC,
   flammabilityThreshold = 0.1,
   writeTo = NULL,
   overwrite = TRUE,
@@ -29,7 +29,7 @@ the output. Forwarded to \code{reproducible::postProcessTo(maskTo = ...)}.
 Default \code{NULL} (no extra mask beyond \code{to}).}
 
 \item{nonflammableLCC}{Numeric vector. LCC codes representing non-flammable
-land cover types (e.g., water, rock, urban). Defaults to \code{c(20, 31, 32, 33)}.
+land cover types (e.g., water, rock, urban). Defaults to \link{fireSenseNonflammableLCC}.
 Pixels with these values are initially masked or converted for thresholding.}
 
 \item{flammabilityThreshold}{Numeric. A value between 0 and 1. Target pixels

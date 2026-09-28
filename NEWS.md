@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9060
+
+* Fixed: SCANFI's rock/exposed land-cover code (`30`, from `LandR::convert_SCANFI_LCC_codes()`)
+  was missing from `makeFireSenseLCC()`'s and `ELFflammableArea()`'s `nonflammableLCC` default,
+  so rock entered fits as flammable non-forest. New exported constant `fireSenseNonflammableLCC`
+  is the single source of truth for the non-flammable codes of the FireSense land cover;
+  `makeFireSenseLCC()` and `ELFflammableArea()` now default to it.
+
 # fireSenseUtils 0.2.3.9059
 
 ## Removed
