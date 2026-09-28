@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "dists", "geometry", "isFlammable"
+  "dists", "geometry", "ID", "isFlammable"
 ))
 
 #' Ensure fire points are located on flammable pixels inside a fire polygon

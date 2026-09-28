@@ -55,3 +55,20 @@ test_that("harmonizeFireDataDeps() lists every package function harmonizeFireDat
     any(vapply(deps, identical, logical(1), get(f, ns))), logical(1))
   expect_true(all(inDeps), info = paste("missing:", paste(names(inDeps)[!inDeps], collapse = ", ")))
 })
+
+test_that("harmonizeFireData takes and returns SpatVectors", {
+  rtm <- terra::rast(nrows = 100, ncols = 100, extent = c(0, 40000, 0, 40000),
+                     crs = "EPSG:3978", vals = 1L)
+  polys <- list(year2001 = terra::vect(circleFire(8000, 30000, 1500, 1)),
+                year2003 = terra::vect(circleFire(10000, 10000, 1500, 3)))
+  pts <- list(year2001 = terra::vect(firePoint(8000, 30000, 1)),
+              year2003 = terra::vect(firePoint(10000, 10000, 3)))
+  set.seed(1)
+
+  out <- capture.output(
+    res <- suppressMessages(harmonizeFireData(polys, rtm, pts, areaMultiplier = 5, minSize = 100)))
+
+  expect_s4_class(res$firePolys$year2003, "SpatVector")
+  expect_s4_class(res$spreadFirePoints$year2001, "SpatVector")
+  expect_identical(res$spreadFirePoints$year2003$FIRE_ID, 3)
+})

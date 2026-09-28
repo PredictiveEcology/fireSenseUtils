@@ -674,7 +674,7 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
       toRescale <- setdiff(names(covariates),
                            c("pixelID", ignitionsTxt, escapesTxt, "year", "yearChar"))
       rescalers <- sapply(covariates[, .SD, .SDcols = toRescale], max)
-      needRescale <- sapply(rescalers, FUN = function(x) !inRange(x, 0, 10))
+      needRescale <- sapply(rescalers, FUN = function(x) !SpaDES.tools::inRange(x, 0, 10))
       cols <- names(rescalers)[which(needRescale)]
       message("rescaling the following variables: ", paste(cols, collapse = ", "))
       ignitionRescalers <- 10^(floor(log10(abs(rescalers[cols])))) # if range is 0,1, need + 1
