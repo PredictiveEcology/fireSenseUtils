@@ -151,7 +151,8 @@ test_that("ELFtemplateRaster aggregates the downloaded raster by 8 and writes it
   out <- ELFtemplateRaster(dp)
 
   expect_equal(dim(out)[1:2], c(2, 2))
-  expect_identical(terra::sources(out), file.path(dp, "rastTemplate_Canada.tif"))
+  expect_identical(normalizePath(terra::sources(out)),   # macOS: /var is /private/var
+                   normalizePath(file.path(dp, "rastTemplate_Canada.tif")))
 })
 
 test_that("moveSliversToOtherELFs reports pixels no other ELF covers", {
