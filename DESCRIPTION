@@ -3,7 +3,7 @@ Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 Date: 2026-09-28
-Version: 0.2.3.9064
+Version: 0.2.3.9065
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -17,7 +17,7 @@ Authors@R: c(
 Depends:
     R (>= 4.3)
 Imports:
-    clusters (>= 0.0.52),
+    clusters (>= 0.0.53),
     cowplot,
     crayon,
     data.table,

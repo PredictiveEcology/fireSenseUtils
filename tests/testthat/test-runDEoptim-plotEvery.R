@@ -1,6 +1,6 @@
 ## 2026-09-28: drawing the DEoptim progress figures after every generation took 8.3 s of each 53 s
 ## generation (16% of the wall time) in a FireSense fit. runDEoptim() now passes `plotEvery` to
-## clusters::DEoptimIterative2(); how often figures are drawn must not change the fit's cache key.
+## clusters::DEoptimIterative(); how often figures are drawn must not change the fit's cache key.
 
 callRunDEoptimPlotEvery <- function(cachePath, ...) {
   lower <- stats::setNames(c(0.25, 0.2, 0.1, 0), c("maxAsymptote", "hillSlope1", "inflectionPoint1", "x"))
@@ -17,8 +17,9 @@ callRunDEoptimPlotEvery <- function(cachePath, ...) {
 
 mockDEoptimPlotEvery <- function(seen, env = parent.frame()) {
   testthat::local_mocked_bindings(
-    clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L),
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) {
+    clusterSetup = function(...) structure(list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L),
+                                           objsDigest = seen$dataDigest),
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
       seen$calls <- seen$calls + 1L
       seen$plotEvery <- list(...)$plotEvery
       list()
@@ -27,7 +28,7 @@ mockDEoptimPlotEvery <- function(seen, env = parent.frame()) {
   testthat::local_mocked_bindings(termsInDEoptim = function(...) invisible(NULL), .env = env)
 }
 
-test_that("plotEvery reaches clusters::DEoptimIterative2(), 25 by default", {
+test_that("plotEvery reaches clusters::DEoptimIterative(), 25 by default", {
   seen <- new.env(); seen$calls <- 0L
   mockDEoptimPlotEvery(seen)
   withr::local_options(reproducible.useCache = FALSE)
@@ -47,5 +48,24 @@ test_that("changing plotEvery does not change the fit's cache key", {
   callRunDEoptimPlotEvery(cp, plotEvery = 1L)       # a cache hit: the fit is not run again
   expect_identical(seen$calls, 1L)
   callRunDEoptimPlotEvery(cp, plotEvery = 1L, thresh = 551)  # control: a fit argument does refit
+  expect_identical(seen$calls, 2L)
+})
+
+
+## 2026-09-29: the data reaches the workers through clusterSetup(objsNeeded), not as an argument of the
+## cached call, so the two held-out folds of an ELF (same settings, different years) shared one fit.
+test_that("two fits that differ only in the shipped data do not share the fit's cache", {
+  seen <- new.env(); seen$calls <- 0L
+  mockDEoptimPlotEvery(seen)
+  withr::local_options(reproducible.useCache = TRUE)
+  cp <- withr::local_tempdir()
+  seen$dataDigest <- "digest-of-fold-1"
+  callRunDEoptimPlotEvery(cp)
+  expect_identical(seen$calls, 1L)
+  seen$dataDigest <- "digest-of-fold-2"            # only the shipped data differ
+  callRunDEoptimPlotEvery(cp)
+  expect_identical(seen$calls, 2L)
+  seen$dataDigest <- "digest-of-fold-1"            # the same data again: a cache hit
+  callRunDEoptimPlotEvery(cp)
   expect_identical(seen$calls, 2L)
 })

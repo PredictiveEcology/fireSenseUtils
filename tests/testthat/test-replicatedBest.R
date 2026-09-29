@@ -53,7 +53,7 @@ test_that("runDEoptim() re-scores the final population with the early stop off, 
   src <- paste(deparse(runDEoptim), collapse = "\n")
   expect_match(src, "rescorePopulation", fixed = TRUE)
   expect_match(src, "thresh = Inf", fixed = TRUE)
-  expect_lt(regexpr("DEoptimIterative2", src), regexpr("rescorePopulation", src))
+  expect_lt(regexpr("DEoptimIterative", src), regexpr("rescorePopulation", src))
   expect_identical(formals(runDEoptim)$rescoreReps, 10L)
 })
 

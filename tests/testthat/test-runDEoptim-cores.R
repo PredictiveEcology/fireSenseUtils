@@ -23,7 +23,7 @@ mockCluster <- function(seen, builtWorkers = 40L) {
       ## what clusterSetup() returns once a cluster of `builtWorkers` is running
       list(itermax = 5, trace = FALSE, strategy = 2L, NP = builtWorkers)
     },
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) {
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
       seen$control <- control
       list()
     },
@@ -54,7 +54,7 @@ test_that("DEoptim settings reach clusterSetup(), and .c is DEoptim's c, not an 
       seen$controlArgs <- controlArgs
       list(itermax = 5, trace = FALSE, strategy = 6L, NP = 40L)
     },
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) {
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
       seen$dots <- names(list(...))
       list()
     },
