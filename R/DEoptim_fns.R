@@ -250,7 +250,15 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
-  termsInDEoptim(formulaToFit, thresh, length(lower))
+  ## name the parameters from `lower`. termsInDEoptim() called every non-formula parameter a "logit"
+  ## term, so yearSpreadSD was reported as a third logistic parameter.
+  covTerms <- if (is.null(formulaToFit)) character(0) else
+    attr(terms(as.formula(formulaToFit, env = .GlobalEnv)), "term.labels")
+  logisticTerms <- setdiff(names(lower), c(covTerms, yearSpreadSDTxt))
+  message("Fitting ", length(lower), " parameters: logistic: ", paste(logisticTerms, collapse = ", "),
+          "; covariates: ", paste(covTerms, collapse = ", "),
+          if (yearSpreadSDTxt %in% names(lower)) paste0("; year effect: ", yearSpreadSDTxt))
+  message("objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
   ## the per-year random effect is fitted when the bounds include it (its sd is the LAST parameter);
   ## DEoptim passes `par` unnamed, so the objective is told explicitly
   fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)
