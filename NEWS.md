@@ -1,3 +1,10 @@
+# fireSenseUtils 0.2.3.9067
+
+* `runDEoptim()`'s default `logPath` is named `runDEoptim_<time>_*.log` (was `fireSense_SpreadFit_<time>_*.log`),
+  so no package code names a module; the module passes its own `logPath`. Documentation and the tutorial use the
+  new module names (`fireSense_spreadFit`, `fireSense_ignitionFit`, `fireSense_spreadPredict`,
+  `fireSense_ignitionPredict`).
+
 # fireSenseUtils 0.2.3.9066
 
 * `runDEoptim()` names the fitted parameters from `names(lower)`, grouped as logistic parameters,

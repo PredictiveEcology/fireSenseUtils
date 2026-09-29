@@ -1,7 +1,7 @@
 ## objFunInner() returns `ret` unconditionally, but only built it inside
 ## `if (isTRUE(doFitting))`. doFitting is `any(c(doSNLL_FSTest, doMADTest,
 ## doADTest))`, so with no test selected -- which is exactly how
-## fireSense_SpreadFit's `debug` mode calls the chain, passing tests = "" -- the
+## fireSense_spreadFit's `debug` mode calls the chain, passing tests = "" -- the
 ## branch was skipped and the return failed with "object 'ret' not found". The
 ## comment at the far end of that branch ("Object ret doesn't exist") shows this
 ## had been noticed before.

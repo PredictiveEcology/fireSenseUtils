@@ -71,9 +71,9 @@ test_that("makeMutuallyExclusive: all cov1 zero – nothing changed", {
 # ---------------------------------------------------------------------------
 # makeMutuallyExclusive: youngAge is exclusive with everything, not zeroed itself
 #
-# fireSense_SpreadFit::spreadFitPrep() appends every non-annual column name to youngAge's own
+# fireSense_spreadFit::spreadFitPrep() appends every non-annual column name to youngAge's own
 # pattern list, so when youngAge itself is a non-annual column, one of those patterns is
-# "youngAge" (see fireSense_SpreadFit's own tests). Column order (youngAge before or after the
+# "youngAge" (see fireSense_spreadFit's own tests). Column order (youngAge before or after the
 # other covariates in the pattern list) must not matter.
 # ---------------------------------------------------------------------------
 test_that("makeMutuallyExclusive: youngAge stays 1 and is not zeroed by its own pattern (youngAge first)", {

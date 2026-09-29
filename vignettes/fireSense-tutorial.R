@@ -166,14 +166,14 @@ knitr::opts_chunk$set(
 #  )
 
 ## ----fit_ignition_model, message=FALSE----------------------------------------
-#  modules <- list("fireSense_IgnitionFit")
+#  modules <- list("fireSense_ignitionFit")
 #
 #  times <- list(start = 1, end = 1)
 #
-#  # Define fireSense_IgnitionFit module inputs
+#  # Define fireSense_ignitionFit module inputs
 #  objects <- list(dataFireSense_IgnitionFit = dataFireSense_IgnitionFit)
 #
-#  # Define fireSense_IgnitionFit module parameters
+#  # Define fireSense_ignitionFit module parameters
 #  formula <- formula(n_fires ~ landtype_1_pp:weather + landtype_2_pp:weather - 1)
 #  family <- poisson(link = "identity")
 #  ub <- list(coef = 1)
@@ -184,7 +184,7 @@ knitr::opts_chunk$set(
 #  cores <- 50
 #
 #  parameters <- list(
-#    fireSense_IgnitionFit = list(
+#    fireSense_ignitionFit = list(
 #      formula = formula,           # Formula of the statistical model
 #      family = family,             # Distribution family, here the negative binomial distribution
 #      ub = ub,                     # Upper bounds for coefficients to be estimated
@@ -327,11 +327,11 @@ knitr::opts_chunk$set(
 #  )
 
 ## ----fit_spread_model, message=FALSE------------------------------------------
-#  modules <- list("fireSense_SpreadFit")
+#  modules <- list("fireSense_spreadFit")
 #
 #  times <- list(start = 1, end = 1)
 #
-#  # Define fireSense_SpreadFit module inputs
+#  # Define fireSense_spreadFit module inputs
 #  inputs <- rbind(
 #    # tapered Pareto's beta
 #    data.frame(
@@ -359,11 +359,11 @@ knitr::opts_chunk$set(
 #
 #  objects <- list(fireAttributesFireSense_SpreadFit = fireAttributesFireSense_SpreadFit)
 #
-#  # Define fireSense_SpreadFit module parameters
+#  # Define fireSense_spreadFit module parameters
 #  formula <- formula(~ I(1 / beta) + log(theta) - 1)
 #
 #  parameters <- list(
-#    fireSense_SpreadFit = list(
+#    fireSense_spreadFit = list(
 #      formula = formula, # Formula of the statistical model
 #      data = c("beta", "theta"),
 #      lower = c(.01, 0, .1, .3, .001, .001),
@@ -384,11 +384,11 @@ knitr::opts_chunk$set(
 #  fireSense_SpreadFitted <- sim$fireSense_SpreadFitted # Extract the fitted model from the sim object
 
 ## ----predict_ignition_rates, message=FALSE------------------------------------
-#  modules <- list("fireSense_IgnitionPredict")
+#  modules <- list("fireSense_ignitionPredict")
 #
 #  times <- list(start = 1, end = 1)
 #
-#  # Define fireSense_IgnitionPredict module inputs
+#  # Define fireSense_ignitionPredict module inputs
 #  objects <- list(
 #    fireSense_IgnitionFitted = fireSense_IgnitionFitted,
 #    landtype_1_pp = landTypeOne,
@@ -396,7 +396,7 @@ knitr::opts_chunk$set(
 #    weather = weather
 #  )
 #
-#  # Define fireSense_IgnitionPredict module outputs
+#  # Define fireSense_ignitionPredict module outputs
 #  outputs <- rbind(
 #    data.frame(
 #      file = paste0("fireSense_IgnitionPredicted.tif"),
@@ -407,9 +407,9 @@ knitr::opts_chunk$set(
 #    )
 #  )
 #
-#  # Define fireSense_IgnitionPredict module parameters
+#  # Define fireSense_ignitionPredict module parameters
 #  parameters <- list(
-#    fireSense_IgnitionPredict = list(
+#    fireSense_ignitionPredict = list(
 #      data = c("landtype_1_pp", "landtype_2_pp", "weather"),
 #      modelName = "fireSense_IgnitionFitted" # This is the default
 #    )
@@ -466,11 +466,11 @@ knitr::opts_chunk$set(
 #  )
 
 ## ----predict_spread_probabilities, message=FALSE------------------------------
-#  modules <- list("fireSense_SpreadPredict")
+#  modules <- list("fireSense_spreadPredict")
 #
 #  times <- list(start = 1, end = 1)
 #
-#  # Define fireSense_SpreadPredict module inputs
+#  # Define fireSense_spreadPredict module inputs
 #  # tapered Pareto's beta
 #  inputs <- rbind(
 #    data.frame(
@@ -498,7 +498,7 @@ knitr::opts_chunk$set(
 #
 #  objects <- list(fireSense_SpreadFitted = fireSense_SpreadFitted)
 #
-#  # Define fireSense_SpreadPredict module outputs
+#  # Define fireSense_spreadPredict module outputs
 #  outputs <- rbind(
 #    data.frame(
 #      file = paste0("fireSense_SpreadPredicted.tif"),
@@ -509,9 +509,9 @@ knitr::opts_chunk$set(
 #    )
 #  )
 #
-#  # Define fireSense_SpreadPredict module parameters
+#  # Define fireSense_spreadPredict module parameters
 #  parameters <- list(
-#    fireSense_SpreadPredict = list(
+#    fireSense_spreadPredict = list(
 #      data = c("landtype_1_pp", "landtype_2_pp", "weather"),
 #      modelName = "fireSense_SpreadFitted" # This is the default
 #    )

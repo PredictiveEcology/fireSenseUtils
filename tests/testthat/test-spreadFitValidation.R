@@ -19,7 +19,7 @@ toyValidationInputs <- function() {
                year2002 = data.frame(size = 25L, cells = cellOf(17L, 12L), ids = 3L, date = "year2002"))
   set.seed(10)
   allPx <- sort(unique(unlist(lapply(fb, `[[`, "pixelID"))))
-  nonAnnual <- list(`2001` = dt(   # named by first year, as fireSense_SpreadFit names them
+  nonAnnual <- list(`2001` = dt(   # named by first year, as fireSense_spreadFit names them
     pixelID = allPx,
     agb = as.integer(round(ifelse(stats::runif(length(allPx)) < 0.3, 0, stats::runif(length(allPx), 0, 5000)) * 1000)),
     youngAge = as.integer(stats::runif(length(allPx)) < 0.1) * 1000L))

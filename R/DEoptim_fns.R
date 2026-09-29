@@ -165,7 +165,7 @@ runDEoptim <- function(landscape,
                        paths,
                        libPath = .libPaths()[1],
                        logPath = tempfile(sprintf(
-                         "fireSense_SpreadFit_%s_",
+                         "runDEoptim_%s_",
                          format(Sys.time(), "%Y-%m-%d_%H%M%S")
                        ), fileext = ".log"),
                        doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),

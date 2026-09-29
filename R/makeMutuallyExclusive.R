@@ -37,8 +37,8 @@ makeMutuallyExclusive <- function(dt, mutuallyExclusiveCols = list("youngAge" = 
 #'
 #' `youngAge` is mutually exclusive with every other non-climate spread covariate: wherever it is
 #' non-zero, fuel biomass, non-forest land cover (always named `nfLCC_*`, see `fuelClassPrep()`)
-#' and `treedWetland` are all zero. `fireSense_SpreadFit` derives this from the covariates it holds
-#' apart from climate (its non-annual covariate table); `fireSense_SpreadPredict` has no such
+#' and `treedWetland` are all zero. `fireSense_spreadFit` derives this from the covariates it holds
+#' apart from climate (its non-annual covariate table); `fireSense_spreadPredict` has no such
 #' table, so it identifies fuel columns itself (their `covMinMax` range) and calls this for the
 #' rest, so both modules end up applying the identical rule.
 #'

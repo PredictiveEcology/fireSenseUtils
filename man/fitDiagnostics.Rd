@@ -153,7 +153,7 @@ population's values (fail values of \code{1e6} and above left out).
 }
 \description{
 The checks made by hand on the FireSense phase-2 fits (September 2026), as functions, so that
-\code{fireSense_SpreadFit} can make them after every fit.
+\code{fireSense_spreadFit} can make them after every fit.
 }
 \details{
 \itemize{

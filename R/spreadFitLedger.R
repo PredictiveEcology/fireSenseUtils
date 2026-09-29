@@ -1,6 +1,6 @@
 #' The shared SpreadFit ledger files
 #'
-#' fireSense_SpreadFit writes each fit as a row of an `rds` file in a Google Drive folder
+#' fireSense_spreadFit writes each fit as a row of an `rds` file in a Google Drive folder
 #' (its `spreadFitGoogleDriveFolder`); fireSense_ELFs and fireSense_dataPrepFit read them.
 #' With `spreadFitFilename = "latest"` those modules use these functions instead of one named file.
 #'
@@ -8,7 +8,7 @@
 #' linear scale ([fuelLogToLinear()]), escaped fires starting at 50 ha (`escapeSizeHa`), and the
 #' objective with the annual-area and area-distribution terms. Files with an older tag
 #' (`"_linearFuel"`: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
-#' fireSense_SpreadPredict would apply wrongly, so `"latest"` never reads them.
+#' fireSense_spreadPredict would apply wrongly, so `"latest"` never reads them.
 #' A fit made under a new model needs a new tag, so the old files drop out of `"latest"`.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
@@ -38,7 +38,7 @@ spreadFitFileTag <- "_linearFuel_esc50"
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
 #'
-#' @return `latestSpreadFits()`: the ledger rows, in the form fireSense_SpreadFit writes them
+#' @return `latestSpreadFits()`: the ledger rows, in the form fireSense_spreadFit writes them
 #'   (a `data.frame` with a `geometry` column), or `NULL` when no file matches. Attribute
 #'   `"spreadFitFiles"` names the file each polygon came from.
 #' @export

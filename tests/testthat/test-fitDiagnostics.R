@@ -1,5 +1,5 @@
 ## Fit diagnostics (?fitDiagnostics): the checks made by hand on the phase-2 fits (September 2026),
-## now run by fireSense_SpreadFit after every fit. The held-out validation used trace() to pull the
+## now run by fireSense_spreadFit after every fit. The held-out validation used trace() to pull the
 ## simulated fires out of the objective; .objfunSpreadFit(returnSims = TRUE) replaces it.
 
 ## objFunInner with only the spread mocked, as in test-logistic-upperTail.R: 400 pixels, one fire of

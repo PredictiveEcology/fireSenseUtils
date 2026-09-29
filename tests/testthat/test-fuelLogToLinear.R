@@ -1,5 +1,5 @@
 ## Fuel biomass reaches the spread model logged by logMinB(). fuelLogToLinear() undoes that for
-## fireSense_SpreadFit and fireSense_SpreadPredict alike, and fuelLinearRange is the covMinMax that
+## fireSense_spreadFit and fireSense_spreadPredict alike, and fuelLinearRange is the covMinMax that
 ## divides it by 1e4. These tests pin the values both modules depend on.
 
 test_that("fuelLogToLinear() inverts logMinB() above the floor", {

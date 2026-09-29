@@ -18,8 +18,8 @@ a named list, \verb{list(youngAge = <matched column names>)}, suitable as
 \description{
 \code{youngAge} is mutually exclusive with every other non-climate spread covariate: wherever it is
 non-zero, fuel biomass, non-forest land cover (always named \verb{nfLCC_*}, see \code{fuelClassPrep()})
-and \code{treedWetland} are all zero. \code{fireSense_SpreadFit} derives this from the covariates it holds
-apart from climate (its non-annual covariate table); \code{fireSense_SpreadPredict} has no such
+and \code{treedWetland} are all zero. \code{fireSense_spreadFit} derives this from the covariates it holds
+apart from climate (its non-annual covariate table); \code{fireSense_spreadPredict} has no such
 table, so it identifies fuel columns itself (their \code{covMinMax} range) and calls this for the
 rest, so both modules end up applying the identical rule.
 }

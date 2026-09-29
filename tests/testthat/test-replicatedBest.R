@@ -1,6 +1,6 @@
 ## The ledger's "best" parameter sets, chosen by replicated mean.
 ##
-## FireSense, 2026-09-17: the ledger's "5 best" were five copies of one member -- fireSense_SpreadFit took
+## FireSense, 2026-09-17: the ledger's "5 best" were five copies of one member -- fireSense_spreadFit took
 ## the 5 GENERATIONS with the lowest best value, which all hold the same frozen best member -- and that
 ## member was itself a lucky draw: re-scored 10 times, DEoptim's best ranked 1st to 6th of 60 in eight fits.
 ## runDEoptim() now re-scores the final population, and bestByReplicatedMean() picks from the means.

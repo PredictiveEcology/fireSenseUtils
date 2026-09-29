@@ -19,6 +19,6 @@ A \code{data.table} with one row per ELF: \code{ELF}, \code{naturalIgnitions},
 An ELF with no natural ignitions, or no fire polygons, over the whole fitting window
 cannot be fitted and is \code{"zero"}. One below either threshold is \code{"few"}: it can be
 fitted, but the thin end of the data drives the escape model's 5-fold CV
-(\verb{fireSense_IgnitionFit.R:463,889}), which needs at least 10 ignited cell-years
+(\verb{fireSense_ignitionFit.R:463,889}), which needs at least 10 ignited cell-years
 before some fold is left holding a single row.
 }

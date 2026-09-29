@@ -711,11 +711,11 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
       # }
       
       setattr(covariates, name = "scaleData", value = centeringData)
-      ignitionRescalers <- NULL #so that fire fireSense_IgnitionFit can add it
+      ignitionRescalers <- NULL #so that fire fireSense_ignitionFit can add it
       
     }
   } else {
-    ignitionRescalers <- NULL #so that fire fireSense_IgnitionFit can add it
+    ignitionRescalers <- NULL #so that fire fireSense_ignitionFit can add it
   }
   
   return(list(covariates = covariates,
