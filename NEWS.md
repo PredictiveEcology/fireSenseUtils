@@ -1,3 +1,11 @@
+# fireSenseUtils 0.2.3.9064
+
+* `runDEoptim()` gains `plotEvery` (default 25), passed to `clusters::DEoptimIterative2()` (exported
+  since clusters 0.0.51; it was called with `:::`). The DEoptim progress figures are drawn every
+  `plotEvery` generations and at the end, not after every generation, which took 16% of a fit's wall
+  time. `plotEvery` is left out of the fit's cache key, so changing it does not refit. Needs clusters
+  >= 0.0.52.
+
 # fireSenseUtils 0.2.3.9063
 
 * Added: `spreadFitValidationData()`, `plotSpreadFitValidation()` and `plotSpreadFitResponse()`
