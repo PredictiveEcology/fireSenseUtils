@@ -38,6 +38,7 @@
   adWeight = "auto",
   link = NULL,
   returnSims = FALSE,
+  returnBurned = FALSE,
   capSizes = TRUE,
   fitYearSpreadSD = NULL,
   verbose = 2,
@@ -198,6 +199,12 @@ simulate (its spread probabilities fail the sanity checks) keeps its fires with 
 applied. For diagnostics and validation; the value is not an objective.
 The result carries \code{attr(, "spreadProb")}: the spread probabilities of every fitted pixel-year,
 summarised by \code{\link[=spreadProbSummary]{spreadProbSummary()}}, for \code{\link[=linkSaturation]{linkSaturation()}}.}
+
+\item{returnBurned}{If \code{TRUE}, also record which pixels burned: implies \code{returnSims = TRUE}, and the
+result carries \code{attr(, "burned")}, a named list with one element per simulated fire year, each a
+\code{data.table} with the replicate \code{rep} and the \code{pixelID} of every pixel that burned in it (ignition
+cells included). A year the objective declines to simulate is \code{NULL}. For
+\code{\link[=spreadFitValidationData]{spreadFitValidationData()}}. \code{FALSE} (default) records nothing and changes nothing.}
 
 \item{capSizes}{If \code{FALSE}, simulated fires are not capped at \code{\link[=multiplier]{multiplier()}} of their observed
 size. The fit needs the cap; validation should not have it, or a model that predicts fires far

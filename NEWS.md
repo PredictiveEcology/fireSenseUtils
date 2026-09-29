@@ -1,3 +1,15 @@
+# fireSenseUtils 0.2.3.9063
+
+* Added: `spreadFitValidationData()`, `plotSpreadFitValidation()` and `plotSpreadFitResponse()`
+  (`?spreadFitValidation`). A response curve of `logit(p)` against a covariate looks right by
+  construction, because its points are the model's own predictions. These compare the fit with the
+  data instead: the share of pixel-years that burned against the share that burned in the fit's own
+  simulations, binned by each covariate. The response curves are kept as a second figure, titled as
+  the model's response. Both plot functions take the data first and return a `ggplot`, for
+  `SpaDES.core::Plots()`.
+* Added: `.objfunSpreadFit(returnBurned = TRUE)` records the pixels burned in each simulated
+  replicate (`attr(, "burned")`). Off by default; the objective's value is unchanged.
+
 # fireSenseUtils 0.2.3.9062
 
 * Added: exported defaults shared by `fireSense_dataPrepFit` and `fireSense_dataPrepPredict`

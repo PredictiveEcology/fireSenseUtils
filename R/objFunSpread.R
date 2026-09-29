@@ -2,7 +2,7 @@ yearSpreadSDTxt <- "yearSpreadSD"
 
 utils::globalVariables(c(
   "..colsToKeep", "..colsToUse", ".N", "buffer", "burned", "burnedClass",
-  "id", "ids", "initialLocus", "N", "numAvailPixels", "pixelID", "prob",
+  "id", "ids", "indices", "initialLocus", "N", "numAvailPixels", "pixelID", "prob",
   "simFireSize", "size", "spreadProb", "value"
 ))
 
@@ -160,6 +160,11 @@ utils::globalVariables(c(
 #'   medians too large and the largest fires too small at once (2026-09-23). `sd = 0` is the model
 #'   without it, exactly (no random numbers are drawn). `NULL` (default): `TRUE` when `par` is named and
 #'   includes `yearSpreadSD`. DEoptim passes `par` unnamed, so `runDEoptim()` sets it explicitly.
+#' @param returnBurned If `TRUE`, also record which pixels burned: implies `returnSims = TRUE`, and the
+#'   result carries `attr(, "burned")`, a named list with one element per simulated fire year, each a
+#'   `data.table` with the replicate `rep` and the `pixelID` of every pixel that burned in it (ignition
+#'   cells included). A year the objective declines to simulate is `NULL`. For
+#'   [spreadFitValidationData()]. `FALSE` (default) records nothing and changes nothing.
 #' @param capSizes If `FALSE`, simulated fires are not capped at [multiplier()] of their observed
 #'   size. The fit needs the cap; validation should not have it, or a model that predicts fires far
 #'   too large cannot show it.
@@ -225,6 +230,7 @@ utils::globalVariables(c(
                              adWeight = "auto",
                              link = NULL,
                              returnSims = FALSE,
+                             returnBurned = FALSE,
                              capSizes = TRUE,
                              fitYearSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
@@ -235,6 +241,7 @@ utils::globalVariables(c(
 
   data.table::setDTthreads(1)
   sizeLik <- match.arg(sizeLik, c("kde", "t"))
+  if (isTRUE(returnBurned)) returnSims <- TRUE
   ## the per-year random effect's sd, fitted as the LAST element of `par`
   yearSpreadSD <- 0
   if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
@@ -329,6 +336,7 @@ utils::globalVariables(c(
   bailedEarly <- FALSE
   simsList <- list() # returnSims: the simulated fires of each batch of years
   pSumList <- list() #   ... and the spread probabilities of their pixels
+  burnedList <- list() # returnBurned: per year, the pixels burned in each replicate
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
@@ -363,7 +371,7 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
-        returnSims = returnSims, capSizes = capSizes, yearSpreadSD = yearSpreadSD,
+        returnSims = returnSims, returnBurned = returnBurned, capSizes = capSizes, yearSpreadSD = yearSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         doYearArea = doYearArea,
         covMinMax = covMinMax, # interactive debugging
@@ -379,6 +387,7 @@ utils::globalVariables(c(
       if (isTRUE(returnSims)) {
         simsList[[ii]] <- data.table::rbindlist(results$sims, use.names = TRUE)
         pSumList[[ii]] <- results$pSummary
+        if (isTRUE(returnBurned)) burnedList[yrs] <- results$burned
         next
       }
 
@@ -461,6 +470,7 @@ utils::globalVariables(c(
   if (isTRUE(returnSims)) {
     out <- data.table::rbindlist(simsList, use.names = TRUE)
     data.table::setattr(out, "spreadProb", combineSpreadProbSummaries(unlist(pSumList, recursive = FALSE)))
+    if (isTRUE(returnBurned)) data.table::setattr(out, "burned", burnedList)
     return(out)
   }
   bb <- purrr::transpose(objFunResList)
@@ -627,7 +637,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
-                        sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE,
+                        sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE, capSizes = TRUE,
                         yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
@@ -909,7 +919,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         simSize <- spreadState[, list(sim = .N), by = c("rep", "initialLocus")]
         f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
         return(list(sims = data.table::data.table(yr = as.character(yr), simSize[f, on = "initialLocus"]),
-                    pSummary = pSummary))
+                    pSummary = pSummary,
+                    burned = if (isTRUE(returnBurned)) spreadState[, list(rep, pixelID = indices)]))
       }
       if (isTRUE(doSNLL_FSTest)) {
         emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")] # N is "size of simulated fire"
@@ -1127,7 +1138,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       if (isTRUE(returnSims)) {
         f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
         return(list(sims = data.table::data.table(yr = as.character(yr), rep = NA_integer_, f,
-                                                  sim = NA_integer_), pSummary = pSummary))
+                                                  sim = NA_integer_), pSummary = pSummary, burned = NULL))
       }
       llik <- rep(log(minLik), length(loci))
       SNLL_FS <- -sum(llik)
