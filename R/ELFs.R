@@ -599,6 +599,56 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
 
 
 
+#' Find a module in a project's module list, seeing through parent modules
+#'
+#' A project's `modules` may list a parent module (e.g. `PredictiveEcology/fireSense@development`)
+#' instead of its children. This searches the listed modules and, recursively, the child modules
+#' of any listed parent, read from `modulePath` with [SpaDES.core::moduleMetadata()].
+#'
+#' @param modules Character vector of module names or specs (`"owner/repo@branch"`).
+#' @param modulePath Directory holding the module folders (children included).
+#' @param pattern Regular expression matched against module names (no owner or branch).
+#'
+#' @return The plain name of the first matching module; stops if none matches.
+#' @importFrom SpaDES.core moduleMetadata
+#' @importFrom Require extractPkgName
+#' @keywords internal
+.findModuleInProject <- function(modules, modulePath, pattern) {
+  toName <- function(x) unname(Require::extractPkgName(unname(as.character(x))))
+  searched <- character(0)
+  search <- function(mods) {
+    for (m in setdiff(toName(mods), searched)) {
+      searched <<- c(searched, m)
+      if (grepl(pattern, m)) return(m)
+      if (file.exists(file.path(modulePath, m, paste0(m, ".R")))) {
+        kids <- SpaDES.core::moduleMetadata(module = m, path = modulePath,
+                                            defineModuleListItems = "childModules")$childModules
+        kids <- unlist(kids)
+        if (length(kids)) {
+          out <- search(kids)
+          if (!is.null(out)) return(out)
+        }
+      }
+    }
+    NULL
+  }
+  out <- search(modules)
+  if (is.null(out))
+    stop("No module matching '", pattern, "' among the project's modules or their child modules; ",
+         "searched: ", paste(searched, collapse = ", "), call. = FALSE)
+  out
+}
+
+#' The ELF output file among a simList's output files; stops if there is none
+#' @keywords internal
+.elfOutputFile <- function(files) {
+  elf <- grep("ELF", files, value = TRUE)
+  if (!length(elf))
+    stop("No ELF output file in sim@outputs$file (", paste(files, collapse = ", "),
+         "); the fireSense_ELFs module did not run or did not save its output", call. = FALSE)
+  elf
+}
+
 #' Run ELFs modules and optionally update googledrive png
 #'
 #' Extracting only the "ELF" module, runs the projectmodule
@@ -701,7 +751,10 @@ runELFs <- function(
       "https://drive.google.com/file/d/",
       "1tkC944mPzR9-y-qCMDB5o2cAR_1MoDz4/view?usp=drive_link"
     )) {
-  preRunSetupProject$modules <- grep("ELFs", preRunSetupProject$modules, value = TRUE)
+  # The project may list a parent module (e.g. PredictiveEcology/fireSense@development) rather
+  # than fireSense_ELFs itself; only the ELFs module is run here.
+  preRunSetupProject$modules <- .findModuleInProject(
+    preRunSetupProject$modules, preRunSetupProject$paths$modulePath, pattern = "^fireSense_ELFs$")
   # For digesting; i.e., whether it needs to be re-run
   srcFiles <- asPath(dir(file.path(preRunSetupProject$paths$modulePath, preRunSetupProject$modules), 
                          pattern = "\\.R$", recursive = TRUE, full.names = TRUE) |> 
@@ -718,7 +771,7 @@ runELFs <- function(
   if (SpaDES.project::user() %in% "emcintir") {
     cid <- cacheId(sim)
     ll <- googledrive::drive_update(file = urlELFresults,
-                                    media = grep("ELF", sim@outputs$file, value = TRUE)) |> 
+                                    media = .elfOutputFile(sim@outputs$file)) |> 
       Cache(omitArgs = c("file", "media"), .cacheExtra = list(cacheId = cid))
   }
   # })

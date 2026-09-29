@@ -1,3 +1,12 @@
+# fireSenseUtils 0.2.3.9068
+
+* `runELFs()` finds `fireSense_ELFs` among the project's modules or the children of any listed parent module
+  (e.g. `PredictiveEcology/fireSense@development`), through the new internal `.findModuleInProject()`. It used
+  `grep("ELFs", modules)`, which matched nothing once a parent was listed, so no module ran and the Drive upload
+  failed with "missing value where TRUE/FALSE needed". `runELFs()` now stops naming the modules searched when there
+  is no ELFs module, and stops with "No ELF output file" before `drive_update()` when the run saved none. Needs
+  SpaDES.core (>= 3.2.1.9027) for `moduleMetadata(defineModuleListItems = "childModules")`.
+
 # fireSenseUtils 0.2.3.9067
 
 * `runDEoptim()`'s default `logPath` is named `runDEoptim_<time>_*.log` (was `fireSense_SpreadFit_<time>_*.log`),
