@@ -1,3 +1,13 @@
+# fireSenseUtils 0.2.3.9066
+
+* `runDEoptim()` names the fitted parameters from `names(lower)`, grouped as logistic parameters,
+  formula covariates and the year effect, e.g. "Fitting 11 parameters: logistic: maxAsymptote,
+  inflectionPoint1; covariates: CMD, youngAge, ...; year effect: yearSpreadSD". It called
+  `termsInDEoptim()`, which counted every non-formula parameter as a "logit" term and so reported
+  yearSpreadSD as a third logistic parameter. Requires clusters >= 0.0.54, whose progress figures are
+  labelled from `names(lower)` too.
+* `termsInDEoptim()` is deprecated and will be removed in the next release.
+
 # fireSenseUtils 0.2.3.9065
 
 * `runDEoptim()`'s cache of the whole fit now includes the data the objective runs on (the digest

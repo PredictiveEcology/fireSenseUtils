@@ -2,9 +2,10 @@
 ## of the final DEoptim population.
 
 test_that("termsInDEoptim names the logistic terms first, then the formula's covariates", {
-  expect_message(
+  ## deprecated in 0.2.3.9066; it returns the same until it is removed
+  expect_warning(expect_message(
     terms <- termsInDEoptim(~ 0 + youngAge + class3, thresh = 550, numParams = 4),
-    "Using a 2 parameter logistic equation")
+    "Using a 2 parameter logistic equation"), "deprecated")
   expect_identical(terms, c("logit1", "logit2", "youngAge", "class3"))
 })
 

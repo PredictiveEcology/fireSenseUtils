@@ -220,4 +220,8 @@ The final element represents the state after \code{itermax} iterations or upon e
 \description{
 Provides a wrapper around \link[DEoptim:DEoptim]{DEoptim::DEoptim}, setting up the multiple cluster connections.
 This will only work if ssh keys are preconfigured on all machines (if using multiple machines).
+
+\code{termsInDEoptim()} is deprecated: it counted every parameter not in the formula as a "logit" term, so the per-year
+random effect \code{yearSpreadSD} was reported as a third logistic parameter. \code{runDEoptim()} now
+names the parameters with \code{names(lower)}.
 }
