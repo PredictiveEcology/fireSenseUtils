@@ -6,6 +6,7 @@
   `termsInDEoptim()`, which counted every non-formula parameter as a "logit" term and so reported
   yearSpreadSD as a third logistic parameter. Requires clusters >= 0.0.54, whose progress figures are
   labelled from `names(lower)` too.
+* `termsInDEoptim()` is deprecated and will be removed in the next release.
 
 # fireSenseUtils 0.2.3.9065
 

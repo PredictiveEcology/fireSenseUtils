@@ -403,6 +403,10 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
 
 #' `termsInDEoptim`
 #'
+#' `termsInDEoptim()` is deprecated: it counted every parameter not in the formula as a "logit" term, so the per-year
+#' random effect `yearSpreadSD` was reported as a third logistic parameter. `runDEoptim()` now
+#' names the parameters with `names(lower)`.
+#'
 #' @param fireSense_spreadFormula The formula to be submitted to [DEoptim::DEoptim()],
 #'                                from e.g., `sim$fireSense_spreadFormula`.
 #'
@@ -413,6 +417,8 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
 #' @export
 #' @rdname runDEoptim
 termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
+  .Deprecated(msg = paste0("fireSenseUtils::termsInDEoptim() is deprecated; runDEoptim() names ",
+                           "the parameters with names(lower)"))
   termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
   logitNumParams <- numParams - length(termsInForm)
   message("Using a ", logitNumParams, " parameter logistic equation")
