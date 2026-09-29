@@ -151,7 +151,7 @@ test_that("runDEoptim() profiles and simulates only when asked, on the re-score'
   lower <- stats::setNames(c(0.25, 0.2, 0.1, 0), c("maxAsymptote", "hillSlope1", "inflectionPoint1", "x"))
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
-    DEoptimIterative2 = function(...) list(list(member = list(pop = finalPop))),
+    DEoptimIterative = function(...) list(list(member = list(pop = finalPop))),
     .package = "clusters")
   testthat::local_mocked_bindings(
     termsInDEoptim = function(...) invisible(NULL),

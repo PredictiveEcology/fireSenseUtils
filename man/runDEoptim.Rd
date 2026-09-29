@@ -165,7 +165,7 @@ Passed to internal plotting functions (likely via \code{\link[SpaDES.core:Plots]
 Default "screen".}
 
 \item{plotEvery}{Integer. Generations between DEoptim progress figures; the final figures are
-always drawn. Passed to \code{clusters::DEoptimIterative2()}. It is not part of the fit's cache key,
+always drawn. Passed to \code{clusters::DEoptimIterative()}. It is not part of the fit's cache key,
 so changing it does not refit. Default 25.}
 
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
@@ -174,7 +174,7 @@ so changing it does not refit. Default 25.}
 Used in cache tags and plot filenames. Default 1L.}
 
 \item{runName}{Character string used to label this run. Forwarded to
-\code{clusters::DEoptimIterative2()} and used as a suffix for the cache \code{.functionName}
+\code{clusters::DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
 so that runs with different \code{runName} values get distinct cache entries.
 Default \code{""} (no suffix).}
 
@@ -213,7 +213,7 @@ from e.g., \code{sim$fireSense_spreadFormula}.}
 \item{numParams}{The number of parameters (TODO: improve description)}
 }
 \value{
-The result of the \code{clusters::DEoptimIterative2()} call. This is typically a list where
+The result of the \code{clusters::DEoptimIterative()} call. This is typically a list where
 each element contains the \link[DEoptim:DEoptim]{DEoptim::DEoptim} object state after a block of \code{iterStep} iterations.
 The final element represents the state after \code{itermax} iterations or upon early stopping.
 }

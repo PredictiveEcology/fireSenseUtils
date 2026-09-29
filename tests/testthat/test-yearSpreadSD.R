@@ -88,7 +88,7 @@ test_that("runDEoptim fits the sd when the bounds name it, in the fit and the re
   lower <- stats::setNames(c(0.25, 0.2, 0.1, 0, 0), c("maxAsymptote", "hillSlope1", "inflectionPoint1", "x", "yearSpreadSD"))
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
-    DEoptimIterative2 = function(fn, lower, ...) { seen$fit <- list(...)$fitYearSpreadSD; list(list(member = list(pop = matrix(lower + 0.1, 1)))) },
+    DEoptimIterative = function(fn, lower, ...) { seen$fit <- list(...)$fitYearSpreadSD; list(list(member = list(pop = matrix(lower + 0.1, 1)))) },
     .package = "clusters")
   testthat::local_mocked_bindings(
     termsInDEoptim = function(...) invisible(NULL),

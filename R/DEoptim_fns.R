@@ -92,7 +92,7 @@ utils::globalVariables(c(
 #' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of [DEoptim::DEoptim] outputs.
 #'
 #' @param plotEvery Integer. Generations between DEoptim progress figures; the final figures are
-#'   always drawn. Passed to `clusters::DEoptimIterative2()`. It is not part of the fit's cache key,
+#'   always drawn. Passed to `clusters::DEoptimIterative()`. It is not part of the fit's cache key,
 #'   so changing it does not refit. Default 25.
 #'
 #' @param .plotSize List specifying plot `height` and `width`, in pixels.
@@ -105,7 +105,7 @@ utils::globalVariables(c(
 #'   Default "screen".
 #'
 #' @param runName Character string used to label this run. Forwarded to
-#'   `clusters::DEoptimIterative2()` and used as a suffix for the cache `.functionName`
+#'   `clusters::DEoptimIterative()` and used as a suffix for the cache `.functionName`
 #'   so that runs with different `runName` values get distinct cache entries.
 #'   Default `""` (no suffix).
 #'
@@ -137,7 +137,7 @@ utils::globalVariables(c(
 #'   `CR`, `F`, `p`, `reltol`), passed through [clusters::clusterSetup()] to DEoptim. `NP` is the
 #'   number of workers the cluster gets.
 #'
-#' @return The result of the `clusters::DEoptimIterative2()` call. This is typically a list where
+#' @return The result of the `clusters::DEoptimIterative()` call. This is typically a list where
 #' each element contains the [DEoptim::DEoptim] object state after a block of `iterStep` iterations.
 #' The final element represents the state after `itermax` iterations or upon early stopping.
 #'
@@ -259,14 +259,14 @@ runDEoptim <- function(landscape,
 
   # aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
   DE <- Cache(
-    clusters::DEoptimIterative2(
+    clusters::DEoptimIterative(
       fn = fireSenseUtils::.objfunSpreadFit,
       # DE <- Cache(
       #   DEoptimIterative(
       itermax = itermax,
       lower = lower,
       upper = upper,
-      ## only what was set here (NP from the built cluster, strategy, ...); DEoptimIterative2()
+      ## only what was set here (NP from the built cluster, strategy, ...); DEoptimIterative()
       ## fills the rest, so passing a complete DEoptim.control() would override its defaults
       control = control,
       formulaToFit = formulaToFit,
@@ -301,8 +301,12 @@ runDEoptim <- function(landscape,
       runName = runName),
     cachePath = paths$cachePath,
     ## how often progress figures are drawn does not change the fit
-    omitArgs = c(".verbose", "plotEvery")
-    , .functionName = paste0("DEoptimIterative2_", runName)
+    omitArgs = c(".verbose", "plotEvery"),
+    ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
+    ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
+    ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
+    .cacheExtra = clusters::shippedObjectsDigest(control)
+    , .functionName = paste0("DEoptimIterative_", runName)
     # , cacheId = "8448b6a37b54361b"
   ) # iteration 201 to 300
 

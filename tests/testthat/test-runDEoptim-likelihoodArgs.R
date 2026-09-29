@@ -23,7 +23,7 @@ test_that("the likelihood options reach the objective during the fit", {
   seen <- new.env()
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L),
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) {
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
       seen$dots <- list(...)
       list()
     },
@@ -42,7 +42,7 @@ test_that("the same options reach the re-score of the final population", {
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L,
                                       cluster = NULL),
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) list(list(member = list(pop = finalPop))),
+    DEoptimIterative = function(fn, lower, upper, control, ...) list(list(member = list(pop = finalPop))),
     .package = "clusters")
   testthat::local_mocked_bindings(
     termsInDEoptim = function(...) invisible(NULL),

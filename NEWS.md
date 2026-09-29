@@ -1,3 +1,10 @@
+# fireSenseUtils 0.2.3.9065
+
+* `runDEoptim()`'s cache of the whole fit now includes the data the objective runs on (the digest
+  `clusterSetup()` makes of the objects it ships to the workers). Before, two fits that differed only in
+  that data, such as the two held-out folds of an ELF, shared one fit; clusters 0.0.53 fixes the same gap in
+  the per-generation cache. Calls `clusters::DEoptimIterative()`, the new name of `DEoptimIterative2()`.
+
 # fireSenseUtils 0.2.3.9064
 
 * `runDEoptim()` gains `plotEvery` (default 25), passed to `clusters::DEoptimIterative2()` (exported
