@@ -407,23 +407,23 @@ adapted to your own problem and used to answer your own questions.</p>
 from data using systematic methods we have created SpaDES modules
 dedicated to these tasks:</p>
 <ul>
-<li><code>fireSense_IgnitionFit</code></li>
+<li><code>fireSense_ignitionFit</code></li>
 <li><code>fireSense_EscapeFit</code></li>
-<li><code>fireSense_SpreadFit</code></li>
+<li><code>fireSense_spreadFit</code></li>
 </ul>
 <p>These follow the way <code>fireSense</code> breaks down the fire
 process and are named accordingly. For example,
-<code>fireSense_IgnitionFit</code> implements methods to fit the
+<code>fireSense_ignitionFit</code> implements methods to fit the
 statistical model of fire ignitions. The
-<code>fireSense_IgnitionFit</code> module implements methods described
+<code>fireSense_ignitionFit</code> module implements methods described
 in Marchal et al. <span class="citation">(2017)</span>,
-<code>fireSense_EscapeFit</code> and <code>fireSense_SpreadFit</code>
+<code>fireSense_EscapeFit</code> and <code>fireSense_spreadFit</code>
 implement methods described in Marchal et al. <span class="citation">(2019)</span>. Each of these modules is associated with
 an additional module to facilitate the production of predictive maps
 (rasters) or data sets (data.frames). To continue with the example of
-fire ignitions, the module <code>fireSense_IgnitionPredict</code> is
-associated with the <code>fireSense_IgnitionFit</code> module. One
-possible use of the <code>fireSense_IgnitionPredict</code> module would
+fire ignitions, the module <code>fireSense_ignitionPredict</code> is
+associated with the <code>fireSense_ignitionFit</code> module. One
+possible use of the <code>fireSense_ignitionPredict</code> module would
 be to generate rasters describing in a spatially explicit way the
 predicted ignition rates.</p>
 <p>In addition of these modules, we implemented the
@@ -435,13 +435,13 @@ outputs are not required by <code>fireSense</code>. Although the use of
 dimensionality of the problem, which helps speed up and facilitate
 convergence when using the . module later. Later in this tutorial we
 will show how the outputs of the <code>fireSense_SizeFit</code> module
-can be used as inputs of the <code>fireSense_SpreadFit</code>
+can be used as inputs of the <code>fireSense_spreadFit</code>
 module.</p>
 <p>Alternatively, the parameter of the tapered Pareto distribution can
 be used as inputs of the spread model assuming these capture the effect
 of environmental drivers of fire sizes.</p>
 <p>We start by fitting the spread model using the
-<code>fireSense_SpreadFit</code> module. In order to fit this model we
+<code>fireSense_spreadFit</code> module. In order to fit this model we
 need data about the shape of the fire size distribution. We can predict
 it using the <code>fireSense_SizePredict</code> module and fit the model
 to our study region using the <code>fireSense_SizeFit</code> module.</p>
@@ -582,14 +582,14 @@ Depending on the fact that some of them have dependencies.</p>
 <span id="cb2-132"><a href="#cb2-132" tabindex="-1"></a>)</span></code></pre></div>
 <div id="fit-the-statistical-model-of-fire-ignitions" class="section level2">
 <h2>Fit the statistical model of fire ignitions</h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_IgnitionFit&quot;</span>)</span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_ignitionFit&quot;</span>)</span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="dv">1</span>)</span>
 <span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co"># Define fireSense_IgnitionFit module inputs</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co"># Define fireSense_ignitionFit module inputs</span></span>
 <span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>objects <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">dataFireSense_IgnitionFit =</span> dataFireSense_IgnitionFit)</span>
 <span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co"># Define fireSense_IgnitionFit module parameters</span></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co"># Define fireSense_ignitionFit module parameters</span></span>
 <span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>formula <span class="ot">&lt;-</span> <span class="fu">formula</span>(n_fires <span class="sc">~</span> landtype_1_pp<span class="sc">:</span>weather <span class="sc">+</span> landtype_2_pp<span class="sc">:</span>weather <span class="sc">-</span> <span class="dv">1</span>)</span>
 <span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>family <span class="ot">&lt;-</span> <span class="fu">poisson</span>(<span class="at">link =</span> <span class="st">&quot;identity&quot;</span>)</span>
 <span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>ub <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">coef =</span> <span class="dv">1</span>)</span>
@@ -600,7 +600,7 @@ Depending on the fact that some of them have dependencies.</p>
 <span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>cores <span class="ot">&lt;-</span> <span class="dv">50</span></span>
 <span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a></span>
 <span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="at">fireSense_IgnitionFit =</span> <span class="fu">list</span>(</span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>  <span class="at">fireSense_ignitionFit =</span> <span class="fu">list</span>(</span>
 <span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>    <span class="at">formula =</span> formula,           <span class="co"># Formula of the statistical model</span></span>
 <span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>    <span class="at">family =</span> family,             <span class="co"># Distribution family, here the negative binomial distribution</span></span>
 <span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>    <span class="at">ub =</span> ub,                     <span class="co"># Upper bounds for coefficients to be estimated</span></span>
@@ -662,10 +662,10 @@ are sensitive to environmental drivers that control fire size.</p>
 <h2>Fit the statistical model of the fire size distribution</h2>
 <p>Although the use of fireSense_SizeFit is optional, it can be used to
 reduce the dimensionality of the problem, which helps speed up and
-facilitate convergence when using the fireSense_SpreadFit module later.
+facilitate convergence when using the fireSense_spreadFit module later.
 Here, we use the fireSense_SizeFit module to model the relation between
 fire sizes and flammability conditions as represented by the drought
-index and the type of fuels. We then use the fireSense_SpreadFit module
+index and the type of fuels. We then use the fireSense_spreadFit module
 to convert the fitted equations produced by fireSense_SizeFit into
 variable probabilities of fire spread at the cell level, which are also
 sensitive to environmental drivers that control fire size.</p>
@@ -762,13 +762,13 @@ sensitive to environmental drivers that control fire size.</p>
 <div id="use-predicted-parameters-of-the-tapered-pareto-as-inputs-to-the-statistical-model-of-the-spread-probabilities" class="section level3">
 <h3>Use predicted parameters of the tapered Pareto as inputs to the
 statistical model of the spread probabilities</h3>
-<p>Here, we use the <code>fireSense_SpreadFit</code> module to convert
+<p>Here, we use the <code>fireSense_spreadFit</code> module to convert
 them into spatially variable spread probabilities.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_SpreadFit&quot;</span>)</span>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_spreadFit&quot;</span>)</span>
 <span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="dv">1</span>)</span>
 <span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co"># Define fireSense_SpreadFit module inputs</span></span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a><span class="co"># Define fireSense_spreadFit module inputs</span></span>
 <span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>inputs <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
 <span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>  <span class="co"># tapered Pareto&#39;s beta</span></span>
 <span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
@@ -796,11 +796,11 @@ them into spatially variable spread probabilities.</p>
 <span id="cb7-30"><a href="#cb7-30" tabindex="-1"></a></span>
 <span id="cb7-31"><a href="#cb7-31" tabindex="-1"></a>objects <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">fireAttributesFireSense_SpreadFit =</span> fireAttributesFireSense_SpreadFit)</span>
 <span id="cb7-32"><a href="#cb7-32" tabindex="-1"></a></span>
-<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a><span class="co"># Define fireSense_SpreadFit module parameters</span></span>
+<span id="cb7-33"><a href="#cb7-33" tabindex="-1"></a><span class="co"># Define fireSense_spreadFit module parameters</span></span>
 <span id="cb7-34"><a href="#cb7-34" tabindex="-1"></a>formula <span class="ot">&lt;-</span> <span class="fu">formula</span>(<span class="sc">~</span> <span class="fu">I</span>(<span class="dv">1</span> <span class="sc">/</span> beta) <span class="sc">+</span> <span class="fu">log</span>(theta) <span class="sc">-</span> <span class="dv">1</span>)</span>
 <span id="cb7-35"><a href="#cb7-35" tabindex="-1"></a></span>
 <span id="cb7-36"><a href="#cb7-36" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb7-37"><a href="#cb7-37" tabindex="-1"></a>  <span class="at">fireSense_SpreadFit =</span> <span class="fu">list</span>(</span>
+<span id="cb7-37"><a href="#cb7-37" tabindex="-1"></a>  <span class="at">fireSense_spreadFit =</span> <span class="fu">list</span>(</span>
 <span id="cb7-38"><a href="#cb7-38" tabindex="-1"></a>    <span class="at">formula =</span> formula, <span class="co"># Formula of the statistical model</span></span>
 <span id="cb7-39"><a href="#cb7-39" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">c</span>(<span class="st">&quot;beta&quot;</span>, <span class="st">&quot;theta&quot;</span>),</span>
 <span id="cb7-40"><a href="#cb7-40" tabindex="-1"></a>    <span class="at">lower =</span> <span class="fu">c</span>(.<span class="dv">01</span>, <span class="dv">0</span>, .<span class="dv">1</span>, .<span class="dv">3</span>, .<span class="dv">001</span>, .<span class="dv">001</span>),</span>
@@ -826,11 +826,11 @@ them into spatially variable spread probabilities.</p>
 probabilities</h2>
 <div id="fire-ignition-rates" class="section level3">
 <h3>Fire ignition rates</h3>
-<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_IgnitionPredict&quot;</span>)</span>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_ignitionPredict&quot;</span>)</span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a></span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="dv">1</span>)</span>
 <span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co"># Define fireSense_IgnitionPredict module inputs</span></span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="co"># Define fireSense_ignitionPredict module inputs</span></span>
 <span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>objects <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
 <span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>  <span class="at">fireSense_IgnitionFitted =</span> fireSense_IgnitionFitted,</span>
 <span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a>  <span class="at">landtype_1_pp =</span> landTypeOne,</span>
@@ -838,7 +838,7 @@ probabilities</h2>
 <span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a>  <span class="at">weather =</span> weather</span>
 <span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a>)</span>
 <span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co"># Define fireSense_IgnitionPredict module outputs</span></span>
+<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="co"># Define fireSense_ignitionPredict module outputs</span></span>
 <span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a>outputs <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
 <span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
 <span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a>    <span class="at">file =</span> <span class="fu">paste0</span>(<span class="st">&quot;fireSense_IgnitionPredicted.tif&quot;</span>),</span>
@@ -849,9 +849,9 @@ probabilities</h2>
 <span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a>  )</span>
 <span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a>)</span>
 <span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a></span>
-<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co"># Define fireSense_IgnitionPredict module parameters</span></span>
+<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="co"># Define fireSense_ignitionPredict module parameters</span></span>
 <span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a>  <span class="at">fireSense_IgnitionPredict =</span> <span class="fu">list</span>(</span>
+<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a>  <span class="at">fireSense_ignitionPredict =</span> <span class="fu">list</span>(</span>
 <span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">c</span>(<span class="st">&quot;landtype_1_pp&quot;</span>, <span class="st">&quot;landtype_2_pp&quot;</span>, <span class="st">&quot;weather&quot;</span>),</span>
 <span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a>    <span class="at">modelName =</span> <span class="st">&quot;fireSense_IgnitionFitted&quot;</span> <span class="co"># This is the default</span></span>
 <span id="cb8-29"><a href="#cb8-29" tabindex="-1"></a>  )</span>
@@ -910,11 +910,11 @@ probabilities</h2>
 </div>
 <div id="fire-spread-probabilities" class="section level3">
 <h3>Fire spread probabilities</h3>
-<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_SpreadPredict&quot;</span>)</span>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a>modules <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;fireSense_spreadPredict&quot;</span>)</span>
 <span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a></span>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>times <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">start =</span> <span class="dv">1</span>, <span class="at">end =</span> <span class="dv">1</span>)</span>
 <span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a></span>
-<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co"># Define fireSense_SpreadPredict module inputs</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="co"># Define fireSense_spreadPredict module inputs</span></span>
 <span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="co"># tapered Pareto&#39;s beta</span></span>
 <span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a>inputs <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
 <span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
@@ -942,7 +942,7 @@ probabilities</h2>
 <span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a></span>
 <span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a>objects <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="at">fireSense_SpreadFitted =</span> fireSense_SpreadFitted)</span>
 <span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a></span>
-<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co"># Define fireSense_SpreadPredict module outputs</span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="co"># Define fireSense_spreadPredict module outputs</span></span>
 <span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a>outputs <span class="ot">&lt;-</span> <span class="fu">rbind</span>(</span>
 <span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a>  <span class="fu">data.frame</span>(</span>
 <span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a>    <span class="at">file =</span> <span class="fu">paste0</span>(<span class="st">&quot;fireSense_SpreadPredicted.tif&quot;</span>),</span>
@@ -953,9 +953,9 @@ probabilities</h2>
 <span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a>  )</span>
 <span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a>)</span>
 <span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a></span>
-<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a><span class="co"># Define fireSense_SpreadPredict module parameters</span></span>
+<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a><span class="co"># Define fireSense_spreadPredict module parameters</span></span>
 <span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a>parameters <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a>  <span class="at">fireSense_SpreadPredict =</span> <span class="fu">list</span>(</span>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a>  <span class="at">fireSense_spreadPredict =</span> <span class="fu">list</span>(</span>
 <span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">c</span>(<span class="st">&quot;landtype_1_pp&quot;</span>, <span class="st">&quot;landtype_2_pp&quot;</span>, <span class="st">&quot;weather&quot;</span>),</span>
 <span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a>    <span class="at">modelName =</span> <span class="st">&quot;fireSense_SpreadFitted&quot;</span> <span class="co"># This is the default</span></span>
 <span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a>  )</span>

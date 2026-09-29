@@ -106,7 +106,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
 #' An ELF with no natural ignitions, or no fire polygons, over the whole fitting window
 #' cannot be fitted and is `"zero"`. One below either threshold is `"few"`: it can be
 #' fitted, but the thin end of the data drives the escape model's 5-fold CV
-#' (`fireSense_IgnitionFit.R:463,889`), which needs at least 10 ignited cell-years
+#' (`fireSense_ignitionFit.R:463,889`), which needs at least 10 ignited cell-years
 #' before some fold is left holding a single row.
 #'
 #' @param counts `data.table` from [ELFfireCounts()].
@@ -166,7 +166,7 @@ ELFsExcluded <- function(status) {
 #' (8.2, 10.3.2 and 3.2.4 are 0; `no-tree-elfs.md` §2, `elf-8.2-ecoregion.md`).
 #'
 #' This does **not** gate anything. Per Eliot's 2026-09-11 decision there is no
-#' flammable floor -- `fireSense_SpreadFit` is allowed to try regardless -- so the result
+#' flammable floor -- `fireSense_spreadFit` is allowed to try regardless -- so the result
 #' is a report, and an input to deciding whether merging an ELF with a neighbour would
 #' give it enough to fit.
 #'

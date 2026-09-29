@@ -27,7 +27,7 @@ by default, which is why ELFs outside VLCE2's mapped extent measure at or near z
 }
 \details{
 This does \strong{not} gate anything. Per Eliot's 2026-09-11 decision there is no
-flammable floor -- \code{fireSense_SpreadFit} is allowed to try regardless -- so the result
+flammable floor -- \code{fireSense_spreadFit} is allowed to try regardless -- so the result
 is a report, and an input to deciding whether merging an ELF with a neighbour would
 give it enough to fit.
 }

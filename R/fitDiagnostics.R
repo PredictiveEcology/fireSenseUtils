@@ -1,7 +1,7 @@
 #' Diagnostics of a fitted spread model
 #'
 #' The checks made by hand on the FireSense phase-2 fits (September 2026), as functions, so that
-#' `fireSense_SpreadFit` can make them after every fit.
+#' `fireSense_spreadFit` can make them after every fit.
 #'
 #' * `simulateFireSizes()` simulates the observed fires from each of several parameter sets, with
 #'   the objective's size cap and "too burny" gate lifted, and returns the simulated sizes.

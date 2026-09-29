@@ -482,7 +482,7 @@ collapseFuelClassesToDomSecOther <- function(dt, fcs, domClass = NULL, secClass 
 
   if (is.na(domClass)) {
     ## no tree fuel classes at all: a single all-zero (or all-"other") pooled column so the
-    ## covariate table has the shape fireSense_SpreadFit expects
+    ## covariate table has the shape fireSense_spreadFit expects
     set(dt, NULL, "other_agb", if (length(fcs)) rowSums(dt[, ..fcs]) else 0)
     if (length(fcs)) set(dt, NULL, setdiff(fcs, "other_agb"), NULL)
     return(list(dt = dt, domClass = NA_character_, secClass = NA_character_, fuelCols = "other_agb"))
