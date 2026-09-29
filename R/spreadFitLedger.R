@@ -29,6 +29,40 @@ spreadFitFilenameFor <- function(fireYears) {
 spreadFitFileTag <- "_linearFuel_esc50"
 
 #' @description
+#' `driveDownloadAtomic()` downloads one Drive file to `path` without ever leaving a partial file
+#' there. Other processes read the ledger files in `destinationPath` (the two held-out folds of an ELF
+#' share one), so `googledrive::drive_download()` straight onto `path` lets a reader see a truncated
+#' file. The download goes to a temporary file in the same folder, which then replaces `path` with
+#' `file.rename()` (atomic on POSIX). On Windows, where `file.rename()` cannot be relied on to replace
+#' a file, it falls back to `file.copy(overwrite = TRUE)`, which is not atomic. A `path` that already
+#' has the MD5 Drive reports for `file` is left alone.
+#'
+#' @param file A one-row `dribble` (as from `googledrive::drive_ls()`) with the Drive file.
+#' @param path The local file to create or replace.
+#'
+#' @return `driveDownloadAtomic()`: `TRUE` if it downloaded, `FALSE` if `path` was already current,
+#'   invisibly.
+#' @export
+#' @rdname spreadFitLedger
+driveDownloadAtomic <- function(file, path) {
+  remoteMd5 <- file$drive_resource[[1]]$md5Checksum
+  if (file.exists(path) && identical(unname(tools::md5sum(path)), remoteMd5))
+    return(invisible(FALSE))
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  tmp <- tempfile(pattern = paste0(".", basename(path), "_"), tmpdir = dirname(path))
+  on.exit(unlink(tmp), add = TRUE)
+  googledrive::drive_download(file, path = tmp, overwrite = TRUE)
+  ok <- if (.Platform$OS.type == "windows") {
+    file.copy(tmp, path, overwrite = TRUE)
+  } else {
+    file.rename(tmp, path)
+  }
+  if (!isTRUE(ok))
+    stop("driveDownloadAtomic(): could not put the download at ", path)
+  invisible(TRUE)
+}
+
+#' @description
 #' `latestSpreadFits()` returns, for every polygon, its rows from the most recently modified
 #' ledger file that has it. Files are read newest first; with `polygonIDs`, reading stops once
 #' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
@@ -59,9 +93,7 @@ latestSpreadFits <- function(cloudFolderID, destinationPath, polygonIDs = NULL) 
   for (i in seq_len(NROW(files))) {
     fname <- files$name[i]
     local <- file.path(destinationPath, fname)
-    remoteMd5 <- files$drive_resource[[i]]$md5Checksum
-    if (!file.exists(local) || !identical(unname(tools::md5sum(local)), remoteMd5))
-      googledrive::drive_download(files[i, ], path = local, overwrite = TRUE)
+    driveDownloadAtomic(files[i, ], local)
     ledger <- as.data.frame(readRDS(local))
     ids <- as.character(ledger[[polygonIDTxt]])
     new <- !ids %in% names(from)

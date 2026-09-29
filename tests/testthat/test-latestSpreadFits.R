@@ -84,3 +84,63 @@ test_that("no matching file gives NULL", {
   fakeDrive(list("fireSenseParams.rds" = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.1", 1))))
   expect_null(suppressMessages(latestSpreadFits("folder", d)))
 })
+
+test_that("driveDownloadAtomic() never shows a reader a partial file, and ends with the new content", {
+  d <- withr::local_tempdir()
+  path <- finalPath <- file.path(d, "fireSenseParams_1985-2024_linearFuel_esc50.rds")
+  ledgerOld <- ledgerRows("4.1", 1)
+  ledgerNew <- ledgerRows(c("4.1", "4.3"), c(2, 2))
+  bytesOf <- function(x) { tf <- tempfile(); on.exit(unlink(tf)); saveRDS(x, tf); readBin(tf, "raw", file.size(tf)) }
+  newBytes <- bytesOf(ledgerNew)
+  writeBin(bytesOf(ledgerOld), path)                       # the file other jobs are reading
+  seen <- list()
+  testthat::local_mocked_bindings(
+    ## writes in two parts; a concurrent reader looks at `path` between them
+    drive_download = function(file, path, overwrite, ...) {
+      half <- length(newBytes) %/% 2
+      con <- file(path, "wb"); on.exit(close(con))
+      writeBin(newBytes[seq_len(half)], con); flush(con)
+      seen[[length(seen) + 1]] <<- readRDS(finalPath)   # must be complete
+      writeBin(newBytes[-seq_len(half)], con)
+      invisible(file)
+    },
+    .package = "googledrive")
+  tf <- tempfile(); writeBin(newBytes, tf)
+  dribble <- data.frame(name = basename(path))
+  dribble$drive_resource <- list(list(md5Checksum = unname(tools::md5sum(tf))))
+  expect_true(driveDownloadAtomic(dribble, path))
+  expect_length(seen, 1L)
+  expect_identical(seen[[1]]$objFunVal, 1)                 # the reader saw the old, complete file
+  expect_identical(readRDS(path)$objFunVal, c(2, 2))       # and the final file is the new one
+  expect_identical(list.files(d, all.files = TRUE, no.. = TRUE), basename(path))  # no temp left
+  ## already current: no second download
+  expect_false(driveDownloadAtomic(dribble, path))
+})
+
+test_that("latestSpreadFits() replacing a stale local ledger never leaves it partial for another reader", {
+  d <- withr::local_tempdir()
+  fname <- "fireSenseParams_1985-2024_linearFuel_esc50.rds"
+  finalPath <- file.path(d, fname)
+  bytesOf <- function(x) { tf <- tempfile(); on.exit(unlink(tf)); saveRDS(x, tf); readBin(tf, "raw", file.size(tf)) }
+  newBytes <- bytesOf(ledgerRows(c("4.1", "4.3"), c(2, 2)))
+  writeBin(bytesOf(ledgerRows("4.1", 1)), finalPath)      # stale copy another job is reading
+  tf <- tempfile(); writeBin(newBytes, tf)
+  ls <- data.frame(name = fname)
+  ls$drive_resource <- list(list(modifiedTime = "2026-09-20T10:00:00Z", md5Checksum = unname(tools::md5sum(tf))))
+  seen <- list()
+  testthat::local_mocked_bindings(
+    drive_ls = function(path, ...) ls,
+    drive_download = function(file, path, overwrite, ...) {
+      half <- length(newBytes) %/% 2
+      con <- file(path, "wb"); on.exit(close(con))
+      writeBin(newBytes[seq_len(half)], con); flush(con)
+      seen[[length(seen) + 1]] <<- tryCatch(readRDS(finalPath), error = function(e) e)
+      writeBin(newBytes[-seq_len(half)], con)
+      invisible(file)
+    },
+    .package = "googledrive")
+  out <- latestSpreadFits("folder", d)
+  expect_length(seen, 1L)
+  expect_false(inherits(seen[[1]], "error"))
+  expect_setequal(out$polygonID, c("4.1", "4.3"))
+})

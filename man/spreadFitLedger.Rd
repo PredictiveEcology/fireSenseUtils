@@ -3,6 +3,7 @@
 \name{spreadFitFilenameFor}
 \alias{spreadFitFilenameFor}
 \alias{spreadFitFileTag}
+\alias{driveDownloadAtomic}
 \alias{latestSpreadFits}
 \title{The shared SpreadFit ledger files}
 \usage{
@@ -10,10 +11,16 @@ spreadFitFilenameFor(fireYears)
 
 spreadFitFileTag
 
+driveDownloadAtomic(file, path)
+
 latestSpreadFits(cloudFolderID, destinationPath, polygonIDs = NULL)
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
+
+\item{file}{A one-row \code{dribble} (as from \code{googledrive::drive_ls()}) with the Drive file.}
+
+\item{path}{The local file to create or replace.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files.}
 
@@ -25,6 +32,9 @@ latestSpreadFits(cloudFolderID, destinationPath, polygonIDs = NULL)
 \code{spreadFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
 e.g. \code{"fireSenseParams_1985-2024_linearFuel_esc50.rds"}.
 
+\code{driveDownloadAtomic()}: \code{TRUE} if it downloaded, \code{FALSE} if \code{path} was already current,
+invisibly.
+
 \code{latestSpreadFits()}: the ledger rows, in the form fireSense_spreadFit writes them
 (a \code{data.frame} with a \code{geometry} column), or \code{NULL} when no file matches. Attribute
 \code{"spreadFitFiles"} names the file each polygon came from.
@@ -33,6 +43,14 @@ e.g. \code{"fireSenseParams_1985-2024_linearFuel_esc50.rds"}.
 fireSense_spreadFit writes each fit as a row of an \code{rds} file in a Google Drive folder
 (its \code{spreadFitGoogleDriveFolder}); fireSense_ELFs and fireSense_dataPrepFit read them.
 With \code{spreadFitFilename = "latest"} those modules use these functions instead of one named file.
+
+\code{driveDownloadAtomic()} downloads one Drive file to \code{path} without ever leaving a partial file
+there. Other processes read the ledger files in \code{destinationPath} (the two held-out folds of an ELF
+share one), so \code{googledrive::drive_download()} straight onto \code{path} lets a reader see a truncated
+file. The download goes to a temporary file in the same folder, which then replaces \code{path} with
+\code{file.rename()} (atomic on POSIX). On Windows, where \code{file.rename()} cannot be relied on to replace
+a file, it falls back to \code{file.copy(overwrite = TRUE)}, which is not atomic. A \code{path} that already
+has the MD5 Drive reports for \code{file} is left alone.
 
 \code{latestSpreadFits()} returns, for every polygon, its rows from the most recently modified
 ledger file that has it. Files are read newest first; with \code{polygonIDs}, reading stops once

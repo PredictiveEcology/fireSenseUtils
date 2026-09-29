@@ -1,3 +1,10 @@
+# fireSenseUtils 0.2.3.9068
+
+* New `driveDownloadAtomic()` downloads a Drive file to a temporary file beside `path` and renames it into place, so a
+  process reading `path` never sees a truncated file. `latestSpreadFits()` used to call `googledrive::drive_download()`
+  straight onto the shared ledger path; it now uses the helper (still skipping the download when the local MD5 matches Drive's).
+  fireSense_ELFs and fireSense_dataPrepFit (and held-out folds of one ELF, which share `inputPath`) read those files concurrently.
+
 # fireSenseUtils 0.2.3.9067
 
 * `runDEoptim()`'s default `logPath` is named `runDEoptim_<time>_*.log` (was `fireSense_SpreadFit_<time>_*.log`),
