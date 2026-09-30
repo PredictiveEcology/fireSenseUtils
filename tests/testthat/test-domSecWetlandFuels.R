@@ -133,3 +133,69 @@ test_that("chooseDomSecFuelClasses() with no tree fuel classes returns NA for bo
   )
   expect_identical(out, list(domClass = NA_character_, secClass = NA_character_))
 })
+
+## An ELF with no tree fuel class at all (only youngAge in the fuel raster): collapseFuelClassesToDomSec()
+## takes its no-dom/no-sec branch, so there are no fuel columns to build.
+noTreeRas <- function() {
+  r <- terra::rast(nrows = 2, ncols = 3, xmin = 0, xmax = 3, ymin = 0, ymax = 2, crs = "EPSG:3978")
+  terra::values(r) <- rep(0, 6)
+  names(r) <- "youngAge"
+  r
+}
+
+covsNoTrees <- function(rstLCC = NULL) {
+  testthat::local_mocked_bindings(cohortsToFuelClasses = function(...) noTreeRas())
+  args <- list(cohortData = NULL, pixelGroupMap = NULL, flammableRTM = noTreeRas(), sppEquiv = NULL,
+               landcoverDT = landcover(), fuelClassCol = "FuelClass", sppEquivCol = "LandR",
+               missingLCCgroup = "nfLCC_50", nonForestedLCCGroups = list(nfLCC_50 = 50),
+               nonForest_timeSinceDisturbance = NULL, cutoffForYoungAge = 15, nonForestCanBeYoungAge = FALSE,
+               studyAreaName = "test", useCache = FALSE, fuelCovariates = "domSecWetland")
+  if (!is.null(rstLCC)) args$rstLCC <- rstLCC
+  do.call(fireSenseCovariatesCreate, args)
+}
+
+test_that("an ELF with no tree fuel class has no dom/sec columns, and no other_agb", {
+  out <- covsNoTrees()
+  expect_setequal(setdiff(names(out), c("pixelID", "nfLCC_50", "youngAge")), character())
+  expect_false(any(grepl("^(dom|sec)_agb_|^other_agb$", names(out))))
+  expect_identical(attr(out, "fuelClassRoles"), list(domClass = NA_character_, secClass = NA_character_))
+})
+
+test_that("with no tree fuel class, treedWetland_agb is the only fuel column and is all zero", {
+  out <- covsNoTrees(rstLCC = lccRas())
+  expect_setequal(setdiff(names(out), c("pixelID", "nfLCC_50", "youngAge")), "treedWetland_agb")
+  expect_true(all(out$treedWetland_agb == logMinB(0)))
+})
+
+test_that("a pixel whose only AGB is in a dropped class is not flagged as a missing land-cover group", {
+  ## Popu_tre is neither dom nor sec; px5's only AGB is Popu_tre (not wetland here: lcc 210)
+  testthat::local_mocked_bindings(cohortsToFuelClasses = function(...) {
+    r <- fuelRas()
+    terra::values(r) <- cbind(
+      c(500, 800, 0, 900, 0, 700),
+      c(200, 100, 0, 300, 0, 200),
+      c(50, 50, 0, 100, 40, 50),
+      c(0, 0, 0, 1, 0, 0)
+    )
+    r
+  })
+  out <- fireSenseCovariatesCreate(
+    cohortData = NULL, pixelGroupMap = NULL, flammableRTM = fuelRas()[[1]], sppEquiv = NULL,
+    landcoverDT = landcover(), fuelClassCol = "FuelClass", sppEquivCol = "LandR",
+    missingLCCgroup = "nfLCC_50", nonForestedLCCGroups = list(nfLCC_50 = 50),
+    nonForest_timeSinceDisturbance = NULL, cutoffForYoungAge = 15, nonForestCanBeYoungAge = FALSE,
+    studyAreaName = "test", useCache = FALSE, fuelCovariates = "domSecWetland"
+  )
+  out <- out[order(pixelID)]
+  expect_equal(out[pixelID == 5, nfLCC_50], 0)
+  expect_equal(out[pixelID == 5, dom_agb_Pice_mar], logMinB(0))
+})
+
+test_that("forcing domClass = NA drops every tree class, even when this area has them", {
+  out <- covs(domClass = NA_character_, rstLCC = lccRas())[order(pixelID)]
+  expect_setequal(setdiff(names(out), c("pixelID", "nfLCC_50", "youngAge")), "treedWetland_agb")
+  ## wetland pixel 1 still carries all its tree AGB (500 + 200 + 50) in treedWetland_agb
+  expect_equal(out[pixelID == 1, treedWetland_agb], logMinB(750))
+  expect_equal(out[pixelID == 2, treedWetland_agb], logMinB(0))
+  expect_identical(attr(out, "fuelClassRoles"), list(domClass = NA_character_, secClass = NA_character_))
+})
