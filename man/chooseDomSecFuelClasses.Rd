@@ -50,7 +50,7 @@ species at all).
 }
 \description{
 Ranks fuel classes by total treed AGB over a single representative data year (the fit study
-area), so \code{fireSenseCovariatesCreate(fuelCovariates = "domSecOther")} can be told the same
+area), so \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} can be told the same
 \code{domClass}/\code{secClass} for every data year of a fit, instead of choosing independently
 (and possibly differently) each time it is called. Ties are broken alphabetically by fuel-class
 name for a deterministic result.

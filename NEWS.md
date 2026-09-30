@@ -1,6 +1,8 @@
 # fireSenseUtils 0.2.3.9069
 
 * `latestSpreadFits()` downloads a ledger file with `reproducible::preProcess()` (into a temporary folder, then placed in `destinationPath`) instead of `googledrive::drive_download()`, which wrote the file in place: a second job on the same ELF, sharing `destinationPath`, could find it missing or half-written. A local file whose MD5 differs from Drive's is fetched again with `purge = 7`.
+* The pooled `other_agb` spread covariate is removed, and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"`: `fireSenseCovariatesCreate()` now builds only `dom_agb_<class>`, `sec_agb_<class>` and (with `rstLCC`) `treedWetland_agb`. `treedWetland_agb` still holds all tree AGB on treed-wetland pixels, including classes that are neither dom nor sec. Spread fits made with `other_agb` need refitting. `collapseFuelClassesToDomSecOther()` is now `collapseFuelClassesToDomSec()`.
+
 
 # fireSenseUtils 0.2.3.9068
 
