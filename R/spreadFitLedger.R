@@ -7,7 +7,7 @@
 #' `spreadFitFileTag` marks the files whose fits use the current model: fuel biomass on the
 #' linear scale ([fuelLogToLinear()]), escaped fires starting at 50 ha (`escapeSizeHa`), and the
 #' objective with the annual-area and area-distribution terms. Files with an older tag
-#' (`"_linearFuel"`: 1-pixel escape; none: log fuel) hold fits of an earlier model, which downloads into a temporary folder first
+#' (`"_linearFuel"`: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
 #' fireSense_spreadPredict would apply wrongly, so `"latest"` never reads them.
 #' A fit made under a new model needs a new tag, so the old files drop out of `"latest"`.
 #'
@@ -31,9 +31,9 @@ spreadFitFileTag <- "_linearFuel_esc50"
 #' @description
 #' `latestSpreadFits()` returns, for every polygon, its rows from the most recently modified
 #' ledger file that has it. Files are read newest first; with `polygonIDs`, reading stops once
+#' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
 #' downloaded again; one that differs is downloaded again with [reproducible::preProcess()], into a
 #' temporary folder first.
-#' downloaded again; one that differs is downloaded again with [reproducible::preProcess()], which downloads into a temporary folder first
 #'
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files.
 #' @param destinationPath Local folder for the downloaded files.
