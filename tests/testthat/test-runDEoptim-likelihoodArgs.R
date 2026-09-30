@@ -61,3 +61,26 @@ test_that("runDEoptim's defaults are the objective's defaults", {
   o <- formals(.objfunSpreadFit)[names(likArgs)]
   expect_identical(f, o)
 })
+
+test_that("penaliseCapHits reaches the objective in the fit and the re-score, default TRUE", {
+  expect_identical(formals(runDEoptim)$penaliseCapHits, TRUE)
+  expect_identical(formals(runDEoptim)$penaliseCapHits, formals(.objfunSpreadFit)$penaliseCapHits)
+  seen <- new.env()
+  finalPop <- matrix(c(0.26, 1, 1, 0.5), nrow = 1)
+  testthat::local_mocked_bindings(
+    clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
+      seen$dots <- list(...)
+      list(list(member = list(pop = finalPop)))
+    },
+    .package = "clusters")
+  testthat::local_mocked_bindings(
+    termsInDEoptim = function(...) invisible(NULL),
+    rescorePopulation = function(pop, fn, reps, cl, seed = 1L, fnArgs = list()) {
+      seen$fnArgs <- fnArgs
+      data.table::data.table(member = 1L, rep = 1L, value = 1)
+    })
+  callRunDEoptimLik(penaliseCapHits = FALSE)
+  expect_false(seen$dots$penaliseCapHits)
+  expect_false(seen$fnArgs$penaliseCapHits)
+})

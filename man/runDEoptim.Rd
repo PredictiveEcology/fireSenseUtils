@@ -54,6 +54,7 @@ runDEoptim(
   jumpMeanDist = 0,
   yearAreaWeight = 0,
   areaDistWeight = 0,
+  penaliseCapHits = TRUE,
   profileReps = 0L,
   simulateMembers = 0L
 )
@@ -198,6 +199,9 @@ fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 
 \item{jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit
 and the final-population re-score. Off by default (\code{0}).}
+
+\item{penaliseCapHits}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
+scores a simulated fire that reaches its size cap as a runaway, not as a fire of the capped size.}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.
