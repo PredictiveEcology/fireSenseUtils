@@ -143,6 +143,7 @@ importFrom(LandR,
   asInteger,
   prepInputs_NTEMS_LCC_FAO
 )
+importFrom(Require,extractPkgName)
 importFrom(RhpcBLASctl,
   blas_get_num_procs,
   blas_set_num_threads,
@@ -153,6 +154,7 @@ importFrom(SpaDES.core,
   P,
   Plots,
   anyPlotting,
+  moduleMetadata,
   simInitAndSpades2
 )
 importFrom(SpaDES.project,user)
