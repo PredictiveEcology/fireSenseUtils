@@ -2,6 +2,12 @@
 
 * `.objfunSpreadFit()` treats a simulated fire that reaches its cap (`multiplier()` of the observed size) as censored, a runaway, instead of a fire of the capped size. Its size becomes `runawaySize` (default: the landscape's non-`NA` pixels) in the `adTest`, annual-area and `mad` terms, and in the per-fire size likelihood it has no density at the observed size (the likelihood is that of the other replicates times their share). `penaliseCapHits = FALSE` restores the old scoring; `capSizes = FALSE` and `returnSims` are unchanged. The per-fire likelihood is still floored at `minLik`, and `thresh` values calibrated before this change will differ. The SNLL log line now reports the capHit share. `runDEoptim()` takes `penaliseCapHits` (default `TRUE`) and passes it to the fit and the re-score; it changes the DEoptim cache key.
 
+# fireSenseUtils 0.2.3.9071
+
+* `youngAge` can be resolved per fire year again. New `youngAgeAtYear()` gives it for any set of pixels: time since disturbance at the data year, aged to the fire year and reset by every fire since (all fires, not only the fitted buffers); young is `<= cutoffForYoungAge` and `NA` time since disturbance is never young (the old `calcYoungAge()` called it young). `firePixelsByYear()` makes its per-year fire pixel lists from polygons or a fire-year raster. `calcYoungAge()` is deprecated.
+* `fireSenseCovariatesCreate()` has `youngAge = TRUE`. With `FALSE` it builds no `youngAge` column and zeroes no fuel, non-forest land cover or treed wetland; the default keeps the previous behaviour.
+* New `prepare_FuelCovsCoarseByYear()` builds the coarse ignition fuel rasters with `youngAge` (and the clearing it implies) per fire year; `stackAndExtract()` and `mergePreparedCovs()` accept these per-year lists. Fits made with `youngAge` fixed at the data year need refitting.
+
 # fireSenseUtils 0.2.3.9070
 
 * The pooled `other_agb` spread covariate is removed, and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"`: `fireSenseCovariatesCreate()` now builds only `dom_agb_<class>`, `sec_agb_<class>` and (with `rstLCC`) `treedWetland_agb`. `treedWetland_agb` still holds all tree AGB on treed-wetland pixels, including classes that are neither dom nor sec. Spread fits made with `other_agb` need refitting. `collapseFuelClassesToDomSecOther()` is now `collapseFuelClassesToDomSec()`.
