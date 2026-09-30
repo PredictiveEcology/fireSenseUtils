@@ -22,7 +22,7 @@ A \code{terra::SpatRaster} (single- or multi-layer) whose cells correspond to
 layers. A new \code{youngAge} layer is appended.}
 
 \item{cutoffForYoungAge}{numeric(1).
-Age threshold; pixels with \code{age < cutoffForYoungAge} and non-forest
+Age threshold; pixels with \code{age <= cutoffForYoungAge} and non-forest
 presence are flagged as young.}
 }
 \value{
@@ -47,7 +47,7 @@ The function proceeds as follows:
 \item Determines the set of non-forest columns as all columns in \code{landcoverDT}
 except \code{pixelID}, and computes a per-row sum (\code{sumRows}).
 \item Retrieves pixel ages from \code{NFTSD} using \code{pixelID} as indices.
-\item Selects pixels where \code{sumRows > 0} \strong{and} \code{age < cutoffForYoungAge};
+\item Selects pixels where \code{sumRows > 0} \strong{and} \code{age <= cutoffForYoungAge};
 these pixels are considered "young non-forest".
 \item Sets those pixels to 0 in \strong{every layer} of \code{LCCras} using cell indexing.
 \item Builds a new single-layer raster with 1 at those pixel locations and 0
@@ -69,7 +69,7 @@ indicates presence (\code{sumRows > 0}).
 }
 \item \code{NFTSD} is a numeric vector (or similar) indexable by \code{pixelID}, providing
 the age (in the same units as \code{cutoffForYoungAge}) for each cell.
-\item \code{cutoffForYoungAge} is a scalar numeric threshold; pixels with \code{age < cutoffForYoungAge} are flagged as "young".
+\item \code{cutoffForYoungAge} is a scalar numeric threshold; pixels with \code{age <= cutoffForYoungAge} are flagged as "young".
 }
 
 \strong{Notes}

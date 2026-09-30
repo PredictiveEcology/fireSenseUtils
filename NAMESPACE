@@ -67,6 +67,7 @@ export(identifiedInIsolation)
 export(igOrEscNames)
 export(ignitionsTxt)
 export(isLinearFuelRange)
+export(isYoungAge)
 export(latestNBACUrl)
 export(latestSpreadFits)
 export(linkSaturation)
@@ -304,6 +305,7 @@ importFrom(terra,
   `values<-`,
   aggregate,
   as.data.frame,
+  as.int,
   as.polygons,
   buffer,
   cats,

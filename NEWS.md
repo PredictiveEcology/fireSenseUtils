@@ -1,3 +1,8 @@
+# fireSenseUtils (development version)
+
+* New exported `isYoungAge(age, cutoffForYoungAge)` is the one place the `youngAge` rule lives (`age <= cutoffForYoungAge`, `NA` not young); `makeTSD()`, `castCohortData()`, `cohortsToFuelClasses()`, `youngAgeAtYear()`, `calcYoungAge()`, `calcNonForestYoungAge()` and `fireSenseCovariatesCreate()` all call it. `calcNonForestYoungAge()` used `<`, so prediction differed from fitting for non-forest pixels whose age equals the cutoff. `castCohortData()` now gives `youngAge = 0` (was `NA`) for an `NA` stand age.
+* `cohortsToFuelClasses()` no longer fails when terra is not attached: `as.int` is now imported from terra.
+
 # fireSenseUtils 0.2.3.9071
 
 * `youngAge` can be resolved per fire year again. New `youngAgeAtYear()` gives it for any set of pixels: time since disturbance at the data year, aged to the fire year and reset by every fire since (all fires, not only the fitted buffers); young is `<= cutoffForYoungAge` and `NA` time since disturbance is never young (the old `calcYoungAge()` called it young). `firePixelsByYear()` makes its per-year fire pixel lists from polygons or a fire-year raster. `calcYoungAge()` is deprecated.

@@ -48,6 +48,7 @@ Imports:
     withr
 Suggests:
     archive,
+    callr,
     codetools,
     curl,
     deldir,
