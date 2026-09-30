@@ -1,5 +1,6 @@
 # fireSenseUtils 0.2.3.9068
 
+* `latestSpreadFits()` downloads a ledger file with `reproducible::preProcess()` (into a temporary folder, then placed in `destinationPath`) instead of `googledrive::drive_download()`, which wrote the file in place: a second job on the same ELF, sharing `destinationPath`, could find it missing or half-written. A local file whose MD5 differs from Drive's is fetched again with `purge = 7`.
 * `runELFs()` finds `fireSense_ELFs` among the project's modules or the children of any listed parent module
   (e.g. `PredictiveEcology/fireSense@development`), through the new internal `.findModuleInProject()`. It used
   `grep("ELFs", modules)`, which matched nothing once a parent was listed, so no module ran and the Drive upload

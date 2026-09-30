@@ -37,7 +37,8 @@ With \code{spreadFitFilename = "latest"} those modules use these functions inste
 \code{latestSpreadFits()} returns, for every polygon, its rows from the most recently modified
 ledger file that has it. Files are read newest first; with \code{polygonIDs}, reading stops once
 all of them are found. A file already in \code{destinationPath} with the same MD5 as on Drive is not
-downloaded again.
+downloaded again; one that differs is downloaded again with \code{\link[reproducible:preProcess]{reproducible::preProcess()}}, into a
+temporary folder first.
 }
 \details{
 \code{spreadFitFileTag} marks the files whose fits use the current model: fuel biomass on the
