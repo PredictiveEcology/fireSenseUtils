@@ -40,6 +40,8 @@
   returnSims = FALSE,
   returnBurned = FALSE,
   capSizes = TRUE,
+  penaliseCapHits = TRUE,
+  runawaySize = NULL,
   fitYearSpreadSD = NULL,
   verbose = 2,
   ...
@@ -209,6 +211,19 @@ cells included). A year the objective declines to simulate is \code{NULL}. For
 \item{capSizes}{If \code{FALSE}, simulated fires are not capped at \code{\link[=multiplier]{multiplier()}} of their observed
 size. The fit needs the cap; validation should not have it, or a model that predicts fires far
 too large cannot show it.}
+
+\item{penaliseCapHits}{If \code{TRUE} (default), a simulated fire that reaches its cap (\code{capSizes}) is
+censored: it is "at least this big", i.e. a runaway, not a fire of the capped size. In every
+size-based term (the per-fire size likelihood, \code{"adTest"}, \code{yearAreaWeight}, \code{"mad"}) its size is
+replaced by \code{runawaySize}, so a fire whose replicates mostly hit the cap scores a very low
+likelihood instead of being a fire about five times too large. \code{FALSE} scores the capped size
+(the behaviour before this argument). Has no effect with \code{capSizes = FALSE} (nothing is capped) or
+with \code{returnSims = TRUE} (the simulated sizes are returned as simulated). The per-fire likelihood
+is floored at \code{minLik} (1e-29), which bounds the penalty per fire; thresholds (\code{thresh}) calibrated
+without the penalty will differ.}
+
+\item{runawaySize}{Size (pixels) given to a capped replicate when \code{penaliseCapHits = TRUE}. \code{NULL}
+(default): the number of non-\code{NA} pixels of \code{landscape}, or \code{1e7} if \code{landscape} has no values.}
 
 \item{fitYearSpreadSD}{If \code{TRUE}, the last element of \code{par} is the sd of a per-year random effect on
 the logit of spread probability, a seasonal departure: in each replicate the year draws one

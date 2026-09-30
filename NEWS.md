@@ -1,3 +1,7 @@
+# fireSenseUtils (development version)
+
+* `.objfunSpreadFit()` treats a simulated fire that reaches its cap (`multiplier()` of the observed size) as censored, a runaway, instead of a fire of the capped size. Its size becomes `runawaySize` (default: the landscape's non-`NA` pixels) in the `adTest`, annual-area and `mad` terms, and in the per-fire size likelihood it has no density at the observed size (the likelihood is that of the other replicates times their share). `penaliseCapHits = FALSE` restores the old scoring; `capSizes = FALSE` and `returnSims` are unchanged. The per-fire likelihood is still floored at `minLik`, and `thresh` values calibrated before this change will differ. The SNLL log line now reports the capHit share.
+
 # fireSenseUtils 0.2.3.9070
 
 * The pooled `other_agb` spread covariate is removed, and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"`: `fireSenseCovariatesCreate()` now builds only `dom_agb_<class>`, `sec_agb_<class>` and (with `rstLCC`) `treedWetland_agb`. `treedWetland_agb` still holds all tree AGB on treed-wetland pixels, including classes that are neither dom nor sec. Spread fits made with `other_agb` need refitting. `collapseFuelClassesToDomSecOther()` is now `collapseFuelClassesToDomSec()`.
