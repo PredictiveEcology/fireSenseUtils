@@ -1,3 +1,7 @@
+# fireSenseUtils (development version)
+
+* `.objfunSpreadFit()` treats a simulated fire that reaches its cap (`multiplier()` of the observed size) as censored, a runaway, instead of a fire of the capped size. Its size becomes `runawaySize` (default: the landscape's non-`NA` pixels) in the `adTest`, annual-area and `mad` terms, and in the per-fire size likelihood it has no density at the observed size (the likelihood is that of the other replicates times their share). `penaliseCapHits = FALSE` restores the old scoring; `capSizes = FALSE` and `returnSims` are unchanged. The per-fire likelihood is still floored at `minLik`, and `thresh` values calibrated before this change will differ. The SNLL log line now reports the capHit share. `runDEoptim()` takes `penaliseCapHits` (default `TRUE`) and passes it to the fit and the re-score; it changes the DEoptim cache key.
+
 # fireSenseUtils 0.2.3.9071
 
 * `youngAge` can be resolved per fire year again. New `youngAgeAtYear()` gives it for any set of pixels: time since disturbance at the data year, aged to the fire year and reset by every fire since (all fires, not only the fitted buffers); young is `<= cutoffForYoungAge` and `NA` time since disturbance is never young (the old `calcYoungAge()` called it young). `firePixelsByYear()` makes its per-year fire pixel lists from polygons or a fire-year raster. `calcYoungAge()` is deprecated.

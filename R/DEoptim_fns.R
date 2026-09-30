@@ -126,6 +126,8 @@ utils::globalVariables(c(
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
 #' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
 #'   and the final-population re-score. Off by default (`0`).
+#' @param penaliseCapHits Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
+#'   scores a simulated fire that reaches its size cap as a runaway, not as a fire of the capped size.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
@@ -201,6 +203,7 @@ runDEoptim <- function(landscape,
                        jumpMeanDist = 0,
                        yearAreaWeight = 0,
                        areaDistWeight = 0,
+                       penaliseCapHits = TRUE,
                        profileReps = 0L,
                        simulateMembers = 0L) {
   if (isTRUE(is.na(cores))) cores <- NULL
@@ -305,6 +308,7 @@ runDEoptim <- function(landscape,
       jumpMeanDist = jumpMeanDist,
       yearAreaWeight = yearAreaWeight,
       areaDistWeight = areaDistWeight,
+      penaliseCapHits = penaliseCapHits,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -329,7 +333,8 @@ runDEoptim <- function(landscape,
                       weighted = weighted, adWeight = adWeight, link = link,
                       fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa,
                       jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
-                      yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight)
+                      yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
+                      penaliseCapHits = penaliseCapHits)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(
