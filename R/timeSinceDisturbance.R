@@ -229,8 +229,7 @@ calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListD
     fires <- fireBufferedListDT[[year]]
     if (!is.null(fires)) {
       ageVals <- values(standAgeMap, mat = FALSE)
-      set(ann, NULL, "youngAge", as.integer(isYoungAge(ageVals[ann$pixelID], cutoffForYoungAge)) |
-        is.na(ageVals[ann$pixelID])) ## cannot have NAs
+      set(ann, NULL, "youngAge", as.integer(isYoungAge(ageVals[ann$pixelID], cutoffForYoungAge)))
       burnedPix <- fires$pixelID[fires$buffer == 1]
       ageVals[burnedPix] <- 0
       standAgeMap <- setValues(standAgeMap, values = ageVals)
