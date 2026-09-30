@@ -7,7 +7,7 @@
 #' `spreadFitFileTag` marks the files whose fits use the current model: fuel biomass on the
 #' linear scale ([fuelLogToLinear()]), escaped fires starting at 50 ha (`escapeSizeHa`), and the
 #' objective with the annual-area and area-distribution terms. Files with an older tag
-#' (`"_linearFuel"`: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
+#' (`"_linearFuel"`: 1-pixel escape; none: log fuel) hold fits of an earlier model, which downloads into a temporary folder first
 #' fireSense_spreadPredict would apply wrongly, so `"latest"` never reads them.
 #' A fit made under a new model needs a new tag, so the old files drop out of `"latest"`.
 #'
@@ -31,8 +31,9 @@ spreadFitFileTag <- "_linearFuel_esc50"
 #' @description
 #' `latestSpreadFits()` returns, for every polygon, its rows from the most recently modified
 #' ledger file that has it. Files are read newest first; with `polygonIDs`, reading stops once
-#' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
-#' downloaded again.
+#' downloaded again; one that differs is downloaded again with [reproducible::preProcess()], into a
+#' temporary folder first.
+#' downloaded again; one that differs is downloaded again with [reproducible::preProcess()], which downloads into a temporary folder first
 #'
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files.
 #' @param destinationPath Local folder for the downloaded files.
@@ -60,8 +61,15 @@ latestSpreadFits <- function(cloudFolderID, destinationPath, polygonIDs = NULL) 
     fname <- files$name[i]
     local <- file.path(destinationPath, fname)
     remoteMd5 <- files$drive_resource[[i]]$md5Checksum
-    if (!file.exists(local) || !identical(unname(tools::md5sum(local)), remoteMd5))
-      googledrive::drive_download(files[i, ], path = local, overwrite = TRUE)
+    if (!file.exists(local) || !identical(unname(tools::md5sum(local)), remoteMd5)) {
+      ## reproducible downloads into a temporary folder and then replaces `local`, so a job
+      ## reading the same file (two jobs on one ELF share `destinationPath`) never sees it half-written.
+      ## `purge = 7` because CHECKSUMS.txt still matches the old local file.
+      local <- reproducible::preProcess(
+        url = paste0("https://drive.google.com/file/d/", files$id[i]),
+        targetFile = fname, destinationPath = destinationPath, fun = NA,
+        purge = if (file.exists(local)) 7 else FALSE)$targetFilePath
+    }
     ledger <- as.data.frame(readRDS(local))
     ids <- as.character(ledger[[polygonIDTxt]])
     new <- !ids %in% names(from)

@@ -1,3 +1,7 @@
+# fireSenseUtils 0.2.3.9068
+
+* `latestSpreadFits()` downloads a ledger file with `reproducible::preProcess()` (into a temporary folder, then placed in `destinationPath`) instead of `googledrive::drive_download()`, which wrote the file in place: a second job on the same ELF, sharing `destinationPath`, could find it missing or half-written. A local file whose MD5 differs from Drive's is fetched again with `purge = 7`.
+
 # fireSenseUtils 0.2.3.9067
 
 * `runDEoptim()`'s default `logPath` is named `runDEoptim_<time>_*.log` (was `fireSense_SpreadFit_<time>_*.log`),
