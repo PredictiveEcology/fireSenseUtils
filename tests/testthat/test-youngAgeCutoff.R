@@ -43,17 +43,17 @@ test_that("cohortsToFuelClasses works when terra is not attached", {
   skip_if_not_installed("callr")
   pkgPath <- normalizePath(file.path(testthat::test_path(), "..", ".."))
   res <- callr::r(function(pkgPath) {
-    if (file.exists(file.path(pkgPath, "DESCRIPTION")) &&
-        dir.exists(file.path(pkgPath, "R"))) {
+    ## a source tree has R/*.R files; an installed package (R CMD check) has only R/<pkg>.rdb
+    if (length(list.files(file.path(pkgPath, "R"), pattern = "[.]R$"))) {
       pkgload::load_all(pkgPath, quiet = TRUE)
     } else {
-      library(fireSenseUtils)
+      loadNamespace("fireSenseUtils")
     }
     stopifnot(!"package:terra" %in% search())
     pgm <- terra::rast(nrows = 2, ncols = 2, vals = 0L)
     cD <- data.table::data.table(pixelGroup = integer(), speciesCode = character(),
                                  age = integer(), B = integer())
-    out <- suppressWarnings(cohortsToFuelClasses(
+    out <- suppressWarnings(fireSenseUtils::cohortsToFuelClasses(
       cohortData = cD, pixelGroupMap = pgm, flammableRTM = terra::rast(pgm, vals = 1),
       sppEquiv = data.table::data.table(LandR = character(), FuelClass = character()),
       sppEquivCol = "LandR", cutoffForYoungAge = 15, fuelClassCol = "FuelClass",
