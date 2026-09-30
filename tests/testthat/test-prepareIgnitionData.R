@@ -185,3 +185,41 @@ test_that("prepare_FuelCovsCoarseByYear: a pixel burned after the data year is y
   expect_equal(ex[year == "2003" & cell == 1, youngAge], 1)
   expect_equal(ex[year == "2001" & cell == 1, youngAge], 0)
 })
+
+test_that("per-year ignition covariates run through fireSenseCovariatesCreate and mergePreparedCovs", {
+  withr::local_package("terra")
+  withr::local_package("data.table")
+  ## 4 x 4 pixels of 1 km; pixels 1, 2, 5, 6 (coarse cell 1) burn in 2002. No cohorts: the only
+  ## cover is non-forest, nfLCC_40 everywhere, so a young pixel is cleared to nothing
+  pgm <- ignRas(0L)
+  noCohorts <- data.table(pixelGroup = integer(), speciesCode = character(),
+                          age = integer(), B = integer())
+  landcoverDT <- data.table(pixelID = 1:16, nfLCC_40 = 1)
+  fuel <- suppressWarnings(prepare_FuelCovsCoarseByYear(
+    cohortData = noCohorts, pixelGroupMap = pgm, flammableRTM = ignRas(1),
+    sppEquiv = data.table(LandR = character(), FuelClass = character()),
+    landcoverDT = landcoverDT, fuelClassCol = "FuelClass", sppEquivCol = "LandR",
+    missingLCCgroup = "nfLCC_40", nonForestedLCCGroups = c(nfLCC_40 = 40),
+    nonForestCanBeYoungAge = TRUE, studyAreaName = "test", useCache = FALSE,
+    nonForest_timeSinceDisturbance = ignRas(100), cutoffForYoungAge = 15,
+    years = c("year2001", "year2002"), dataYear = 2000,
+    firePixelsByYear = list("2001" = c(1L, 2L, 5L, 6L)),
+    rasTemplate = ignRas(0), fact = 2))
+  expect_named(fuel, c("year2001", "year2002"))
+  expect_equal(unname(terra::values(fuel$year2002)[, "youngAge"]), c(1, 0, 0, 0))
+  expect_equal(unname(terra::values(fuel$year2002)[, "nfLCC_40"]), c(0, 1, 1, 1))
+  expect_equal(unname(terra::values(fuel$year2001)[, "youngAge"]), rep(0, 4))
+
+  out <- mergePreparedCovs(years = list(c("year2001", "year2002")), fuelCovsCoarse = list(fuel),
+                           ignitionFirePoints = ignFires(), nonForestedLCCGroups = list(nfLCC_40 = 1),
+                           ignitionClimateCoarse = prepare_ignitionClimate(
+                             list(MDC = ignRas(cbind(1:16, 11:26), c("year2001", "year2002"))), 2,
+                             useCache = FALSE),
+                           lightningMap = list(lightningDays = ignRas(1:16)),
+                           digest = NULL, useCache = FALSE)
+  ## coarse cell 1: all four pixels burned, so in 2002 (not 2001) it is young, without land cover
+  expect_equal(out[pixelID == 1 & year == 2002, youngAge], 1)
+  expect_equal(out[pixelID == 1 & year == 2002, nfLCC_40], 0)
+  expect_equal(out[pixelID == 1 & year == 2001, youngAge], 0)
+  expect_equal(out[pixelID == 1 & year == 2001, nfLCC_40], 1)
+})
