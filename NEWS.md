@@ -1,4 +1,4 @@
-# fireSenseUtils (development version)
+# fireSenseUtils 0.2.3.9072
 
 * `.objfunSpreadFit()` treats a simulated fire that reaches its cap (`multiplier()` of the observed size) as censored, a runaway, instead of a fire of the capped size. Its size becomes `runawaySize` (default: the landscape's non-`NA` pixels) in the `adTest`, annual-area and `mad` terms, and in the per-fire size likelihood it has no density at the observed size (the likelihood is that of the other replicates times their share). `penaliseCapHits = FALSE` restores the old scoring; `capSizes = FALSE` and `returnSims` are unchanged. The per-fire likelihood is still floored at `minLik`, and `thresh` values calibrated before this change will differ. The SNLL log line now reports the capHit share. `runDEoptim()` takes `penaliseCapHits` (default `TRUE`) and passes it to the fit and the re-score; it changes the DEoptim cache key.
 
