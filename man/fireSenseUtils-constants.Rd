@@ -35,7 +35,7 @@ simList-slot/column names attached to spread-fit outputs
 \code{"nonForestedLCCGroups"}, \code{"missingLCCgroup"}, \code{"covMinMax_spread"}). \code{covMinMax_spread} is
 what prediction needs to rescale covariates exactly as the fit did.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
-built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecOther")} (currently
+built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).
 }
 }

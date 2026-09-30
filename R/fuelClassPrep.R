@@ -413,7 +413,7 @@ abbreviateSpNames <- function(df) {
 #' Choose an ELF's dominant and secondary fuel classes
 #'
 #' Ranks fuel classes by total treed AGB over a single representative data year (the fit study
-#' area), so `fireSenseCovariatesCreate(fuelCovariates = "domSecOther")` can be told the same
+#' area), so `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` can be told the same
 #' `domClass`/`secClass` for every data year of a fit, instead of choosing independently
 #' (and possibly differently) each time it is called. Ties are broken alphabetically by fuel-class
 #' name for a deterministic result.
@@ -450,7 +450,7 @@ chooseDomSecFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, lan
   list(domClass = ranked[1], secClass = if (length(ranked) >= 2) ranked[2] else NA_character_)
 }
 
-#' Collapse per-class fuel columns to dominant/secondary/other AGB columns
+#' Collapse per-class fuel columns to dominant/secondary AGB columns
 #'
 #' @param dt data.table with `pixelID` and the fuel-class columns named in `fcs` (AGB, linear
 #'   scale, not yet [logMinB()]-transformed). Modified in place and returned.
@@ -461,10 +461,11 @@ chooseDomSecFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, lan
 #'   area) gets a zero column instead of erroring. `secClass` is ignored if `domClass` is supplied
 #'   and `secClass` is `NULL`; pass `NA_character_` explicitly for "no secondary class".
 #'
-#' @return list with `dt` (columns `dom_agb_<domClass>`, `sec_agb_<secClass>` (if any) and
-#'   `other_agb` in place of `fcs`), `domClass`, `secClass` and `fuelCols` (the new column names).
+#' @return list with `dt` (columns `dom_agb_<domClass>`, `sec_agb_<secClass>` (if any) in
+#'   place of `fcs`; the remaining classes are dropped), `domClass`, `secClass` and `fuelCols` (the new
+#'   column names, empty when there are no tree fuel classes).
 #' @keywords internal
-collapseFuelClassesToDomSecOther <- function(dt, fcs, domClass = NULL, secClass = NULL) {
+collapseFuelClassesToDomSec <- function(dt, fcs, domClass = NULL, secClass = NULL) {
   ## a caller forcing domClass without secClass means "no secondary class", not "auto-detect"
   if (!is.null(domClass) && is.null(secClass)) secClass <- NA_character_
 
@@ -481,11 +482,9 @@ collapseFuelClassesToDomSecOther <- function(dt, fcs, domClass = NULL, secClass 
   }
 
   if (is.na(domClass)) {
-    ## no tree fuel classes at all: a single all-zero (or all-"other") pooled column so the
-    ## covariate table has the shape fireSense_spreadFit expects
-    set(dt, NULL, "other_agb", if (length(fcs)) rowSums(dt[, ..fcs]) else 0)
-    if (length(fcs)) set(dt, NULL, setdiff(fcs, "other_agb"), NULL)
-    return(list(dt = dt, domClass = NA_character_, secClass = NA_character_, fuelCols = "other_agb"))
+    ## no tree fuel classes at all: no dom/sec columns
+    if (length(fcs)) set(dt, NULL, fcs, NULL)
+    return(list(dt = dt, domClass = NA_character_, secClass = NA_character_, fuelCols = character()))
   }
 
   ## a forced class may be absent from this call's own fcs (e.g. a fit's dominant species is
@@ -507,10 +506,6 @@ collapseFuelClassesToDomSecOther <- function(dt, fcs, domClass = NULL, secClass 
     set(dt, NULL, secCol, dt[[secClass]])
     fuelCols <- c(fuelCols, secCol)
   }
-
-  otherClasses <- setdiff(fcs, c(domClass, secClass))
-  set(dt, NULL, "other_agb", if (length(otherClasses)) rowSums(dt[, ..otherClasses]) else 0)
-  fuelCols <- c(fuelCols, "other_agb")
 
   dropCols <- setdiff(union(fcs, addedTemp), fuelCols)
   if (length(dropCols)) set(dt, NULL, dropCols, NULL)
@@ -573,8 +568,8 @@ collapseFuelClassesToDomSecOther <- function(dt, fcs, domClass = NULL, secClass 
 #'         using all fuel-class columns, the land-cover columns (excluding \code{pixelID}) and
 #'         \code{treedWetland} (if \code{rstLCC} is supplied); \code{youngAge} is made exclusive to them.
 #'   \item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
-#'   \item When \code{fuelCovariates = "domSecOther"}, the per-species fuel-class columns are
-#'         collapsed to \code{dom_agb_*}, \code{sec_agb_*}, \code{other_agb} (and
+#'   \item When \code{fuelCovariates = "domSecWetland"}, the per-species fuel-class columns are
+#'         collapsed to \code{dom_agb_*}, \code{sec_agb_*} (other classes are dropped; and
 #'         \code{treedWetland_agb}, if \code{rstLCC} is supplied) before mutual exclusivity and
 #'         \code{logMinB} are applied to them, exactly as for the per-species columns.
 #' }
@@ -621,17 +616,17 @@ collapseFuelClassesToDomSecOther <- function(dt, fcs, domClass = NULL, secClass 
 #'
 #' @param rstLCC Optional land-cover `SpatRaster` on the same grid as `pixelGroupMap`. When given
 #'   and `fuelCovariates = "species"`, a `treedWetland` column (see [treedWetlandTxt]) is added:
-#'   1 where the land cover is `treedWetlandLCC`. When `fuelCovariates = "domSecOther"`, all tree
-#'   AGB on those pixels is moved into `treedWetland_agb` (see [treedWetlandAgbTxt]) instead, and
-#'   removed from `dom_agb_*`/`sec_agb_*`/`other_agb` there.
+#'   1 where the land cover is `treedWetlandLCC`. When `fuelCovariates = "domSecWetland"`, all tree
+#'   AGB (all fuel classes) on those pixels is moved into `treedWetland_agb` (see [treedWetlandAgbTxt])
+#'   instead, and removed from `dom_agb_*`/`sec_agb_*` there.
 #' @param treedWetlandLCC Land-cover code(s) of treed wetland. Default 81 (NTEMS; also what
 #'   [makeFireSenseLCC()] assigns on SCANFI land cover from the wetland layer).
 #' @param fuelCovariates `"species"` (default; one covariate column per fuel class, as
-#'   `assignedFuelClass` in `sppEquiv`) or `"domSecOther"`: exactly four AGB columns,
+#'   `assignedFuelClass` in `sppEquiv`) or `"domSecWetland"`: only the AGB columns
 #'   `dom_agb_<domClass>` and `sec_agb_<secClass>` (the ELF's two fuel classes with the most
-#'   total treed AGB), `other_agb` (the sum of the rest) and, when `rstLCC` is supplied,
-#'   `treedWetland_agb`.
-#' @param domClass,secClass Only used when `fuelCovariates = "domSecOther"`. The fuel classes to
+#'   total treed AGB) and, when `rstLCC` is supplied, `treedWetland_agb`. AGB of any other fuel
+#'   class is not a covariate.
+#' @param domClass,secClass Only used when `fuelCovariates = "domSecWetland"`. The fuel classes to
 #'   use for `dom_agb_*`/`sec_agb_*`. `NULL` (the default) chooses them from this call's own data
 #'   (highest total AGB first); a prediction should instead pass the classes the fit chose (e.g.
 #'   from [chooseDomSecFuelClasses()]), so the columns it builds match the fitted model's terms
@@ -654,7 +649,7 @@ fireSenseCovariatesCreate <- function(cohortData,
                                    nonForestCanBeYoungAge,
                                    studyAreaName, useCache = TRUE,
                                    rstLCC = NULL, treedWetlandLCC = 81,
-                                   fuelCovariates = c("species", "domSecOther"),
+                                   fuelCovariates = c("species", "domSecWetland"),
                                    domClass = NULL, secClass = NULL) {
   fuelCovariates <- match.arg(fuelCovariates)
   
@@ -680,8 +675,12 @@ fireSenseCovariatesCreate <- function(cohortData,
 
   chosenDomClass <- NA_character_
   chosenSecClass <- NA_character_
-  if (identical(fuelCovariates, "domSecOther")) {
-    collapsed <- collapseFuelClassesToDomSecOther(fuelClasses, fcs, domClass = domClass, secClass = secClass)
+  if (identical(fuelCovariates, "domSecWetland")) {
+    ## Total all tree AGB before the other classes are dropped: it is treedWetland_agb on wetland
+    ## pixels, and keeps a pixel holding only dropped AGB from being flagged as missingLCCgroup.
+    totalTreeAgbTxt <- ".totalTreeAgb"
+    set(fuelClasses, NULL, totalTreeAgbTxt, if (length(fcs)) rowSums(fuelClasses[, ..fcs]) else 0)
+    collapsed <- collapseFuelClassesToDomSec(fuelClasses, fcs, domClass = domClass, secClass = secClass)
     fuelClasses <- collapsed$dt
     fcs <- collapsed$fuelCols
     chosenDomClass <- collapsed$domClass
@@ -766,13 +765,13 @@ fireSenseCovariatesCreate <- function(cohortData,
   if (!is.null(rstLCC)) {
     lccVals <- terra::values(rstLCC, mat = FALSE)[spreadCovariates$pixelID]
     isTreedWetland <- lccVals %in% treedWetlandLCC
-    if (identical(fuelCovariates, "domSecOther")) {
+    if (identical(fuelCovariates, "domSecWetland")) {
       ## all tree AGB on a treed-wetland pixel moves into treedWetland_agb, and out of
-      ## dom_agb_*/sec_agb_*/other_agb, instead of the species-mode 0/1 indicator
+      ## dom_agb_*/sec_agb_*, instead of the species-mode 0/1 indicator
       set(spreadCovariates, NULL, treedWetlandAgbTxt, 0)
       wetRows <- which(isTreedWetland)
       if (length(wetRows)) {
-        set(spreadCovariates, wetRows, treedWetlandAgbTxt, rowSums(spreadCovariates[wetRows, ..fcs]))
+        set(spreadCovariates, wetRows, treedWetlandAgbTxt, spreadCovariates[[totalTreeAgbTxt]][wetRows])
         for (cn in fcs) set(spreadCovariates, wetRows, cn, 0)
       }
       fcs <- c(fcs, treedWetlandAgbTxt)
@@ -781,20 +780,22 @@ fireSenseCovariatesCreate <- function(cohortData,
     }
   }
 
+  if (identical(fuelCovariates, "domSecWetland")) set(spreadCovariates, NULL, totalTreeAgbTxt, NULL)
+
   # Making exclusive has to be prior to logMinB, or else the 0 biomass become -0.59 or so
   #   --> they need to stay at the minimum of 3.605. youngAge must be final (including the
   #   non-forest contribution above) before this runs, or young non-forest pixels keep their
   #   nfLCC value.
   exclusiveCols <- c(fcs, names(landcoverDT))
-  ## fcs already includes treedWetlandAgbTxt in "domSecOther" mode (added above)
-  if (!is.null(rstLCC) && !identical(fuelCovariates, "domSecOther")) exclusiveCols <- c(exclusiveCols, treedWetlandTxt)
+  ## fcs already includes treedWetlandAgbTxt in "domSecWetland" mode (added above)
+  if (!is.null(rstLCC) && !identical(fuelCovariates, "domSecWetland")) exclusiveCols <- c(exclusiveCols, treedWetlandTxt)
   exclusiveCols <- setdiff(exclusiveCols, "pixelID")
   spreadCovariates <- makeMutuallyExclusive(dt = spreadCovariates,
                                             mutuallyExclusiveCols = list("youngAge" = exclusiveCols))
 
   spreadCovariates <- spreadCovariates[, eval(fcs) := lapply(.SD, FUN = logMinB), .SDcols = fcs]
 
-  if (identical(fuelCovariates, "domSecOther"))
+  if (identical(fuelCovariates, "domSecWetland"))
     attr(spreadCovariates, "fuelClassRoles") <- list(domClass = chosenDomClass, secClass = chosenSecClass)
 
   spreadCovariates

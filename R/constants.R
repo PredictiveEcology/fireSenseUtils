@@ -27,7 +27,7 @@
 #'     what prediction needs to rescale covariates exactly as the fit did.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
-#'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecOther")` (currently
+#'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
