@@ -153,3 +153,35 @@ test_that("readLightningData rasterizes the Lat/Long/density triples at 10 km", 
   expect_true(terra::compareGeom(onTo, to, stopOnError = FALSE))
   expect_true(any(!is.na(terra::values(onTo))))
 })
+
+test_that("prepare_FuelCovsCoarseByYear: a pixel burned after the data year is young, and cleared, from the next year", {
+  ## covariates as fireSenseCovariatesCreate(youngAge = FALSE) gives them: nothing zeroed
+  local_mocked_bindings(fireSenseCovariatesCreate = function(..., youngAge) {
+    expect_false(youngAge)
+    data.table::data.table(pixelID = 1:16, spruce = log(3000), nfLCC_40 = 1, treedWetland = 1)
+  })
+  tsd <- ignRas(100)                           # every pixel old at the data year, 2000
+  ## coarse cell 1 is pixels 1, 2, 5, 6; they burn in 2002
+  fires <- list("2002" = c(1L, 2L, 5L, 6L))
+  out <- prepare_FuelCovsCoarseByYear(years = c("year2001", "year2003"), dataYear = 2000,
+                                      nonForest_timeSinceDisturbance = tsd,
+                                      firePixelsByYear = fires, cutoffForYoungAge = 15,
+                                      rasTemplate = ignRas(0), fact = 2)
+  expect_named(out, c("year2001", "year2003"))
+  v1 <- terra::values(out$year2001)
+  v3 <- terra::values(out$year2003)
+  expect_equal(unname(v1[, "youngAge"]), rep(0, 4))
+  expect_equal(unname(v1[1, "spruce"]), log(3000))
+  expect_equal(unname(v3[, "youngAge"]), c(1, 0, 0, 0))
+  expect_equal(unname(v3[1, "spruce"]), logMinB(0))
+  expect_equal(unname(v3[2, "spruce"]), log(3000))
+  expect_equal(unname(v3[1, c("nfLCC_40", "treedWetland")]), c(0, 0))
+
+  ## the per-year rasters feed stackAndExtract: ignition covariates at 2003 see the burn
+  clim <- list(MDC = ignRas(cbind(1:16, 11:26), c("year2001", "year2003")))
+  ex <- stackAndExtract(c("year2001", "year2003"),
+                        fuel = lapply(out, function(r) r[[c("youngAge", "spruce")]]),
+                        LCC = lapply(out, function(r) r[[c("nfLCC_40")]]), climate = lapply(clim, function(r) terra::aggregate(r, 2, mean)))
+  expect_equal(ex[year == "2003" & cell == 1, youngAge], 1)
+  expect_equal(ex[year == "2001" & cell == 1, youngAge], 0)
+})

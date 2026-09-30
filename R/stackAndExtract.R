@@ -5,8 +5,9 @@ utils::globalVariables(c(
 #' Prepare covariate table with ignition year, fuel class, climate value, and land cover
 #'
 #' @param years character vector of fire years with FS notation e.g. `"year2002"`
-#' @param fuel raster brick of aggregated fuel classes
-#' @param LCC raster brick of aggregated LCC classes
+#' @param fuel raster brick of aggregated fuel classes, or a list of them named by `years`
+#'   (one per year, as [prepare_FuelCovsCoarseByYear()] makes)
+#' @param LCC raster brick of aggregated LCC classes, or a list named by `years`
 #' @param climate list of raster layers named by climate variable
 #'  with raster layer names matching `years`
 #' @param fires list of spatial points representing annual ignitions
@@ -31,6 +32,8 @@ stackAndExtract <- function(years, fuel, LCC, climate, fires = NULL) {
     ## rename from year to climate variable
     names(thisYearsClimate) <- climateVariables
     
+    if (is.list(fuelRas)) fuelRas <- fuelRas[[year]]
+    if (is.list(LCCras)) LCCras <- LCCras[[year]]
     yearCovariates <- c(thisYearsClimate, LCCras, fuelRas)
     
     ## get covariate values of all cells

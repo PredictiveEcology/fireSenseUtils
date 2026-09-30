@@ -633,6 +633,13 @@ collapseFuelClassesToDomSec <- function(dt, fcs, domClass = NULL, secClass = NUL
 #'   even when a different class dominates the prediction area. `secClass = NA_character_` means
 #'   no secondary class (fewer than two fuel classes present).
 #'
+#' @param youngAge logical. `TRUE` (default): build `youngAge` from cohort ages and (with
+#'   `nonForestCanBeYoungAge`) non-forest time since disturbance, and zero fuel, non-forest land
+#'   cover and treed wetland where it is 1. `FALSE`: no `youngAge` column and nothing zeroed, so
+#'   the caller can resolve `youngAge` per year (see [youngAgeAtYear()]) and apply
+#'   [makeMutuallyExclusive()] itself; `cutoffForYoungAge` and `nonForestCanBeYoungAge` are then
+#'   unused.
+#'
 #' @export
 fireSenseCovariatesCreate <- function(cohortData,
                                    pixelGroupMap,
@@ -650,8 +657,11 @@ fireSenseCovariatesCreate <- function(cohortData,
                                    studyAreaName, useCache = TRUE,
                                    rstLCC = NULL, treedWetlandLCC = 81,
                                    fuelCovariates = c("species", "domSecWetland"),
-                                   domClass = NULL, secClass = NULL) {
+                                   domClass = NULL, secClass = NULL, youngAge = TRUE) {
   fuelCovariates <- match.arg(fuelCovariates)
+  
+  ## without youngAge no cohort is young: fuels keep their biomass for the caller to zero
+  if (!youngAge) cutoffForYoungAge <- -1
   
   # No non-forest nf happening here
   fuelClassesRas <- cohortsToFuelClasses(
@@ -672,6 +682,7 @@ fireSenseCovariatesCreate <- function(cohortData,
   fcs <- setdiff(names(fuelClassesRas), "youngAge")
   fuelClasses <- as.data.table(as.data.frame(fuelClassesRas, cells = TRUE))
   setnames(fuelClasses, old = "cell", new = "pixelID")
+  if (!youngAge) set(fuelClasses, NULL, youngAgeTxt, NULL)
 
   chosenDomClass <- NA_character_
   chosenSecClass <- NA_character_
@@ -700,7 +711,7 @@ fireSenseCovariatesCreate <- function(cohortData,
   spreadCovariates[rowcheck == 0, (missingLCCgroup) := 1]
   set(spreadCovariates, NULL, "rowcheck", NULL)
   
-  if (nonForestCanBeYoungAge) {
+  if (youngAge && nonForestCanBeYoungAge) {
     dig1 <- reproducible::.robustDigest(list(landcoverDT, flammableRTM))
     
     LCCras <- putBackIntoRaster(landcoverDT = landcoverDT, # list(sim$landcoverDT2010, sim$landcoverDT2020),
@@ -790,8 +801,10 @@ fireSenseCovariatesCreate <- function(cohortData,
   ## fcs already includes treedWetlandAgbTxt in "domSecWetland" mode (added above)
   if (!is.null(rstLCC) && !identical(fuelCovariates, "domSecWetland")) exclusiveCols <- c(exclusiveCols, treedWetlandTxt)
   exclusiveCols <- setdiff(exclusiveCols, "pixelID")
-  spreadCovariates <- makeMutuallyExclusive(dt = spreadCovariates,
-                                            mutuallyExclusiveCols = list("youngAge" = exclusiveCols))
+  if (youngAge) {
+    spreadCovariates <- makeMutuallyExclusive(dt = spreadCovariates,
+                                              mutuallyExclusiveCols = list("youngAge" = exclusiveCols))
+  }
 
   spreadCovariates <- spreadCovariates[, eval(fcs) := lapply(.SD, FUN = logMinB), .SDcols = fcs]
 

@@ -28,5 +28,6 @@ calcYoungAge(
 a raster layer with unified stand age and time-since-disturbance values
 }
 \description{
-Iteratively calculate \code{youngAge} column in FS covariates
+Deprecated: use \code{\link[=youngAgeAtYear]{youngAgeAtYear()}}. This one treats \code{NA} ages as young, only sees the fires
+in \code{fireBufferedListDT} (those being fitted), and needs a raster copy per year.
 }
