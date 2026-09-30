@@ -286,6 +286,55 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
 
 
 
+#' Fuel covariate rasters at a coarse resolution, with `youngAge` resolved for each fire year
+#'
+#' As [prepare_FuelCovsCoarse()], but the covariates are built once with
+#' `fireSenseCovariatesCreate(youngAge = FALSE)` and then, for each of `years`,
+#' `youngAge` is set from [youngAgeAtYear()] over every pixel (time since disturbance of the data
+#' year aged to that year, reset by all fires since) and fuel, non-forest land cover and treed
+#' wetland are cleared where it is 1, as `fireSenseCovariatesCreate(youngAge = TRUE)` does for a
+#' single year. Fuel is cleared to `logMinB(0)`, the value `fireSenseCovariatesCreate()` gives
+#' a pixel without that fuel. Each year is then aggregated with `mean`, so `youngAge` becomes the
+#' proportion of young pixels in a coarse cell.
+#'
+#' @param ... Arguments for [fireSenseCovariatesCreate()].
+#' @param years character, fire years (`"year2001"`) to build, all described by the same data year.
+#' @param dataYear the year `nonForest_timeSinceDisturbance` describes.
+#' @param nonForest_timeSinceDisturbance `SpatRaster` of time since disturbance at `dataYear`
+#'   (for every pixel, not only non-forest; see [makeTSD()]).
+#' @param firePixelsByYear all fires as `pixelID`s by year, see [firePixelsByYear()].
+#' @param cutoffForYoungAge as in [fireSenseCovariatesCreate()].
+#' @inheritParams prepare_FuelCovsCoarse
+#'
+#' @return a list named by `years` of `SpatRaster`s, each as [prepare_FuelCovsCoarse()] returns,
+#'   with a `youngAge` layer.
+#'
+#' @export
+#' @importFrom data.table copy data.table set
+#' @importFrom terra aggregate values
+prepare_FuelCovsCoarseByYear <- function(..., years, dataYear, nonForest_timeSinceDisturbance,
+                                         firePixelsByYear, cutoffForYoungAge, rasTemplate, fact) {
+  covs <- fireSenseCovariatesCreate(..., nonForest_timeSinceDisturbance = nonForest_timeSinceDisturbance,
+                                    cutoffForYoungAge = cutoffForYoungAge, youngAge = FALSE)
+  tsd <- data.table(pixelID = seq_len(terra::ncell(nonForest_timeSinceDisturbance)),
+                    tsd = terra::values(nonForest_timeSinceDisturbance, mat = FALSE))
+  covNames <- setdiff(names(covs), "pixelID")
+  fuelCols <- setdiff(covNames, c(grep("^nfLCC_", covNames, value = TRUE), treedWetlandTxt))
+  exclusive <- youngAgeExclusiveCols(covNames, fuelCols)[[youngAgeTxt]]
+  yearRasters <- lapply(years, function(yr) {
+    covsYr <- copy(covs)
+    young <- youngAgeAtYear(tsd, dataYear = dataYear, year = as.integer(gsub("[^0-9]", "", yr)),
+                            firePixelsByYear = firePixelsByYear,
+                            cutoffForYoungAge = cutoffForYoungAge, pixelID = covsYr$pixelID)
+    set(covsYr, NULL, youngAgeTxt, young)
+    whYoung <- which(young == 1L)
+    for (cn in exclusive) set(covsYr, whYoung, cn, if (cn %in% fuelCols) logMinB(0) else 0)
+    terra::aggregate(SpaDES.tools::rastFromDF(covsYr, rasTemplate = rasTemplate), fact = fact, fun = mean)
+  })
+  names(yearRasters) <- years
+  yearRasters
+}
+
 #' Build ignition covariates table by stacking/extracting rasters and joining lightning
 #'
 #' For each `year` (or year period) provided, stacks and extracts covariates from
@@ -416,8 +465,16 @@ mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonFore
   fireSense_ignitionCovariates <- Map(
     f = fireSenseUtils::stackAndExtract,
     years = years, # list(pre2012, post2012),
-    fuel = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[setdiff(names(lrc), names(nonForestedLCCGroups))]]),
-    LCC = Map(lrc = fuelCovsCoarse, function(lrc) lrc[[names(nonForestedLCCGroups)]]), # list(LCCras$year2010, LCCras$year2020),
+    ## each element of fuelCovsCoarse is one raster for the data year's fire years, or a list of
+    ## rasters named by fire year (prepare_FuelCovsCoarseByYear())
+    fuel = Map(lrc = fuelCovsCoarse, function(lrc) {
+      pick <- function(r) r[[setdiff(names(r), names(nonForestedLCCGroups))]]
+      if (is.list(lrc)) lapply(lrc, pick) else pick(lrc)
+    }),
+    LCC = Map(lrc = fuelCovsCoarse, function(lrc) {
+      pick <- function(r) r[[names(nonForestedLCCGroups)]]
+      if (is.list(lrc)) lapply(lrc, pick) else pick(lrc)
+    }), # list(LCCras$year2010, LCCras$year2020),
     MoreArgs = list(climate = ignitionClimateCoarse,
                     fires = ignitionFirePoints)
   ) |>

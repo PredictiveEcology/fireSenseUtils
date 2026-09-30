@@ -24,7 +24,8 @@ fireSenseCovariatesCreate(
   treedWetlandLCC = 81,
   fuelCovariates = c("species", "domSecWetland"),
   domClass = NULL,
-  secClass = NULL
+  secClass = NULL,
+  youngAge = TRUE
 )
 }
 \arguments{
@@ -87,6 +88,13 @@ use for \verb{dom_agb_*}/\verb{sec_agb_*}. \code{NULL} (the default) chooses the
 from \code{\link[=chooseDomSecFuelClasses]{chooseDomSecFuelClasses()}}), so the columns it builds match the fitted model's terms
 even when a different class dominates the prediction area. \code{secClass = NA_character_} means
 no secondary class (fewer than two fuel classes present).}
+
+\item{youngAge}{logical. \code{TRUE} (default): build \code{youngAge} from cohort ages and (with
+\code{nonForestCanBeYoungAge}) non-forest time since disturbance, and zero fuel, non-forest land
+cover and treed wetland where it is 1. \code{FALSE}: no \code{youngAge} column and nothing zeroed, so
+the caller can resolve \code{youngAge} per year (see \code{\link[=youngAgeAtYear]{youngAgeAtYear()}}) and apply
+\code{\link[=makeMutuallyExclusive]{makeMutuallyExclusive()}} itself; \code{cutoffForYoungAge} and \code{nonForestCanBeYoungAge} are then
+unused.}
 }
 \value{
 A \code{data.table} named \code{spreadCovariates} containing one row per \code{pixelID}, with:

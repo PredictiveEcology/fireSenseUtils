@@ -9,9 +9,10 @@ stackAndExtract(years, fuel, LCC, climate, fires = NULL)
 \arguments{
 \item{years}{character vector of fire years with FS notation e.g. \code{"year2002"}}
 
-\item{fuel}{raster brick of aggregated fuel classes}
+\item{fuel}{raster brick of aggregated fuel classes, or a list of them named by \code{years}
+(one per year, as \code{\link[=prepare_FuelCovsCoarseByYear]{prepare_FuelCovsCoarseByYear()}} makes)}
 
-\item{LCC}{raster brick of aggregated LCC classes}
+\item{LCC}{raster brick of aggregated LCC classes, or a list named by \code{years}}
 
 \item{climate}{list of raster layers named by climate variable
 with raster layer names matching \code{years}}

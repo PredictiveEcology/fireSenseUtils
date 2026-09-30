@@ -1,3 +1,9 @@
+# fireSenseUtils (development version)
+
+* `youngAge` can be resolved per fire year again. New `youngAgeAtYear()` gives it for any set of pixels: time since disturbance at the data year, aged to the fire year and reset by every fire since (all fires, not only the fitted buffers); young is `<= cutoffForYoungAge` and `NA` time since disturbance is never young (the old `calcYoungAge()` called it young). `firePixelsByYear()` makes its per-year fire pixel lists from polygons or a fire-year raster. `calcYoungAge()` is deprecated.
+* `fireSenseCovariatesCreate()` has `youngAge = TRUE`. With `FALSE` it builds no `youngAge` column and zeroes no fuel, non-forest land cover or treed wetland; the default keeps the previous behaviour.
+* New `prepare_FuelCovsCoarseByYear()` builds the coarse ignition fuel rasters with `youngAge` (and the clearing it implies) per fire year; `stackAndExtract()` and `mergePreparedCovs()` accept these per-year lists. Fits made with `youngAge` fixed at the data year need refitting.
+
 # fireSenseUtils 0.2.3.9070
 
 * The pooled `other_agb` spread covariate is removed, and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"`: `fireSenseCovariatesCreate()` now builds only `dom_agb_<class>`, `sec_agb_<class>` and (with `rstLCC`) `treedWetland_agb`. `treedWetland_agb` still holds all tree AGB on treed-wetland pixels, including classes that are neither dom nor sec. Spread fits made with `other_agb` need refitting. `collapseFuelClassesToDomSecOther()` is now `collapseFuelClassesToDomSec()`.
