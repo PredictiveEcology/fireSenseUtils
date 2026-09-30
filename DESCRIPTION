@@ -58,6 +58,7 @@ Suggests:
     hexbin,
     knitr,
     kSamples,
+    pkgload,
     PtProcess,
     raster,
     rasterVis,
