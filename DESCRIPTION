@@ -71,7 +71,10 @@ Remotes:
     PredictiveEcology/clusters@development,
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
+    PredictiveEcology/reproducible@development,
+    PredictiveEcology/Require@development,
     PredictiveEcology/scfmutils@development,
+    PredictiveEcology/SpaDES.core@development,
     PredictiveEcology/SpaDES.project@development,
     PredictiveEcology/SpaDES.tools@development
 VignetteBuilder:
