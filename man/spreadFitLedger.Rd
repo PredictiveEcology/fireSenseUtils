@@ -25,25 +25,26 @@ latestSpreadFits(cloudFolderID, destinationPath, polygonIDs = NULL)
 \code{spreadFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
 e.g. \code{"fireSenseParams_1985-2024_linearFuel_esc50.rds"}.
 
-\code{latestSpreadFits()}: the ledger rows, in the form fireSense_SpreadFit writes them
+\code{latestSpreadFits()}: the ledger rows, in the form fireSense_spreadFit writes them
 (a \code{data.frame} with a \code{geometry} column), or \code{NULL} when no file matches. Attribute
 \code{"spreadFitFiles"} names the file each polygon came from.
 }
 \description{
-fireSense_SpreadFit writes each fit as a row of an \code{rds} file in a Google Drive folder
+fireSense_spreadFit writes each fit as a row of an \code{rds} file in a Google Drive folder
 (its \code{spreadFitGoogleDriveFolder}); fireSense_ELFs and fireSense_dataPrepFit read them.
 With \code{spreadFitFilename = "latest"} those modules use these functions instead of one named file.
 
 \code{latestSpreadFits()} returns, for every polygon, its rows from the most recently modified
 ledger file that has it. Files are read newest first; with \code{polygonIDs}, reading stops once
 all of them are found. A file already in \code{destinationPath} with the same MD5 as on Drive is not
-downloaded again.
+downloaded again; one that differs is downloaded again with \code{\link[reproducible:preProcess]{reproducible::preProcess()}}, into a
+temporary folder first.
 }
 \details{
 \code{spreadFitFileTag} marks the files whose fits use the current model: fuel biomass on the
 linear scale (\code{\link[=fuelLogToLinear]{fuelLogToLinear()}}), escaped fires starting at 50 ha (\code{escapeSizeHa}), and the
 objective with the annual-area and area-distribution terms. Files with an older tag
 (\code{"_linearFuel"}: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
-fireSense_SpreadPredict would apply wrongly, so \code{"latest"} never reads them.
+fireSense_spreadPredict would apply wrongly, so \code{"latest"} never reads them.
 A fit made under a new model needs a new tag, so the old files drop out of \code{"latest"}.
 }

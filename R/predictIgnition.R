@@ -18,6 +18,7 @@
 #' @return vector of predicted values.
 #'
 #' @export
+#' @importFrom stats predict
 predictIgnition <- function(model, data, rescaleFactor, lambdaRescaleFactor) {
   ignitions <- predict(model, newdata = data, se.fit = FALSE, re.form = NA,
                        type = "response")

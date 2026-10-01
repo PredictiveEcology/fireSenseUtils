@@ -11,7 +11,7 @@ Fuel covariates of the spread model are biomass on the LINEAR scale, divided by 
 \code{1e4}. The division is not done to the data: it is the \code{covMinMax} given to
 \code{\link[=rescaleKnown2]{rescaleKnown2()}}, which is affine and does not clamp, so \code{c(0, 1e4)} is exactly
 \code{biomass / 1e4}. The constant is fixed, not \code{max(biomass)}, so that
-\code{fireSense_SpreadPredict} reproduces the fit's scaling in every year from the stored
+\code{fireSense_spreadPredict} reproduces the fit's scaling in every year from the stored
 \code{covMinMax_spread} alone. It is also how a fit is recognised as linear: see
 \code{\link[=isLinearFuelRange]{isLinearFuelRange()}}.
 }

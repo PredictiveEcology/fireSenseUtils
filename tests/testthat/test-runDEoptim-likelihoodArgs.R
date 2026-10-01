@@ -23,7 +23,7 @@ test_that("the likelihood options reach the objective during the fit", {
   seen <- new.env()
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L),
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) {
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
       seen$dots <- list(...)
       list()
     },
@@ -42,7 +42,7 @@ test_that("the same options reach the re-score of the final population", {
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L,
                                       cluster = NULL),
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) list(list(member = list(pop = finalPop))),
+    DEoptimIterative = function(fn, lower, upper, control, ...) list(list(member = list(pop = finalPop))),
     .package = "clusters")
   testthat::local_mocked_bindings(
     termsInDEoptim = function(...) invisible(NULL),
@@ -60,4 +60,43 @@ test_that("runDEoptim's defaults are the objective's defaults", {
   f <- formals(runDEoptim)[names(likArgs)]
   o <- formals(.objfunSpreadFit)[names(likArgs)]
   expect_identical(f, o)
+})
+
+test_that("penaliseRunaways reaches the objective in the fit and the re-score, default TRUE", {
+  expect_identical(formals(runDEoptim)$penaliseRunaways, TRUE)
+  expect_identical(formals(runDEoptim)$penaliseRunaways, formals(.objfunSpreadFit)$penaliseRunaways)
+  seen <- new.env()
+  finalPop <- matrix(c(0.26, 1, 1, 0.5), nrow = 1)
+  testthat::local_mocked_bindings(
+    clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
+      seen$dots <- list(...)
+      list(list(member = list(pop = finalPop)))
+    },
+    .package = "clusters")
+  testthat::local_mocked_bindings(
+    termsInDEoptim = function(...) invisible(NULL),
+    rescorePopulation = function(pop, fn, reps, cl, seed = 1L, fnArgs = list()) {
+      seen$fnArgs <- fnArgs
+      data.table::data.table(member = 1L, rep = 1L, value = 1)
+    })
+  callRunDEoptimLik(penaliseRunaways = FALSE)
+  expect_false(seen$dots$penaliseRunaways)
+  expect_false(seen$fnArgs$penaliseRunaways)
+})
+
+test_that("penaliseCapHits is deprecated: a warning, and it is not passed on", {
+  seen <- new.env()
+  testthat::local_mocked_bindings(
+    clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L),
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
+      seen$dots <- list(...)
+      list()
+    },
+    .package = "clusters")
+  testthat::local_mocked_bindings(termsInDEoptim = function(...) invisible(NULL))
+  rm(list = ls(fireSenseUtils:::.capArgsWarned), envir = fireSenseUtils:::.capArgsWarned)
+  expect_warning(callRunDEoptimLik(penaliseCapHits = FALSE), "penaliseRunaways")
+  expect_null(seen$dots$penaliseCapHits)
+  expect_true(seen$dots$penaliseRunaways)
 })

@@ -2,7 +2,6 @@
 % Please edit documentation in R/DEoptim_fns.R
 \name{runDEoptim}
 \alias{runDEoptim}
-\alias{DEoptimIterative}
 \alias{termsInDEoptim}
 \title{Run \code{DEoptim}}
 \usage{
@@ -20,7 +19,7 @@ runDEoptim(
   cores = NULL,
   paths,
   libPath = .libPaths()[1],
-  logPath = tempfile(sprintf("fireSense_SpreadFit_\%s_", format(Sys.time(),
+  logPath = tempfile(sprintf("runDEoptim_\%s_", format(Sys.time(),
     "\%Y-\%m-\%d_\%H\%M\%S")), fileext = ".log"),
   doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
   iterStep = 25,
@@ -39,6 +38,7 @@ runDEoptim(
   .verbose,
   visualizeDEoptim = logPath,
   .plots = "screen",
+  plotEvery = 25L,
   .plotSize = list(height = 1600, width = 2000),
   rep = 1L,
   runName = "",
@@ -54,33 +54,10 @@ runDEoptim(
   jumpMeanDist = 0,
   yearAreaWeight = 0,
   areaDistWeight = 0,
+  penaliseRunaways = TRUE,
   profileReps = 0L,
-  simulateMembers = 0L
-)
-
-DEoptimIterative(
-  itermax,
-  lower,
-  upper,
-  control,
-  formulaToFit,
-  covMinMax,
-  tests = c("SNLL", "adTest"),
-  objFunCoresInternal,
-  maxFireSpread,
-  Nreps,
-  visualizeDEoptim,
-  figPath,
-  cachePath,
-  mutuallyExclusive,
-  doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
-  iterStep = 25,
-  thresh = 550,
-  .c = 0.5,
-  .verbose,
-  .plots = "screen",
-  .plotSize = list(height = 1600, width = 2000),
-  rep = 1L
+  simulateMembers = 0L,
+  penaliseCapHits = NULL
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -176,9 +153,8 @@ This is distinct from the parallelization managed by \link[DEoptim:DEoptim]{DEop
 
 \item{thresh}{The threshold for accepting fits; e.g., from \code{mod$thresh}.}
 
-\item{.c}{Numeric scalar in \verb{[0, 1]}. Crossover constant passed through to
-\code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} as \code{c} (the speed of crossover adaptation).
-Default 0.5.}
+\item{.c}{Numeric in \verb{(0, 1]}. DEoptim's \code{c}, the speed of crossover adaptation (used by
+\code{strategy = 6}). Passed to \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}}; a \code{c} in \code{DEoptimControl} wins.}
 
 \item{DEoptimControl}{Named list of further \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}} settings (for example
 \code{CR}, \code{F}, \code{p}, \code{reltol}), passed through \code{\link[clusters:clusterSetup]{clusters::clusterSetup()}} to DEoptim. \code{NP} is the
@@ -190,13 +166,17 @@ number of workers the cluster gets.}
 Passed to internal plotting functions (likely via \code{\link[SpaDES.core:Plots]{SpaDES.core::Plots()}}).
 Default "screen".}
 
+\item{plotEvery}{Integer. Generations between DEoptim progress figures; the final figures are
+always drawn. Passed to \code{clusters::DEoptimIterative()}. It is not part of the fit's cache key,
+so changing it does not refit. Default 25.}
+
 \item{.plotSize}{List specifying plot \code{height} and \code{width}, in pixels.}
 
 \item{rep}{Integer. An identifier for the replication number of this optimization run.
 Used in cache tags and plot filenames. Default 1L.}
 
 \item{runName}{Character string used to label this run. Forwarded to
-\code{DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
+\code{clusters::DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
 so that runs with different \code{runName} values get distinct cache entries.
 Default \code{""} (no suffix).}
 
@@ -221,6 +201,10 @@ fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 \item{jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit
 and the final-population re-score. Off by default (\code{0}).}
 
+\item{penaliseRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
+scores a simulated fire that reaches the edge of its own buffer as a runaway, not as a fire of
+the size it reached. The edge ring of every buffer is computed here, once (\code{\link[=addBufferEdge]{addBufferEdge()}}).}
+
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.
 Needs \code{rescoreReps > 0}. Costs about \code{6 * nCoefficients * profileReps} evaluations.}
@@ -229,11 +213,7 @@ Needs \code{rescoreReps > 0}. Costs about \code{6 * nCoefficients * profileReps}
 observed fires without the size cap (\code{\link[=simulateFireSizes]{simulateFireSizes()}}), attached as \code{attr(DE, "fitSims")}
 for \code{\link[=scoreFireSizes]{scoreFireSizes()}} and \code{\link[=linkSaturation]{linkSaturation()}}. Needs \code{rescoreReps > 0}.}
 
-\item{control}{passed to \link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control}}
-
-\item{figPath}{directory where figures will be saved, if relevant}
-
-\item{cachePath}{A \code{cacheRepo} (see \code{\link[reproducible:Cache]{reproducible::Cache()}}).}
+\item{penaliseCapHits}{Deprecated and ignored; use \code{penaliseRunaways}.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
@@ -241,7 +221,7 @@ from e.g., \code{sim$fireSense_spreadFormula}.}
 \item{numParams}{The number of parameters (TODO: improve description)}
 }
 \value{
-The result of the \code{\link[=DEoptimIterative]{DEoptimIterative()}} call. This is typically a list where
+The result of the \code{clusters::DEoptimIterative()} call. This is typically a list where
 each element contains the \link[DEoptim:DEoptim]{DEoptim::DEoptim} object state after a block of \code{iterStep} iterations.
 The final element represents the state after \code{itermax} iterations or upon early stopping.
 }
@@ -249,6 +229,7 @@ The final element represents the state after \code{itermax} iterations or upon e
 Provides a wrapper around \link[DEoptim:DEoptim]{DEoptim::DEoptim}, setting up the multiple cluster connections.
 This will only work if ssh keys are preconfigured on all machines (if using multiple machines).
 
-Internal function called by \code{runDEoptim}. Runs \link[DEoptim:DEoptim]{DEoptim::DEoptim} in steps,
-caching results and optionally visualizing progress after each step.
+\code{termsInDEoptim()} is deprecated: it counted every parameter not in the formula as a "logit" term, so the per-year
+random effect \code{yearSpreadSD} was reported as a third logistic parameter. \code{runDEoptim()} now
+names the parameters with \code{names(lower)}.
 }

@@ -1,57 +1,7 @@
-## Tests for utility helper functions: oom, pw, logMinB, paramsSeparate,
+## Tests for utility helper functions: logMinB, paramsSeparate,
 ## dtReplaceNAwith0, rbetaBetween, toX1000, yearTxt, youngAgeTxt
 
 library(data.table)
-
-# ---------------------------------------------------------------------------
-# oom – order of magnitude
-# ---------------------------------------------------------------------------
-test_that("oom: returns 10 for values in (1, 10]", {
-  expect_equal(oom(5),   10)
-  expect_equal(oom(10),  10)
-})
-
-test_that("oom: returns 100 for values in (10, 100]", {
-  expect_equal(oom(11),  100)
-  expect_equal(oom(100), 100)
-})
-
-test_that("oom: returns 1 for values in (0, 1]", {
-  expect_equal(oom(0.5), 1)
-  expect_equal(oom(1),   1)
-})
-
-test_that("oom: handles negative numbers via abs()", {
-  expect_equal(oom(-5),  oom(5))
-  expect_equal(oom(-50), oom(50))
-})
-
-test_that("oom: returns 1000 for 500", {
-  expect_equal(oom(500), 1000)
-})
-
-# ---------------------------------------------------------------------------
-# pw – piecewise (hinge) function
-# ---------------------------------------------------------------------------
-test_that("pw: returns 0 when variable <= knot", {
-  expect_equal(pw(3, 5),   0)
-  expect_equal(pw(5, 5),   0)
-  expect_equal(pw(-1, 0),  0)
-})
-
-test_that("pw: returns positive excess when variable > knot", {
-  expect_equal(pw(7, 5),  2)
-  expect_equal(pw(10, 3), 7)
-})
-
-test_that("pw: vectorised over variable", {
-  res <- pw(c(1, 3, 5, 7), 4)
-  expect_equal(res, c(0, 0, 1, 3))
-})
-
-test_that("pw: output is always non-negative", {
-  expect_true(all(pw(c(-10, 0, 5, 10), 3) >= 0))
-})
 
 # ---------------------------------------------------------------------------
 # logMinB

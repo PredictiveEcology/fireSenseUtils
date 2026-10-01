@@ -25,7 +25,6 @@ NULL
 utils::globalVariables(c(
   "..SDcols",
   "YA_NF",
-  "as.int",
   "coverSums",
   "inRange",
   "isNonForest",

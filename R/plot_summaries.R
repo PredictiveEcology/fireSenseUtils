@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "areaBurnedHa", "Nfires", "POLY_HA", "SIZE_HA", "sumAB", "sumBurn", "val", "var", "YEAR"
+  "areaBurnedHa", "Nfires", "POLY_HA", "SIZE_HA", "stat", "sumAB", "sumBurn", "val", "var", "YEAR"
 ))
 
 #' Locate per-replicate simulation output files
@@ -208,6 +208,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
 #' @return a file path corresponding to the images and/or objects written to disk
 #'
 #' @export
+#' @importFrom grDevices dev.off png
 #' @importFrom parallel mclapply
 plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
                                 Nreps, years, rasterToMatch, simFiles) {

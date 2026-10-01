@@ -1,37 +1,3 @@
-## A fake Drive folder: `files` maps a file name to list(modified, ledger). drive_download writes the
-## ledger to `path` and counts the call.
-fakeDrive <- function(files, env = parent.frame()) {
-  store <- new.env()
-  store$downloads <- character()
-  ## the bytes saveRDS writes are what the MD5 is taken of, so keep them
-  bytes <- lapply(files, function(f) {
-    tf <- tempfile(fileext = ".rds"); on.exit(unlink(tf))
-    saveRDS(f$ledger, tf); readBin(tf, "raw", file.size(tf))
-  })
-  ls <- data.frame(name = names(files))
-  ls$drive_resource <- lapply(names(files), function(n) {
-    tf <- tempfile(); on.exit(unlink(tf)); writeBin(bytes[[n]], tf)
-    list(modifiedTime = files[[n]]$modified, md5Checksum = unname(tools::md5sum(tf)))
-  })
-  testthat::local_mocked_bindings(
-    drive_ls = function(path, ...) ls,
-    drive_download = function(file, path, overwrite, ...) {
-      store$downloads <- c(store$downloads, file$name)
-      writeBin(bytes[[file$name]], path)
-      invisible(file)
-    },
-    .package = "googledrive", .env = env)
-  store
-}
-
-ledgerRows <- function(ids, value) {
-  geom <- sf::st_sfc(lapply(seq_along(ids), function(i) sf::st_polygon(list(rbind(
-    c(i, 0), c(i + 1, 0), c(i + 1, 1), c(i, 1), c(i, 0))))))
-  df <- data.frame(polygonID = ids, objFunVal = value)
-  df$geometry <- geom
-  df
-}
-
 test_that("spreadFitFilenameFor() names a fit by its fire years and the model tag", {
   expect_identical(spreadFitFilenameFor(1985:2024), "fireSenseParams_1985-2024_linearFuel_esc50.rds")
   expect_identical(spreadFitFilenameFor(c(NA, 2001, 1990)), "fireSenseParams_1990-2001_linearFuel_esc50.rds")
@@ -83,4 +49,24 @@ test_that("no matching file gives NULL", {
   d <- withr::local_tempdir()
   fakeDrive(list("fireSenseParams.rds" = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.1", 1))))
   expect_null(suppressMessages(latestSpreadFits("folder", d)))
+})
+
+test_that("a ledger file is fetched with reproducible::preProcess() into destinationPath", {
+  d <- withr::local_tempdir()
+  nm <- "fireSenseParams_1985-2025_linearFuel_esc50.rds"
+  drive <- fakeDrive(list(a = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.3", 1)),
+                          b = list(modified = "2026-09-24T10:00:00Z", ledger = ledgerRows("4.1", 2))) |>
+                       setNames(c("fireSenseParams_1985-2024_linearFuel_esc50.rds", nm)))
+  out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
+  expect_identical(out$polygonID, "4.1")
+  expect_length(drive$calls, 1L)
+  call <- drive$calls[[1]]
+  expect_identical(call$targetFile, nm)
+  expect_identical(call$destinationPath, d)
+  expect_match(call$url, "id_2", fixed = TRUE)                    # the id of the newest file
+  ## the local file is stale, so it is fetched again; a Drive md5 match would not fetch at all
+  writeBin(as.raw(1:3), file.path(d, nm))
+  latestSpreadFits("folder", d, polygonIDs = "4.1")
+  expect_length(drive$calls, 2L)
+  expect_identical(drive$calls[[2]]$purge, 7)
 })

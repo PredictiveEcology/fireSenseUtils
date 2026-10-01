@@ -1,5 +1,5 @@
 ## Fit diagnostics (?fitDiagnostics): the checks made by hand on the phase-2 fits (September 2026),
-## now run by fireSense_SpreadFit after every fit. The held-out validation used trace() to pull the
+## now run by fireSense_spreadFit after every fit. The held-out validation used trace() to pull the
 ## simulated fires out of the objective; .objfunSpreadFit(returnSims = TRUE) replaces it.
 
 ## objFunInner with only the spread mocked, as in test-logistic-upperTail.R: 400 pixels, one fire of
@@ -43,12 +43,12 @@ test_that("objFunInner(returnSims = TRUE) returns each replicate's simulated siz
   expect_equal(out$pSummary$atCeiling, 100)
 })
 
-test_that("capSizes = FALSE lifts the size cap the fit puts on each fire", {
+test_that("no size cap is passed to spreadCpp: spread is bounded only by the buffers", {
   seen <- new.env()
   callInner(seen, returnSims = TRUE)
-  expect_true(all(is.finite(seen$maxSize)))
-  callInner(seen, returnSims = TRUE, capSizes = FALSE)
-  expect_equal(seen$maxSize, Inf)
+  expect_null(seen$maxSize)
+  callInner(seen)
+  expect_null(seen$maxSize)
 })
 
 test_that(".objfunSpreadFit(returnSims = TRUE) stacks every year and combines the spread probabilities", {
@@ -151,7 +151,7 @@ test_that("runDEoptim() profiles and simulates only when asked, on the re-score'
   lower <- stats::setNames(c(0.25, 0.2, 0.1, 0), c("maxAsymptote", "hillSlope1", "inflectionPoint1", "x"))
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
-    DEoptimIterative2 = function(...) list(list(member = list(pop = finalPop))),
+    DEoptimIterative = function(...) list(list(member = list(pop = finalPop))),
     .package = "clusters")
   testthat::local_mocked_bindings(
     termsInDEoptim = function(...) invisible(NULL),

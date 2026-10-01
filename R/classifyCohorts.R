@@ -21,20 +21,43 @@ globalVariables(c(
 #' @param cutoffForYoungAge age at and below which pixels are considered 'young'
 #'
 #' @param fuelClassCol the column in `sppEquiv` that describes unique fuel classes
-#' 
-#' @return a `SpatRaster` of biomass by fuel class as determined by `fuelClassCol` and `cohortData`.
+#'
+#' @param asTable if `TRUE`, return a `data.table` with `pixelID` and one column per layer,
+#'   restricted to cells where at least one layer is not `NA` -- exactly
+#'   `as.data.table(as.data.frame(<the SpatRaster>, cells = TRUE))` with `cell` renamed to
+#'   `pixelID`, without building the raster. Used by [fireSenseCovariatesCreate()].
+#'
+#' @return a `SpatRaster` of biomass by fuel class as determined by `fuelClassCol` and `cohortData`
+#'   (or a `data.table`, see `asTable`).
 #'
 #' @export
 #' @inheritParams fireSenseCovariatesCreate
 #' @importFrom data.table copy setkey
 #' @importFrom LandR asInteger
 #' @importFrom SpaDES.tools rasterizeReduced
-#' @importFrom terra values rast
+#' @importFrom terra as.int values rast
 #'
 cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landcoverDT = NULL,
-                                 sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = "FuelClass",
-                                 requiredFuelClasses) {
-  # cD <- copy(cohortData)
+                                 sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol = fireSenseFuelClassCol,
+                                 requiredFuelClasses, asTable = FALSE) {
+  cc <- .fuelClassVectors(cohortData, pixelGroupMap, flammableRTM, landcoverDT, sppEquiv,
+                          sppEquivCol, cutoffForYoungAge, fuelClassCol, requiredFuelClasses)
+  if (asTable) {
+    keep <- Reduce(`|`, lapply(cc, function(v) !is.na(v)))
+    ids <- which(keep)
+    out <- setDT(c(list(pixelID = ids), lapply(cc, function(v) v[ids])))
+    return(out)
+  }
+  classList <- rast(pixelGroupMap, nlyrs = length(cc))
+  values(classList) <- do.call(cbind, cc)
+  names(classList) <- names(cc)
+  classList
+}
+
+## One numeric vector (length ncell(pixelGroupMap)) per fuel-class layer, in layer order
+.fuelClassVectors <- function(cohortData, pixelGroupMap, flammableRTM, landcoverDT,
+                              sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol,
+                              requiredFuelClasses) {
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
 
@@ -66,95 +89,56 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
   setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
   # data.table needs an argument for which column names are kept during join
   cD[, maxAge := max(age), .(pixelGroup)]
-  cD[maxAge <= cutoffForYoungAge, FuelClass := youngAgeTxt]
+  cD[isYoungAge(maxAge, cutoffForYoungAge), FuelClass := youngAgeTxt]
   cD[, maxAge := NULL]
   cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
 
   # youngAge is better treated as a binary cover variable than continuous measure of biomass
   cD[FuelClass == youngAgeTxt, BperClass := 1]
 
-  # Fix zero age, zero biomass
-  classes <- sort(unique(cD$FuelClass))
-  
-  # st <- profvis::profvis({
-  
-  pgmVals <- list(pixelGroup = values(pixelGroupMap, mat = FALSE), 
-                  pixelId = seq(ncell(pixelGroupMap))) |> 
-    setDT() |> na.omit()
-  aa <- pgmVals[cD, on = "pixelGroup", allow.cartesian=TRUE]
-  bb <- split(aa, by = "FuelClass")
-  flamVals <- values(flammableRTM, mat = FALSE)
-  flamValsGood <- !is.na(flamVals)
-  cc <- Map(r = bb, function(r) {
-    ras <- rastFromDF(r[, .(pixelId, BperClass)], rasTemplate = pixelGroupMap)
-    rasVals <- values(ras, mat = FALSE)
+  ## Everything below is vector arithmetic over cells. It used to build one SpatRaster per
+  ## fuel class with rastFromDF() and stack them, then fireSenseCovariatesCreate() converted
+  ## the stack straight back to a table: ~6 s of the ~10 s call on 6.7M cells.
+  pgv <- values(pixelGroupMap, mat = FALSE)
+  flamValsGood <- !is.na(values(flammableRTM, mat = FALSE))
+  cD <- cD[!is.na(cD$pixelGroup)]
+  cc <- lapply(split(cD, by = "FuelClass"), function(r) {
+    ## a cell takes the class's biomass of its pixelGroup; NA where the class is absent
+    rasVals <- as.numeric(r$BperClass[match(pgv, r$pixelGroup)])
     rasVals[flamValsGood & is.na(rasVals)] <- 0
-    ras <- setValues(x = ras, values = rasVals)
-    ras
-    })
-  
+    rasVals
+  })
+
   noFuelForRequiredClass <- character()
   if (!is.null(requiredFuelClasses))
     noFuelForRequiredClass <- setdiff(requiredFuelClasses, names(cc))
 
   # This is where a species disappears from the map: create a map of zeros
-  if (length(noFuelForRequiredClass)) {
-    for (fuel in noFuelForRequiredClass) {
-      ras <- Copy(pixelGroupMap)
-      rasVals <- values(ras, mat = FALSE)
-      rasVals[rasVals > 0] <- 0
-      cc[[fuel]] <- setValues(x = ras, values = rasVals)
-    }
-    
+  for (fuel in noFuelForRequiredClass) {
+    rasVals <- as.numeric(pgv)
+    rasVals[!is.na(rasVals) & rasVals > 0] <- 0
+    cc[[fuel]] <- rasVals
   }
   ## No tree fuel classes at all (no tree species and none required): there is nothing to
-  ## stack, and terra cannot build a zero-layer SpatRaster from an empty list. Carry NULL
-  ## until the youngAge layer below gives the stack its first layer.
-  if (length(cc)) {
-    dd <- rast(cc)
-    classList <- dd[[order(names(dd))]]
-  } else {
-    classList <- NULL
-  }
-  # })
-  
-  
-  # st2 <- profvis::profvis({
-  # classList <- lapply(classes, makeRastersFromCD,
-  #   flammableRTM = flammableRTM,
-  #   pixelGroupMap = pixelGroupMap,
-  #   cohortData = cD
-  # )
-  # 
-  # classList <- rast(classList)
-  # })
-  
-  if (!is.null(landcoverDT) && !is.null(classList)) {
-    # find rows that aren't empty i.e. have non-forest landcover
-    landcoverDT[, foo := rowSums(.SD, na.rm = TRUE), .SDcols = setdiff(names(landcoverDT), nonNFColNamesTxt)]
-    # terra needs protection from zero-length index
-    if (nrow(landcoverDT[foo > 0, ]) > 0) {
-      classList[landcoverDT[foo > 0]$pixelID] <- 0 # must be 0
-    }
-    landcoverDT[, foo := NULL]
+  ## stack. Carry an empty list until the youngAge layer below gives the stack its first layer.
+  if (length(cc)) cc <- cc[order(names(cc))]
+
+  if (!is.null(landcoverDT) && length(cc)) {
+    # find rows that aren't empty i.e. have non-forest land cover
+    hasLC <- rowSums(landcoverDT[, .SD, .SDcols = setdiff(names(landcoverDT), nonNFColNamesTxt)],
+                     na.rm = TRUE) > 0
+    ## must be 0
+    if (any(hasLC)) cc <- lapply(cc, function(v) { v[landcoverDT$pixelID[hasLC]] <- 0; v })
   }
 
-  ## `classList` already carries its names from `cc` (sorted above); re-assigning `classes`
-  ## here stops with "incorrect number of names" whenever `noFuelForRequiredClass` added a
-  ## layer -- which is every layer when `cohortData` has no rows.
-  
   # Need to confirm that there was at least 1 youngAge ... sometime there are none e.g., with 9.2.1 plains
-  if (!youngAgeTxt %in% names(classList)) {
+  if (!youngAgeTxt %in% names(cc)) {
     ## every fuel-class layer is NA exactly where pixelGroupMap is, so with no layers the
     ## map itself is the template
-    template <- if (is.null(classList)) pixelGroupMap else classList[[1]]
-    ya <- as.int(is.na(template))
-    vals <- values(ya, mat = FALSE)
-    ya[vals == 1L] <- NA
-    names(ya) <- youngAgeTxt
-    classList <- if (is.null(classList)) ya else c(classList, ya)
+    template <- if (length(cc)) cc[[1]] else pgv
+    cc[[youngAgeTxt]] <- ifelse(is.na(template), NA_integer_, 0L)
   }
-  return(classList)
+  cc
 }
 
 #' Put `cohortData` back into a `SpatRaster` with some extra details

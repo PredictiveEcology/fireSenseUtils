@@ -20,8 +20,10 @@ ignitionFitFilenameFor <- function(fireYears) {
   fireYears <- as.integer(fireYears[is.finite(fireYears)])
   if (!length(fireYears))
     stop("ignitionFitFilenameFor(): `fireYears` has no years")
-  paste0("fireSenseIgnitionParams_", min(fireYears), "-", max(fireYears), ignitionFitFileTag, ".rds")
+  paste0(ignitionFitFilePrefix, min(fireYears), "-", max(fireYears), ignitionFitFileTag, ".rds")
 }
+
+ignitionFitFilePrefix <- "fireSenseIgnitionParams_"
 
 #' @export
 #' @rdname ignitionFitLedger
@@ -31,7 +33,7 @@ ignitionFitFileTag <- "_xgboost"
 #' `latestIgnitionFits()` returns, for every polygon, its rows from the most recently modified
 #' ledger file that has it. Files are read newest first; with `polygonIDs`, reading stops once
 #' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
-#' downloaded again.
+#' downloaded again; one that differs is downloaded again with [reproducible::preProcess()].
 #'
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files.
 #' @param destinationPath Local folder for the downloaded files.
@@ -43,46 +45,6 @@ ignitionFitFileTag <- "_xgboost"
 #' @export
 #' @rdname ignitionFitLedger
 latestIgnitionFits <- function(cloudFolderID, destinationPath, polygonIDs = NULL) {
-  files <- googledrive::drive_ls(cloudFolderID)
-  files <- files[grepl(paste0("^fireSenseIgnitionParams_.*", ignitionFitFileTag, "\\.rds$"), files$name), ]
-  if (!NROW(files)) {
-    message("latestIgnitionFits(): no fireSenseIgnitionParams_*", ignitionFitFileTag, ".rds file in ", cloudFolderID)
-    return(NULL)
-  }
-  modified <- vapply(files$drive_resource, function(r) r$modifiedTime, character(1))
-  files <- files[order(modified, decreasing = TRUE), ]
-
-  dir.create(destinationPath, recursive = TRUE, showWarnings = FALSE)
-  rows <- list()
-  from <- character()                              # polygonID -> file
-  for (i in seq_len(NROW(files))) {
-    fname <- files$name[i]
-    local <- file.path(destinationPath, fname)
-    remoteMd5 <- files$drive_resource[[i]]$md5Checksum
-    if (!file.exists(local) || !identical(unname(tools::md5sum(local)), remoteMd5))
-      googledrive::drive_download(files[i, ], path = local, overwrite = TRUE)
-    ledger <- as.data.frame(readRDS(local))
-    ids <- as.character(ledger[[polygonIDTxt]])
-    new <- !ids %in% names(from)
-    if (any(new)) {
-      rows[[fname]] <- ledger[new, , drop = FALSE]
-      from <- c(from, setNames(rep(fname, length(unique(ids[new]))), unique(ids[new])))
-    }
-    if (!is.null(polygonIDs) && all(as.character(polygonIDs) %in% names(from)))
-      break
-  }
-  if (!length(rows))
-    return(NULL)
-  out <- if (length(rows) == 1L) {
-    rows[[1]]
-  } else {
-    ## as reproducible::CacheGeo() appends rows to a ledger
-    as.data.frame(data.table::rbindlist(lapply(rows, data.table::as.data.table),
-                                        fill = TRUE, use.names = TRUE))
-  }
-  rownames(out) <- NULL
-  for (f in unique(from))
-    message("latestIgnitionFits(): ", paste(names(from)[from == f], collapse = ", "), " from ", f)
-  attr(out, "ignitionFitFiles") <- from
-  out
+  .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = ignitionFitFilePrefix,
+                    fileTag = ignitionFitFileTag, caller = "latestIgnitionFits", attrName = "ignitionFitFiles")
 }

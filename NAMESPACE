@@ -7,10 +7,7 @@ S3method(bufferToArea,SpatialPolygons)
 S3method(bufferToArea,list)
 S3method(bufferToArea,sf)
 export(.doDataChecks)
-export(.objFunIgnition)
-export(.objFunIgnitionPW)
 export(.objfunSpreadFit)
-export(DEoptimIterative)
 export(ELFfireCounts)
 export(ELFfitStatus)
 export(ELFflammableArea)
@@ -24,36 +21,40 @@ export(ELFsInStudyArea)
 export(ELFsSkipped)
 export(ELFtemplateRaster)
 export(adWeightAuto)
+export(addBufferEdge)
 export(annualStackToDTx1000)
 export(assertCovariateRange)
 export(assessFuelClasses)
 export(bestByReplicatedMean)
-export(bufferIgnitionPoints)
+export(bufferEdge)
 export(bufferToArea)
 export(bufferToAreaRast)
-export(burnClassGenerator)
-export(burnClassPredict)
-export(burnClassSummary)
-export(burnProbFromClass)
 export(calcNonForestYoungAge)
 export(calcYoungAge)
 export(castCohortData)
 export(chk_duplicatedStartPixels)
+export(chooseDomSecFuelClasses)
 export(cleanUpSpreadFirePoints)
 export(climateRasterToDataTable)
 export(coefIdentifiability)
 export(cohortsToFuelClasses)
 export(combineSpreadProbSummaries)
-export(compareClimate)
-export(compareMDC)
 export(covsX1000AndSetDF)
 export(dtReplaceNAwith0)
 export(escapeSizePixels)
 export(escapesTxt)
-export(extractSpecial)
+export(firePixelsByYear)
 export(fireSenseCloudParameters)
 export(fireSenseCloudParametersMap)
 export(fireSenseCovariatesCreate)
+export(fireSenseFlammabilityThreshold)
+export(fireSenseForestedLCC)
+export(fireSenseFuelClassCol)
+export(fireSenseIgAggFactor)
+export(fireSenseNonForestCanBeYoungAge)
+export(fireSenseNonflammableLCC)
+export(fireSenseSCANFIVersion)
+export(fireSenseYoungAgeCutoff)
 export(fitConvergence)
 export(fuelClassPrep)
 export(fuelLinearRange)
@@ -63,6 +64,7 @@ export(getFirePoints_NFDB_V2)
 export(getFirePolygons)
 export(harmonizeBufferAndPoints)
 export(harmonizeFireData)
+export(harmonizeFireDataDeps)
 export(identifiedInIsolation)
 export(igOrEscNames)
 export(ignitionFitAdditionalColNamesTxt)
@@ -70,6 +72,7 @@ export(ignitionFitFileTag)
 export(ignitionFitFilenameFor)
 export(ignitionsTxt)
 export(isLinearFuelRange)
+export(isYoungAge)
 export(latestIgnitionFits)
 export(latestNBACUrl)
 export(latestSpreadFits)
@@ -95,22 +98,22 @@ export(mergePreparedCovs)
 export(multiplier)
 export(nfdbPointUrl)
 export(nonNFColNamesTxt)
-export(objNlminb)
-export(oom)
 export(paramsSeparate)
 export(plotBurnSummary)
 export(plotCumulativeBurns)
 export(plotELFs)
 export(plotHistoricFires)
+export(plotSpreadFitResponse)
+export(plotSpreadFitValidation)
 export(polygonIDTxt)
 export(predictIgnition)
 export(prepareCovariatesOuter)
 export(prepare_FuelCovsCoarse)
+export(prepare_FuelCovsCoarseByYear)
 export(prepare_LightningData)
 export(prepare_ignitionClimate)
 export(profileCoefficients)
 export(putBackIntoRaster)
-export(pw)
 export(rasterFireBufferDT)
 export(rasterFireSpreadPoints)
 export(rbetaBetween)
@@ -128,21 +131,23 @@ export(spreadFitAdditionalColNames)
 export(spreadFitAdditionalColNamesTxt)
 export(spreadFitFileTag)
 export(spreadFitFilenameFor)
+export(spreadFitValidationData)
 export(spreadProbFromIntegerCovs)
+export(spreadProbGateTest)
+export(spreadProbGates)
 export(spreadProbSummary)
 export(stackAndExtract)
 export(termsInDEoptim)
 export(toX1000)
+export(treedWetlandAgbTxt)
 export(treedWetlandTxt)
 export(updateStackYearNames)
 export(visualizeDE)
 export(yearTxt)
+export(youngAgeAtYear)
+export(youngAgeExclusiveCols)
 export(youngAgeTxt)
 import(methods)
-importFrom(DEoptim,
-  DEoptim,
-  DEoptim.control
-)
 importFrom(EnvStats,demp)
 importFrom(LandR,
   .compareCRS,
@@ -150,6 +155,7 @@ importFrom(LandR,
   asInteger,
   prepInputs_NTEMS_LCC_FAO
 )
+importFrom(Require,extractPkgName)
 importFrom(RhpcBLASctl,
   blas_get_num_procs,
   blas_set_num_threads,
@@ -160,6 +166,7 @@ importFrom(SpaDES.core,
   P,
   Plots,
   anyPlotting,
+  moduleMetadata,
   simInitAndSpades2
 )
 importFrom(SpaDES.project,user)
@@ -199,7 +206,6 @@ importFrom(data.table,
   setkeyv,
   setnafill,
   setnames,
-  setorder,
   setorderv
 )
 importFrom(fastDummies,dummy_cols)
@@ -207,15 +213,9 @@ importFrom(ggplot2,
   aes,
   coord_cartesian,
   facet_wrap,
-  geom_abline,
   geom_histogram,
-  geom_jitter,
-  geom_line,
-  geom_point,
-  geom_smooth,
   ggplot,
   ggtitle,
-  labs,
   theme_minimal,
   xlab
 )
@@ -233,11 +233,6 @@ importFrom(graphics,
   par
 )
 importFrom(magrittr,"%>%")
-importFrom(mclust,
-  Mclust,
-  mclustBIC
-)
-importFrom(pROC,roc)
 importFrom(parallel,
   clusterEvalQ,
   clusterExport,
@@ -258,8 +253,7 @@ importFrom(quickPlot,
   Plot,
   clearPlot,
   dev,
-  gpar,
-  isRstudioServer
+  gpar
 )
 importFrom(reproducible,
   .robustDigest,
@@ -271,10 +265,7 @@ importFrom(reproducible,
   asPath,
   cacheId,
   checkPath,
-  isUpdated,
   loadFromCache,
-  messageDF,
-  paddedFloatToChar,
   postProcess,
   postProcessTo,
   prepInputs,
@@ -302,21 +293,17 @@ importFrom(stats,
   binomial,
   coefficients,
   dbinom,
-  dnorm,
   dt,
   glm,
   is.empty.model,
   kmeans,
   lm,
   median,
-  model.matrix,
   na.omit,
-  nlminb,
   pf,
   predict,
   quantile,
   rbeta,
-  rnorm,
   sd,
   setNames,
   terms,
@@ -326,6 +313,7 @@ importFrom(terra,
   `values<-`,
   aggregate,
   as.data.frame,
+  as.int,
   as.polygons,
   buffer,
   cats,
@@ -346,14 +334,12 @@ importFrom(terra,
   mask,
   mosaic,
   ncell,
-  nlyr,
   patches,
   project,
   rast,
   rasterize,
   res,
   set.names,
-  set.values,
   setValues,
   sprc,
   trim,
@@ -368,7 +354,6 @@ importFrom(utils,
   head,
   install.packages,
   installed.packages,
-  modifyList,
   packageVersion,
   tail
 )

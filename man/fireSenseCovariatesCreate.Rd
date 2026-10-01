@@ -21,7 +21,12 @@ fireSenseCovariatesCreate(
   studyAreaName,
   useCache = TRUE,
   rstLCC = NULL,
-  treedWetlandLCC = 81
+  treedWetlandLCC = 81,
+  fuelCovariates = c("species", "domSecWetland"),
+  domClass = NULL,
+  secClass = NULL,
+  youngAge = TRUE,
+  fuelClassTable = NULL
 )
 }
 \arguments{
@@ -63,11 +68,41 @@ based on \code{nonForest_timeSinceDisturbance} and \code{cutoffForYoungAge}.}
 
 \item{useCache}{Logical. If \code{TRUE}, enable caching in \code{Cache()} calls.}
 
-\item{rstLCC}{Optional land-cover \code{SpatRaster} on the same grid as \code{pixelGroupMap}. When given, a
-\code{treedWetland} column (see \link{treedWetlandTxt}) is added: 1 where the land cover is \code{treedWetlandLCC}.}
+\item{rstLCC}{Optional land-cover \code{SpatRaster} on the same grid as \code{pixelGroupMap}. When given
+and \code{fuelCovariates = "species"}, a \code{treedWetland} column (see \link{treedWetlandTxt}) is added:
+1 where the land cover is \code{treedWetlandLCC}. When \code{fuelCovariates = "domSecWetland"}, all tree
+AGB (all fuel classes) on those pixels is moved into \code{treedWetland_agb} (see \link{treedWetlandAgbTxt})
+instead, and removed from \verb{dom_agb_*}/\verb{sec_agb_*} there.}
 
 \item{treedWetlandLCC}{Land-cover code(s) of treed wetland. Default 81 (NTEMS; also what
 \code{\link[=makeFireSenseLCC]{makeFireSenseLCC()}} assigns on SCANFI land cover from the wetland layer).}
+
+\item{fuelCovariates}{\code{"species"} (default; one covariate column per fuel class, as
+\code{assignedFuelClass} in \code{sppEquiv}) or \code{"domSecWetland"}: only the AGB columns
+\verb{dom_agb_<domClass>} and \verb{sec_agb_<secClass>} (the ELF's two fuel classes with the most
+total treed AGB) and, when \code{rstLCC} is supplied, \code{treedWetland_agb}. AGB of any other fuel
+class is not a covariate.}
+
+\item{domClass, secClass}{Only used when \code{fuelCovariates = "domSecWetland"}. The fuel classes to
+use for \verb{dom_agb_*}/\verb{sec_agb_*}. \code{NULL} (the default) chooses them from this call's own data
+(highest total AGB first); a prediction should instead pass the classes the fit chose (e.g.
+from \code{\link[=chooseDomSecFuelClasses]{chooseDomSecFuelClasses()}}), so the columns it builds match the fitted model's terms
+even when a different class dominates the prediction area. \code{secClass = NA_character_} means
+no secondary class (fewer than two fuel classes present).}
+
+\item{youngAge}{logical. \code{TRUE} (default): build \code{youngAge} from cohort ages and (with
+\code{nonForestCanBeYoungAge}) non-forest time since disturbance, and zero fuel, non-forest land
+cover and treed wetland where it is 1. \code{FALSE}: no \code{youngAge} column and nothing zeroed, so
+the caller can resolve \code{youngAge} per year (see \code{\link[=youngAgeAtYear]{youngAgeAtYear()}}) and apply
+\code{\link[=makeMutuallyExclusive]{makeMutuallyExclusive()}} itself; \code{cutoffForYoungAge} and \code{nonForestCanBeYoungAge} are then
+unused.}
+
+\item{fuelClassTable}{Optional, the result of \code{cohortsToFuelClasses(..., asTable = TRUE)} for
+this call's \code{cohortData}, \code{pixelGroupMap}, \code{flammableRTM}, \code{landcoverDT}, \code{sppEquiv},
+\code{sppEquivCol}, \code{fuelClassCol}, \code{requiredFuelClasses} and \code{cutoffForYoungAge}. It is used
+instead of building it again, so a caller making several covariate sets (e.g. \code{"species"} and
+\code{"domSecWetland"}) from the same cohorts builds the fuel classes once. It is copied, not
+modified. With \code{youngAge = FALSE} it must have been made with \code{cutoffForYoungAge = -1}.}
 }
 \value{
 A \code{data.table} named \code{spreadCovariates} containing one row per \code{pixelID}, with:
@@ -100,12 +135,17 @@ using \code{nonForest_timeSinceDisturbance} and the \code{cutoffForYoungAge}.
 \item All covariate columns must be non-\code{NA}; the function stops with an error if any \code{NA}
 are detected after joining \code{fuelClasses} and \code{landcoverDT}.
 \item Pixels where all covariates sum to zero are flagged by setting \code{missingLCCgroup := 1}.
-\item Mutual exclusivity is enforced via \code{makeMutuallyExclusive()} using all fuel-class columns
-and the land-cover columns (excluding \code{pixelID}); \code{youngAge} is made exclusive to them.
-\item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
 \item When \code{nonForestCanBeYoungAge = TRUE}, \code{youngAge} for non-forest is derived using
 \code{nonForest_timeSinceDisturbance} and \code{cutoffForYoungAge}. Any existing \code{youngAge}
 from fuel classes is combined with this non-forest contribution.
+\item Once \code{youngAge} is final, mutual exclusivity is enforced via \code{makeMutuallyExclusive()}
+using all fuel-class columns, the land-cover columns (excluding \code{pixelID}) and
+\code{treedWetland} (if \code{rstLCC} is supplied); \code{youngAge} is made exclusive to them.
+\item Fuel-class columns (excluding \code{youngAge}) are transformed with \code{logMinB}.
+\item When \code{fuelCovariates = "domSecWetland"}, the per-species fuel-class columns are
+collapsed to \code{dom_agb_*}, \code{sec_agb_*} (other classes are dropped; and
+\code{treedWetland_agb}, if \code{rstLCC} is supplied) before mutual exclusivity and
+\code{logMinB} are applied to them, exactly as for the per-species columns.
 }
 }
 \section{Expectations/Assumptions}{

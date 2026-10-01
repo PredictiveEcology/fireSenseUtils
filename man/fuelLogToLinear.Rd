@@ -23,6 +23,6 @@ span twice the range and an absent fuel is exactly 0, so it contributes exactly 
 \details{
 This undoes the log where the spread model needs it, instead of removing it at the source,
 because \code{fireSenseCovariatesCreate()} also builds the ignition covariates and its output is
-cached for every fitted polygon. Both \code{fireSense_SpreadFit} and \code{fireSense_SpreadPredict}
+cached for every fitted polygon. Both \code{fireSense_spreadFit} and \code{fireSense_spreadPredict}
 call this function, so the fit and the prediction cannot drift apart.
 }

@@ -105,3 +105,32 @@ test_that("rasterFireBufferDT's default buffers depend on its inputs, not on the
   expect_true(identical(.Random.seed, before))
   expect_identical(run2, base)
 })
+
+## Runs serially, so it does not depend on the runner being able to fork (the tests above skip when it
+## cannot). Small fires with no size floor (minSize = 1) and areaMultiplier 10 make a fire's spread settle
+## more pixels than its goal, which takes the branch that subsamples those settled pixels
+## (makeBufferedFires.R, `needMore <= 0`).
+test_that("bufferToArea subsamples a fire whose spread overshoots its goal, reproducibly, without forking", {
+  rtm <- terra::rast(nrows = 300, ncols = 300, extent = c(0, 120000, 0, 120000),
+                     crs = "EPSG:3978", vals = 1L)
+  polys <- withr::with_seed(123, lapply(1:3, function(y) {
+    pts <- sf::st_as_sf(data.frame(x = runif(6, 20000, 100000), y = runif(6, 20000, 100000),
+                                   FIRE_ID = as.numeric(seq_len(6) + y * 10)),
+                        coords = c("x", "y"), crs = 3978)
+    sf::st_buffer(pts, dist = runif(6, 200, 600))
+  }))
+  names(polys) <- paste0("year", 2001:2003)
+  run <- function(seed) {
+    withr::with_seed(seed, asFrames(
+      bufferToArea(poly = polys, rasterToMatch = rtm, areaMultiplier = 10, field = "FIRE_ID",
+                   minSize = 1, cores = 1, verb = FALSE)))
+  }
+  a <- run(1)
+  expect_identical(run(1), a)
+  expect_named(a, names(polys))
+  for (d in a) {
+    expect_true(all(c("buffer", "pixelID", "ids") %in% names(d)))
+    expect_true(all(d$buffer %in% c(0L, 1L)))
+    expect_false(anyDuplicated(d[, c("ids", "pixelID")]) > 0)
+  }
+})

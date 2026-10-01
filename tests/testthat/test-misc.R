@@ -1,4 +1,4 @@
-## Tests for makeMutuallyExclusive, extractSpecial, and pw/oom edge cases
+## Tests for makeMutuallyExclusive and paramsSeparate edge cases
 
 library(data.table)
 
@@ -69,21 +69,52 @@ test_that("makeMutuallyExclusive: all cov1 zero – nothing changed", {
 })
 
 # ---------------------------------------------------------------------------
-# extractSpecial
+# makeMutuallyExclusive: youngAge is exclusive with everything, not zeroed itself
+#
+# fireSense_spreadFit::spreadFitPrep() appends every non-annual column name to youngAge's own
+# pattern list, so when youngAge itself is a non-annual column, one of those patterns is
+# "youngAge" (see fireSense_spreadFit's own tests). Column order (youngAge before or after the
+# other covariates in the pattern list) must not matter.
 # ---------------------------------------------------------------------------
-test_that("extractSpecial: returns list with variable and knot", {
-  out <- extractSpecial(x, 5)
-  expect_type(out, "list")
-  expect_named(out, c("variable", "knot"))
+test_that("makeMutuallyExclusive: youngAge stays 1 and is not zeroed by its own pattern (youngAge first)", {
+  dt <- data.table(youngAge = c(1, 0, 1), nfLCC_40 = c(1, 1, 0), nfLCC_50 = c(0, 1, 1))
+  out <- makeMutuallyExclusive(dt,
+    mutuallyExclusiveCols = list(youngAge = c("youngAge", "nfLCC_40", "nfLCC_50")))
+  expect_equal(out$youngAge, c(1, 0, 1))     # never zeroed by its own pattern
+  expect_equal(out$nfLCC_40, c(0, 1, 0))     # zeroed on young rows only
+  expect_equal(out$nfLCC_50, c(0, 1, 0))
 })
 
-test_that("extractSpecial: knot is a character string of the supplied value", {
-  out <- extractSpecial(myVar, 10)
-  expect_equal(out$knot, "10")
+test_that("makeMutuallyExclusive: youngAge stays 1 regardless of pattern order (youngAge last)", {
+  dt <- data.table(nfLCC_40 = c(1, 1, 0), nfLCC_50 = c(0, 1, 1), youngAge = c(1, 0, 1))
+  out <- makeMutuallyExclusive(dt,
+    mutuallyExclusiveCols = list(youngAge = c("nfLCC_40", "nfLCC_50", "youngAge")))
+  expect_equal(out$youngAge, c(1, 0, 1))
+  expect_equal(out$nfLCC_40, c(0, 1, 0))
+  expect_equal(out$nfLCC_50, c(0, 1, 0))
 })
 
-test_that("extractSpecial: errors when k is missing", {
-  expect_error(extractSpecial(myVar), regexp = "knotName")
+test_that("makeMutuallyExclusive: an earlier pattern zeroing a column does not blind a later pattern", {
+  ## if whToZero were recomputed from dt[[cov1]] after an earlier pattern zeroed cov1 (the old
+  ## bug), a pattern's own column would go quiet and later patterns would see no rows to zero
+  dt <- data.table(youngAge = c(1, 0), youngAgeAlias = c(1, 0), nfLCC_40 = c(1, 1))
+  out <- makeMutuallyExclusive(dt,
+    mutuallyExclusiveCols = list(youngAge = c("youngAgeAlias", "nfLCC_40")))
+  expect_equal(out$youngAge, c(1, 0))
+  expect_equal(out$youngAgeAlias, c(0, 0))
+  expect_equal(out$nfLCC_40, c(0, 1))  # still zeroed on the young row
+})
+
+# ---------------------------------------------------------------------------
+# youngAgeExclusiveCols
+# ---------------------------------------------------------------------------
+test_that("youngAgeExclusiveCols: matches nfLCC_*, treedWetland and supplied fuel columns, not youngAge", {
+  covNames <- c("youngAge", "BlkSprc", "nfLCC_40", "nfLCC_50_80", "treedWetland", "CMDsm")
+  out <- youngAgeExclusiveCols(covNames, fuelCols = "BlkSprc")
+  expect_named(out, "youngAge")
+  expect_setequal(out$youngAge, c("BlkSprc", "nfLCC_40", "nfLCC_50_80", "treedWetland"))
+  expect_false("CMDsm" %in% out$youngAge)     # climate is left alone
+  expect_false("youngAge" %in% out$youngAge)
 })
 
 # ---------------------------------------------------------------------------
@@ -101,35 +132,4 @@ test_that("paramsSeparate: parsModel = 1 splits cleanly", {
   res <- paramsSeparate(par, parsModel = 1)
   expect_equal(res$covPars,      0.1)
   expect_equal(res$logisticPars, c(0.5, 0.3))
-})
-
-# ---------------------------------------------------------------------------
-# oom additional edge cases
-# ---------------------------------------------------------------------------
-test_that("oom: returns 10 for exactly 1 (since ceiling(log10(1)) = 0, 10^0 = 1)", {
-  # log10(1) = 0, ceiling(0) = 0, 10^0 = 1
-  expect_equal(oom(1), 1)
-})
-
-test_that("oom: returns correct value for 0.01", {
-  # log10(0.01) = -2, ceiling(-2) = -2, 10^-2 = 0.01
-  expect_equal(oom(0.01), 0.01)
-})
-
-test_that("oom: consistent for large values", {
-  expect_equal(oom(1e6), 1e6)
-  expect_equal(oom(1.5e6), 1e7)
-})
-
-# ---------------------------------------------------------------------------
-# pw edge cases
-# ---------------------------------------------------------------------------
-test_that("pw: works with negative knot", {
-  expect_equal(pw(0, -3), 3)
-  expect_equal(pw(-5, -3), 0)
-})
-
-test_that("pw: fractional values", {
-  expect_equal(pw(1.5, 1.0), 0.5)
-  expect_equal(pw(0.9, 1.0), 0)
 })

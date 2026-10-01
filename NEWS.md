@@ -1,4 +1,4 @@
-# fireSenseUtils 0.2.3.9047
+# fireSenseUtils (development version)
 
 * New `ignitionFitFilenameFor()` and `latestIgnitionFits()`, parallel to `spreadFitFilenameFor()`/
   `latestSpreadFits()`: name and read the shared, geo-keyed ledger of `fireSense_IgnitionFit`
@@ -6,6 +6,200 @@
   multi-ELF study area the same way it does for spread fits.
 * New constant `ignitionFitAdditionalColNamesTxt` (`"fireSense_IgnitionFitted"`,
   `"fireSense_EscapeFitted"`): the list-column names of an ignition-fit ledger row.
+
+# fireSenseUtils 0.2.3.9076
+
+* New exported `spreadProbGates()` tells, without running any spread, whether a parameter set (or a list of them) passes the objective's spreadProb gates ("Too burny a landscape", "Not spread out enough", median out of range) in the first block of years. The gate test itself is now `spreadProbGateTest()`, which `.objfunSpreadFit()` calls, so the objective and the screen cannot disagree; the objective's results are unchanged. fireSense_spreadFit uses it to draw its threshold-calibration trials from the logistic's active range.
+
+# fireSenseUtils 0.2.3.9075
+
+* `.objfunSpreadFit()` no longer caps a simulated fire at `multiplier()` of its observed size; spread is bounded only by the year's buffers. A fire is a runaway, and censored as the cap-hit rule did, when it burns any pixel of the edge ring of its own buffer: a buffer pixel with a queen neighbour outside that fire's buffer (another fire's buffer, a removed non-flammable pixel, `NA`, the raster edge). `penaliseRunaways = TRUE` (default) replaces `penaliseCapHits`; `capSizes` and `penaliseCapHits` are deprecated and ignored with a warning, and `runDEoptim()` takes `penaliseRunaways`. The SNLL log line reports the runaway share. Without the cap the first-block SNLL has a different scale, so `thresh` values calibrated before this change will differ, and a calibration must use this objective. `spreadFitValidationData(capSizes =)` is removed (validation never capped).
+* New `bufferEdge()` and `addBufferEdge()` compute the edge ring. `runDEoptim()` adds an `edge` column to `fireBufferedListDT` once, before the tables go to the workers (about 0.09 s per 90,000 buffer pixels; the check per evaluation is about 8 ms for 200,000 burned pixels); a table without the column gets it computed on every call.
+* `.objfunSpreadFit(returnTerms = TRUE)` also returns `firstBlockSNLL`, the first block's SNLL per year as `thresh` is compared with it, and `bailed` (1/0), whether a year of that block was refused as "too burny" or "not spread out enough" or the block was above the threshold. Both are available with `thresh = Inf`.
+
+# fireSenseUtils 0.2.3.9074
+
+* `cohortsToFuelClasses()` builds the fuel classes on cell vectors instead of one `SpatRaster` per class, and has `asTable = TRUE` to return the `pixelID` table that `fireSenseCovariatesCreate()` makes from the stack, so that function no longer builds the rasters and converts them back (about 6 s of its 10 s on 6.7M cells). The raster and the table are identical to before.
+* `fireSenseCovariatesCreate()` takes `fuelClassTable`, the result of `cohortsToFuelClasses(..., asTable = TRUE)`, so a caller making the `"species"` and `"domSecWetland"` covariates from the same cohorts builds the fuel classes once. The table is copied, not modified.
+
+# fireSenseUtils 0.2.3.9073
+
+* New exported `isYoungAge(age, cutoffForYoungAge)` is the one place the `youngAge` rule lives (`age <= cutoffForYoungAge`, `NA` not young); `makeTSD()`, `castCohortData()`, `cohortsToFuelClasses()`, `youngAgeAtYear()`, `calcYoungAge()`, `calcNonForestYoungAge()` and `fireSenseCovariatesCreate()` all call it. `calcNonForestYoungAge()` used `<`, so prediction differed from fitting for non-forest pixels whose age equals the cutoff. `castCohortData()` now gives `youngAge = 0` (was `NA`) for an `NA` stand age, and the deprecated `calcYoungAge()` no longer counts an `NA` age as young.
+* `cohortsToFuelClasses()` no longer fails when terra is not attached: `as.int` is now imported from terra.
+
+# fireSenseUtils 0.2.3.9072
+
+* `.objfunSpreadFit()` treats a simulated fire that reaches its cap (`multiplier()` of the observed size) as censored, a runaway, instead of a fire of the capped size. Its size becomes `runawaySize` (default: the landscape's non-`NA` pixels) in the `adTest`, annual-area and `mad` terms, and in the per-fire size likelihood it has no density at the observed size (the likelihood is that of the other replicates times their share). `penaliseCapHits = FALSE` restores the old scoring; `capSizes = FALSE` and `returnSims` are unchanged. The per-fire likelihood is still floored at `minLik`, and `thresh` values calibrated before this change will differ. The SNLL log line now reports the capHit share. `runDEoptim()` takes `penaliseCapHits` (default `TRUE`) and passes it to the fit and the re-score; it changes the DEoptim cache key.
+
+# fireSenseUtils 0.2.3.9071
+
+* `youngAge` can be resolved per fire year again. New `youngAgeAtYear()` gives it for any set of pixels: time since disturbance at the data year, aged to the fire year and reset by every fire since (all fires, not only the fitted buffers); young is `<= cutoffForYoungAge` and `NA` time since disturbance is never young (the old `calcYoungAge()` called it young). `firePixelsByYear()` makes its per-year fire pixel lists from polygons or a fire-year raster. `calcYoungAge()` is deprecated.
+* `fireSenseCovariatesCreate()` has `youngAge = TRUE`. With `FALSE` it builds no `youngAge` column and zeroes no fuel, non-forest land cover or treed wetland; the default keeps the previous behaviour.
+* New `prepare_FuelCovsCoarseByYear()` builds the coarse ignition fuel rasters with `youngAge` (and the clearing it implies) per fire year; `stackAndExtract()` and `mergePreparedCovs()` accept these per-year lists. Fits made with `youngAge` fixed at the data year need refitting.
+
+# fireSenseUtils 0.2.3.9070
+
+* The pooled `other_agb` spread covariate is removed, and `fuelCovariates = "domSecOther"` is renamed `"domSecWetland"`: `fireSenseCovariatesCreate()` now builds only `dom_agb_<class>`, `sec_agb_<class>` and (with `rstLCC`) `treedWetland_agb`. `treedWetland_agb` still holds all tree AGB on treed-wetland pixels, including classes that are neither dom nor sec. Spread fits made with `other_agb` need refitting. `collapseFuelClassesToDomSecOther()` is now `collapseFuelClassesToDomSec()`.
+
+# fireSenseUtils 0.2.3.9069
+
+* `latestSpreadFits()` downloads a ledger file with `reproducible::preProcess()` (into a temporary folder, then placed in `destinationPath`) instead of `googledrive::drive_download()`, which wrote the file in place: a second job on the same ELF, sharing `destinationPath`, could find it missing or half-written. A local file whose MD5 differs from Drive's is fetched again with `purge = 7`.
+
+
+# fireSenseUtils 0.2.3.9068
+
+* `runELFs()` finds `fireSense_ELFs` among the project's modules or the children of any listed parent module
+  (e.g. `PredictiveEcology/fireSense@development`), through the new internal `.findModuleInProject()`. It used
+  `grep("ELFs", modules)`, which matched nothing once a parent was listed, so no module ran and the Drive upload
+  failed with "missing value where TRUE/FALSE needed". `runELFs()` now stops naming the modules searched when there
+  is no ELFs module, and stops with "No ELF output file" before `drive_update()` when the run saved none. Needs
+  SpaDES.core (>= 3.2.1.9027) for `moduleMetadata(defineModuleListItems = "childModules")`.
+
+# fireSenseUtils 0.2.3.9067
+
+* `runDEoptim()`'s default `logPath` is named `runDEoptim_<time>_*.log` (was `fireSense_SpreadFit_<time>_*.log`),
+  so no package code names a module; the module passes its own `logPath`. Documentation and the tutorial use the
+  new module names (`fireSense_spreadFit`, `fireSense_ignitionFit`, `fireSense_spreadPredict`,
+  `fireSense_ignitionPredict`).
+
+# fireSenseUtils 0.2.3.9066
+
+* `runDEoptim()` names the fitted parameters from `names(lower)`, grouped as logistic parameters,
+  formula covariates and the year effect, e.g. "Fitting 11 parameters: logistic: maxAsymptote,
+  inflectionPoint1; covariates: CMD, youngAge, ...; year effect: yearSpreadSD". It called
+  `termsInDEoptim()`, which counted every non-formula parameter as a "logit" term and so reported
+  yearSpreadSD as a third logistic parameter. Requires clusters >= 0.0.54, whose progress figures are
+  labelled from `names(lower)` too.
+* `termsInDEoptim()` is deprecated and will be removed in the next release.
+
+# fireSenseUtils 0.2.3.9065
+
+* `runDEoptim()`'s cache of the whole fit now includes the data the objective runs on (the digest
+  `clusterSetup()` makes of the objects it ships to the workers). Before, two fits that differed only in
+  that data, such as the two held-out folds of an ELF, shared one fit; clusters 0.0.53 fixes the same gap in
+  the per-generation cache. Calls `clusters::DEoptimIterative()`, the new name of `DEoptimIterative2()`.
+
+# fireSenseUtils 0.2.3.9064
+
+* `runDEoptim()` gains `plotEvery` (default 25), passed to `clusters::DEoptimIterative2()` (exported
+  since clusters 0.0.51; it was called with `:::`). The DEoptim progress figures are drawn every
+  `plotEvery` generations and at the end, not after every generation, which took 16% of a fit's wall
+  time. `plotEvery` is left out of the fit's cache key, so changing it does not refit. Needs clusters
+  >= 0.0.52.
+
+# fireSenseUtils 0.2.3.9063
+
+* Added: `spreadFitValidationData()`, `plotSpreadFitValidation()` and `plotSpreadFitResponse()`
+  (`?spreadFitValidation`). A response curve of `logit(p)` against a covariate looks right by
+  construction, because its points are the model's own predictions. These compare the fit with the
+  data instead: the share of pixel-years that burned against the share that burned in the fit's own
+  simulations, binned by each covariate. The response curves are kept as a second figure, titled as
+  the model's response. Both plot functions take the data first and return a `ggplot`, for
+  `SpaDES.core::Plots()`.
+* Added: `.objfunSpreadFit(returnBurned = TRUE)` records the pixels burned in each simulated
+  replicate (`attr(, "burned")`). Off by default; the objective's value is unchanged.
+
+# fireSenseUtils 0.2.3.9062
+
+* Added: exported defaults shared by `fireSense_dataPrepFit` and `fireSense_dataPrepPredict`
+  (`fireSenseForestedLCC`, `fireSenseYoungAgeCutoff`, `fireSenseNonForestCanBeYoungAge`,
+  `fireSenseFlammabilityThreshold`, `fireSenseFuelClassCol`, `fireSenseIgAggFactor`,
+  `fireSenseSCANFIVersion`; see `?fireSenseSharedDefaults`). The modules take their parameter
+  defaults from them, so a fit and its predictions cannot silently use different values. The
+  functions here with the same arguments (`makeTSD()`, `calcYoungAge()`, `castCohortData()`,
+  `cohortsToFuelClasses()`, `makeFireSenseLCC()`) default to them too. Values are unchanged.
+
+# fireSenseUtils 0.2.3.9061
+
+* Added: `makeFireSenseLCC()` gains `scanfiVersion` (default `"V3"`, SCANFI's annual 1985-2025
+  land cover), forwarded to `LandR::prepInputs_SCANFI_LCC_FAO(dataVersion = )`. LandR's own
+  `dataVersion` check silently treats anything other than `"V1"` as `"V2"`, so `makeFireSenseLCC()`
+  now checks the installed LandR for `"V3"` support itself and stops with a clear message instead
+  of building V2 land cover under a `"V3"` request.
+* Verified: SCANFI v3's new "burn scar" land-cover code (value not yet settled upstream) needs no
+  change to non-forest grouping -- `assessFuelClasses()`/`makeLandcoverDT()` already group whatever
+  non-forest codes are handed to them, so an unrecognized flammable non-forest code is kept and
+  clustered like any other, not dropped. Added a test confirming this for a synthetic code.
+
+# fireSenseUtils 0.2.3.9060
+
+* Fixed: SCANFI's rock/exposed land-cover code (`30`, from `LandR::convert_SCANFI_LCC_codes()`)
+  was missing from `makeFireSenseLCC()`'s and `ELFflammableArea()`'s `nonflammableLCC` default,
+  so rock entered fits as flammable non-forest. New exported constant `fireSenseNonflammableLCC`
+  is the single source of truth for the non-flammable codes of the FireSense land cover;
+  `makeFireSenseLCC()` and `ELFflammableArea()` now default to it.
+
+# fireSenseUtils 0.2.3.9059
+
+## Removed
+
+* Unused functions, with no callers found in PredictiveEcology code: `compareClimate()`, `compareMDC()`, `burnClassGenerator()`, `burnClassSummary()`, `burnClassPredict()`, `burnProbFromClass()`, `bufferIgnitionPoints()`, and the old ignition-fit objective functions `pw()`, `oom()`, `extractSpecial()`, `.objFunIgnition()`, `.objFunIgnitionPW()`, `objNlminb()`. `mclust` and `pROC` are no longer imported. To use one, install fireSenseUtils 0.2.3.9058.
+
+# fireSenseUtils 0.2.3.9058
+
+* Fixed: `getFirePolygons()` gave `POLY_HA` in m2, not ha, for `sf` polygons (`sf::st_area()` has no `unit` argument).
+* Fixed: `rescaleCovariates()` failed for non-xgboost models (`inRange()` was not imported).
+* Fixed: `stackAndExtract()` gave `NA` ignitions, not 0, when `fires` is `NULL`.
+
+# fireSenseUtils 0.2.3.9057
+
+* New spread-fuel representation: `fireSenseCovariatesCreate(fuelCovariates = "domSecOther")`
+  collapses the per-species fuel-class columns to exactly four AGB terms, `dom_agb_<class>` and
+  `sec_agb_<class>` (the ELF's two fuel classes with the most total treed AGB), `other_agb` (the
+  rest, pooled) and `treedWetland_agb` (all tree AGB on treed-wetland pixels, removed from the
+  other three there). New `chooseDomSecFuelClasses()` picks `domClass`/`secClass` once per ELF, so
+  a prediction can be told the same classes the fit used instead of re-choosing them from its own
+  area. The default remains `fuelCovariates = "species"` (the previous per-species columns),
+  unchanged.
+* New constant `treedWetlandAgbTxt` (`"treedWetland_agb"`).
+
+# fireSenseUtils 0.2.3.9056
+
+## Removed
+
+* `DEoptimIterative()`: unused since `runDEoptim()` switched to `clusters:::DEoptimIterative2()`. Its plotting helpers go with it; `DEoptim` moves to Suggests.
+
+# fireSenseUtils 0.2.3.9054
+
+* Fixed: `ELFsInStudyArea()` failed when the study area overlapped a single ELF.
+* Changed: `ELFsInStudyArea()` labels a buffer cell shared by several ELFs with the ELF whose core is nearest, rather than the one listed last.
+
+# fireSenseUtils 0.2.3.9053
+
+* Fixed: `harmonizeFireData()` lost the fire polygons of later years when a whole year was dropped for lying outside the study area.
+* New `harmonizeFireDataDeps()`: the functions `harmonizeFireData()` calls, for a cached call's `.cacheExtra`.
+
+# fireSenseUtils 0.2.3.9052
+
+* Fixed: `cleanUpSpreadFirePoints()` matched points by row number instead of fire ID, so ignition points on non-flammable pixels were never moved and fires with no flammable pixel were never dropped.
+
+# fireSenseUtils 0.2.3.9049
+
+* `hillSlope1` (the spread link's slope) is fixed at 1, not fitted. With the linear predictor
+  `x = covariates %*% beta`, `hillSlope1` enters `logistic3p()`/`logistic3pUpper()` only as
+  `hillSlope1 * x`, so scaling every covariate coefficient by `k` and dividing `hillSlope1` by `k`
+  leaves every prediction unchanged: it was never identifiable, and letting DEoptim fit it let every
+  coefficient drift along that ridge. `.objfunSpreadFit()` now calls the new internal
+  `fixHillSlope1()` on every `par` it receives, reinserting `hillSlope1 = 1` as the 2nd logistic
+  parameter, so callers (`fireSense_SpreadFit`) no longer include it in `lower`/`upper`.
+
+# fireSenseUtils 0.2.3.9048
+
+* Fixed: `makeMutuallyExclusive()` recomputed the rows to zero from the key column after each
+  pattern, so once the key column itself matched one of its own patterns (as `youngAge` could) it
+  was zeroed and every later pattern zeroed nothing. Rows are now fixed once, before any zeroing,
+  and a pattern can no longer match the key column itself.
+* Fixed: `fireSenseCovariatesCreate()` applied `makeMutuallyExclusive()` before `youngAge` was
+  finalized for non-forest pixels, so those pixels kept their `nfLCC_*` land-cover value. The
+  exclusivity step now runs after `youngAge` is final, and also zeroes `treedWetland`: a burned bog
+  is no longer treated as "still wet" once it is young.
+* New: `youngAgeExclusiveCols()`, exported, builds the `youngAge` mutually-exclusive column list
+  from a covariate name vector and a caller-supplied fuel-column list (`fireSense_SpreadPredict`
+  uses this; `fireSense_SpreadFit` derives its own list from its non-annual covariate table).
+
+# fireSenseUtils 0.2.3.9047
+
+* `plotELFs()` gains `which` and `fill`, to fill the named ELFs, e.g. `plotELFs("inputs", which = c("13.1", "4.1"), fill = "green")`.
 
 # fireSenseUtils 0.2.3.9046
 

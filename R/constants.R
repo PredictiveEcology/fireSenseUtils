@@ -28,8 +28,12 @@
 #'   - `ignitionFitAdditionalColNamesTxt`: `character` vector of the list-column names attached
 #'     to ignition-fit ledger rows (`"fireSense_IgnitionFitted"`, `"fireSense_EscapeFitted"`).
 #'
+#'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
+#'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
+#'     `"treedWetland_agb"`).
+#'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt
 NULL
 
 #' @export
@@ -46,6 +50,9 @@ youngAgeTxt <- "youngAge"
 
 #' @export
 treedWetlandTxt <- "treedWetland"
+
+#' @export
+treedWetlandAgbTxt <- "treedWetland_agb"
 
 #' @export
 ignitionsTxt <- "ignitions"

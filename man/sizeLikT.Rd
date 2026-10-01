@@ -19,6 +19,6 @@ A single numeric: the likelihood.
 \description{
 The density, at \code{sqrt(size)}, of a Student-t centred on the mean of \code{sqrt(N)} with the standard
 deviation of \code{sqrt(N)} as its scale. The scale has a lower bound of 0.5, because replicates that
-all stop at the same size (e.g. at \code{maxSize}) have a standard deviation of 0.
+all stop at the same size (e.g. every one burned out at a single pixel) have a standard deviation of 0.
 }
 \keyword{internal}

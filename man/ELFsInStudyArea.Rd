@@ -30,10 +30,9 @@ where \code{ELFind} gives the ELF identifier (or \code{"none"} for background).
 Intersects a study area with a set of Ecologically-based Low
 Fractal-dimensional (ELF) polygons, identifies which ELFs overlap the study
 area, and constructs a single categorical raster combining each ELF's
-per-cell classification. The output raster encodes three priority layers:
-cells classified as \code{2} in any ELF (highest priority, labelled by ELF ID),
-cells classified as \code{1} in two or more ELFs (shared agreement, labelled by
-ELF ID), and a \code{0} background for all other in-domain cells.
+per-cell classification. A cell in an ELF's core (\code{2}) is labelled with that
+ELF. A cell in the buffer (\code{1}) of one or more ELFs is labelled with the ELF,
+among those, whose core is nearest. All other in-domain cells are \code{0}.
 }
 \details{
 The function assumes that \code{ELFs} (a list-like object with \code{rasWhole} rasters
@@ -44,12 +43,12 @@ and \code{1} indicates the buffer for that ELF.
 
 The three layers are combined with \code{terra::cover()} so that:
 \itemize{
-\item \code{2} hits override everything else,
-\item \code{1} hits appear only where at least two ELFs agree, and
+\item cores override everything else,
+\item a buffer cell takes the ELF with the nearest core (\code{terra::distance()}), and
 \item the \code{0} background fills remaining in-domain cells.
 }
 }
 \seealso{
-\code{\link[=makeELFs]{makeELFs()}}, \code{\link[terra:classify]{terra::classify()}}, \code{\link[terra:mosaic]{terra::mosaic()}},
+\code{\link[=makeELFs]{makeELFs()}}, \code{\link[terra:distance]{terra::distance()}}, \code{\link[terra:mosaic]{terra::mosaic()}},
 \code{\link[terra:cover]{terra::cover()}}
 }

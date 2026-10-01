@@ -153,12 +153,12 @@ population's values (fail values of \code{1e6} and above left out).
 }
 \description{
 The checks made by hand on the FireSense phase-2 fits (September 2026), as functions, so that
-\code{fireSense_SpreadFit} can make them after every fit.
+\code{fireSense_spreadFit} can make them after every fit.
 }
 \details{
 \itemize{
 \item \code{simulateFireSizes()} simulates the observed fires from each of several parameter sets, with
-the objective's size cap and "too burny" gate lifted, and returns the simulated sizes.
+the "too burny" gate lifted, and returns the simulated sizes.
 \item \code{scoreFireSizes()} compares those with the observed sizes: per fire, per year, and by
 quantile. It never uses the objective's value.
 \item \code{linkSaturation()} reports how many pixel-years sit at the spread-probability ceiling. When

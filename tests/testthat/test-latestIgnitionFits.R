@@ -1,37 +1,3 @@
-## A fake Drive folder: `files` maps a file name to list(modified, ledger). drive_download writes the
-## ledger to `path` and counts the call. Mirrors test-latestSpreadFits.R.
-fakeDrive <- function(files, env = parent.frame()) {
-  store <- new.env()
-  store$downloads <- character()
-  ## the bytes saveRDS writes are what the MD5 is taken of, so keep them
-  bytes <- lapply(files, function(f) {
-    tf <- tempfile(fileext = ".rds"); on.exit(unlink(tf))
-    saveRDS(f$ledger, tf); readBin(tf, "raw", file.size(tf))
-  })
-  ls <- data.frame(name = names(files))
-  ls$drive_resource <- lapply(names(files), function(n) {
-    tf <- tempfile(); on.exit(unlink(tf)); writeBin(bytes[[n]], tf)
-    list(modifiedTime = files[[n]]$modified, md5Checksum = unname(tools::md5sum(tf)))
-  })
-  testthat::local_mocked_bindings(
-    drive_ls = function(path, ...) ls,
-    drive_download = function(file, path, overwrite, ...) {
-      store$downloads <- c(store$downloads, file$name)
-      writeBin(bytes[[file$name]], path)
-      invisible(file)
-    },
-    .package = "googledrive", .env = env)
-  store
-}
-
-ledgerRows <- function(ids, value) {
-  geom <- sf::st_sfc(lapply(seq_along(ids), function(i) sf::st_polygon(list(rbind(
-    c(i, 0), c(i + 1, 0), c(i + 1, 1), c(i, 1), c(i, 0))))))
-  df <- data.frame(polygonID = ids, objFunVal = value)
-  df$geometry <- geom
-  df
-}
-
 test_that("ignitionFitFilenameFor() names a fit by its fire years and the model tag", {
   expect_identical(ignitionFitFilenameFor(1985:2024), "fireSenseIgnitionParams_1985-2024_xgboost.rds")
   expect_identical(ignitionFitFilenameFor(c(NA, 2001, 1990)), "fireSenseIgnitionParams_1990-2001_xgboost.rds")

@@ -28,8 +28,11 @@ runLCC <- function(source, seen, wetRows = c(1, 3, 5)) {
       w
     }
   )
+  ## scanfiVersion = "V2": these tests mock the download itself (.scanfiLCC) to exercise the
+  ## wetland/lccSource plumbing, not SCANFI-version support -- pin to the version the installed
+  ## LandR actually has, so they are unaffected by whether "V3" support has landed there yet.
   makeFireSenseLCC(neededYear = 2020, to = target, destinationPath = withr::local_tempdir(),
-                   lccSource = source)$lcc
+                   lccSource = source, scanfiVersion = "V2")$lcc
 }
 rowsOf <- function(r) matrix(terra::values(r, mat = FALSE), nrow = 6, byrow = TRUE)[, 1]
 

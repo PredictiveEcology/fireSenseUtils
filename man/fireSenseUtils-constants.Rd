@@ -7,6 +7,7 @@
 \alias{yearTxt}
 \alias{youngAgeTxt}
 \alias{treedWetlandTxt}
+\alias{treedWetlandAgbTxt}
 \alias{ignitionsTxt}
 \alias{escapesTxt}
 \alias{spreadFitAdditionalColNamesTxt}
@@ -36,6 +37,9 @@ simList-slot/column names attached to spread-fit outputs
 what prediction needs to rescale covariates exactly as the fit did.
 \item \code{ignitionFitAdditionalColNamesTxt}: \code{character} vector of the list-column names attached
 to ignition-fit ledger rows (\code{"fireSense_IgnitionFitted"}, \code{"fireSense_EscapeFitted"}).
+\item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
+built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
+\code{"treedWetland_agb"}).
 }
 }
 \description{

@@ -91,10 +91,21 @@ utils::globalVariables(c(
 #'
 #' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of [DEoptim::DEoptim] outputs.
 #'
+#' @param plotEvery Integer. Generations between DEoptim progress figures; the final figures are
+#'   always drawn. Passed to `clusters::DEoptimIterative()`. It is not part of the fit's cache key,
+#'   so changing it does not refit. Default 25.
+#'
 #' @param .plotSize List specifying plot `height` and `width`, in pixels.
 #'
+#' @param rep Integer. An identifier for the replication number of this optimization run.
+#'   Used in cache tags and plot filenames. Default 1L.
+#'
+#' @param .plots Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
+#'   Passed to internal plotting functions (likely via [SpaDES.core::Plots()]).
+#'   Default "screen".
+#'
 #' @param runName Character string used to label this run. Forwarded to
-#'   `DEoptimIterative()` and used as a suffix for the cache `.functionName`
+#'   `clusters::DEoptimIterative()` and used as a suffix for the cache `.functionName`
 #'   so that runs with different `runName` values get distinct cache entries.
 #'   Default `""` (no suffix).
 #'
@@ -115,6 +126,10 @@ utils::globalVariables(c(
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
 #' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
 #'   and the final-population re-score. Off by default (`0`).
+#' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
+#'   scores a simulated fire that reaches the edge of its own buffer as a runaway, not as a fire of
+#'   the size it reached. The edge ring of every buffer is computed here, once ([addBufferEdge()]).
+#' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
@@ -126,7 +141,7 @@ utils::globalVariables(c(
 #'   `CR`, `F`, `p`, `reltol`), passed through [clusters::clusterSetup()] to DEoptim. `NP` is the
 #'   number of workers the cluster gets.
 #'
-#' @return The result of the [DEoptimIterative()] call. This is typically a list where
+#' @return The result of the `clusters::DEoptimIterative()` call. This is typically a list where
 #' each element contains the [DEoptim::DEoptim] object state after a block of `iterStep` iterations.
 #' The final element represents the state after `itermax` iterations or upon early stopping.
 #'
@@ -154,7 +169,7 @@ runDEoptim <- function(landscape,
                        paths,
                        libPath = .libPaths()[1],
                        logPath = tempfile(sprintf(
-                         "fireSense_SpreadFit_%s_",
+                         "runDEoptim_%s_",
                          format(Sys.time(), "%Y-%m-%d_%H%M%S")
                        ), fileext = ".log"),
                        doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
@@ -174,6 +189,7 @@ runDEoptim <- function(landscape,
                        .verbose,
                        visualizeDEoptim = logPath,
                        .plots = "screen",
+                       plotEvery = 25L,
                        .plotSize = list(height = 1600, width = 2000),
                        rep = 1L,
                        runName = "",
@@ -189,8 +205,13 @@ runDEoptim <- function(landscape,
                        jumpMeanDist = 0,
                        yearAreaWeight = 0,
                        areaDistWeight = 0,
+                       penaliseRunaways = TRUE,
                        profileReps = 0L,
-                       simulateMembers = 0L) {
+                       simulateMembers = 0L,
+                       penaliseCapHits = NULL) {
+  if (!is.null(penaliseCapHits)) deprecatedCapArgs("penaliseCapHits")
+  ## the edge ring of each fire's buffer, once, before the tables go to the workers
+  fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -238,7 +259,15 @@ runDEoptim <- function(landscape,
   #####################################################################
   # DEOptim call
   #####################################################################
-  termsInDEoptim(formulaToFit, thresh, length(lower))
+  ## name the parameters from `lower`. termsInDEoptim() called every non-formula parameter a "logit"
+  ## term, so yearSpreadSD was reported as a third logistic parameter.
+  covTerms <- if (is.null(formulaToFit)) character(0) else
+    attr(terms(as.formula(formulaToFit, env = .GlobalEnv)), "term.labels")
+  logisticTerms <- setdiff(names(lower), c(covTerms, yearSpreadSDTxt))
+  message("Fitting ", length(lower), " parameters: logistic: ", paste(logisticTerms, collapse = ", "),
+          "; covariates: ", paste(covTerms, collapse = ", "),
+          if (yearSpreadSDTxt %in% names(lower)) paste0("; year effect: ", yearSpreadSDTxt))
+  message("objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
   ## the per-year random effect is fitted when the bounds include it (its sd is the LAST parameter);
   ## DEoptim passes `par` unnamed, so the objective is told explicitly
   fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)
@@ -247,14 +276,14 @@ runDEoptim <- function(landscape,
 
   # aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
   DE <- Cache(
-    clusters:::DEoptimIterative2(
+    clusters::DEoptimIterative(
       fn = fireSenseUtils::.objfunSpreadFit,
       # DE <- Cache(
       #   DEoptimIterative(
       itermax = itermax,
       lower = lower,
       upper = upper,
-      ## only what was set here (NP from the built cluster, strategy, ...); DEoptimIterative2()
+      ## only what was set here (NP from the built cluster, strategy, ...); DEoptimIterative()
       ## fills the rest, so passing a complete DEoptim.control() would override its defaults
       control = control,
       formulaToFit = formulaToFit,
@@ -270,6 +299,7 @@ runDEoptim <- function(landscape,
       doAssertions = doObjFunAssertions,
       # visualizeDEoptim = visualizeDEoptim,
       .plots = .plots,
+      plotEvery = plotEvery,
       .plotSize = .plotSize,
       iterStep = iterStep,
       thresh = thresh,
@@ -284,11 +314,17 @@ runDEoptim <- function(landscape,
       jumpMeanDist = jumpMeanDist,
       yearAreaWeight = yearAreaWeight,
       areaDistWeight = areaDistWeight,
+      penaliseRunaways = penaliseRunaways,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
-    omitArgs = c(".verbose")
-    , .functionName = paste0("DEoptimIterative2_", runName)
+    ## how often progress figures are drawn does not change the fit
+    omitArgs = c(".verbose", "plotEvery"),
+    ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
+    ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
+    ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
+    .cacheExtra = clusters::shippedObjectsDigest(control)
+    , .functionName = paste0("DEoptimIterative_", runName)
     # , cacheId = "8448b6a37b54361b"
   ) # iteration 201 to 300
 
@@ -303,7 +339,8 @@ runDEoptim <- function(landscape,
                       weighted = weighted, adWeight = adWeight, link = link,
                       fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa,
                       jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
-                      yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight)
+                      yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
+                      penaliseRunaways = penaliseRunaways)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(
@@ -375,239 +412,11 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
   invisible(cowplot::plot_grid(plotlist = ff))
 }
 
-#' Iterative `DEoptim` Runner with Caching and Visualization
-#'
-#' Internal function called by `runDEoptim`. Runs [DEoptim::DEoptim] in steps,
-#' caching results and optionally visualizing progress after each step.
-#'
-#' @param rep Integer. An identifier for the replication number of this optimization run.
-#'   Used in cache tags and plot filenames. Default 1L.
-#'
-#' @param .plots Character string. Specifies the plot destination device (e.g., "screen", "png", "pdf").
-#'   Passed to internal plotting functions (likely via [SpaDES.core::Plots()]).
-#'   Default "screen".
-#'
-#' @template mutuallyExclusive
-#'
-#' @param .c Numeric scalar in `[0, 1]`. Crossover constant passed through to
-#'   [DEoptim::DEoptim.control()] as `c` (the speed of crossover adaptation).
-#'   Default 0.5.
-#'
-#' @param figPath directory where figures will be saved, if relevant
-#'
-#' @param control passed to [DEoptim::DEoptim.control]
-#'
-#' @param cachePath A `cacheRepo` (see [reproducible::Cache()]).
-#'
-#' @export
-#' @importFrom crayon green
-#' @importFrom data.table rbindlist setDTthreads setorder
-#' @importFrom DEoptim DEoptim DEoptim.control
-#' @importFrom grDevices dev.off png
-#' @importFrom ggplot2 geom_abline
-#' @importFrom quickPlot isRstudioServer
-#' @importFrom reproducible Cache isUpdated messageDF
-#' @importFrom stats dnorm rnorm
-#' @importFrom utils tail
-#' @rdname runDEoptim
-DEoptimIterative <- function(itermax, lower, upper,
-                             control, formulaToFit, covMinMax,
-                             tests = c("SNLL", "adTest"),
-                             objFunCoresInternal,
-                             maxFireSpread,
-                             Nreps,
-                             visualizeDEoptim,
-                             figPath,
-                             cachePath,
-                             mutuallyExclusive,
-                             doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
-                             iterStep = 25,
-                             thresh = 550,
-                             .c = 0.5,
-                             .verbose,
-                             .plots = "screen",
-                             .plotSize = list(height = 1600, width = 2000),
-                             rep = 1L) {
-  data.table::setDTthreads(1)
-  message("starting DEoptimIFterative at ", Sys.time())
-  x1 <- rnorm(1e2, 1, 2) # this is for debugging below
-  DE <- list()
-
-  itersToDo <- seq_len(ceiling(itermax / iterStep))
-  cacheIds <- rep(NA_real_, itermax)
-
-  if (FALSE) {
-    sc <- showCache(Function = "DEoptimForCache")
-    sc <- sc[tagKey == "function"]
-    sc[, time := as.POSIXct(createdDate)]
-    setorder(sc, time)
-    cacheIdsFromCache <- unique(sc$cacheId)#[-(1:3)]
-    cacheIds[seq_along(cacheIdsFromCache)] <- cacheIdsFromCache
-    cacheIds <- na.omit(cacheIds)
-    itersToDo <- min( (sum(!is.na(cacheIds))), itermax):itermax
-  }
-
-  for (iter in itersToDo) {
-    control$itermax <- pmin(iterStep, itermax - iterStep * (iter - 1))
-    control$storepopfrom <- control$itermax + 1
-    control$reltol <- 0.1
-    control$c <- .c
-
-    controlArgs <- do.call("DEoptim.control", control)
-    controlForCache <- controlArgs[c(
-      "VTR", "strategy", "NP", "CR", "F", "bs", "trace",
-      "initialpop", "p", "c", "reltol",
-      "packages", "parVar", "foreachArgs"
-    )]
-
-    if (TRUE) {
-      DE[[iter]] <- Cache(
-        DEoptimForCache(
-          fireSenseUtils::.objfunSpreadFit,
-          lower = lower,
-          upper = upper,
-          control = controlArgs,
-          formulaToFit = formulaToFit,
-          covMinMax = covMinMax,
-          tests = tests,
-          maxFireSpread = maxFireSpread,
-          mutuallyExclusive = mutuallyExclusive,
-          doAssertions = doObjFunAssertions,
-          Nreps = Nreps,
-          plot.it = FALSE,
-          controlForCache = controlForCache,
-          objFunCoresInternal = objFunCoresInternal,
-          thresh = thresh),
-        cacheId = cacheIds[iter],
-        .functionName = paste0("DEoptimForCache_", rep),
-        verbose = .verbose,
-        omitArgs = c("verbose", "control")
-      )
-      if (!isUpdated(DE[[iter]]))
-        message(paste(round(unname(DE[[iter]]$optim$bestmem), 4), collapse = " "))
-      message(crayon::green("Iteration ", iter, " done!"))
-    } else {
-      # This is for testing --> it is fast
-      fn <- function(par, x) {
-        -sum(dnorm(log = TRUE, x, mean = par[1], sd = par[2]))
-      }
-
-      st1 <- system.time(DE[[iter]] <- Cache(DEoptimForCache,
-                                             fn,
-                                             lower = lower,
-                                             upper = upper,
-                                             mutuallyExclusive = mutuallyExclusive,
-                                             controlForCache = controlForCache,
-                                             control = control,
-                                             omitArgs = c("verbose", "control"),
-                                             x = x1
-      ))
-    }
-
-    control$initialpop <- DE[[iter]]$member$pop
-
-    rng <- 25; # do 25 iteration steps, i.e., 1:100, 25:
-
-    dataRunToUse <- 175 # this will do the lm on this many items
-    numSegments <- (length(DE) - dataRunToUse) / rng + 1# (length(DE) - dataRunToUse + 1) / rng
-    pvals <- c(0,0)
-
-
-    # Do these here because we need them for both sections below
-    dfForGGplotSimple <- DEoptimToDataFrame(DE)
-    gg1 <- ggPlotFnSimple(dfForGGplotSimple)
-
-    if (numSegments > 1) {
-      isNewSegment <- numSegments %% 1 == 0
-      if (isNewSegment) {
-        pvals <- numeric(floor(numSegments))
-        iters <- list()
-        s <- list()
-        l <- list()
-        segmentSeq <- seq_len(floor(numSegments))
-        # if (!exists("dfForGGplotSimple", inherits = FALSE))
-        for (i in segmentSeq) {
-          col <- "black"
-          if (i == tail(segmentSeq, 2)[1]) col <- "blue"
-          if (i == tail(segmentSeq, 1)[1]) col <- "red"
-          iters[[i]] <- seq_len(dataRunToUse) + (i-1) * rng;
-          a <- data.table(iter = seq_along(DE), val = sapply(DE, function(x) x$member$bestvalit))
-          l[[i]] <- lm(val ~ iter, data = a[iters[[i]]]);
-          s[[i]] <- summary(l[[i]]);
-          pvals[i] <- round(s[[i]]$coefficients[2, 4], 4)
-
-          newdat <- data.table(iter = iters[[i]])
-          set(newdat, NULL, "pred", predict(l[[i]], newdata = newdat))
-          int <- s[[i]]$coefficients[1, 1]
-          slop <- s[[i]]$coefficients[2, 1]
-          # gg1 <- gg1 + geom_line(data = newdat,
-          #                           aes(x = iter, y = pred), #, xend = tail(iter, 1), yend = tail(pred, 1)),
-          #                           col = col)
-          gg1 <- gg1 + geom_abline(intercept = int, slope = slop,
-                                   #                        aes(x = iter, y = pred), #, xend = tail(iter, 1), yend = tail(pred, 1)),
-                                   col = col)
-        }
-        pvalDT <- data.table(dataRange = sapply(segmentSeq, function(x) paste(range(iters[[x]]), collapse = ":")),
-                             pvals = pvals)
-        # Plots(gg1, types = .plots,
-              # filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "objFun/"))
-        messageDF(pvalDT, colour = "yellow")
-      }
-    }
-    if (!isFALSE(visualizeDEoptim) && (isUpdated(DE[[iter]]))) { # i.e., should be a path
-      terms <- suppressMessages(termsInDEoptim(formulaToFit, thresh, length(lower)))
-      nVars <- NCOL(DE[[iter]]$member$pop)
-      if (length(terms) != nVars )
-        terms <- c(terms, paste0("V", seq(nVars - length(terms))))
-      dfForGGplot <- visualizeDEoptimLines(DE, terms = terms)
-      dfForGGplotAllPoints <- visualizeDEoptimLines(DE, terms = terms, allPoints = TRUE)
-      dfForGGplotSimple <- DEoptimToDataFrame(DE)
-
-
-      withCallingHandlers({
-        Plots(gg1, types = .plots,
-              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "objFun/"))
-        #Plots(dfForGGplotSimple, ggPlotFnSimple, types = .plots,
-        #      filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "objFun/"))
-        Plots(dfForGGplotAllPoints, ggPlotFnMeansAllPoints, types = .plots,
-              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_mean_AllPoints/"));
-        Plots(dfForGGplot, ggPlotFnMeans, types = .plots,
-              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_mean/"))
-        Plots(dfForGGplot, ggPlotFnDif, types = .plots, ,
-              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_dif/"))
-        Plots(dfForGGplot, ggPlotFnVars, types = .plots, ,
-              filename = ggDEoptimFilename(visualizeDEoptim, rep, text = "lines_variance/"))
-        Plots(fn = visualizeDE, DE = DE[[iter]], cachePath = cachePath,
-              titles = terms, lower = lower, upper = upper, types = .plots,
-              filename = ggDEoptimFilename(visualizeDEoptim, rep = rep, iter = iter, text = "hists/", time = TRUE))
-      }, message = function(m) {
-        if (any(grepl("geom_smooth|SavingSaved", m$message)))
-          invokeRestart("muffleMessage")
-      })
-      reproducible::messageColoured(colour = "green",
-                                    "5 Figures saved to: ", dirname(ggDEoptimFilename("~", 1, text = "")),
-                                    verbose = .verbose)
-
-    }
-
-
-    # Break out if the last N segments are "non-significant slope at p == 0.1 i.e., conservative
-    if (all(tail(pvals, 2) > 0.1) && length(DE) > 349) {
-      break
-    }
-  }
-
-  DE
-}
-
-#' @importFrom DEoptim DEoptim
-DEoptimForCache <- function(...) {
-  dots <- list(...)
-  dots["controlForCache"] <- NULL
-  do.call(DEoptim, dots)
-}
-
 #' `termsInDEoptim`
+#'
+#' `termsInDEoptim()` is deprecated: it counted every parameter not in the formula as a "logit" term, so the per-year
+#' random effect `yearSpreadSD` was reported as a third logistic parameter. `runDEoptim()` now
+#' names the parameters with `names(lower)`.
 #'
 #' @param fireSense_spreadFormula The formula to be submitted to [DEoptim::DEoptim()],
 #'                                from e.g., `sim$fireSense_spreadFormula`.
@@ -619,6 +428,8 @@ DEoptimForCache <- function(...) {
 #' @export
 #' @rdname runDEoptim
 termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
+  .Deprecated(msg = paste0("fireSenseUtils::termsInDEoptim() is deprecated; runDEoptim() names ",
+                           "the parameters with names(lower)"))
   termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
   logitNumParams <- numParams - length(termsInForm)
   message("Using a ", logitNumParams, " parameter logistic equation")
@@ -626,114 +437,4 @@ termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
   message("  ", paste(c(paste0("logit", seq(logitNumParams)), termsInForm), collapse = ", "))
   message("  objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
   c(paste0("logit", seq(logitNumParams)), termsInForm)
-}
-
-#' @importFrom stats setNames
-DEoptimToDataFrame <- function(d, item = "bestvalit") {
-  b <- lapply(d, function(dr) as.data.frame(dr$member[[item]]) |> setNames("bestValue"))
-  b <- rbindlist(b, idcol = "iter")
-  b
-}
-
-visualizeDEoptimLines <- function(d, terms, allPoints = FALSE) {
-  iter <- length(d)
-  se <- seq(iter)
-  # this commented code will use "all the population
-  if (isTRUE(allPoints)) {
-    b <- lapply(d, function(dr) as.data.frame(dr$member$pop))
-    b <- rbindlist(b, idcol = "iter")#
-    setnames(b, old = grep("^V", colnames(b), value = TRUE),  terms)
-
-  } else {
-    b <- do.call(rbind, lapply(d, function(dr) colMeans(dr$member$pop))) |> as.data.table()
-    setnames(b, terms)
-    blower <- do.call(rbind, lapply(d, function(dr)
-      sapply(seq(NCOL(dr$member$pop)), function(x) quantile(dr$member$pop[, x], 0.025)))) |>
-      as.data.table()
-    bupper <- do.call(rbind, lapply(d, function(dr)
-      sapply(seq(NCOL(dr$member$pop)), function(x) quantile(dr$member$pop[, x], 0.975)))) |>
-      as.data.table()
-    bvar <- do.call(rbind, lapply(d, function(dr)
-      sapply(seq(NCOL(dr$member$pop)), function(x) var(dr$member$pop[, x])))) |>
-      as.data.table()
-    setnames(blower, names(b))
-    setnames(bupper, names(b))
-    setnames(bvar, names(b))
-    b[, iter := se]
-    blower[, iter := se]
-    bupper[, iter := se]
-    bvar[, iter := se]
-    blower <- melt(blower, id.vars = "iter")
-    setnames(blower, old = "value", new = "lower95")
-    bupper <- melt(bupper, id.vars = "iter")
-    setnames(bupper, old = "value", new = "upper95")
-    bvar <- melt(bvar, id.vars = "iter")
-    setnames(bvar, old = "value", new = "var")
-
-
-  }
-
-  b <- melt(b, id.vars = "iter")
-  if (isTRUE(allPoints)) {
-    bmerged <- b
-  } else {
-    ons <- c("iter", "variable")
-    bmerged <- b[blower, on = ons][bupper, on = ons][bvar, on = ons]
-    bmerged[, dif := upper95 - lower95]
-  }
-  bmerged[]
-}
-
-
-ggPlotFnMeans <- function(bmerged) {
-  ggplot(bmerged, aes(iter, value)) +
-    geom_point() +
-    geom_smooth(se = TRUE) +
-    # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
-    facet_wrap(facets = "variable", scales = "free")
-}
-
-#' @importFrom ggplot2 geom_point geom_smooth
-ggPlotFnSimple <- function(bmerged) {
-  ggplot(bmerged, aes(iter, bestValue)) +
-    geom_point() +
-    geom_smooth(se = TRUE)
-}
-
-#' @importFrom ggplot2 geom_point geom_smooth
-ggPlotFnDif <- function(bmerged) {
-  ggplot(bmerged, aes(iter, dif)) +
-    geom_point() +
-    geom_smooth(se = TRUE) +
-    # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
-    facet_wrap(facets = "variable", scales = "free")
-}
-
-#' @importFrom ggplot2 geom_point geom_smooth
-ggPlotFnVars <- function(bmerged) {
-  ggplot(bmerged, aes(iter, var)) +
-  geom_point() +
-  geom_smooth(se = TRUE) +
-  # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
-  facet_wrap(facets = "variable", scales = "free")
-}
-
-#' @importFrom ggplot2 geom_smooth geom_jitter ggplot
-ggPlotFnMeansAllPoints <- function(b) {
-  ggplot(b, aes(iter, value)) +
-  # geom_point() +
-  geom_jitter(size = 0.05, width = 0.2, col = "grey") +
-  geom_smooth(se = TRUE) +
-  # geom_ribbon(aes(ymin = lower95, ymax = upper95)) +
-  facet_wrap(facets = "variable", scales = "free")
-}
-
-
-#' @importFrom reproducible paddedFloatToChar
-ggDEoptimFilename <- function(visualizeDEoptim, rep, iter = NULL, text = "DE_hists_", time = FALSE) {
-  file.path(visualizeDEoptim,
-            "fireSense_SpreadFit",
-            paste0(text, "rep", paddedFloatToChar(rep, padL = 3),
-                   ifelse(is.null(iter), "", paste0("_iter", iter)), "_", Sys.getpid(),
-                   ifelse(isTRUE(time), paste0("_", as.character(round(Sys.time(), 0))), ""), ".png"))
 }

@@ -310,6 +310,17 @@ paramsSeparate <- function(par, parsModel) {
   list(covPars = covPars, logisticPars = logisticPars)
 }
 
+## hillSlope1 (the logistic link's slope) is fixed at 1, not fitted: with the linear predictor
+## x = covariates %*% beta, hillSlope1 enters logistic3p()/logistic3pUpper() only as hillSlope1 * x,
+## so scaling every covariate coefficient by k and dividing hillSlope1 by k leaves every prediction
+## unchanged -- hillSlope1 is not identifiable, and letting DEoptim fit it let every coefficient
+## drift along that ridge. `par` (as DEoptim, or a caller mimicking it, supplies it) is always the
+## logistic parameters (maxAsymptote first) followed by the covariates, so hillSlope1 is inserted at
+## its fixed position, second, before `.objfunSpreadFit()` splits and evaluates it.
+fixHillSlope1 <- function(par) {
+  append(par, c(hillSlope1 = 1), after = 1L)
+}
+
 #' Log with a minimum
 #'
 #' Used for transforming Biomass to the log scale
@@ -331,7 +342,7 @@ logMinB <- function(x) {
 #' `1e4`. The division is not done to the data: it is the `covMinMax` given to
 #' [rescaleKnown2()], which is affine and does not clamp, so `c(0, 1e4)` is exactly
 #' `biomass / 1e4`. The constant is fixed, not `max(biomass)`, so that
-#' `fireSense_SpreadPredict` reproduces the fit's scaling in every year from the stored
+#' `fireSense_spreadPredict` reproduces the fit's scaling in every year from the stored
 #' `covMinMax_spread` alone. It is also how a fit is recognised as linear: see
 #' [isLinearFuelRange()].
 #'
@@ -349,7 +360,7 @@ fuelLinearRange <- c(0, 1e4)
 #'
 #' This undoes the log where the spread model needs it, instead of removing it at the source,
 #' because `fireSenseCovariatesCreate()` also builds the ignition covariates and its output is
-#' cached for every fitted polygon. Both `fireSense_SpreadFit` and `fireSense_SpreadPredict`
+#' cached for every fitted polygon. Both `fireSense_spreadFit` and `fireSense_spreadPredict`
 #' call this function, so the fit and the prediction cannot drift apart.
 #'
 #' @param x Numeric vector of fuel biomass as returned by [logMinB()].

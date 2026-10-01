@@ -142,24 +142,24 @@ This way each module can be adapted to your own problem and used to answer your 
 
 In order to facilitate the parameterization of `fireSense` from data using systematic methods we have created SpaDES modules dedicated to these tasks:
 
-- `fireSense_IgnitionFit`
+- `fireSense_ignitionFit`
 - `fireSense_EscapeFit`
-- `fireSense_SpreadFit`
+- `fireSense_spreadFit`
 
-These follow the way `fireSense` breaks down the fire process and are named accordingly. For example, `fireSense_IgnitionFit` implements methods to fit the statistical model of fire ignitions.
-The `fireSense_IgnitionFit` module implements methods described in Marchal et al. [-@Marchal2017], `fireSense_EscapeFit` and `fireSense_SpreadFit` implement methods described in Marchal et al. [-@Marchal2019].
+These follow the way `fireSense` breaks down the fire process and are named accordingly. For example, `fireSense_ignitionFit` implements methods to fit the statistical model of fire ignitions.
+The `fireSense_ignitionFit` module implements methods described in Marchal et al. [-@Marchal2017], `fireSense_EscapeFit` and `fireSense_spreadFit` implement methods described in Marchal et al. [-@Marchal2019].
 Each of these modules is associated with an additional module to facilitate the production of predictive maps (rasters) or data sets (data.frames).
-To continue with the example of fire ignitions, the module `fireSense_IgnitionPredict` is associated with the `fireSense_IgnitionFit` module.
-One possible use of the `fireSense_IgnitionPredict` module would be to generate rasters describing in a spatially explicit way the predicted ignition rates.
+To continue with the example of fire ignitions, the module `fireSense_ignitionPredict` is associated with the `fireSense_ignitionFit` module.
+One possible use of the `fireSense_ignitionPredict` module would be to generate rasters describing in a spatially explicit way the predicted ignition rates.
 
 In addition of these modules, we implemented the `fireSense_SizeFit` module to fit statistical model of the fire size distribution using the tapered Pareto distribution [@Schoenberg2003].
 The use of `fireSense_SizeFit` is not a requirement because these outputs are not required by `fireSense`.
 Although the use of `fireSense_SizeFit` is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the . module later.
-Later in this tutorial we will show how the outputs of the `fireSense_SizeFit` module can be used as inputs of the `fireSense_SpreadFit` module.
+Later in this tutorial we will show how the outputs of the `fireSense_SizeFit` module can be used as inputs of the `fireSense_spreadFit` module.
 
 Alternatively, the parameter of the tapered Pareto distribution can be used as inputs of the spread model assuming these capture the effect of environmental drivers of fire sizes.
 
-We start by fitting the spread model using the `fireSense_SpreadFit` module.
+We start by fitting the spread model using the `fireSense_spreadFit` module.
 In order to fit this model we need data about the shape of the fire size distribution.
 We can predict it using the `fireSense_SizePredict` module and fit the model to our study region using the `fireSense_SizeFit` module.
 
@@ -304,14 +304,14 @@ fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.log
 ## Fit the statistical model of fire ignitions
 
 ```{r fit_ignition_model, message=FALSE}
-modules <- list("fireSense_IgnitionFit")
+modules <- list("fireSense_ignitionFit")
 
 times <- list(start = 1, end = 1)
 
-# Define fireSense_IgnitionFit module inputs
+# Define fireSense_ignitionFit module inputs
 objects <- list(dataFireSense_IgnitionFit = dataFireSense_IgnitionFit)
 
-# Define fireSense_IgnitionFit module parameters
+# Define fireSense_ignitionFit module parameters
 formula <- formula(n_fires ~ landtype_1_pp:weather + landtype_2_pp:weather - 1)
 family <- poisson(link = "identity")
 ub <- list(coef = 1)
@@ -322,7 +322,7 @@ iterNlminb <- 100
 cores <- 50
 
 parameters <- list(
-  fireSense_IgnitionFit = list(
+  fireSense_ignitionFit = list(
     formula = formula,           # Formula of the statistical model
     family = family,             # Distribution family, here the negative binomial distribution
     ub = ub,                     # Upper bounds for coefficients to be estimated
@@ -383,9 +383,9 @@ The purpose of this step is to derive variable fire spread probabilities at the 
 
 ## Fit the statistical model of the fire size distribution
 
-Although the use of fireSense_SizeFit is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the fireSense_SpreadFit module later.
+Although the use of fireSense_SizeFit is optional, it can be used to reduce the dimensionality of the problem, which helps speed up and facilitate convergence when using the fireSense_spreadFit module later.
 Here, we use the fireSense_SizeFit module to model the relation between fire sizes and flammability conditions as represented by the drought index and the type of fuels.
-We then use the fireSense_SpreadFit module to convert the fitted equations produced by fireSense_SizeFit into variable probabilities of fire spread at the cell level, which are also sensitive to environmental drivers that control fire size.
+We then use the fireSense_spreadFit module to convert the fitted equations produced by fireSense_SizeFit into variable probabilities of fire spread at the cell level, which are also sensitive to environmental drivers that control fire size.
 
 ```{r fit_size_distribution_model, message=FALSE}
 modules <- list("fireSense_SizeFit")
@@ -484,14 +484,14 @@ sim <- simInitAndSpades(
 
 ### Use predicted parameters of the tapered Pareto as inputs to the statistical model of the spread probabilities
 
-Here, we use the `fireSense_SpreadFit` module to convert them into spatially variable spread probabilities. 
+Here, we use the `fireSense_spreadFit` module to convert them into spatially variable spread probabilities. 
 
 ```{r fit_spread_model, message=FALSE}
-modules <- list("fireSense_SpreadFit")
+modules <- list("fireSense_spreadFit")
 
 times <- list(start = 1, end = 1)
 
-# Define fireSense_SpreadFit module inputs
+# Define fireSense_spreadFit module inputs
 inputs <- rbind(
   # tapered Pareto's beta
   data.frame(
@@ -519,11 +519,11 @@ inputs <- rbind(
 
 objects <- list(fireAttributesFireSense_SpreadFit = fireAttributesFireSense_SpreadFit)
 
-# Define fireSense_SpreadFit module parameters
+# Define fireSense_spreadFit module parameters
 formula <- formula(~ I(1 / beta) + log(theta) - 1)
 
 parameters <- list(
-  fireSense_SpreadFit = list(
+  fireSense_spreadFit = list(
     formula = formula, # Formula of the statistical model
     data = c("beta", "theta"),
     lower = c(.01, 0, .1, .3, .001, .001),
@@ -549,11 +549,11 @@ fireSense_SpreadFitted <- sim$fireSense_SpreadFitted # Extract the fitted model 
 ### Fire ignition rates
 
 ```{r predict_ignition_rates, message=FALSE}
-modules <- list("fireSense_IgnitionPredict")
+modules <- list("fireSense_ignitionPredict")
 
 times <- list(start = 1, end = 1)
 
-# Define fireSense_IgnitionPredict module inputs
+# Define fireSense_ignitionPredict module inputs
 objects <- list(
   fireSense_IgnitionFitted = fireSense_IgnitionFitted,
   landtype_1_pp = landTypeOne,
@@ -561,7 +561,7 @@ objects <- list(
   weather = weather
 )
 
-# Define fireSense_IgnitionPredict module outputs
+# Define fireSense_ignitionPredict module outputs
 outputs <- rbind(
   data.frame(
     file = paste0("fireSense_IgnitionPredicted.tif"),
@@ -572,9 +572,9 @@ outputs <- rbind(
   )
 )
 
-# Define fireSense_IgnitionPredict module parameters
+# Define fireSense_ignitionPredict module parameters
 parameters <- list(
-  fireSense_IgnitionPredict = list(
+  fireSense_ignitionPredict = list(
     data = c("landtype_1_pp", "landtype_2_pp", "weather"),
     modelName = "fireSense_IgnitionFitted" # This is the default
   )
@@ -637,11 +637,11 @@ sim <- simInitAndSpades(
 ### Fire spread probabilities
 
 ```{r predict_spread_probabilities, message=FALSE}
-modules <- list("fireSense_SpreadPredict")
+modules <- list("fireSense_spreadPredict")
 
 times <- list(start = 1, end = 1)
 
-# Define fireSense_SpreadPredict module inputs
+# Define fireSense_spreadPredict module inputs
 # tapered Pareto's beta
 inputs <- rbind(
   data.frame(
@@ -669,7 +669,7 @@ inputs <- rbind(
 
 objects <- list(fireSense_SpreadFitted = fireSense_SpreadFitted)
 
-# Define fireSense_SpreadPredict module outputs
+# Define fireSense_spreadPredict module outputs
 outputs <- rbind(
   data.frame(
     file = paste0("fireSense_SpreadPredicted.tif"),
@@ -680,9 +680,9 @@ outputs <- rbind(
   )
 )
 
-# Define fireSense_SpreadPredict module parameters
+# Define fireSense_spreadPredict module parameters
 parameters <- list(
-  fireSense_SpreadPredict = list(
+  fireSense_spreadPredict = list(
     data = c("landtype_1_pp", "landtype_2_pp", "weather"),
     modelName = "fireSense_SpreadFitted" # This is the default
   )

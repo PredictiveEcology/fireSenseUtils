@@ -2,13 +2,15 @@ yearSpreadSDTxt <- "yearSpreadSD"
 
 utils::globalVariables(c(
   "..colsToKeep", "..colsToUse", ".N", "buffer", "burned", "burnedClass",
-  "id", "ids", "initialLocus", "N", "numAvailPixels", "pixelID", "prob",
+  "id", "ids", "indices", "initialLocus", "N", "numAvailPixels", "pixelID", "prob",
   "simFireSize", "size", "spreadProb", "value"
 ))
 
 #' Objective function for `fireSense_spreadFit` module
 #'
-#' @param par parameters
+#' @param par parameters: the logistic parameters (`maxAsymptote` first, without `hillSlope1`, which
+#'   is fixed at 1 -- see `fixHillSlope1()`), then the covariate coefficients, and optionally
+#'   `yearSpreadSD` last (see `fitYearSpreadSD`).
 #'
 #' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
 #'   [SpaDES.tools::spread2].
@@ -71,7 +73,11 @@ utils::globalVariables(c(
 #'   compares simulated and observed fires by the share of area burned they make up. `0` (default) leaves
 #'   it out; `"auto"` uses the AD term's weight, `adWeightAuto()`.
 #'
-#' @param returnTerms Logical. `TRUE` returns the objective with each term separately (diagnostics).
+#' @param returnTerms Logical. `TRUE` returns the objective with each term separately (diagnostics),
+#'   and two fields about the first block of years (the one `thresh` stops early): `firstBlockSNLL`,
+#'   its SNLL per year as `thresh` is compared with it (so a trial with `thresh = Inf` reports what
+#'   it would have been judged on), and `bailed`, 1 if a year of that block was refused as "too burny"
+#'   or "not spread out enough" or the block's SNLL was above the threshold, else 0.
 #'
 #' @template mutuallyExclusive
 #'
@@ -158,9 +164,26 @@ utils::globalVariables(c(
 #'   medians too large and the largest fires too small at once (2026-09-23). `sd = 0` is the model
 #'   without it, exactly (no random numbers are drawn). `NULL` (default): `TRUE` when `par` is named and
 #'   includes `yearSpreadSD`. DEoptim passes `par` unnamed, so `runDEoptim()` sets it explicitly.
-#' @param capSizes If `FALSE`, simulated fires are not capped at [multiplier()] of their observed
-#'   size. The fit needs the cap; validation should not have it, or a model that predicts fires far
-#'   too large cannot show it.
+#' @param returnBurned If `TRUE`, also record which pixels burned: implies `returnSims = TRUE`, and the
+#'   result carries `attr(, "burned")`, a named list with one element per simulated fire year, each a
+#'   `data.table` with the replicate `rep` and the `pixelID` of every pixel that burned in it (ignition
+#'   cells included). A year the objective declines to simulate is `NULL`. For
+#'   [spreadFitValidationData()]. `FALSE` (default) records nothing and changes nothing.
+#' @param penaliseRunaways If `TRUE` (default), a simulated fire that burns any pixel of the edge ring
+#'   of its own fire's buffer is censored: it reached the outer edge of the area it is allowed to
+#'   spread in, so it is "at least this big", a runaway. The edge ring is the buffer pixels with a
+#'   queen neighbour outside the fire's own buffer (see [bufferEdge()]). In every size-based term
+#'   (the per-fire size likelihood, `"adTest"`, `yearAreaWeight`, `"mad"`) the size of a runaway is
+#'   replaced by `runawaySize`, and in the per-fire likelihood it has no density at the observed
+#'   size (the likelihood is that of the other replicates times their share; 0, i.e. `minLik`, if
+#'   fewer than two replicates remain). `FALSE` scores the simulated size. Fires are not capped at any
+#'   size: spread is bounded only by the year's buffers. Has no effect with `returnSims = TRUE` (the
+#'   simulated sizes are returned as simulated). The per-fire likelihood is floored at `minLik`
+#'   (1e-29), which bounds the penalty per fire. The ring is computed once per fit (`runDEoptim()`
+#'   adds an `edge` column to `fireBufferedListDT`); a table without that column gets it computed
+#'   on every call.
+#' @param runawaySize Size (pixels) given to a runaway replicate when `penaliseRunaways = TRUE`. `NULL`
+#'   (default): the number of non-`NA` pixels of `landscape`, or `1e7` if `landscape` has no values.
 #'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
@@ -173,6 +196,8 @@ utils::globalVariables(c(
 #'   formula). Default `list("youngAge" = c("class", "nf"))`.
 #'
 #' @param ... This is not used here, but allows for extraneous arguments to not break this function.
+#'   The removed arguments `capSizes` and `penaliseCapHits` arrive here: they are ignored with a
+#'   deprecation warning (fires are no longer capped at a size; use `penaliseRunaways`).
 #'
 #' @return
 #' Attempting a weighted likelihood,
@@ -223,7 +248,9 @@ utils::globalVariables(c(
                              adWeight = "auto",
                              link = NULL,
                              returnSims = FALSE,
-                             capSizes = TRUE,
+                             returnBurned = FALSE,
+                             penaliseRunaways = TRUE,
+                             runawaySize = NULL,
                              fitYearSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
@@ -232,16 +259,14 @@ utils::globalVariables(c(
   # lapply(historicalFires, setDT)
 
   data.table::setDTthreads(1)
+  if (...length()) deprecatedCapArgs(...names())
   sizeLik <- match.arg(sizeLik, c("kde", "t"))
+  if (isTRUE(returnBurned)) returnSims <- TRUE
   ## the per-year random effect's sd, fitted as the LAST element of `par`
-  yearSpreadSD <- 0
-  if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
-  if (isTRUE(fitYearSpreadSD)) {
-    if (!is.null(names(par)) && !identical(names(par)[length(par)], yearSpreadSDTxt))
-      stop("`", yearSpreadSDTxt, "` must be the last parameter")
-    yearSpreadSD <- unname(par[length(par)])
-    par <- par[-length(par)]
-  }
+  ## and hillSlope1 is fixed at 1, not fitted -- see fixHillSlope1() for why.
+  parSplit <- splitSpreadPar(par, fitYearSpreadSD)
+  par <- parSplit$par
+  yearSpreadSD <- parSplit$yearSpreadSD
 
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
@@ -276,10 +301,19 @@ utils::globalVariables(c(
   ncells <- ncell(landscape)
 
   r <- rast(landscape)
+  if (!isTRUE(penaliseRunaways)) {
+    runawaySize <- NULL
+  } else if (is.null(runawaySize)) {
+    runawaySize <- if (terra::hasValues(landscape)) {
+      as.numeric(terra::global(landscape[[1]], "notNA")[[1]])
+    } else {
+      1e7
+    }
+  }
   ## an escaped fire has at least `escapeMinPx` pixels: only such observed fires are fitted, and every
   ## simulated fire burns that many cells first (spreadCpp(minSize =)). NULL keeps the historical rules.
   escapeMinPx <- if (!is.null(escapeSizeHa)) escapeSizePixels(escapeSizeHa, landscape)
-  if (!is.null(escapeMinPx)) minFireSize <- max(minFireSize, escapeMinPx)
+  minFireSize <- effectiveMinFireSize(minFireSize, escapeMinPx)
   if (!is.null(escapeMinPx) && isTRUE(jumpTries > 0) &&
       !all(c("jumpTries", "jumpMeanDist") %in% names(formals(SpaDES.tools::spreadCpp))))
     stop("jumpTries needs a SpaDES.tools whose spreadCpp() has `jumpTries` and `jumpMeanDist`")
@@ -299,31 +333,24 @@ utils::globalVariables(c(
       function(ind, date) data.table(ind = ind, date = date)
     )
   )
-  historicalFiresAboveMin <- lapply(historicalFires, function(x) {
-    x <- x[x$size >= minFireSize, ]
-    x <- x[!duplicated(x$cells), ]
-    x
-  })
+  historicalFiresAboveMin <- firesAboveMinSize(historicalFires, minFireSize)
 
   sizeWeightMean <- mean(sizeWeight(unlist(lapply(historicalFiresAboveMin, function(x) x$size)), weighted))
 
-  ## can't fit fires for years with no data; drop these years
-  omitYears <- names(historicalFiresAboveMin[which(lapply(historicalFiresAboveMin, nrow) == 0)])
-  if (length(omitYears > 0)) {
-    historicalFiresAboveMin[omitYears] <- NULL
-  }
-
-  fireSizesByYear <- unlist(lapply(historicalFiresAboveMin, function(x) sum(x$size)))
-  largest <- head(sort(fireSizesByYear, decreasing = TRUE), 2) # max(2, objFunCoresInternal))
-  smallest <- setdiff(names(fireSizesByYear), names(largest))
-  lrgSmallFireYears <- list(large = names(largest), small = smallest)
+  ## the first block is the two years with the most burned area, the second block is the rest
+  largest <- firstBlockYears(historicalFiresAboveMin)
+  smallest <- setdiff(names(historicalFiresAboveMin), largest)
+  lrgSmallFireYears <- list(large = largest, small = smallest)
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
   fireSizesList <- list() # simulated fire sizes, pooled across batches for the adTest
   yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
   yearAreaList <- list() # yearAreaWeight: each year's simulated annual totals, one per replicate
   bailedEarly <- FALSE
+  firstBlockSNLL <- NA_real_ # the first block's average annual SNLL, what `thresh` is compared with
+  firstBlockBailed <- NA # ... and whether the first block failed: a gated year, or above `threshold`
   simsList <- list() # returnSims: the simulated fires of each batch of years
   pSumList <- list() #   ... and the spread probabilities of their pixels
+  burnedList <- list() # returnBurned: per year, the pixels burned in each replicate
   for (ii in seq(lrgSmallFireYears)) {
     yrs <- lrgSmallFireYears[[ii]]
     if (length(yrs)) {
@@ -358,7 +385,7 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
-        returnSims = returnSims, capSizes = capSizes, yearSpreadSD = yearSpreadSD,
+        returnSims = returnSims, returnBurned = returnBurned, runawaySize = runawaySize, yearSpreadSD = yearSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         doYearArea = doYearArea,
         covMinMax = covMinMax, # interactive debugging
@@ -374,6 +401,7 @@ utils::globalVariables(c(
       if (isTRUE(returnSims)) {
         simsList[[ii]] <- data.table::rbindlist(results$sims, use.names = TRUE)
         pSumList[[ii]] <- results$pSummary
+        if (isTRUE(returnBurned)) burnedList[yrs] <- results$burned
         next
       }
 
@@ -412,11 +440,16 @@ utils::globalVariables(c(
         SNLL_FSTest <- round(sum(unlist(results$SNLL)), 0)
         failVal <- 1e6L
         numYrsDone <- length(results$SNLL_FS)
+        runawayShare <- sum(unlist(results$runaways)) / max(1, sum(unlist(results$nSims)))
         ## lower is _more_ restrictive; too high takes too long. `pruneAbove` (default Inf, i.e. no
         ## effect) lets the caller tighten this with the worst value the current population would
         ## accept: block 2's SNLL is non-negative, so this block's value is a lower bound on the
         ## total, and a trial above `pruneAbove` is one every parent already beats.
         threshold <- min(thresh * numYrsDone, pruneAbove)
+        if (ii == 1) {
+          firstBlockSNLL <- SNLL_FSTest / numYrsDone
+          firstBlockBailed <- any(unlist(results$gated)) || any(SNLL_FSTest > threshold)
+        }
         mess <- character()
         annualSNLL <- round(SNLL_FSTest / numYrsDone, 0)
         if (any(SNLL_FSTest > threshold) && ii == 1) {
@@ -424,13 +457,13 @@ utils::globalVariables(c(
           SNLL_FSTest <- failVal
           mess <- paste0(
             " Fail! Bailing after ", numYrsDone, " yrs; SNLL threshold: ", thresh, "; ",
-            "Avg annual SNLL: ", annualSNLL, "; "
+            "Avg annual SNLL: ", annualSNLL, "; runaway share: ", round(runawayShare, 3), "; "
           )
         } else {
           if (ii == 1) {
             mess <- paste0(
               " Decent in 1st ", numYrsDone, " years -- continuing. ", mess, " SNLL threshold: ", thresh, ", Avg annual: ",
-              annualSNLL, "; "
+              annualSNLL, "; runaway share: ", round(runawayShare, 3), "; "
             )
           }
         }
@@ -456,6 +489,7 @@ utils::globalVariables(c(
   if (isTRUE(returnSims)) {
     out <- data.table::rbindlist(simsList, use.names = TRUE)
     data.table::setattr(out, "spreadProb", combineSpreadProbSummaries(unlist(pSumList, recursive = FALSE)))
+    if (isTRUE(returnBurned)) data.table::setattr(out, "burned", burnedList)
     return(out)
   }
   bb <- purrr::transpose(objFunResList)
@@ -519,7 +553,8 @@ utils::globalVariables(c(
   }
   if (isTRUE(returnTerms))
     return(c(objective = objFunRes, SNLL_FS = snllPart, adTest = adPart, yearArea = yearAreaTerm,
-             areaDist = areaDistTerm, nFires = nFitFires))
+             areaDist = areaDistTerm, nFires = nFitFires, firstBlockSNLL = firstBlockSNLL,
+             bailed = as.numeric(firstBlockBailed)))
   ## Figure out what we want from these.
   ## This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
   return(objFunRes)
@@ -622,8 +657,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         weighted,
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
-                        sizeWeightMean = 1, link = NULL, returnSims = FALSE, capSizes = TRUE,
-                        yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
+                        sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
+                        runawaySize = NULL, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
@@ -635,15 +670,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   logisticPars <- parsList[["logisticPars"]]
   covPars <- parsList[["covPars"]]
 
-  shortAnnDT <- spreadProbFromIntegerCovs(
-    shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
-    indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
+  shortAnnDT <- spreadProbCovsOfYear(
+    yr, annDTx1000, nonAnnualDTx1000, indexNonAnnual, covMinMax, mutuallyExclusive, colsToUse,
     doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
   )
-
-  set(shortAnnDT, NULL, "spreadProb",
-      logisticAll(logisticPars, mat = as.matrix(shortAnnDT[, ..colsToUse]), covPars, lowerSpreadProb,
-                  link = link))
+  set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(as.matrix(shortAnnDT[, ..colsToUse]), logisticPars,
+                                                         covPars, lowerSpreadProb, link))
   pSummary <- if (isTRUE(returnSims)) spreadProbSummary(shortAnnDT$spreadProb, ceiling = logisticPars[1])
   ## Initialised here, not inside the branch below, because the function returns
   ## it unconditionally. With no test selected -- which is how the module's
@@ -735,26 +767,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
     # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
     # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
-    medSP <- median(shortAnnDT$spreadProb, na.rm = TRUE)
-    ## Taken from the spreadProb column, not by scanning `cells`. `cells` is landscape-length and
-    ## zero everywhere except this year's pixels (6.0M cells vs a median 41k pixels on ELF 5.3.1),
-    ## so `cells[cells > a | cells > b]` made four passes over the landscape to recover values that
-    ## are already here. Same values: pixelID is unique within a year, the zeros never pass a
-    ## non-negative threshold, and `x > a | x > b` is `x > min(a, b)`. Only quantile() and summary()
-    ## read it, so order does not matter. Measured on ELF 5.3.1 with identical seeds: identical
-    ## objective values, and an evaluation 1.1-1.4x faster.
-    nonEdgeValues <- shortAnnDT$spreadProb[
-      shortAnnDT$spreadProb > min(lowerSpreadProb * 1.025, logisticPars[1] * 0.99)]
-    sdSP <- diff(quantile(nonEdgeValues, c(0.1, 0.9)))
-    if (is.na(sdSP)) sdSP <- 0
-    
-    medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
-    spreadOutEnough <- sdSP / medSP > 0.025
+    gate <- spreadProbGateTest(shortAnnDT$spreadProb, logisticPars[1], lowerSpreadProb, maxFireSpread,
+                               lanscape1stQuantileThresh)
+    nonEdgeValues <- gate$nonEdgeValues
+    summ <- gate$summ
+    medSPRight <- gate$medianOK
+    spreadOutEnough <- !gate$notSpread
+    lowSPLowEnough <- !gate$burny
     minLik <- 1e-29 # min(emp$lik[emp$lik > 0])
     loci <- annualFires$cells
-    summ <- summary(nonEdgeValues)
-    lowSPLowEnough <- summ[2] < lanscape1stQuantileThresh
-    
+
     if (verbose > 1) {
       if (isTRUE(!spreadOutEnough)) {
         print(paste0(
@@ -781,12 +803,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           paste(names(summ), round(summ, 3), collapse = ", ")
         ))
       }
-      # maxSizes <- rep(annualFires$size, times = Nreps)
-      
-      # this will make maxSizes be a little bit larger for large fires, but a lot bigger for small fires
-      # maxSizes <- maxSizes * 1.5#(1.1+pmax(0,5-log10(maxSizes)))
       setDT(annualFireBufferedDT)
-      minSize <- 100
+      ## the edge ring of each fire's buffer: precomputed by runDEoptim(), else made here
+      edgeRing <- if ("edge" %in% names(annualFireBufferedDT)) annualFireBufferedDT$edge else
+        bufferEdge(annualFireBufferedDT, r)
+      edgeRing <- annualFireBufferedDT[which(edgeRing), list(ids, pixelID)]
       if (doAssertions || SpaDES.core::anyPlotting(plot.it)) {
         tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
         tableOfBufferedMaps <- tableOfBufferedMaps[annualFires, on = "ids"]
@@ -800,20 +821,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           )
         }
       }
-      maxSizes <- if (isTRUE(capSizes)) {
-        fireSenseUtils::multiplier(annualFires$size, minSize = minSize)
-      } else {
-        rep(Inf, NROW(annualFires))
-      }
-      # maxSizes <- annualFires$size * 2
       dups <- duplicated(annualFires$cells)
       if (any(dups)) {
         annualFires <- annualFires[which(!dups), ] #
-        maxSizes <- maxSizes[!dups]
         loci <- annualFires$cells[!dups]
       }
-      ## spreadCpp() needs minSize <= maxSize: the cap from multiplier() can fall below the escape size
-      if (!is.null(escapeMinPx)) maxSizes <- pmax(maxSizes, escapeMinPx)
       ## spread() runs on this year's bounding box, not the whole landscape. It allocates
       ## landscape-length state on every call (SpaDES.tools spread.R: `integer(ncells)`), Nreps
       ## times per fire year, and the year's pixels fill a small part of the landscape (a median
@@ -839,7 +851,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## forced collection is once per year, outside the replicate loop.
       ## spreadCpp() instead of spread(): same rules (generations, one draw per
       ## burning-cell/unburned-neighbour pair against the neighbour's probability,
-      ## one fire per cell, a maxSize that is never exceeded, NA unburnable) but a
+      ## one fire per cell, NA unburnable) but a
       ## plain C++ loop, 2-3x faster on this call shape. It is NOT bit-compatible
       ## with spread(), so cached fits from before this change are not comparable.
       ## The landscape is already cropped above, which matters more for spreadCpp()
@@ -863,15 +875,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           SpaDES.tools::spreadCpp(
             landscape = crop$r,
             loci = crop$toCrop(loci),
-            spreadProb = sp,
-            maxSize = maxSizes
+            spreadProb = sp
           )
         } else { ## an escaped fire burns its first escapeMinPx cells whatever spreadProb
           SpaDES.tools::spreadCpp(
             landscape = crop$r,
             loci = crop$toCrop(loci),
             spreadProb = sp,
-            maxSize = maxSizes,
             minSize = escapeMinPx,
             jumpTries = jumpTries,
             jumpMeanDist = jumpMeanDist
@@ -904,10 +914,27 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         simSize <- spreadState[, list(sim = .N), by = c("rep", "initialLocus")]
         f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
         return(list(sims = data.table::data.table(yr = as.character(yr), simSize[f, on = "initialLocus"]),
-                    pSummary = pSummary))
+                    pSummary = pSummary,
+                    burned = if (isTRUE(returnBurned)) spreadState[, list(rep, pixelID = indices)]))
       }
+      ## One row per simulated fire. A fire that burned any pixel of the edge ring of its own buffer is
+      ## censored ("at least this big"): with `runawaySize` its size is that in every size-based term below.
+      simSizes <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
+      burnedRing <- spreadState[, list(rep, initialLocus,
+                                       ids = annualFires$ids[match(initialLocus, annualFires$cells)],
+                                       pixelID = indices)]
+      burnedRing <- burnedRing[edgeRing, on = c("ids", "pixelID"), nomatch = NULL]
+      runaway <- rep(FALSE, NROW(simSizes))
+      if (NROW(burnedRing)) {
+        hits <- unique(burnedRing[, list(rep, initialLocus)])
+        runaway[simSizes[hits, on = c("rep", "initialLocus"), which = TRUE]] <- TRUE
+      }
+      censored <- runaway & !is.null(runawaySize)
+      if (any(censored)) set(simSizes, NULL, "N", replace(as.numeric(simSizes$N), censored, runawaySize))
+      ret <- append(ret, list(runaways = sum(runaway), nSims = length(runaway), gated = FALSE))
       if (isTRUE(doSNLL_FSTest)) {
-        emp <- spreadState[, list(N = .N), by = c("rep", "initialLocus")] # N is "size of simulated fire"
+        emp <- data.table::copy(simSizes) # N is "size of simulated fire"
+        set(emp, NULL, "censored", censored)
         emp <- emp[annualFires, on = c("initialLocus" = "cells")]
         if (SpaDES.core::anyPlotting(plot.it)) {
           colsToKeep <- c(setdiff(colnames(tableOfBufferedMaps), colnames(emp)), "initialLocus")
@@ -964,12 +991,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## Observed and simulated sizes on the SAME (square-root) scale. With `x = size[1]` the
         ## observed size sat beyond sqrt(maxSize) for any fire above ~12 pixels, so its likelihood
         ## was the `minLik` floor whatever the parameters.
+        ## A runaway replicate is censored, so it has no density at the observed size: the density is
+        ## that of the other replicates, times their share. (Left in, a fire whose replicates all ran
+        ## away would be identical points, and the kernel density of identical points is wide, not narrow.)
         emp <- emp[N > 1, list(size = size[1],
-                               lik = if(.N > 1) {
-                                 if (identical(sizeLik, "t")) {
-                                   sizeLikT(size[1], N, sizeLikDf)
+                               lik = if (sum(!censored) > 1) {
+                                 uncensored <- !censored
+                                 sum(uncensored) / .N * if (identical(sizeLik, "t")) {
+                                   sizeLikT(size[1], N[uncensored], sizeLikDf)
                                  } else {
-                                   EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N))
+                                   EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N[uncensored]))
                                  }
                                } else {
                                  0
@@ -992,18 +1023,18 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       }
       
       if (isTRUE(doMADTest) || isTRUE(doADTest)) {
-        fireSizes <- round(spreadState[, .N, .(initialLocus)][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
+        fireSizes <- round(simSizes[, list(N = sum(N)), by = "initialLocus"][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
         ret <- append(ret, list(fireSizes = fireSizes))
       }
       if (isTRUE(doADTest)) {
         ## The adTest compares distributions, and the observed sample is single fires, so it gets
         ## every replicate's fire, not `fireSizes`: a per-fire mean over Nreps has a far shorter tail.
         ## fires of 1 pixel never spread; the per-fire likelihood already leaves them out (N > 1 above)
-        ret <- append(ret, list(allFireSizes = spreadState[, .N, by = c("rep", "initialLocus")][N > 1][["N"]]))
+        ret <- append(ret, list(allFireSizes = simSizes[N > 1][["N"]]))
       }
       if (isTRUE(doYearArea)) {
         ## this year's simulated total per replicate (fires of more than 1 pixel); a replicate with none burns 0
-        a <- spreadState[, .N, by = c("rep", "initialLocus")][N > 1][, list(A = sum(N)), by = "rep"]
+        a <- simSizes[N > 1][, list(A = sum(N)), by = "rep"]
         tot <- numeric(Nreps); tot[a$rep] <- a$A
         ret <- append(ret, list(annualAreaByRep = tot))
       }
@@ -1122,11 +1153,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       if (isTRUE(returnSims)) {
         f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
         return(list(sims = data.table::data.table(yr = as.character(yr), rep = NA_integer_, f,
-                                                  sim = NA_integer_), pSummary = pSummary))
+                                                  sim = NA_integer_), pSummary = pSummary, burned = NULL))
       }
       llik <- rep(log(minLik), length(loci))
       SNLL_FS <- -sum(llik)
-      ret <- append(ret, list(SNLL_FS = SNLL_FS))
+      ret <- append(ret, list(SNLL_FS = SNLL_FS, runaways = 0L, nSims = 0L, gated = TRUE))
       # stop("encountered error with spreadProb - contact module developers")
       # Ian added this stop. Unclear what is supposed to happen. Object ret doesn't exist
       # SNLL <- 1e7
@@ -1167,7 +1198,7 @@ adWeightAuto <- function(nFires, sizeLik = "kde", weighted = FALSE) {
 #'
 #' The density, at `sqrt(size)`, of a Student-t centred on the mean of `sqrt(N)` with the standard
 #' deviation of `sqrt(N)` as its scale. The scale has a lower bound of 0.5, because replicates that
-#' all stop at the same size (e.g. at `maxSize`) have a standard deviation of 0.
+#' all stop at the same size (e.g. every one burned out at a single pixel) have a standard deviation of 0.
 #'
 #' @param size Observed fire size, in pixels.
 #' @param N Simulated sizes of that fire, in pixels; at least two.

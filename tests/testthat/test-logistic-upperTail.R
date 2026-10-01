@@ -92,7 +92,7 @@ test_that("runDEoptim() hands `link` to the fit and to the re-score", {
                            c("maxAsymptote", "hillSlope1", "inflectionPoint1", "upperTail1", "x"))
   testthat::local_mocked_bindings(
     clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
-    DEoptimIterative2 = function(fn, lower, upper, control, ...) {
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
       seen$fitLink <- list(...)$link
       list(list(member = list(pop = finalPop)))
     },

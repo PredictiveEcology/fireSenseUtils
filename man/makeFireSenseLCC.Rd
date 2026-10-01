@@ -8,12 +8,13 @@ makeFireSenseLCC(
   neededYear,
   to,
   maskTo = NULL,
-  nonflammableLCC = c(20, 31, 32, 33),
-  flammabilityThreshold = 0.1,
+  nonflammableLCC = fireSenseNonflammableLCC,
+  flammabilityThreshold = fireSenseFlammabilityThreshold,
   writeTo = NULL,
   overwrite = TRUE,
   destinationPath,
-  lccSource = getOption("fireSense.lccSource", "SCANFI")
+  lccSource = getOption("fireSense.lccSource", "SCANFI"),
+  scanfiVersion = fireSenseSCANFIVersion
 )
 }
 \arguments{
@@ -29,7 +30,7 @@ the output. Forwarded to \code{reproducible::postProcessTo(maskTo = ...)}.
 Default \code{NULL} (no extra mask beyond \code{to}).}
 
 \item{nonflammableLCC}{Numeric vector. LCC codes representing non-flammable
-land cover types (e.g., water, rock, urban). Defaults to \code{c(20, 31, 32, 33)}.
+land cover types (e.g., water, rock, urban). Defaults to \link{fireSenseNonflammableLCC}.
 Pixels with these values are initially masked or converted for thresholding.}
 
 \item{flammabilityThreshold}{Numeric. A value between 0 and 1. Target pixels
@@ -54,6 +55,12 @@ Wetland Inventory Map (\code{LandR::prepInputs_CWIM()}) with \code{LandR::wetlan
 become 81, other wet flammable pixels 80, as in NTEMS. This matches Biomass_borealDataPrep's default
 land cover. \code{"NTEMS"} uses \code{\link[LandR:prepInputs_NTEMS_LCC_FAO]{LandR::prepInputs_NTEMS_LCC_FAO()}}, which has 80 and 81 already, exactly
 as before.}
+
+\item{scanfiVersion}{Character. Only used when \code{lccSource = "SCANFI"}; forwarded to
+\code{\link[LandR:prepInputs_SCANFI_LCC_FAO]{LandR::prepInputs_SCANFI_LCC_FAO()}}'s \code{dataVersion}. Default \code{"V3"} (annual, 1985-2025). The
+installed LandR is checked for \code{dataVersion = "V3"} support before it is called; an older LandR
+stops with a message asking for one that has it, rather than silently building V2 land cover
+under a \code{"V3"} request.}
 }
 \value{
 A list of two  \code{SpatRaster} objects:

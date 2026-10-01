@@ -39,7 +39,7 @@ functions instead of one named file. Parallel to the spread-fit ledger helpers
 \code{latestIgnitionFits()} returns, for every polygon, its rows from the most recently modified
 ledger file that has it. Files are read newest first; with \code{polygonIDs}, reading stops once
 all of them are found. A file already in \code{destinationPath} with the same MD5 as on Drive is not
-downloaded again.
+downloaded again; one that differs is downloaded again with \code{\link[reproducible:preProcess]{reproducible::preProcess()}}.
 }
 \details{
 \code{ignitionFitFileTag} marks the files whose fits use the current model: xgboost ignition and
