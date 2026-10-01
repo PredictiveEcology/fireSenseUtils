@@ -182,8 +182,6 @@ utils::globalVariables(c(
 #'   (1e-29), which bounds the penalty per fire. The ring is computed once per fit (`runDEoptim()`
 #'   adds an `edge` column to `fireBufferedListDT`); a table without that column gets it computed
 #'   on every call.
-#' @param capSizes,penaliseCapHits Deprecated and ignored: fires are no longer capped at a size.
-#'   Use `penaliseRunaways`.
 #' @param runawaySize Size (pixels) given to a runaway replicate when `penaliseRunaways = TRUE`. `NULL`
 #'   (default): the number of non-`NA` pixels of `landscape`, or `1e7` if `landscape` has no values.
 #'
@@ -198,6 +196,8 @@ utils::globalVariables(c(
 #'   formula). Default `list("youngAge" = c("class", "nf"))`.
 #'
 #' @param ... This is not used here, but allows for extraneous arguments to not break this function.
+#'   The removed arguments `capSizes` and `penaliseCapHits` arrive here: they are ignored with a
+#'   deprecation warning (fires are no longer capped at a size; use `penaliseRunaways`).
 #'
 #' @return
 #' Attempting a weighted likelihood,
