@@ -238,10 +238,9 @@ includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEo
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 
-\item{...}{This is not used here, but allows for extraneous arguments to not break this function.}
-
-\item{capSizes, penaliseCapHits}{Deprecated and ignored: fires are no longer capped at a size.
-Use \code{penaliseRunaways}.}
+\item{...}{This is not used here, but allows for extraneous arguments to not break this function.
+The removed arguments \code{capSizes} and \code{penaliseCapHits} arrive here: they are ignored with a
+deprecation warning (fires are no longer capped at a size; use \code{penaliseRunaways}).}
 }
 \value{
 Attempting a weighted likelihood,
