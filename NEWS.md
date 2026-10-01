@@ -1,3 +1,12 @@
+# fireSenseUtils 0.2.3.9047
+
+* New `ignitionFitFilenameFor()` and `latestIgnitionFits()`, parallel to `spreadFitFilenameFor()`/
+  `latestSpreadFits()`: name and read the shared, geo-keyed ledger of `fireSense_IgnitionFit`
+  fits (ignition and escape together), so `fireSense_ELFs` can assemble per-ELF fit lists for a
+  multi-ELF study area the same way it does for spread fits.
+* New constant `ignitionFitAdditionalColNamesTxt` (`"fireSense_IgnitionFitted"`,
+  `"fireSense_EscapeFitted"`): the list-column names of an ignition-fit ledger row.
+
 # fireSenseUtils 0.2.3.9046
 
 * `spreadFitFileTag` is now `"_linearFuel_esc50"`: fits made with the 50-ha escape and the new objective terms go
