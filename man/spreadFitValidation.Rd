@@ -22,7 +22,6 @@ spreadFitValidationData(
   maxFireSpread = 0.28,
   link = NULL,
   fitYearSpreadSD = NULL,
-  capSizes = FALSE,
   seed = NULL,
   ...
 )
@@ -97,10 +96,6 @@ year's fires are bigger or smaller together. Without it the simulated fire sizes
 medians too large and the largest fires too small at once (2026-09-23). \code{sd = 0} is the model
 without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{TRUE} when \code{par} is named and
 includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
-
-\item{capSizes}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}. \code{FALSE} (default) lets simulated fires grow past
-the cap the fit puts on each fire, as in \code{\link[=simulateFireSizes]{simulateFireSizes()}}, so a model that burns too much
-can show it.}
 
 \item{seed}{If not \code{NULL}, the simulations run with this seed and the session's random number
 stream is restored afterwards.}

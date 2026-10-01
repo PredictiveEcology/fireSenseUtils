@@ -43,12 +43,12 @@ test_that("objFunInner(returnSims = TRUE) returns each replicate's simulated siz
   expect_equal(out$pSummary$atCeiling, 100)
 })
 
-test_that("capSizes = FALSE lifts the size cap the fit puts on each fire", {
+test_that("no size cap is passed to spreadCpp: spread is bounded only by the buffers", {
   seen <- new.env()
   callInner(seen, returnSims = TRUE)
-  expect_true(all(is.finite(seen$maxSize)))
-  callInner(seen, returnSims = TRUE, capSizes = FALSE)
-  expect_equal(seen$maxSize, Inf)
+  expect_null(seen$maxSize)
+  callInner(seen)
+  expect_null(seen$maxSize)
 })
 
 test_that(".objfunSpreadFit(returnSims = TRUE) stacks every year and combines the spread probabilities", {

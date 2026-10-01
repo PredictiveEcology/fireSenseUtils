@@ -38,13 +38,12 @@ test_that("the new arguments are off by default, in the objective and in runDEop
 
 ## objFunInner() with spread faked (the idiom of test-objFunInner-escapeMinSize.R): the arguments it gives spreadCpp()
 r20 <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20)
-spreadCppSeen <- function(capTo = NULL, ...) {
+spreadCppSeen <- function(...) {
   seen <- list()
   mocks <- list(
     paramsSeparate = function(...) list(logisticPars = c(0.27, 1, 1), covPars = 1),
     spreadProbFromIntegerCovs = function(...) data.table::data.table(pixelID = 1:400, cov = 0),
     logisticAll = function(...) seq(0.15, 0.26, length.out = 400))
-  if (!is.null(capTo)) mocks$multiplier <- function(size, ...) rep(capTo, length(size))
   do.call(local_mocked_bindings, c(mocks, .package = "fireSenseUtils"))
   local_mocked_bindings(
     spreadCpp = function(...) {
@@ -63,12 +62,12 @@ spreadCppSeen <- function(capTo = NULL, ...) {
   seen
 }
 
-test_that("the per-fire size cap is raised to the escape size (spreadCpp needs minSize <= maxSize)", {
+test_that("the escape size reaches spreadCpp as minSize, and no maxSize is given with or without it", {
   skip_if_not_installed("SpaDES.tools")
-  a <- spreadCppSeen(capTo = 3, escapeMinPx = 9L)
-  expect_true(all(vapply(a, function(x) min(x$maxSize) >= 9 && identical(x$minSize, 9L), logical(1))))
-  b <- spreadCppSeen(capTo = 3)                       # without an escape size the cap is left alone
-  expect_true(all(vapply(b, function(x) identical(max(x$maxSize), 3), logical(1))))
+  a <- spreadCppSeen(escapeMinPx = 9L)
+  expect_true(all(vapply(a, function(x) identical(x$minSize, 9L) && is.null(x$maxSize), logical(1))))
+  b <- spreadCppSeen()
+  expect_true(all(vapply(b, function(x) is.null(x$maxSize) && is.null(x$minSize), logical(1))))
 })
 
 test_that("jumpTries and jumpMeanDist reach spreadCpp() with an escape size", {

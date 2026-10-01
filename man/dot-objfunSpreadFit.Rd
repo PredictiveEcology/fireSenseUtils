@@ -39,8 +39,7 @@
   link = NULL,
   returnSims = FALSE,
   returnBurned = FALSE,
-  capSizes = TRUE,
-  penaliseCapHits = TRUE,
+  penaliseRunaways = TRUE,
   runawaySize = NULL,
   fitYearSpreadSD = NULL,
   verbose = 2,
@@ -117,7 +116,11 @@ view and the per-fire view carry equal total weight.}
 compares simulated and observed fires by the share of area burned they make up. \code{0} (default) leaves
 it out; \code{"auto"} uses the AD term's weight, \code{adWeightAuto()}.}
 
-\item{returnTerms}{Logical. \code{TRUE} returns the objective with each term separately (diagnostics).}
+\item{returnTerms}{Logical. \code{TRUE} returns the objective with each term separately (diagnostics),
+and two fields about the first block of years (the one \code{thresh} stops early): \code{firstBlockSNLL},
+its SNLL per year as \code{thresh} is compared with it (so a trial with \code{thresh = Inf} reports what
+it would have been judged on), and \code{bailed}, 1 if a year of that block was refused as "too burny"
+or "not spread out enough" or the block's SNLL was above the threshold, else 0.}
 
 \item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
 
@@ -208,21 +211,21 @@ result carries \code{attr(, "burned")}, a named list with one element per simula
 cells included). A year the objective declines to simulate is \code{NULL}. For
 \code{\link[=spreadFitValidationData]{spreadFitValidationData()}}. \code{FALSE} (default) records nothing and changes nothing.}
 
-\item{capSizes}{If \code{FALSE}, simulated fires are not capped at \code{\link[=multiplier]{multiplier()}} of their observed
-size. The fit needs the cap; validation should not have it, or a model that predicts fires far
-too large cannot show it.}
+\item{penaliseRunaways}{If \code{TRUE} (default), a simulated fire that burns any pixel of the edge ring
+of its own fire's buffer is censored: it reached the outer edge of the area it is allowed to
+spread in, so it is "at least this big", a runaway. The edge ring is the buffer pixels with a
+queen neighbour outside the fire's own buffer (see \code{\link[=bufferEdge]{bufferEdge()}}). In every size-based term
+(the per-fire size likelihood, \code{"adTest"}, \code{yearAreaWeight}, \code{"mad"}) the size of a runaway is
+replaced by \code{runawaySize}, and in the per-fire likelihood it has no density at the observed
+size (the likelihood is that of the other replicates times their share; 0, i.e. \code{minLik}, if
+fewer than two replicates remain). \code{FALSE} scores the simulated size. Fires are not capped at any
+size: spread is bounded only by the year's buffers. Has no effect with \code{returnSims = TRUE} (the
+simulated sizes are returned as simulated). The per-fire likelihood is floored at \code{minLik}
+(1e-29), which bounds the penalty per fire. The ring is computed once per fit (\code{runDEoptim()}
+adds an \code{edge} column to \code{fireBufferedListDT}); a table without that column gets it computed
+on every call.}
 
-\item{penaliseCapHits}{If \code{TRUE} (default), a simulated fire that reaches its cap (\code{capSizes}) is
-censored: it is "at least this big", i.e. a runaway, not a fire of the capped size. In every
-size-based term (the per-fire size likelihood, \code{"adTest"}, \code{yearAreaWeight}, \code{"mad"}) its size is
-replaced by \code{runawaySize}, so a fire whose replicates mostly hit the cap scores a very low
-likelihood instead of being a fire about five times too large. \code{FALSE} scores the capped size
-(the behaviour before this argument). Has no effect with \code{capSizes = FALSE} (nothing is capped) or
-with \code{returnSims = TRUE} (the simulated sizes are returned as simulated). The per-fire likelihood
-is floored at \code{minLik} (1e-29), which bounds the penalty per fire; thresholds (\code{thresh}) calibrated
-without the penalty will differ.}
-
-\item{runawaySize}{Size (pixels) given to a capped replicate when \code{penaliseCapHits = TRUE}. \code{NULL}
+\item{runawaySize}{Size (pixels) given to a runaway replicate when \code{penaliseRunaways = TRUE}. \code{NULL}
 (default): the number of non-\code{NA} pixels of \code{landscape}, or \code{1e7} if \code{landscape} has no values.}
 
 \item{fitYearSpreadSD}{If \code{TRUE}, the last element of \code{par} is the sd of a per-year random effect on
@@ -236,6 +239,9 @@ includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEo
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 
 \item{...}{This is not used here, but allows for extraneous arguments to not break this function.}
+
+\item{capSizes, penaliseCapHits}{Deprecated and ignored: fires are no longer capped at a size.
+Use \code{penaliseRunaways}.}
 }
 \value{
 Attempting a weighted likelihood,

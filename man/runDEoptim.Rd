@@ -54,9 +54,10 @@ runDEoptim(
   jumpMeanDist = 0,
   yearAreaWeight = 0,
   areaDistWeight = 0,
-  penaliseCapHits = TRUE,
+  penaliseRunaways = TRUE,
   profileReps = 0L,
-  simulateMembers = 0L
+  simulateMembers = 0L,
+  penaliseCapHits = NULL
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -200,8 +201,9 @@ fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 \item{jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit
 and the final-population re-score. Off by default (\code{0}).}
 
-\item{penaliseCapHits}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
-scores a simulated fire that reaches its size cap as a runaway, not as a fire of the capped size.}
+\item{penaliseRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
+scores a simulated fire that reaches the edge of its own buffer as a runaway, not as a fire of
+the size it reached. The edge ring of every buffer is computed here, once (\code{\link[=addBufferEdge]{addBufferEdge()}}).}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.
@@ -210,6 +212,8 @@ Needs \code{rescoreReps > 0}. Costs about \code{6 * nCoefficients * profileReps}
 \item{simulateMembers}{Integer. If above 0, that many best members of the re-score simulate the
 observed fires without the size cap (\code{\link[=simulateFireSizes]{simulateFireSizes()}}), attached as \code{attr(DE, "fitSims")}
 for \code{\link[=scoreFireSizes]{scoreFireSizes()}} and \code{\link[=linkSaturation]{linkSaturation()}}. Needs \code{rescoreReps > 0}.}
+
+\item{penaliseCapHits}{Deprecated and ignored; use \code{penaliseRunaways}.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
