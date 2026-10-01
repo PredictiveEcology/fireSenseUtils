@@ -1,3 +1,9 @@
+# fireSenseUtils (development version)
+
+* `.objfunSpreadFit()` no longer caps a simulated fire at `multiplier()` of its observed size; spread is bounded only by the year's buffers. A fire is a runaway, and censored as the cap-hit rule did, when it burns any pixel of the edge ring of its own buffer: a buffer pixel with a queen neighbour outside that fire's buffer (another fire's buffer, a removed non-flammable pixel, `NA`, the raster edge). `penaliseRunaways = TRUE` (default) replaces `penaliseCapHits`; `capSizes` and `penaliseCapHits` are deprecated and ignored with a warning, and `runDEoptim()` takes `penaliseRunaways`. The SNLL log line reports the runaway share. Without the cap the first-block SNLL has a different scale, so `thresh` values calibrated before this change will differ, and a calibration must use this objective. `spreadFitValidationData(capSizes =)` is removed (validation never capped).
+* New `bufferEdge()` and `addBufferEdge()` compute the edge ring. `runDEoptim()` adds an `edge` column to `fireBufferedListDT` once, before the tables go to the workers (about 0.09 s per 90,000 buffer pixels; the check per evaluation is about 8 ms for 200,000 burned pixels); a table without the column gets it computed on every call.
+* `.objfunSpreadFit(returnTerms = TRUE)` also returns `firstBlockSNLL`, the first block's SNLL per year as `thresh` is compared with it, and `bailed` (1/0), whether a year of that block was refused as "too burny" or "not spread out enough" or the block was above the threshold. Both are available with `thresh = Inf`.
+
 # fireSenseUtils 0.2.3.9074
 
 * `cohortsToFuelClasses()` builds the fuel classes on cell vectors instead of one `SpatRaster` per class, and has `asTable = TRUE` to return the `pixelID` table that `fireSenseCovariatesCreate()` makes from the stack, so that function no longer builds the rasters and converts them back (about 6 s of its 10 s on 6.7M cells). The raster and the table are identical to before.

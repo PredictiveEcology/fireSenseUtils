@@ -4,7 +4,7 @@
 #' `fireSense_spreadFit` can make them after every fit.
 #'
 #' * `simulateFireSizes()` simulates the observed fires from each of several parameter sets, with
-#'   the objective's size cap and "too burny" gate lifted, and returns the simulated sizes.
+#'   the "too burny" gate lifted, and returns the simulated sizes.
 #' * `scoreFireSizes()` compares those with the observed sizes: per fire, per year, and by
 #'   quantile. It never uses the objective's value.
 #' * `linkSaturation()` reports how many pixel-years sit at the spread-probability ceiling. When
@@ -69,7 +69,7 @@ combineSpreadProbSummaries <- function(x) {
 #' @rdname fitDiagnostics
 simulateFireSizes <- function(pop, fn = .objfunSpreadFit, fnArgs = list(), cl = NULL, seed = 1L) {
   pop <- as.matrix(pop)
-  fnArgs <- utils::modifyList(fnArgs, list(returnSims = TRUE, capSizes = FALSE, thresh = Inf,
+  fnArgs <- utils::modifyList(fnArgs, list(returnSims = TRUE, thresh = Inf,
                                            lanscape1stQuantileThresh = Inf))
   jobList <- lapply(seq_len(NROW(pop)), function(i) list(par = pop[i, ], seed = as.integer(seed)))
   sims <- if (is.null(cl)) {

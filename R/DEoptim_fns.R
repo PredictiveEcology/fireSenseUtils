@@ -126,8 +126,10 @@ utils::globalVariables(c(
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
 #' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
 #'   and the final-population re-score. Off by default (`0`).
-#' @param penaliseCapHits Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
-#'   scores a simulated fire that reaches its size cap as a runaway, not as a fire of the capped size.
+#' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
+#'   scores a simulated fire that reaches the edge of its own buffer as a runaway, not as a fire of
+#'   the size it reached. The edge ring of every buffer is computed here, once ([addBufferEdge()]).
+#' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
@@ -203,9 +205,13 @@ runDEoptim <- function(landscape,
                        jumpMeanDist = 0,
                        yearAreaWeight = 0,
                        areaDistWeight = 0,
-                       penaliseCapHits = TRUE,
+                       penaliseRunaways = TRUE,
                        profileReps = 0L,
-                       simulateMembers = 0L) {
+                       simulateMembers = 0L,
+                       penaliseCapHits = NULL) {
+  if (!is.null(penaliseCapHits)) deprecatedCapArgs("penaliseCapHits")
+  ## the edge ring of each fire's buffer, once, before the tables go to the workers
+  fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
   if (isTRUE(is.na(cores))) cores <- NULL
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
@@ -308,7 +314,7 @@ runDEoptim <- function(landscape,
       jumpMeanDist = jumpMeanDist,
       yearAreaWeight = yearAreaWeight,
       areaDistWeight = areaDistWeight,
-      penaliseCapHits = penaliseCapHits,
+      penaliseRunaways = penaliseRunaways,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -334,7 +340,7 @@ runDEoptim <- function(landscape,
                       fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa,
                       jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
                       yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
-                      penaliseCapHits = penaliseCapHits)
+                      penaliseRunaways = penaliseRunaways)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(

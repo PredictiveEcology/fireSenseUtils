@@ -19,9 +19,6 @@
 #'   `yearSpreadSD` last if fitted).
 #' @inheritParams .objfunSpreadFit
 #' @param Nreps Simulations per fire; use the fit's `Nreps`.
-#' @param capSizes Passed to [.objfunSpreadFit()]. `FALSE` (default) lets simulated fires grow past
-#'   the cap the fit puts on each fire, as in [simulateFireSizes()], so a model that burns too much
-#'   can show it.
 #' @param seed If not `NULL`, the simulations run with this seed and the session's random number
 #'   stream is restored afterwards.
 #' @param ... Further arguments to [.objfunSpreadFit()], e.g. `escapeSizeHa`, `jumpTries`,
@@ -46,7 +43,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                     mutuallyExclusive = list("youngAge" = c("class", "nf")),
                                     covCentre = NULL, Nreps = 10, lowerSpreadProb = 0.13,
                                     maxFireSpread = 0.28, link = NULL, fitYearSpreadSD = NULL,
-                                    capSizes = FALSE, seed = NULL, ...) {
+                                    seed = NULL, ...) {
   if (!is.null(seed)) withr::local_seed(seed)
   objArgs <- utils::modifyList(
     list(lanscape1stQuantileThresh = Inf, doAssertions = FALSE, verbose = 0),
@@ -57,7 +54,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
     historicalFires = historicalFires, fireBufferedListDT = fireBufferedListDT,
     covMinMax = covMinMax, mutuallyExclusive = mutuallyExclusive, covCentre = covCentre,
     Nreps = Nreps, lowerSpreadProb = lowerSpreadProb, maxFireSpread = maxFireSpread, link = link,
-    fitYearSpreadSD = fitYearSpreadSD, capSizes = capSizes, returnBurned = TRUE), objArgs))
+    fitYearSpreadSD = fitYearSpreadSD, returnBurned = TRUE), objArgs))
   burned <- attr(sims, "burned")
 
   ## the parameters as the objective uses them
