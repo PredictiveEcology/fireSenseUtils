@@ -55,8 +55,8 @@ runDEoptim(
   yearAreaWeight = 0,
   areaDistWeight = 0,
   penaliseRunaways = TRUE,
-  runawayEdgeFrac = 0.01,
-  runawayEdgeMin = 3,
+  runawayEdgeFrac = fireSenseRunawayEdgeFrac,
+  runawayEdgeMin = fireSenseRunawayEdgeMin,
   profileReps = 0L,
   simulateMembers = 0L,
   penaliseCapHits = NULL
@@ -209,7 +209,7 @@ the size it reached. The edge ring of every buffer is computed here, once (\code
 
 \item{runawayEdgeFrac, runawayEdgeMin}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: a
 replicate is a runaway only if it burns at least \code{max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))}
-of the \code{n} edge-ring pixels of its fire (at most \code{n}). Defaults \code{0.01} and \code{3}.}
+of the \code{n} edge-ring pixels of its fire (at most \code{n}). Defaults \link{fireSenseRunawayEdgeFrac} and \link{fireSenseRunawayEdgeMin}.}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.

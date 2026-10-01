@@ -131,7 +131,7 @@ utils::globalVariables(c(
 #'   the size it reached. The edge ring of every buffer is computed here, once ([addBufferEdge()]).
 #' @param runawayEdgeFrac,runawayEdgeMin Passed to [.objfunSpreadFit()] in the fit and the re-score: a
 #'   replicate is a runaway only if it burns at least `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))`
-#'   of the `n` edge-ring pixels of its fire (at most `n`). Defaults `0.01` and `3`.
+#'   of the `n` edge-ring pixels of its fire (at most `n`). Defaults [fireSenseRunawayEdgeFrac] and [fireSenseRunawayEdgeMin].
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
@@ -209,8 +209,8 @@ runDEoptim <- function(landscape,
                        yearAreaWeight = 0,
                        areaDistWeight = 0,
                        penaliseRunaways = TRUE,
-                       runawayEdgeFrac = 0.01,
-                       runawayEdgeMin = 3,
+                       runawayEdgeFrac = fireSenseRunawayEdgeFrac,
+                       runawayEdgeMin = fireSenseRunawayEdgeMin,
                        profileReps = 0L,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL) {

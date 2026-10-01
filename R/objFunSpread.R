@@ -185,7 +185,7 @@ utils::globalVariables(c(
 #' @param runawayEdgeFrac,runawayEdgeMin A replicate is a runaway only if it burns at least `k` distinct
 #'   pixels of its fire's edge ring, where `k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))` and `n`
 #'   is the number of ring pixels of that fire; `k` is never more than `n`. One touched pixel is luck,
-#'   not a fire that wants to leave its buffer. Defaults `0.01` and `3`. Only the classification
+#'   not a fire that wants to leave its buffer. Defaults [fireSenseRunawayEdgeFrac] and [fireSenseRunawayEdgeMin]. Only the classification
 #'   changes: what is done to a runaway is as described for `penaliseRunaways`.
 #' @param runawaySize Size (pixels) given to a runaway replicate when `penaliseRunaways = TRUE`. `NULL`
 #'   (default): the number of non-`NA` pixels of `landscape`, or `1e7` if `landscape` has no values.
@@ -255,8 +255,8 @@ utils::globalVariables(c(
                              returnSims = FALSE,
                              returnBurned = FALSE,
                              penaliseRunaways = TRUE,
-                             runawayEdgeFrac = 0.01,
-                             runawayEdgeMin = 3,
+                             runawayEdgeFrac = fireSenseRunawayEdgeFrac,
+                             runawayEdgeMin = fireSenseRunawayEdgeMin,
                              runawaySize = NULL,
                              fitYearSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
@@ -666,7 +666,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
-                        runawaySize = NULL, runawayEdgeFrac = 0.01, runawayEdgeMin = 3, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
+                        runawaySize = NULL, runawayEdgeFrac = fireSenseRunawayEdgeFrac, runawayEdgeMin = fireSenseRunawayEdgeMin, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 

@@ -40,8 +40,8 @@
   returnSims = FALSE,
   returnBurned = FALSE,
   penaliseRunaways = TRUE,
-  runawayEdgeFrac = 0.01,
-  runawayEdgeMin = 3,
+  runawayEdgeFrac = fireSenseRunawayEdgeFrac,
+  runawayEdgeMin = fireSenseRunawayEdgeMin,
   runawaySize = NULL,
   fitYearSpreadSD = NULL,
   verbose = 2,
@@ -230,7 +230,7 @@ on every call.}
 \item{runawayEdgeFrac, runawayEdgeMin}{A replicate is a runaway only if it burns at least \code{k} distinct
 pixels of its fire's edge ring, where \code{k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))} and \code{n}
 is the number of ring pixels of that fire; \code{k} is never more than \code{n}. One touched pixel is luck,
-not a fire that wants to leave its buffer. Defaults \code{0.01} and \code{3}. Only the classification
+not a fire that wants to leave its buffer. Defaults \link{fireSenseRunawayEdgeFrac} and \link{fireSenseRunawayEdgeMin}. Only the classification
 changes: what is done to a runaway is as described for \code{penaliseRunaways}.}
 
 \item{runawaySize}{Size (pixels) given to a runaway replicate when \code{penaliseRunaways = TRUE}. \code{NULL}
