@@ -181,7 +181,9 @@ utils::globalVariables(c(
 #'   simulated sizes are returned as simulated). The per-fire likelihood is floored at `minLik`
 #'   (1e-29), which bounds the penalty per fire. The ring is computed once per fit (`runDEoptim()`
 #'   adds an `edge` column to `fireBufferedListDT`); a table without that column gets it computed
-#'   on every call.
+#'   on every call. With the penalty, a fire stops burning once it is a runaway (it has burned `k`
+#'   of its ring pixels; `SpaDES.tools::spreadCpp(stopCells =)`), as nothing it burns after that is
+#'   scored. Not with `returnSims = TRUE`.
 #' @param runawayEdgeFrac,runawayEdgeMin A replicate is a runaway only if it burns at least `k` distinct
 #'   pixels of its fire's edge ring, where `k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))` and `n`
 #'   is the number of ring pixels of that fire; `k` is never more than `n`. One touched pixel is luck,
@@ -840,6 +842,20 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## 10-33% by bounding box on ELFs 5.3.1, 5.3.2, 13.1). See cropToCells() for why the result
       ## is the same. Indices are mapped back below, so nothing after spread() sees the crop.
       crop <- cropToCells(r, c(shortAnnDT$pixelID, loci))
+      ## k per fire, once: the early stop below and the runaway classification further down both use it
+      ringK <- edgeRing[, list(k = as.integer(pmin(.N, pmax(runawayEdgeMin, ceiling(runawayEdgeFrac * .N))))), by = "ids"]
+      ## A runaway is censored, so with the penalty a fire stops burning once it is one. Without it (or
+      ## when the simulated sizes are returned) a runaway's size is used, and it must keep burning.
+      ## A ring pixel with no spreadProb row is outside the crop and never burns, so it is left out.
+      stopArgs <- NULL
+      if (!is.null(runawaySize) && !isTRUE(returnSims)) {
+        stopRing <- edgeRing[ids %in% annualFires$ids & pixelID %in% shortAnnDT$pixelID]
+        stopArgs <- list(
+          stopCells = crop$toCrop(stopRing$pixelID),
+          stopEvent = match(stopRing$ids, annualFires$ids),
+          stopAt = data.table::fcoalesce(ringK$k[match(annualFires$ids, ringK$ids)], 1L) # 1L: a fire with no ring
+        )
+      }
       spreadProbCrop <- numeric(crop$ncell)
       spreadProbCrop[crop$toCrop(shortAnnDT$pixelID)] <- shortAnnDT$spreadProb
       # if (any(cells[loci] == 0)) {
@@ -883,7 +899,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           SpaDES.tools::spreadCpp(
             landscape = crop$r,
             loci = crop$toCrop(loci),
-            spreadProb = sp
+            spreadProb = sp,
+            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt
           )
         } else { ## an escaped fire burns its first escapeMinPx cells whatever spreadProb
           SpaDES.tools::spreadCpp(
@@ -892,7 +909,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
             spreadProb = sp,
             minSize = escapeMinPx,
             jumpTries = jumpTries,
-            jumpMeanDist = jumpMeanDist
+            jumpMeanDist = jumpMeanDist,
+            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt
           )
         }
       })
@@ -935,10 +953,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       burnedRing <- burnedRing[edgeRing, on = c("ids", "pixelID"), nomatch = NULL]
       runaway <- rep(FALSE, NROW(simSizes))
       if (NROW(burnedRing)) {
-        ringN <- edgeRing[, list(nRing = .N), by = "ids"]
-        ringN[, k := pmin(nRing, pmax(runawayEdgeMin, ceiling(runawayEdgeFrac * nRing)))]
         hits <- burnedRing[, list(nHit = data.table::uniqueN(pixelID)), by = c("rep", "initialLocus", "ids")]
-        hits <- hits[ringN, on = "ids", nomatch = NULL][nHit >= k, list(rep, initialLocus)]
+        hits <- hits[ringK, on = "ids", nomatch = NULL][nHit >= k, list(rep, initialLocus)]
         runaway[simSizes[hits, on = c("rep", "initialLocus"), which = TRUE]] <- TRUE
       }
       censored <- runaway & !is.null(runawaySize)

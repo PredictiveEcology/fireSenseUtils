@@ -225,7 +225,9 @@ size: spread is bounded only by the year's buffers. Has no effect with \code{ret
 simulated sizes are returned as simulated). The per-fire likelihood is floored at \code{minLik}
 (1e-29), which bounds the penalty per fire. The ring is computed once per fit (\code{runDEoptim()}
 adds an \code{edge} column to \code{fireBufferedListDT}); a table without that column gets it computed
-on every call.}
+on every call. With the penalty, a fire stops burning once it is a runaway (it has burned \code{k}
+of its ring pixels; \code{SpaDES.tools::spreadCpp(stopCells =)}), as nothing it burns after that is
+scored. Not with \code{returnSims = TRUE}.}
 
 \item{runawayEdgeFrac, runawayEdgeMin}{A replicate is a runaway only if it burns at least \code{k} distinct
 pixels of its fire's edge ring, where \code{k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))} and \code{n}

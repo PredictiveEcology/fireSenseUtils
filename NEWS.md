@@ -1,6 +1,6 @@
 # fireSenseUtils (development version)
 
-* A spread replicate is now a runaway only when it burns at least `k` distinct pixels of its fire's buffer edge ring, `k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * ring size))` (defaults `0.01` and `3`; `k` is at most the ring size), not when it touches one. New arguments `runawayEdgeFrac` and `runawayEdgeMin` of `.objfunSpreadFit()` and `runDEoptim()`; censoring and `runawaySize` are unchanged.
+* A spread replicate is now a runaway only when it burns at least `k` distinct pixels of its fire's buffer edge ring, `k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * ring size))` (defaults `0.01` and `3`; `k` is at most the ring size), not when it touches one. New arguments `runawayEdgeFrac` and `runawayEdgeMin` of `.objfunSpreadFit()` and `runDEoptim()`; censoring and `runawaySize` are unchanged. With `penaliseRunaways = TRUE` (and not `returnSims`), a fire now also stops burning once it is a runaway: the objective passes each fire's edge-ring cells and the same `k` to `SpaDES.tools::spreadCpp(stopCells, stopEvent, stopAt)`, since nothing it burns afterwards is scored. Needs SpaDES.tools >= 2.1.3.9013.
 
 # fireSenseUtils 0.2.3.9076
 
