@@ -1,3 +1,8 @@
+# fireSenseUtils (development version)
+
+* New exported `isYoungAge(age, cutoffForYoungAge)` is the one place the `youngAge` rule lives (`age <= cutoffForYoungAge`, `NA` not young); `makeTSD()`, `castCohortData()`, `cohortsToFuelClasses()`, `youngAgeAtYear()`, `calcYoungAge()`, `calcNonForestYoungAge()` and `fireSenseCovariatesCreate()` all call it. `calcNonForestYoungAge()` used `<`, so prediction differed from fitting for non-forest pixels whose age equals the cutoff. `castCohortData()` now gives `youngAge = 0` (was `NA`) for an `NA` stand age, and the deprecated `calcYoungAge()` no longer counts an `NA` age as young.
+* `cohortsToFuelClasses()` no longer fails when terra is not attached: `as.int` is now imported from terra.
+
 # fireSenseUtils 0.2.3.9072
 
 * `.objfunSpreadFit()` treats a simulated fire that reaches its cap (`multiplier()` of the observed size) as censored, a runaway, instead of a fire of the capped size. Its size becomes `runawaySize` (default: the landscape's non-`NA` pixels) in the `adTest`, annual-area and `mad` terms, and in the per-fire size likelihood it has no density at the observed size (the likelihood is that of the other replicates times their share). `penaliseCapHits = FALSE` restores the old scoring; `capSizes = FALSE` and `returnSims` are unchanged. The per-fire likelihood is still floored at `minLik`, and `thresh` values calibrated before this change will differ. The SNLL log line now reports the capHit share. `runDEoptim()` takes `penaliseCapHits` (default `TRUE`) and passes it to the fit and the re-score; it changes the DEoptim cache key.

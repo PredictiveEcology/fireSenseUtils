@@ -103,7 +103,7 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   # standAgeVals <- values(standAgeMap, mat = FALSE)
   ## these have no disturbance history but are apparently young
 
-  falseYoungs <- standAgeVals[c(pixelID %in% pixToUpdate & age <= cutoffForYoungAge) |
+  falseYoungs <- standAgeVals[c(pixelID %in% pixToUpdate & isYoungAge(age, cutoffForYoungAge)) |
                                 c(pixelID %in% pixToUpdate & is.na(age))]$pixelID
   ## disturbance history suggests young
 
@@ -111,7 +111,7 @@ makeTSD <- function(year, firePolys = NULL, fireRaster = NULL,
   ## missing fireRaster value (no recorded disturbance) is not flagged as young
   ## and trueYoungs / trueAges stay length-locked for the := assignment.
   tsdAtPix <- terra::values(initialTSD, mat = FALSE)[pixToUpdate]
-  youngPos <- which(tsdAtPix <= cutoffForYoungAge)
+  youngPos <- which(isYoungAge(tsdAtPix, cutoffForYoungAge))
   trueYoungs <- pixToUpdate[youngPos]
   trueAges <- tsdAtPix[youngPos]
   standAgeVals[pixelID %in% falseYoungs, age := cutoffForYoungAge + 1]
@@ -166,7 +166,7 @@ youngAgeAtYear <- function(tsd, dataYear, year, firePixelsByYear = list(),
       age[pos] <- pmin(age[pos], year - fy)
     }
   }
-  as.integer(age <= cutoffForYoungAge & !is.na(age))
+  as.integer(isYoungAge(age, cutoffForYoungAge))
 }
 
 #' Pixel IDs burned in each year
@@ -229,8 +229,7 @@ calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListD
     fires <- fireBufferedListDT[[year]]
     if (!is.null(fires)) {
       ageVals <- values(standAgeMap, mat = FALSE)
-      set(ann, NULL, "youngAge", as.integer(ageVals[ann$pixelID] <= cutoffForYoungAge) |
-        is.na(ageVals[ann$pixelID])) ## cannot have NAs
+      set(ann, NULL, "youngAge", as.integer(isYoungAge(ageVals[ann$pixelID], cutoffForYoungAge)))
       burnedPix <- fires$pixelID[fires$buffer == 1]
       ageVals[burnedPix] <- 0
       standAgeMap <- setValues(standAgeMap, values = ageVals)
@@ -238,4 +237,21 @@ calcYoungAge <- function(years, annualCovariates, standAgeMap, fireBufferedListD
     standAgeMap <- setValues(standAgeMap, values = values(standAgeMap, mat = FALSE) + 1)
   }
   return(annualCovariates)
+}
+
+#' Is an age young?
+#'
+#' The single rule for `youngAge`: an age is young when it is at or below
+#' `cutoffForYoungAge` (`age <= cutoffForYoungAge`). `NA` is never young. Every
+#' place in fireSenseUtils that decides young or not young calls this function, so
+#' fitting and prediction cannot disagree at the cutoff.
+#'
+#' @param age numeric vector of ages (stand age or time since disturbance), in years.
+#' @param cutoffForYoungAge age at and below which a pixel is young.
+#'
+#' @return logical vector the length of `age`; `FALSE` where `age` is `NA`.
+#'
+#' @export
+isYoungAge <- function(age, cutoffForYoungAge = fireSenseYoungAgeCutoff) {
+  age <= cutoffForYoungAge & !is.na(age)
 }

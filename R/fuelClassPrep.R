@@ -764,7 +764,7 @@ fireSenseCovariatesCreate <- function(cohortData,
     
     # this should only alter non-forest
     spreadCovariates[, isNonForest := rowSums(.SD) > 0, .SDcols = names(nonForestedLCCGroups)]
-    spreadCovariates[, YA_NF := as.vector(nonForest_timeSinceDisturbance)[spreadCovariates$pixelID] <= cutoffForYoungAge &
+    spreadCovariates[, YA_NF := isYoungAge(as.vector(nonForest_timeSinceDisturbance)[spreadCovariates$pixelID], cutoffForYoungAge) &
                        isNonForest == TRUE]
     spreadCovariates[YA_NF == TRUE, youngAge := 1]
     spreadCovariates[, c("YA_NF", "isNonForest") := NULL]
@@ -948,7 +948,7 @@ putBackIntoRaster <- function(lcc, landcoverDT, flammableMap) {
 #' 1. Determines the set of non-forest columns as all columns in `landcoverDT`
 #'    except `pixelID`, and computes a per-row sum (`sumRows`).
 #' 2. Retrieves pixel ages from `NFTSD` using `pixelID` as indices.
-#' 3. Selects pixels where `sumRows > 0` **and** `age < cutoffForYoungAge`;
+#' 3. Selects pixels where `sumRows > 0` **and** `age <= cutoffForYoungAge`;
 #'    these pixels are considered "young non-forest".
 #' 4. Sets those pixels to 0 in **every layer** of `LCCras` using cell indexing.
 #' 5. Builds a new single-layer raster with 1 at those pixel locations and 0
@@ -966,7 +966,7 @@ putBackIntoRaster <- function(lcc, landcoverDT, flammableMap) {
 #'     indicates presence (`sumRows > 0`).
 #' - `NFTSD` is a numeric vector (or similar) indexable by `pixelID`, providing
 #'   the age (in the same units as `cutoffForYoungAge`) for each cell.
-#' - `cutoffForYoungAge` is a scalar numeric threshold; pixels with `age <
+#' - `cutoffForYoungAge` is a scalar numeric threshold; pixels with `age <=
 #'   cutoffForYoungAge` are flagged as "young".
 #'
 #' **Notes**
@@ -988,7 +988,7 @@ putBackIntoRaster <- function(lcc, landcoverDT, flammableMap) {
 #'   `pixelID`. Pixels identified as "young non-forest" are set to 0 in all
 #'   layers. A new `youngAge` layer is appended.
 #' @param cutoffForYoungAge numeric(1).
-#'   Age threshold; pixels with `age < cutoffForYoungAge` and non-forest
+#'   Age threshold; pixels with `age <= cutoffForYoungAge` and non-forest
 #'   presence are flagged as young.
 #'
 #' @return
@@ -1054,7 +1054,7 @@ calcNonForestYoungAge <- function(landcoverDT, NFTSD, LCCras, cutoffForYoungAge)
   landcoverDT[, age := NFTSD[pixelID]]
   # this need to be chagned in LCCras and also converted to a youngAge raster
   # as the rasters will be aggregated
-  pixToChange <- landcoverDT[sumRows > 0 & age < cutoffForYoungAge]$pixelID
+  pixToChange <- landcoverDT[sumRows > 0 & isYoungAge(age, cutoffForYoungAge)]$pixelID
   
   landcoverDT[, c("sumRows", "age") := NULL]
   

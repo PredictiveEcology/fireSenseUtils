@@ -48,6 +48,7 @@ Imports:
     withr
 Suggests:
     archive,
+    callr,
     codetools,
     curl,
     deldir,
@@ -57,6 +58,7 @@ Suggests:
     hexbin,
     knitr,
     kSamples,
+    pkgload,
     PtProcess,
     raster,
     rasterVis,
