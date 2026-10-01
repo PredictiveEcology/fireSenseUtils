@@ -25,13 +25,15 @@
 #'     (`"numIterations"`, `"objFunVal"`, `"params"`, `"sppEquiv"`,
 #'     `"nonForestedLCCGroups"`, `"missingLCCgroup"`, `"covMinMax_spread"`). `covMinMax_spread` is
 #'     what prediction needs to rescale covariates exactly as the fit did.
+#'   - `ignitionFitAdditionalColNamesTxt`: `character` vector of the list-column names attached
+#'     to ignition-fit ledger rows (`"fireSense_IgnitionFitted"`, `"fireSense_EscapeFitted"`).
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt
 NULL
 
 #' @export
@@ -64,3 +66,6 @@ spreadFitAdditionalColNamesTxt <- c(
   "sppEquiv", "nonForestedLCCGroups", "missingLCCgroup",
   "covMinMax_spread"
 )
+
+#' @export
+ignitionFitAdditionalColNamesTxt <- c("fireSense_IgnitionFitted", "fireSense_EscapeFitted")
