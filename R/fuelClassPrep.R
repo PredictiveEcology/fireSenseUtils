@@ -633,6 +633,13 @@ collapseFuelClassesToDomSec <- function(dt, fcs, domClass = NULL, secClass = NUL
 #'   even when a different class dominates the prediction area. `secClass = NA_character_` means
 #'   no secondary class (fewer than two fuel classes present).
 #'
+#' @param fuelClassTable Optional, the result of `cohortsToFuelClasses(..., asTable = TRUE)` for
+#'   this call's `cohortData`, `pixelGroupMap`, `flammableRTM`, `landcoverDT`, `sppEquiv`,
+#'   `sppEquivCol`, `fuelClassCol`, `requiredFuelClasses` and `cutoffForYoungAge`. It is used
+#'   instead of building it again, so a caller making several covariate sets (e.g. `"species"` and
+#'   `"domSecWetland"`) from the same cohorts builds the fuel classes once. It is copied, not
+#'   modified. With `youngAge = FALSE` it must have been made with `cutoffForYoungAge = -1`.
+#'
 #' @param youngAge logical. `TRUE` (default): build `youngAge` from cohort ages and (with
 #'   `nonForestCanBeYoungAge`) non-forest time since disturbance, and zero fuel, non-forest land
 #'   cover and treed wetland where it is 1. `FALSE`: no `youngAge` column and nothing zeroed, so
@@ -657,31 +664,41 @@ fireSenseCovariatesCreate <- function(cohortData,
                                    studyAreaName, useCache = TRUE,
                                    rstLCC = NULL, treedWetlandLCC = 81,
                                    fuelCovariates = c("species", "domSecWetland"),
-                                   domClass = NULL, secClass = NULL, youngAge = TRUE) {
+                                   domClass = NULL, secClass = NULL, youngAge = TRUE,
+                                   fuelClassTable = NULL) {
   fuelCovariates <- match.arg(fuelCovariates)
   
   ## without youngAge no cohort is young: fuels keep their biomass for the caller to zero
   if (!youngAge) cutoffForYoungAge <- -1
   
   # No non-forest nf happening here
-  fuelClassesRas <- cohortsToFuelClasses(
-    cohortData = cohortData,
-    pixelGroupMap = pixelGroupMap,
-    flammableRTM = flammableRTM,
-    landcoverDT = landcoverDT,
-    sppEquiv = sppEquiv,
-    fuelClassCol = fuelClassCol,
-    requiredFuelClasses = requiredFuelClasses,
-    sppEquivCol = sppEquivCol,
-    cutoffForYoungAge = cutoffForYoungAge
-  )
+  if (is.null(fuelClassTable)) {
+    fuelClassesRas <- cohortsToFuelClasses(
+      cohortData = cohortData,
+      pixelGroupMap = pixelGroupMap,
+      flammableRTM = flammableRTM,
+      landcoverDT = landcoverDT,
+      sppEquiv = sppEquiv,
+      fuelClassCol = fuelClassCol,
+      requiredFuelClasses = requiredFuelClasses,
+      sppEquivCol = sppEquivCol,
+      cutoffForYoungAge = cutoffForYoungAge,
+      asTable = TRUE
+    )
+  } else {
+    ## modified below, and the caller may use it again
+    fuelClassesRas <- copy(fuelClassTable)
+  }
   
   ## make columns for each fuel class
   # fuelClassesRas <- terra::app(fuelClassesRas, fun = logMinB)
   # terra app is horrifically slow
-  fcs <- setdiff(names(fuelClassesRas), "youngAge")
-  fuelClasses <- as.data.table(as.data.frame(fuelClassesRas, cells = TRUE))
-  setnames(fuelClasses, old = "cell", new = "pixelID")
+  fuelClasses <- fuelClassesRas
+  if (!is.data.table(fuelClasses)) { # a SpatRaster, e.g. from a replacement cohortsToFuelClasses
+    fuelClasses <- as.data.table(as.data.frame(fuelClasses, cells = TRUE))
+    setnames(fuelClasses, old = "cell", new = "pixelID")
+  }
+  fcs <- setdiff(names(fuelClasses), c("youngAge", "pixelID"))
   if (!youngAge) set(fuelClasses, NULL, youngAgeTxt, NULL)
 
   chosenDomClass <- NA_character_
