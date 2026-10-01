@@ -1,3 +1,7 @@
+# fireSenseUtils (development version)
+
+* A spread replicate is now a runaway only when it burns at least `k` distinct pixels of its fire's buffer edge ring, `k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * ring size))` (defaults `0.01` and `3`; `k` is at most the ring size), not when it touches one. New arguments `runawayEdgeFrac` and `runawayEdgeMin` of `.objfunSpreadFit()` and `runDEoptim()`; censoring and `runawaySize` are unchanged. With `penaliseRunaways = TRUE` (and not `returnSims`), a fire now also stops burning once it is a runaway: the objective passes each fire's edge-ring cells and the same `k` to `SpaDES.tools::spreadCpp(stopCells, stopEvent, stopAt)`, since nothing it burns afterwards is scored. Needs SpaDES.tools >= 2.1.3.9013.
+
 # fireSenseUtils 0.2.3.9076
 
 * New exported `spreadProbGates()` tells, without running any spread, whether a parameter set (or a list of them) passes the objective's spreadProb gates ("Too burny a landscape", "Not spread out enough", median out of range) in the first block of years. The gate test itself is now `spreadProbGateTest()`, which `.objfunSpreadFit()` calls, so the objective and the screen cannot disagree; the objective's results are unchanged. fireSense_spreadFit uses it to draw its threshold-calibration trials from the logistic's active range.

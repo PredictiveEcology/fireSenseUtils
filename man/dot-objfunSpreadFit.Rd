@@ -40,6 +40,8 @@
   returnSims = FALSE,
   returnBurned = FALSE,
   penaliseRunaways = TRUE,
+  runawayEdgeFrac = fireSenseRunawayEdgeFrac,
+  runawayEdgeMin = fireSenseRunawayEdgeMin,
   runawaySize = NULL,
   fitYearSpreadSD = NULL,
   verbose = 2,
@@ -211,8 +213,8 @@ result carries \code{attr(, "burned")}, a named list with one element per simula
 cells included). A year the objective declines to simulate is \code{NULL}. For
 \code{\link[=spreadFitValidationData]{spreadFitValidationData()}}. \code{FALSE} (default) records nothing and changes nothing.}
 
-\item{penaliseRunaways}{If \code{TRUE} (default), a simulated fire that burns any pixel of the edge ring
-of its own fire's buffer is censored: it reached the outer edge of the area it is allowed to
+\item{penaliseRunaways}{If \code{TRUE} (default), a simulated fire that burns at least \code{k} pixels of the edge
+ring of its own fire's buffer (see \code{runawayEdgeFrac}, \code{runawayEdgeMin}) is censored: it reached the outer edge of the area it is allowed to
 spread in, so it is "at least this big", a runaway. The edge ring is the buffer pixels with a
 queen neighbour outside the fire's own buffer (see \code{\link[=bufferEdge]{bufferEdge()}}). In every size-based term
 (the per-fire size likelihood, \code{"adTest"}, \code{yearAreaWeight}, \code{"mad"}) the size of a runaway is
@@ -223,7 +225,15 @@ size: spread is bounded only by the year's buffers. Has no effect with \code{ret
 simulated sizes are returned as simulated). The per-fire likelihood is floored at \code{minLik}
 (1e-29), which bounds the penalty per fire. The ring is computed once per fit (\code{runDEoptim()}
 adds an \code{edge} column to \code{fireBufferedListDT}); a table without that column gets it computed
-on every call.}
+on every call. With the penalty, a fire stops burning once it is a runaway (it has burned \code{k}
+of its ring pixels; \code{SpaDES.tools::spreadCpp(stopCells =)}), as nothing it burns after that is
+scored. Not with \code{returnSims = TRUE}.}
+
+\item{runawayEdgeFrac, runawayEdgeMin}{A replicate is a runaway only if it burns at least \code{k} distinct
+pixels of its fire's edge ring, where \code{k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))} and \code{n}
+is the number of ring pixels of that fire; \code{k} is never more than \code{n}. One touched pixel is luck,
+not a fire that wants to leave its buffer. Defaults \link{fireSenseRunawayEdgeFrac} and \link{fireSenseRunawayEdgeMin}. Only the classification
+changes: what is done to a runaway is as described for \code{penaliseRunaways}.}
 
 \item{runawaySize}{Size (pixels) given to a runaway replicate when \code{penaliseRunaways = TRUE}. \code{NULL}
 (default): the number of non-\code{NA} pixels of \code{landscape}, or \code{1e7} if \code{landscape} has no values.}
