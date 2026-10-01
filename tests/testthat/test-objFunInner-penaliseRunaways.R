@@ -17,7 +17,7 @@ runawayFixture <- function(n = 10L) {
 }
 
 ## spreadProb is `sp` inside the buffers, 0 elsewhere: the mocked surface is over the buffers' pixels only
-runawayObjective <- function(sp, seed = 1, fx = runawayFixture(), ...) {
+runawayObjective <- function(sp, seed = 1, fx = runawayFixture(), Nreps = 6L, ...) {
   pix <- fx$buf$pixelID
   local_mocked_bindings(
     paramsSeparate = function(...) list(logisticPars = c(0.27, 1, 1), covPars = 1),
@@ -32,7 +32,7 @@ runawayObjective <- function(sp, seed = 1, fx = runawayFixture(), ...) {
     indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 1,
     lowerSpreadProb = 0.05, cells = numeric(3600), lanscape1stQuantileThresh = 1,
-    weighted = FALSE, r = r60, Nreps = 6L,
+    weighted = FALSE, r = r60, Nreps = Nreps,
     doSNLL_FSTest = TRUE, doMADTest = TRUE, doADTest = TRUE, doYearArea = TRUE,
     plot.it = FALSE, verbose = 0, ...
   )
@@ -177,4 +177,106 @@ test_that("returnTerms reports the first block's SNLL per year and whether it ba
   over <- mk(snll, gated = c("2001" = FALSE, "2002" = FALSE, "2003" = FALSE), thresh = 150)
   expect_equal(over[["bailed"]], 1)                # 200 per year against a threshold of 150
   expect_equal(over[["firstBlockSNLL"]], 200)
+})
+
+## one fire whose buffer is pixels 1..(nRing + 10); the first nRing of them are its edge ring. spreadCpp is
+## mocked to burn the ignition plus `touch` ring pixels, so the rule is tested, not the spread
+runawayEdgeRuns <- function(nRing, touch, ...) {
+  pix <- seq_len(nRing + 10L)
+  fx <- list(buf = data.table::data.table(ids = 1L, pixelID = pix, buffer = 0L, edge = pix <= nRing),
+             fires = data.table::data.table(cells = nRing + 5L, size = 20L, ids = 1L))
+  local_mocked_bindings(
+    cropToCells = function(r, cells, ...) list(r = r, ncell = terra::ncell(r), toCrop = identity, toFull = identity),
+    .package = "fireSenseUtils")
+  local_mocked_bindings(
+    spreadCpp = function(landscape, loci, ...)
+      data.table::data.table(initialLocus = loci, indices = c(loci, seq_len(touch))),
+    .package = "SpaDES.tools")
+  runawayObjective(c(0.06, 0.08), fx = fx, ...)$runaways
+}
+
+test_that("a replicate is a runaway only when it burns at least max(3, 1% of ring) distinct ring pixels", {
+  skip_if_not_installed("SpaDES.tools")
+  expect_equal(runawayEdgeRuns(100L, 0L), 0)
+  expect_equal(runawayEdgeRuns(100L, 1L), 0)      # one touched pixel is luck
+  expect_equal(runawayEdgeRuns(100L, 2L), 0)
+  expect_equal(runawayEdgeRuns(100L, 3L), 6)      # all 6 replicates
+  expect_equal(runawayEdgeRuns(1000L, 9L), 0)     # ceiling(0.01 * 1000) = 10
+  expect_equal(runawayEdgeRuns(1000L, 10L), 6)
+  expect_equal(runawayEdgeRuns(2L, 1L), 0)        # ring smaller than runawayEdgeMin: k is the ring size
+  expect_equal(runawayEdgeRuns(2L, 2L), 6)
+  expect_equal(runawayEdgeRuns(100L, 1L, runawayEdgeMin = 1, runawayEdgeFrac = 0), 6)
+})
+
+## The early stop: with the penalty, spreadCpp() is told to stop a fire once it has burned k of its edge-ring
+## pixels. `stopRuns(stop)` runs the objective with spreadCpp() wrapped to keep or drop those arguments, and
+## records how many cells each call burned.
+stopRuns <- function(sp, stop, fx, seed = 1, Nreps = 6L, ...) {
+  orig <- SpaDES.tools::spreadCpp
+  rec <- new.env(); rec$burned <- integer(0); rec$stopArgs <- NULL
+  local_mocked_bindings(
+    spreadCpp = function(...) {
+      a <- list(...)
+      rec$stopArgs <- names(Filter(Negate(is.null), a[c("stopCells", "stopEvent", "stopAt")]))
+      if (!stop) a[c("stopCells", "stopEvent", "stopAt")] <- NULL
+      out <- do.call(orig, a)
+      rec$burned <- c(rec$burned, NROW(out))
+      out
+    },
+    .package = "SpaDES.tools")
+  res <- runawayObjective(sp, seed = seed, fx = fx, Nreps = Nreps, ...)
+  list(res = res, burned = rec$burned, stopArgs = rec$stopArgs)
+}
+
+oneFire <- function(n = 10L) {
+  fx <- runawayFixture(n)
+  list(buf = fx$buf[fx$buf$ids == 1L, , drop = FALSE], fires = fx$fires[1L, , drop = FALSE])
+}
+
+test_that("early stop: one fire, one replicate, the score and the classification are those of the full burn", {
+  skip_if_not_installed("SpaDES.tools")
+  skip_if_not("stopCells" %in% names(formals(SpaDES.tools::spreadCpp)))
+  fx <- oneFire()
+  sawRunaway <- sawNone <- FALSE
+  for (sp in list(c(0.06, 0.08), c(0.12, 0.16), c(0.2, 0.3), c(0.9, 0.99)))
+    for (seed in 1:5) {
+      on <- stopRuns(sp, TRUE, fx, seed = seed, Nreps = 1L, runawaySize = 3600)
+      off <- stopRuns(sp, FALSE, fx, seed = seed, Nreps = 1L, runawaySize = 3600)
+      expect_setequal(on$stopArgs, c("stopCells", "stopEvent", "stopAt"))
+      expect_equal(on$res$runaways, off$res$runaways)
+      expect_identical(on$res, off$res)
+      sawRunaway <- sawRunaway || on$res$runaways > 0
+      sawNone <- sawNone || on$res$runaways == 0
+    }
+  expect_true(sawRunaway && sawNone)       # the comparison covers both kinds of replicate
+  ## returnTerms-style fields are in the compared result: SNLL_FS, the AD and area terms
+  expect_true(all(c("SNLL_FS", "allFireSizes", "annualAreaByRep") %in% names(on$res)))
+})
+
+test_that("early stop: a runaway burns fewer cells, and only with the penalty and without returnSims", {
+  skip_if_not_installed("SpaDES.tools")
+  skip_if_not("stopCells" %in% names(formals(SpaDES.tools::spreadCpp)))
+  fx <- oneFire(18L)
+  on <- stopRuns(c(0.9, 0.99), TRUE, fx, runawaySize = 3600)
+  off <- stopRuns(c(0.9, 0.99), FALSE, fx, runawaySize = 3600)
+  expect_equal(on$res$runaways, on$res$nSims)
+  expect_lt(sum(on$burned), sum(off$burned))
+  expect_equal(off$res$runaways, off$res$nSims)
+  ## no penalty: a runaway is not censored, so it keeps burning and spreadCpp() is not asked to stop
+  noPen <- stopRuns(c(0.9, 0.99), TRUE, fx, runawaySize = NULL)
+  expect_length(noPen$stopArgs, 0L)
+  expect_equal(sum(noPen$burned), sum(off$burned))
+  sims <- stopRuns(c(0.9, 0.99), TRUE, fx, runawaySize = 3600, returnSims = TRUE)
+  expect_length(sims$stopArgs, 0L)
+})
+
+test_that("early stop: timing on the five-fire fixture (reported, not asserted)", {
+  skip_if_not_installed("SpaDES.tools")
+  skip_if_not("stopCells" %in% names(formals(SpaDES.tools::spreadCpp)))
+  fx <- runawayFixture(18L)
+  tm <- function(stop) system.time(for (i in 1:20) stopRuns(c(0.9, 0.99), stop, fx, runawaySize = 3600))[["elapsed"]]
+  tOn <- tm(TRUE); tOff <- tm(FALSE)
+  message("early stop timing, 20 evaluations of 5 saturated fires x 6 replicates: with stop ",
+          round(tOn, 2), " s, without ", round(tOff, 2), " s")
+  expect_true(is.finite(tOn) && is.finite(tOff))
 })

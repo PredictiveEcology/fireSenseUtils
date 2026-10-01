@@ -9,7 +9,9 @@
 \alias{fireSenseFuelClassCol}
 \alias{fireSenseIgAggFactor}
 \alias{fireSenseSCANFIVersion}
-\title{Defaults shared by \code{fireSense_dataPrepFit} and \code{fireSense_dataPrepPredict}}
+\alias{fireSenseRunawayEdgeFrac}
+\alias{fireSenseRunawayEdgeMin}
+\title{Defaults shared by the fireSense modules and functions}
 \format{
 Vectors of length 1, except \code{fireSenseForestedLCC} (\code{numeric}, length 5).
 }
@@ -27,13 +29,18 @@ fireSenseFuelClassCol
 fireSenseIgAggFactor
 
 fireSenseSCANFIVersion
+
+fireSenseRunawayEdgeFrac
+
+fireSenseRunawayEdgeMin
 }
 \description{
-The two modules each have parameters with these names, and a fit and the predictions
-made from it are only consistent if both modules use the same values. Both modules take
-their parameter defaults from these constants, as they do \code{nonflammableLCC} from
-\link{fireSenseNonflammableLCC}, and the functions here that take the same arguments default
-to them too.
+The \code{fireSense_dataPrepFit} and \code{fireSense_dataPrepPredict} modules each have parameters
+with these names, and a fit and the predictions made from it are only consistent if both
+use the same values; \code{fireSense_spreadFit} takes its \verb{runawayEdge*} defaults from here too.
+The modules take their parameter defaults from these constants, as they do
+\code{nonflammableLCC} from \link{fireSenseNonflammableLCC}, and the functions here that take the
+same arguments default to them too.
 }
 \details{
 \itemize{
@@ -50,5 +57,9 @@ cover for a coarser pixel to be flammable.
 escape covariates.
 \item \code{fireSenseSCANFIVersion}: the SCANFI land-cover version \code{\link[=makeFireSenseLCC]{makeFireSenseLCC()}} reads for
 non-forest land cover (passed to \code{\link[LandR:prepInputs_SCANFI_LCC_FAO]{LandR::prepInputs_SCANFI_LCC_FAO()}}'s \code{dataVersion}).
+\item \code{fireSenseRunawayEdgeFrac}, \code{fireSenseRunawayEdgeMin}: the defaults of \code{runawayEdgeFrac} and
+\code{runawayEdgeMin} of \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} and \code{\link[=runDEoptim]{runDEoptim()}}: a simulated fire is a runaway when
+it burns at least \code{max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))} of the \code{n} pixels of its
+buffer's edge ring.
 }
 }
