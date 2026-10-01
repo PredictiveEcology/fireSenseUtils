@@ -28,8 +28,7 @@ spreadProbGates(
 \item{par}{a named numeric vector as \code{.objfunSpreadFit()} takes (logistic parameters, then the
 covariate coefficients, then \code{yearSpreadSD} if fitted), or a list of them.}
 
-\item{annualDTx1000, nonAnnualDTx1000, historicalFires, covMinMax, mutuallyExclusive, covCentre, link, }{maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape as in
-\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} (\code{landscape} is needed only with \code{escapeSizeHa}).}
+\item{annualDTx1000, nonAnnualDTx1000, historicalFires, covMinMax, mutuallyExclusive, covCentre, link, maxFireSpread, lowerSpreadProb, lanscape1stQuantileThresh, minFireSize, escapeSizeHa, landscape}{As in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} (\code{landscape} is needed only with \code{escapeSizeHa}).}
 
 \item{formulaToFit}{character; the spread formula, as in the objective.}
 

@@ -107,9 +107,8 @@ effectiveMinFireSize <- function(minFireSize, escapeMinPx) {
 #'
 #' @param par a named numeric vector as `.objfunSpreadFit()` takes (logistic parameters, then the
 #'   covariate coefficients, then `yearSpreadSD` if fitted), or a list of them.
-#' @param annualDTx1000,nonAnnualDTx1000,historicalFires,covMinMax,mutuallyExclusive,covCentre,link,
-#'   maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape as in
-#'   [.objfunSpreadFit()] (`landscape` is needed only with `escapeSizeHa`).
+#' @param annualDTx1000,nonAnnualDTx1000,historicalFires,covMinMax,mutuallyExclusive,covCentre,link,maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape
+#'   As in [.objfunSpreadFit()] (`landscape` is needed only with `escapeSizeHa`).
 #' @param formulaToFit character; the spread formula, as in the objective.
 #' @param years character; the years to test. Default: the objective's first block.
 #' @param doAssertions logical; as in the objective.
