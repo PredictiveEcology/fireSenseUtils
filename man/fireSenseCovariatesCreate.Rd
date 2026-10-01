@@ -25,7 +25,8 @@ fireSenseCovariatesCreate(
   fuelCovariates = c("species", "domSecWetland"),
   domClass = NULL,
   secClass = NULL,
-  youngAge = TRUE
+  youngAge = TRUE,
+  fuelClassTable = NULL
 )
 }
 \arguments{
@@ -95,6 +96,13 @@ cover and treed wetland where it is 1. \code{FALSE}: no \code{youngAge} column a
 the caller can resolve \code{youngAge} per year (see \code{\link[=youngAgeAtYear]{youngAgeAtYear()}}) and apply
 \code{\link[=makeMutuallyExclusive]{makeMutuallyExclusive()}} itself; \code{cutoffForYoungAge} and \code{nonForestCanBeYoungAge} are then
 unused.}
+
+\item{fuelClassTable}{Optional, the result of \code{cohortsToFuelClasses(..., asTable = TRUE)} for
+this call's \code{cohortData}, \code{pixelGroupMap}, \code{flammableRTM}, \code{landcoverDT}, \code{sppEquiv},
+\code{sppEquivCol}, \code{fuelClassCol}, \code{requiredFuelClasses} and \code{cutoffForYoungAge}. It is used
+instead of building it again, so a caller making several covariate sets (e.g. \code{"species"} and
+\code{"domSecWetland"}) from the same cohorts builds the fuel classes once. It is copied, not
+modified. With \code{youngAge = FALSE} it must have been made with \code{cutoffForYoungAge = -1}.}
 }
 \value{
 A \code{data.table} named \code{spreadCovariates} containing one row per \code{pixelID}, with:

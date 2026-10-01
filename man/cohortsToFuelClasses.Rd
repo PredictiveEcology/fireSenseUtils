@@ -13,7 +13,8 @@ cohortsToFuelClasses(
   sppEquivCol,
   cutoffForYoungAge,
   fuelClassCol = fireSenseFuelClassCol,
-  requiredFuelClasses
+  requiredFuelClasses,
+  asTable = FALSE
 )
 }
 \arguments{
@@ -45,9 +46,15 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{requiredFuelClasses}{A character vector of all the fuel classes that are expected.
 This is needed because a fuel class may disappear (e.g., Popu_tre) due to succession,
 causing a downstream failure because the prediction model requires values for it.}
+
+\item{asTable}{if \code{TRUE}, return a \code{data.table} with \code{pixelID} and one column per layer,
+restricted to cells where at least one layer is not \code{NA} -- exactly
+\verb{as.data.table(as.data.frame(<the SpatRaster>, cells = TRUE))} with \code{cell} renamed to
+\code{pixelID}, without building the raster. Used by \code{\link[=fireSenseCovariatesCreate]{fireSenseCovariatesCreate()}}.}
 }
 \value{
-a \code{SpatRaster} of biomass by fuel class as determined by \code{fuelClassCol} and \code{cohortData}.
+a \code{SpatRaster} of biomass by fuel class as determined by \code{fuelClassCol} and \code{cohortData}
+(or a \code{data.table}, see \code{asTable}).
 }
 \description{
 Classify \code{pixelGroups} by flammability

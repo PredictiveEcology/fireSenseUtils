@@ -141,3 +141,34 @@ test_that("cohortsToFuelClasses gives the same raster and table as the pre-chang
     expect_identical(args$landcoverDT, lcBefore) # not left with a scratch column
   }
 })
+
+test_that("fireSenseCovariatesCreate with a fuelClassTable gives the same covariates, and leaves the table alone", {
+  args <- fuelFixture(seed = 4, landcover = FALSE)
+  ## every pixel flammable and in a pixelGroup, so no pixel is NA in the covariates
+  set.seed(4)
+  terra::values(args$pixelGroupMap) <- sample(1:30, terra::ncell(args$pixelGroupMap), TRUE)
+  terra::values(args$flammableRTM) <- 1
+  nPix <- terra::ncell(args$pixelGroupMap)
+  nf <- sample(nPix, 50)
+  ldt <- data.table::data.table(pixelID = 1:nPix, nfLCC_1 = 0L, nfLCC_2 = 0L)
+  data.table::set(ldt, nf[1:25], "nfLCC_1", 1L)
+  data.table::set(ldt, nf[26:50], "nfLCC_2", 1L)
+  tsd <- terra::rast(args$pixelGroupMap, vals = sample(0:60, nPix, TRUE))
+  mk <- function(mode, ...) fireSenseCovariatesCreate(
+    cohortData = args$cohortData, pixelGroupMap = args$pixelGroupMap, flammableRTM = args$flammableRTM,
+    sppEquiv = args$sppEquiv, landcoverDT = data.table::copy(ldt), fuelClassCol = "FuelClass",
+    requiredFuelClasses = args$requiredFuelClasses, sppEquivCol = "LandR", missingLCCgroup = "nfLCC_1",
+    nonForestedLCCGroups = list(nfLCC_1 = 1, nfLCC_2 = 2), nonForest_timeSinceDisturbance = tsd,
+    cutoffForYoungAge = 15, nonForestCanBeYoungAge = TRUE, studyAreaName = "t", useCache = FALSE,
+    fuelCovariates = mode, ...)
+  tbl <- cohortsToFuelClasses(cohortData = args$cohortData, pixelGroupMap = args$pixelGroupMap,
+                              flammableRTM = args$flammableRTM, landcoverDT = data.table::copy(ldt),
+                              sppEquiv = args$sppEquiv, sppEquivCol = "LandR", fuelClassCol = "FuelClass",
+                              requiredFuelClasses = args$requiredFuelClasses, cutoffForYoungAge = 15,
+                              asTable = TRUE)
+  tblBefore <- data.table::copy(tbl)
+  for (mode in c("species", "domSecWetland")) {
+    expect_identical(suppressWarnings(mk(mode, fuelClassTable = tbl)), suppressWarnings(mk(mode)))
+    expect_identical(tbl, tblBefore)
+  }
+})
