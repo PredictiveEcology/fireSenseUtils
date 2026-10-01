@@ -178,3 +178,32 @@ test_that("returnTerms reports the first block's SNLL per year and whether it ba
   expect_equal(over[["bailed"]], 1)                # 200 per year against a threshold of 150
   expect_equal(over[["firstBlockSNLL"]], 200)
 })
+
+## one fire whose buffer is pixels 1..(nRing + 10); the first nRing of them are its edge ring. spreadCpp is
+## mocked to burn the ignition plus `touch` ring pixels, so the rule is tested, not the spread
+runawayEdgeRuns <- function(nRing, touch, ...) {
+  pix <- seq_len(nRing + 10L)
+  fx <- list(buf = data.table::data.table(ids = 1L, pixelID = pix, buffer = 0L, edge = pix <= nRing),
+             fires = data.table::data.table(cells = nRing + 5L, size = 20L, ids = 1L))
+  local_mocked_bindings(
+    cropToCells = function(r, cells, ...) list(r = r, ncell = terra::ncell(r), toCrop = identity, toFull = identity),
+    .package = "fireSenseUtils")
+  local_mocked_bindings(
+    spreadCpp = function(landscape, loci, ...)
+      data.table::data.table(initialLocus = loci, indices = c(loci, seq_len(touch))),
+    .package = "SpaDES.tools")
+  runawayObjective(c(0.06, 0.08), fx = fx, ...)$runaways
+}
+
+test_that("a replicate is a runaway only when it burns at least max(3, 1% of ring) distinct ring pixels", {
+  skip_if_not_installed("SpaDES.tools")
+  expect_equal(runawayEdgeRuns(100L, 0L), 0)
+  expect_equal(runawayEdgeRuns(100L, 1L), 0)      # one touched pixel is luck
+  expect_equal(runawayEdgeRuns(100L, 2L), 0)
+  expect_equal(runawayEdgeRuns(100L, 3L), 6)      # all 6 replicates
+  expect_equal(runawayEdgeRuns(1000L, 9L), 0)     # ceiling(0.01 * 1000) = 10
+  expect_equal(runawayEdgeRuns(1000L, 10L), 6)
+  expect_equal(runawayEdgeRuns(2L, 1L), 0)        # ring smaller than runawayEdgeMin: k is the ring size
+  expect_equal(runawayEdgeRuns(2L, 2L), 6)
+  expect_equal(runawayEdgeRuns(100L, 1L, runawayEdgeMin = 1, runawayEdgeFrac = 0), 6)
+})

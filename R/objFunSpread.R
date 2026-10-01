@@ -169,8 +169,8 @@ utils::globalVariables(c(
 #'   `data.table` with the replicate `rep` and the `pixelID` of every pixel that burned in it (ignition
 #'   cells included). A year the objective declines to simulate is `NULL`. For
 #'   [spreadFitValidationData()]. `FALSE` (default) records nothing and changes nothing.
-#' @param penaliseRunaways If `TRUE` (default), a simulated fire that burns any pixel of the edge ring
-#'   of its own fire's buffer is censored: it reached the outer edge of the area it is allowed to
+#' @param penaliseRunaways If `TRUE` (default), a simulated fire that burns at least `k` pixels of the edge
+#'   ring of its own fire's buffer (see `runawayEdgeFrac`, `runawayEdgeMin`) is censored: it reached the outer edge of the area it is allowed to
 #'   spread in, so it is "at least this big", a runaway. The edge ring is the buffer pixels with a
 #'   queen neighbour outside the fire's own buffer (see [bufferEdge()]). In every size-based term
 #'   (the per-fire size likelihood, `"adTest"`, `yearAreaWeight`, `"mad"`) the size of a runaway is
@@ -182,6 +182,11 @@ utils::globalVariables(c(
 #'   (1e-29), which bounds the penalty per fire. The ring is computed once per fit (`runDEoptim()`
 #'   adds an `edge` column to `fireBufferedListDT`); a table without that column gets it computed
 #'   on every call.
+#' @param runawayEdgeFrac,runawayEdgeMin A replicate is a runaway only if it burns at least `k` distinct
+#'   pixels of its fire's edge ring, where `k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))` and `n`
+#'   is the number of ring pixels of that fire; `k` is never more than `n`. One touched pixel is luck,
+#'   not a fire that wants to leave its buffer. Defaults `0.01` and `3`. Only the classification
+#'   changes: what is done to a runaway is as described for `penaliseRunaways`.
 #' @param runawaySize Size (pixels) given to a runaway replicate when `penaliseRunaways = TRUE`. `NULL`
 #'   (default): the number of non-`NA` pixels of `landscape`, or `1e7` if `landscape` has no values.
 #'
@@ -250,6 +255,8 @@ utils::globalVariables(c(
                              returnSims = FALSE,
                              returnBurned = FALSE,
                              penaliseRunaways = TRUE,
+                             runawayEdgeFrac = 0.01,
+                             runawayEdgeMin = 3,
                              runawaySize = NULL,
                              fitYearSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
@@ -385,7 +392,8 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
-        returnSims = returnSims, returnBurned = returnBurned, runawaySize = runawaySize, yearSpreadSD = yearSpreadSD,
+        returnSims = returnSims, returnBurned = returnBurned, runawaySize = runawaySize,
+        runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin, yearSpreadSD = yearSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         doYearArea = doYearArea,
         covMinMax = covMinMax, # interactive debugging
@@ -658,7 +666,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
-                        runawaySize = NULL, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
+                        runawaySize = NULL, runawayEdgeFrac = 0.01, runawayEdgeMin = 3, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
@@ -917,7 +925,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                     pSummary = pSummary,
                     burned = if (isTRUE(returnBurned)) spreadState[, list(rep, pixelID = indices)]))
       }
-      ## One row per simulated fire. A fire that burned any pixel of the edge ring of its own buffer is
+      ## One row per simulated fire. A fire that burned at least k pixels of the edge ring of its own
+      ## buffer (k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * ring size)), at most the ring size) is
       ## censored ("at least this big"): with `runawaySize` its size is that in every size-based term below.
       simSizes <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
       burnedRing <- spreadState[, list(rep, initialLocus,
@@ -926,7 +935,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       burnedRing <- burnedRing[edgeRing, on = c("ids", "pixelID"), nomatch = NULL]
       runaway <- rep(FALSE, NROW(simSizes))
       if (NROW(burnedRing)) {
-        hits <- unique(burnedRing[, list(rep, initialLocus)])
+        ringN <- edgeRing[, list(nRing = .N), by = "ids"]
+        ringN[, k := pmin(nRing, pmax(runawayEdgeMin, ceiling(runawayEdgeFrac * nRing)))]
+        hits <- burnedRing[, list(nHit = data.table::uniqueN(pixelID)), by = c("rep", "initialLocus", "ids")]
+        hits <- hits[ringN, on = "ids", nomatch = NULL][nHit >= k, list(rep, initialLocus)]
         runaway[simSizes[hits, on = c("rep", "initialLocus"), which = TRUE]] <- TRUE
       }
       censored <- runaway & !is.null(runawaySize)

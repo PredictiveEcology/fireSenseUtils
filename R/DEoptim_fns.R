@@ -129,6 +129,9 @@ utils::globalVariables(c(
 #' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
 #'   scores a simulated fire that reaches the edge of its own buffer as a runaway, not as a fire of
 #'   the size it reached. The edge ring of every buffer is computed here, once ([addBufferEdge()]).
+#' @param runawayEdgeFrac,runawayEdgeMin Passed to [.objfunSpreadFit()] in the fit and the re-score: a
+#'   replicate is a runaway only if it burns at least `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))`
+#'   of the `n` edge-ring pixels of its fire (at most `n`). Defaults `0.01` and `3`.
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
@@ -206,6 +209,8 @@ runDEoptim <- function(landscape,
                        yearAreaWeight = 0,
                        areaDistWeight = 0,
                        penaliseRunaways = TRUE,
+                       runawayEdgeFrac = 0.01,
+                       runawayEdgeMin = 3,
                        profileReps = 0L,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL) {
@@ -315,6 +320,8 @@ runDEoptim <- function(landscape,
       yearAreaWeight = yearAreaWeight,
       areaDistWeight = areaDistWeight,
       penaliseRunaways = penaliseRunaways,
+      runawayEdgeFrac = runawayEdgeFrac,
+      runawayEdgeMin = runawayEdgeMin,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -340,7 +347,8 @@ runDEoptim <- function(landscape,
                       fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa,
                       jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
                       yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
-                      penaliseRunaways = penaliseRunaways)
+                      penaliseRunaways = penaliseRunaways,
+                      runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin)
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(

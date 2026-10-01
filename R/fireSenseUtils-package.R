@@ -24,6 +24,9 @@ NULL
 ## data.tables, or names looked up via `mget()`-style indirection.
 utils::globalVariables(c(
   "..SDcols",
+  "nRing",
+  "nHit",
+  "k",
   "YA_NF",
   "coverSums",
   "inRange",
