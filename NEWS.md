@@ -2,6 +2,7 @@
 
 * New exported `isYoungAge(age, cutoffForYoungAge)` is the one place the `youngAge` rule lives (`age <= cutoffForYoungAge`, `NA` not young); `makeTSD()`, `castCohortData()`, `cohortsToFuelClasses()`, `youngAgeAtYear()`, `calcYoungAge()`, `calcNonForestYoungAge()` and `fireSenseCovariatesCreate()` all call it. `calcNonForestYoungAge()` used `<`, so prediction differed from fitting for non-forest pixels whose age equals the cutoff. `castCohortData()` now gives `youngAge = 0` (was `NA`) for an `NA` stand age, and the deprecated `calcYoungAge()` no longer counts an `NA` age as young.
 * `cohortsToFuelClasses()` no longer fails when terra is not attached: `as.int` is now imported from terra.
+* `cohortsToFuelClasses()` builds the fuel classes on cell vectors instead of one `SpatRaster` per class, and has `asTable = TRUE` to return the `pixelID` table that `fireSenseCovariatesCreate()` makes from the stack, so that function no longer builds the rasters and converts them back (about 6 s of its 10 s on 6.7M cells). The raster and the table are identical to before.
 
 # fireSenseUtils 0.2.3.9072
 

@@ -673,15 +673,19 @@ fireSenseCovariatesCreate <- function(cohortData,
     fuelClassCol = fuelClassCol,
     requiredFuelClasses = requiredFuelClasses,
     sppEquivCol = sppEquivCol,
-    cutoffForYoungAge = cutoffForYoungAge
+    cutoffForYoungAge = cutoffForYoungAge,
+    asTable = TRUE
   )
   
   ## make columns for each fuel class
   # fuelClassesRas <- terra::app(fuelClassesRas, fun = logMinB)
   # terra app is horrifically slow
-  fcs <- setdiff(names(fuelClassesRas), "youngAge")
-  fuelClasses <- as.data.table(as.data.frame(fuelClassesRas, cells = TRUE))
-  setnames(fuelClasses, old = "cell", new = "pixelID")
+  fuelClasses <- fuelClassesRas
+  if (!is.data.table(fuelClasses)) { # a SpatRaster, e.g. from a replacement cohortsToFuelClasses
+    fuelClasses <- as.data.table(as.data.frame(fuelClasses, cells = TRUE))
+    setnames(fuelClasses, old = "cell", new = "pixelID")
+  }
+  fcs <- setdiff(names(fuelClasses), c("youngAge", "pixelID"))
   if (!youngAge) set(fuelClasses, NULL, youngAgeTxt, NULL)
 
   chosenDomClass <- NA_character_
