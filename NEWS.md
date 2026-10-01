@@ -1,4 +1,4 @@
-# fireSenseUtils (development version)
+# fireSenseUtils 0.2.3.9078
 
 * New `ignitionFitFilenameFor()` and `latestIgnitionFits()`, parallel to `spreadFitFilenameFor()`/
   `latestSpreadFits()`: name and read the shared, geo-keyed ledger of `fireSense_IgnitionFit`
