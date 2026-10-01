@@ -1228,7 +1228,7 @@ adWeightAuto <- function(nFires, sizeLik = "kde", weighted = FALSE) {
 #'
 #' The density, at `sqrt(size)`, of a Student-t centred on the mean of `sqrt(N)` with the standard
 #' deviation of `sqrt(N)` as its scale. The scale has a lower bound of 0.5, because replicates that
-#' all stop at the same size (e.g. at `maxSize`) have a standard deviation of 0.
+#' all stop at the same size (e.g. every one burned out at a single pixel) have a standard deviation of 0.
 #'
 #' @param size Observed fire size, in pixels.
 #' @param N Simulated sizes of that fire, in pixels; at least two.
