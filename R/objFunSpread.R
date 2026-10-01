@@ -263,17 +263,10 @@ utils::globalVariables(c(
   sizeLik <- match.arg(sizeLik, c("kde", "t"))
   if (isTRUE(returnBurned)) returnSims <- TRUE
   ## the per-year random effect's sd, fitted as the LAST element of `par`
-  yearSpreadSD <- 0
-  if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
-  if (isTRUE(fitYearSpreadSD)) {
-    if (!is.null(names(par)) && !identical(names(par)[length(par)], yearSpreadSDTxt))
-      stop("`", yearSpreadSDTxt, "` must be the last parameter")
-    yearSpreadSD <- unname(par[length(par)])
-    par <- par[-length(par)]
-  }
-
-  ## hillSlope1 is fixed at 1, not fitted -- see fixHillSlope1() for why.
-  par <- fixHillSlope1(par)
+  ## and hillSlope1 is fixed at 1, not fitted -- see fixHillSlope1() for why.
+  parSplit <- splitSpreadPar(par, fitYearSpreadSD)
+  par <- parSplit$par
+  yearSpreadSD <- parSplit$yearSpreadSD
 
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
@@ -320,7 +313,7 @@ utils::globalVariables(c(
   ## an escaped fire has at least `escapeMinPx` pixels: only such observed fires are fitted, and every
   ## simulated fire burns that many cells first (spreadCpp(minSize =)). NULL keeps the historical rules.
   escapeMinPx <- if (!is.null(escapeSizeHa)) escapeSizePixels(escapeSizeHa, landscape)
-  if (!is.null(escapeMinPx)) minFireSize <- max(minFireSize, escapeMinPx)
+  minFireSize <- effectiveMinFireSize(minFireSize, escapeMinPx)
   if (!is.null(escapeMinPx) && isTRUE(jumpTries > 0) &&
       !all(c("jumpTries", "jumpMeanDist") %in% names(formals(SpaDES.tools::spreadCpp))))
     stop("jumpTries needs a SpaDES.tools whose spreadCpp() has `jumpTries` and `jumpMeanDist`")
@@ -340,24 +333,14 @@ utils::globalVariables(c(
       function(ind, date) data.table(ind = ind, date = date)
     )
   )
-  historicalFiresAboveMin <- lapply(historicalFires, function(x) {
-    x <- x[x$size >= minFireSize, ]
-    x <- x[!duplicated(x$cells), ]
-    x
-  })
+  historicalFiresAboveMin <- firesAboveMinSize(historicalFires, minFireSize)
 
   sizeWeightMean <- mean(sizeWeight(unlist(lapply(historicalFiresAboveMin, function(x) x$size)), weighted))
 
-  ## can't fit fires for years with no data; drop these years
-  omitYears <- names(historicalFiresAboveMin[which(lapply(historicalFiresAboveMin, nrow) == 0)])
-  if (length(omitYears > 0)) {
-    historicalFiresAboveMin[omitYears] <- NULL
-  }
-
-  fireSizesByYear <- unlist(lapply(historicalFiresAboveMin, function(x) sum(x$size)))
-  largest <- head(sort(fireSizesByYear, decreasing = TRUE), 2) # max(2, objFunCoresInternal))
-  smallest <- setdiff(names(fireSizesByYear), names(largest))
-  lrgSmallFireYears <- list(large = names(largest), small = smallest)
+  ## the first block is the two years with the most burned area, the second block is the rest
+  largest <- firstBlockYears(historicalFiresAboveMin)
+  smallest <- setdiff(names(historicalFiresAboveMin), largest)
+  lrgSmallFireYears <- list(large = largest, small = smallest)
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
   fireSizesList <- list() # simulated fire sizes, pooled across batches for the adTest
   yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
@@ -687,15 +670,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   logisticPars <- parsList[["logisticPars"]]
   covPars <- parsList[["covPars"]]
 
-  shortAnnDT <- spreadProbFromIntegerCovs(
-    shortAnnDTx1000 = NULL, annDTx1000, nonAnnualDTx1000,
-    indexNonAnnual, yr, covMinMax, mutuallyExclusive, colsToUse,
+  shortAnnDT <- spreadProbCovsOfYear(
+    yr, annDTx1000, nonAnnualDTx1000, indexNonAnnual, covMinMax, mutuallyExclusive, colsToUse,
     doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
   )
-
-  set(shortAnnDT, NULL, "spreadProb",
-      logisticAll(logisticPars, mat = as.matrix(shortAnnDT[, ..colsToUse]), covPars, lowerSpreadProb,
-                  link = link))
+  set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(as.matrix(shortAnnDT[, ..colsToUse]), logisticPars,
+                                                         covPars, lowerSpreadProb, link))
   pSummary <- if (isTRUE(returnSims)) spreadProbSummary(shortAnnDT$spreadProb, ceiling = logisticPars[1])
   ## Initialised here, not inside the branch below, because the function returns
   ## it unconditionally. With no test selected -- which is how the module's
@@ -787,26 +767,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
     # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
     # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
-    medSP <- median(shortAnnDT$spreadProb, na.rm = TRUE)
-    ## Taken from the spreadProb column, not by scanning `cells`. `cells` is landscape-length and
-    ## zero everywhere except this year's pixels (6.0M cells vs a median 41k pixels on ELF 5.3.1),
-    ## so `cells[cells > a | cells > b]` made four passes over the landscape to recover values that
-    ## are already here. Same values: pixelID is unique within a year, the zeros never pass a
-    ## non-negative threshold, and `x > a | x > b` is `x > min(a, b)`. Only quantile() and summary()
-    ## read it, so order does not matter. Measured on ELF 5.3.1 with identical seeds: identical
-    ## objective values, and an evaluation 1.1-1.4x faster.
-    nonEdgeValues <- shortAnnDT$spreadProb[
-      shortAnnDT$spreadProb > min(lowerSpreadProb * 1.025, logisticPars[1] * 0.99)]
-    sdSP <- diff(quantile(nonEdgeValues, c(0.1, 0.9)))
-    if (is.na(sdSP)) sdSP <- 0
-    
-    medSPRight <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
-    spreadOutEnough <- sdSP / medSP > 0.025
+    gate <- spreadProbGateTest(shortAnnDT$spreadProb, logisticPars[1], lowerSpreadProb, maxFireSpread,
+                               lanscape1stQuantileThresh)
+    nonEdgeValues <- gate$nonEdgeValues
+    summ <- gate$summ
+    medSPRight <- gate$medianOK
+    spreadOutEnough <- !gate$notSpread
+    lowSPLowEnough <- !gate$burny
     minLik <- 1e-29 # min(emp$lik[emp$lik > 0])
     loci <- annualFires$cells
-    summ <- summary(nonEdgeValues)
-    lowSPLowEnough <- summ[2] < lanscape1stQuantileThresh
-    
+
     if (verbose > 1) {
       if (isTRUE(!spreadOutEnough)) {
         print(paste0(
