@@ -53,6 +53,17 @@ test_that("a saturated parameter set runs away in every replicate and scores far
   expect_gt(min(on$annualAreaByRep), max(off$annualAreaByRep))
 })
 
+test_that("by default a runaway is censored in the per-fire likelihood only; the area terms see what it burned", {
+  skip_if_not_installed("SpaDES.tools")
+  fx <- runawayFixture(6L)
+  off <- runawayObjective(c(0.9, 0.99), fx = fx)
+  on <- runawayObjective(c(0.9, 0.99), fx = fx, censorRunaways = TRUE)  # runawaySize NULL, as .objfunSpreadFit() now passes
+  expect_equal(on$runaways, on$nSims)
+  expect_gt(on$SNLL_FS, off$SNLL_FS + 50)          # the likelihood still penalises them
+  expect_true(all(on$allFireSizes <= 36))          # not 3600, nor any landscape-wide size
+  expect_lte(max(on$annualAreaByRep), 5 * 36)      # five fires, each bounded by its 36-pixel buffer
+})
+
 test_that("with no fire reaching the edge of its buffer, the objective is identical with and without the penalty", {
   skip_if_not_installed("SpaDES.tools")
   off <- runawayObjective(c(0.06, 0.08))
@@ -100,11 +111,11 @@ test_that("returnSims keeps the simulated sizes, penalty or not, with the same c
   expect_named(withBurned$burned, c("rep", "pixelID"))
 })
 
-test_that(".objfunSpreadFit() defaults runawaySize to the landscape's non-NA pixels, and switches off", {
+test_that(".objfunSpreadFit() censors runaways by default without a runawaySize, and switches off", {
   seen <- list()
   local_mocked_bindings(
-    objFunInner = function(runawaySize, ...) {
-      seen[[length(seen) + 1L]] <<- runawaySize
+    objFunInner = function(runawaySize, censorRunaways, ...) {
+      seen[[length(seen) + 1L]] <<- list(size = runawaySize, censor = censorRunaways)
       list(SNLL_FS = 0)
     },
     .package = "fireSenseUtils"
@@ -125,9 +136,11 @@ test_that(".objfunSpreadFit() defaults runawaySize to the landscape's non-NA pix
     )
     seen
   }
-  expect_equal(unlist(run()), 360)
-  expect_equal(unlist(run(runawaySize = 99)), 99)
-  expect_null(unlist(run(penaliseRunaways = FALSE)))
+  ## the landscape's 360 non-NA pixels are no longer a runaway's size: one runaway replicate made a whole
+  ## year look like the landscape burned, and fits chose parameters that under-burned (2026-10-01)
+  expect_equal(run()[[1]], list(size = NULL, censor = TRUE))
+  expect_equal(run(runawaySize = 99)[[1]], list(size = 99, censor = TRUE))
+  expect_equal(run(penaliseRunaways = FALSE)[[1]], list(size = NULL, censor = FALSE))
 })
 
 test_that("capSizes and penaliseCapHits are deprecated: one warning, then ignored", {
