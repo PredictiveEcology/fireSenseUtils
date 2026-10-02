@@ -1,4 +1,4 @@
-# fireSenseUtils (development)
+# fireSenseUtils 0.2.3.9079
 
 * `.objfunSpreadFit()`: a runaway replicate (`penaliseRunaways = TRUE`) is censored in the per-fire size likelihood only. The AD, year-area, area-distribution and MAD terms now score the size it burned; `runawaySize` no longer defaults to the landscape's non-`NA` pixel count and applies only when given. With that default, one runaway replicate (typically 1-3 times its observed fire's size) counted as burning the whole landscape, so fits chose parameters that rarely reach a buffer edge and under-burned: held-out simulated/observed area 1.33 -> 0.54 over 10 ELFs (2026-10-01). Fits made under the old default should be redone.
 
