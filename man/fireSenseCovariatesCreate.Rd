@@ -22,6 +22,7 @@ fireSenseCovariatesCreate(
   useCache = TRUE,
   rstLCC = NULL,
   treedWetlandLCC = 81,
+  treedWetland = TRUE,
   fuelCovariates = c("species", "domSecWetland"),
   domClass = NULL,
   secClass = NULL,
@@ -76,6 +77,11 @@ instead, and removed from \verb{dom_agb_*}/\verb{sec_agb_*} there.}
 
 \item{treedWetlandLCC}{Land-cover code(s) of treed wetland. Default 81 (NTEMS; also what
 \code{\link[=makeFireSenseLCC]{makeFireSenseLCC()}} assigns on SCANFI land cover from the wetland layer).}
+
+\item{treedWetland}{Logical. \code{TRUE} (default): treed wetland is a covariate when \code{rstLCC} is
+given, as described there. \code{FALSE}: it is not, and its tree AGB stays in the fuel columns like
+any other forest. A fit sets this once per ELF (\code{fireSense_dataPrepFit}'s \code{minCovariateProp}:
+too little treed wetland to estimate its coefficient); a prediction follows the fit.}
 
 \item{fuelCovariates}{\code{"species"} (default; one covariate column per fuel class, as
 \code{assignedFuelClass} in \code{sppEquiv}) or \code{"domSecWetland"}: only the AGB columns

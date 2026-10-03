@@ -12,7 +12,9 @@ assessFuelClasses(
   targetNonForestClasses = 2,
   targetFuelClasses = 5,
   nonforestLCC,
-  pValue = 0.001
+  pValue = 0.001,
+  lccShare = NULL,
+  minCovariateProp = 0.05
 )
 }
 \arguments{
@@ -35,6 +37,15 @@ If not provided and \code{mixedType == 2}, will attempt to use
 \item{nonforestLCC}{vector or list of vectors of non-forest fuel classes}
 
 \item{pValue}{for glm coefficient significance when deciding to merge fuel classes}
+
+\item{lccShare}{Optional named numeric: each land-cover class's share of the ELF's flammable
+pixels, named by class code (see \code{\link[=lccFlammableShare]{lccFlammableShare()}}). \code{NULL} (default): every non-forest
+class is clustered.}
+
+\item{minCovariateProp}{With \code{lccShare}, a non-forest class whose share is below this is too
+rare to place by its own coefficient: it is left out of the clustering and joins the group of
+the class whose burn coefficient is nearest, as \code{missingForest} does. When every non-forest
+class is that rare, they form a single group.}
 }
 \value{
 a list of three objects:

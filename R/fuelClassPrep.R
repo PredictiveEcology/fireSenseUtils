@@ -109,6 +109,15 @@ makeGLM <- function(fuel, landscape, form) {
 #'
 #' @param pValue for glm coefficient significance when deciding to merge fuel classes
 #'
+#' @param lccShare Optional named numeric: each land-cover class's share of the ELF's flammable
+#'   pixels, named by class code (see [lccFlammableShare()]). `NULL` (default): every non-forest
+#'   class is clustered.
+#'
+#' @param minCovariateProp With `lccShare`, a non-forest class whose share is below this is too
+#'   rare to place by its own coefficient: it is left out of the clustering and joins the group of
+#'   the class whose burn coefficient is nearest, as `missingForest` does. When every non-forest
+#'   class is that rare, they form a single group.
+#'
 #' @return a list of three objects:
 #' 1. `modSppEquiv`, a data.table with assigned fuel classes for each tree species;
 #' 2. `nonForestedLCCGroups`, a named list of non-forest land cover classes grouped by fuel class;
@@ -119,7 +128,8 @@ makeGLM <- function(fuel, landscape, form) {
 #' @importFrom stats coefficients binomial glm kmeans
 assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
                               targetNonForestClasses = 2,
-                              targetFuelClasses = 5, nonforestLCC, pValue = 0.001) {
+                              targetFuelClasses = 5, nonforestLCC, pValue = 0.001,
+                              lccShare = NULL, minCovariateProp = 0.05) {
 
   ####sort non-forest classes###
   nfData <- landscape[is.na(B)]
@@ -145,8 +155,29 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
     hasMissingForest <- TRUE
     coefsToSort <- coefsToSort[setdiff(names(coefsToSort), "missingForest")]
   }
-  nf_classes <- kmeans(x = coefsToSort, centers = targetNonForestClasses)
-  nf_classes <- nf_classes$cluster
+  ## A class too rare in the ELF to estimate gets no say in the clustering: its coefficient comes from
+  ## few pixels. It joins the group of the class nearest its coefficient, as missingForest does below.
+  rare <- character(0)
+  if (!is.null(lccShare)) {
+    share <- lccShare[names(coefsToSort)]
+    share[is.na(share)] <- 0
+    rare <- names(coefsToSort)[share < minCovariateProp]
+  }
+  if (length(rare) == length(coefsToSort)) {
+    ## nothing common enough to join: all of them are one group
+    nf_classes <- stats::setNames(rep(1L, length(coefsToSort)), names(coefsToSort))
+  } else {
+    common <- coefsToSort[setdiff(names(coefsToSort), rare)]
+    if (!length(rare)) {
+      nf_classes <- kmeans(x = coefsToSort, centers = targetNonForestClasses)$cluster
+    } else if (length(unique(common)) <= targetNonForestClasses) {
+      nf_classes <- stats::setNames(match(common, unique(common)), names(common))
+    } else {
+      nf_classes <- kmeans(x = common, centers = targetNonForestClasses)$cluster
+    }
+    for (r in rare)
+      nf_classes[r] <- nf_classes[names(common)[which.min(abs(common - coefsToSort[[r]]))]]
+  }
 
   #remove missing forest as it must be different
   #there must be another way to do this?....
@@ -225,6 +256,28 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   return(list(modSppEquiv = modSppEquiv,
               nonForestedLCCGroups = nf_vals,
               missingLCCgroup = missingForest))
+}
+
+#' Each land-cover class's share of an ELF's flammable pixels
+#'
+#' How common each class is over the whole study area, not only where fires burned: a covariate for
+#' a class that covers a few percent of the ELF has too few pixels for its coefficient to be
+#' estimated. `fireSense_dataPrepFit` compares these shares with its `minCovariateProp` to decide
+#' which non-forest classes are clustered on their own (see [assessFuelClasses()]) and whether treed
+#' wetland is a covariate (see [fireSenseCovariatesCreate()]).
+#'
+#' @param rstLCC Land-cover `SpatRaster` (class codes as values).
+#' @param flammableRTM Optional `SpatRaster` on the same grid; only its cells equal to 1 count.
+#'   Without it, every cell of `rstLCC` that is not `NA` or 0 counts.
+#'
+#' @return Named numeric, one element per class code (as character), summing to 1.
+#' @export
+lccFlammableShare <- function(rstLCC, flammableRTM = NULL) {
+  v <- terra::values(rstLCC, mat = FALSE)
+  keep <- !is.na(v) & v != 0
+  if (!is.null(flammableRTM)) keep <- keep & terra::values(flammableRTM, mat = FALSE) %in% 1
+  tab <- table(v[keep])
+  stats::setNames(as.numeric(tab) / sum(tab), names(tab))
 }
 
 #' Merging and assignment of fuel classes
@@ -621,6 +674,10 @@ collapseFuelClassesToDomSec <- function(dt, fcs, domClass = NULL, secClass = NUL
 #'   instead, and removed from `dom_agb_*`/`sec_agb_*` there.
 #' @param treedWetlandLCC Land-cover code(s) of treed wetland. Default 81 (NTEMS; also what
 #'   [makeFireSenseLCC()] assigns on SCANFI land cover from the wetland layer).
+#' @param treedWetland Logical. `TRUE` (default): treed wetland is a covariate when `rstLCC` is
+#'   given, as described there. `FALSE`: it is not, and its tree AGB stays in the fuel columns like
+#'   any other forest. A fit sets this once per ELF (`fireSense_dataPrepFit`'s `minCovariateProp`:
+#'   too little treed wetland to estimate its coefficient); a prediction follows the fit.
 #' @param fuelCovariates `"species"` (default; one covariate column per fuel class, as
 #'   `assignedFuelClass` in `sppEquiv`) or `"domSecWetland"`: only the AGB columns
 #'   `dom_agb_<domClass>` and `sec_agb_<secClass>` (the ELF's two fuel classes with the most
@@ -662,7 +719,7 @@ fireSenseCovariatesCreate <- function(cohortData,
                                    cutoffForYoungAge,
                                    nonForestCanBeYoungAge,
                                    studyAreaName, useCache = TRUE,
-                                   rstLCC = NULL, treedWetlandLCC = 81,
+                                   rstLCC = NULL, treedWetlandLCC = 81, treedWetland = TRUE,
                                    fuelCovariates = c("species", "domSecWetland"),
                                    domClass = NULL, secClass = NULL, youngAge = TRUE,
                                    fuelClassTable = NULL) {
@@ -790,7 +847,7 @@ fireSenseCovariatesCreate <- function(cohortData,
   ## youngAge is mutually exclusive with every other non-climate covariate: a burned bog is not
   ## "wet" for fire-spread purposes while it is young, so treedWetland is zeroed below along with
   ## the fuel and land-cover columns.
-  if (!is.null(rstLCC)) {
+  if (!is.null(rstLCC) && isTRUE(treedWetland)) {
     lccVals <- terra::values(rstLCC, mat = FALSE)[spreadCovariates$pixelID]
     isTreedWetland <- lccVals %in% treedWetlandLCC
     if (identical(fuelCovariates, "domSecWetland")) {
@@ -816,7 +873,8 @@ fireSenseCovariatesCreate <- function(cohortData,
   #   nfLCC value.
   exclusiveCols <- c(fcs, names(landcoverDT))
   ## fcs already includes treedWetlandAgbTxt in "domSecWetland" mode (added above)
-  if (!is.null(rstLCC) && !identical(fuelCovariates, "domSecWetland")) exclusiveCols <- c(exclusiveCols, treedWetlandTxt)
+  if (!is.null(rstLCC) && isTRUE(treedWetland) && !identical(fuelCovariates, "domSecWetland"))
+    exclusiveCols <- c(exclusiveCols, treedWetlandTxt)
   exclusiveCols <- setdiff(exclusiveCols, "pixelID")
   if (youngAge) {
     spreadCovariates <- makeMutuallyExclusive(dt = spreadCovariates,

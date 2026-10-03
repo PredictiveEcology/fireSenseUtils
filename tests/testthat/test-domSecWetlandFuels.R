@@ -28,14 +28,14 @@ fuelRas <- function() {
 lccRas <- function() terra::rast(fuelRas()[[1]], vals = c(81, 210, 50, 81, 81, 20))
 landcover <- function() data.table::data.table(pixelID = 1:6, nfLCC_50 = c(0, 0, 1, 0, 0, 0))
 
-covs <- function(rstLCC = NULL, domClass = NULL, secClass = NULL, fuelCovariates = "domSecWetland") {
+covs <- function(rstLCC = NULL, domClass = NULL, secClass = NULL, fuelCovariates = "domSecWetland", treedWetland = TRUE) {
   testthat::local_mocked_bindings(cohortsToFuelClasses = function(...) fuelRas())
   args <- list(cohortData = NULL, pixelGroupMap = NULL, flammableRTM = fuelRas()[[1]], sppEquiv = NULL,
                landcoverDT = landcover(), fuelClassCol = "FuelClass", sppEquivCol = "LandR",
                missingLCCgroup = "nfLCC_50", nonForestedLCCGroups = list(nfLCC_50 = 50),
                nonForest_timeSinceDisturbance = NULL, cutoffForYoungAge = 15, nonForestCanBeYoungAge = FALSE,
                studyAreaName = "test", useCache = FALSE, fuelCovariates = fuelCovariates,
-               domClass = domClass, secClass = secClass)
+               domClass = domClass, secClass = secClass, treedWetland = treedWetland)
   if (!is.null(rstLCC)) args$rstLCC <- rstLCC
   do.call(fireSenseCovariatesCreate, args)
 }
@@ -198,4 +198,15 @@ test_that("forcing domClass = NA drops every tree class, even when this area has
   expect_equal(out[pixelID == 1, treedWetland_agb], logMinB(750))
   expect_equal(out[pixelID == 2, treedWetland_agb], logMinB(0))
   expect_identical(attr(out, "fuelClassRoles"), list(domClass = NA_character_, secClass = NA_character_))
+})
+
+test_that("treedWetland = FALSE: no treedWetland_agb, and wetland AGB stays in dom/sec", {
+  ## an ELF with too little treed wetland to estimate it (fireSense_dataPrepFit's minCovariateProp)
+  out <- covs(rstLCC = lccRas(), treedWetland = FALSE)[order(pixelID)]
+  expect_false(treedWetlandAgbTxt %in% names(out))
+  ## pixel 1 is class 81: its AGB is ordinary forest, exactly as on pixel 2's upland
+  expect_equal(out[pixelID == 1, dom_agb_Pice_mar], logMinB(500))
+  expect_equal(out[pixelID == 1, sec_agb_Pinu_ban], logMinB(200))
+  ## and rstLCC then changes nothing at all
+  expect_equal(as.data.frame(out), as.data.frame(covs(treedWetland = FALSE)[order(pixelID)]))
 })

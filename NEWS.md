@@ -1,3 +1,7 @@
+# fireSenseUtils (development version)
+
+* Rare land-cover classes are no longer separate spread covariates. New `lccFlammableShare()` gives each class's share of an ELF's flammable pixels. `assessFuelClasses(lccShare =, minCovariateProp = 0.05)` leaves a non-forest class below that share out of the k-means and puts it in the group of the class with the nearest burn coefficient, as `missingForest` already was; if every non-forest class is that rare they form one group. `fireSenseCovariatesCreate(treedWetland = FALSE)` makes no treed-wetland covariate and leaves that tree AGB in the fuel columns. The defaults keep the previous behaviour. Treed wetland is under 5% of the flammable pixels in 7 of the 10 fitted ELFs (13.1, 14.3, 14.4, 4.1, 5.2.1, 5.3.1, 5.3.2).
+
 # fireSenseUtils 0.2.3.9079
 
 * `.objfunSpreadFit()`: a runaway replicate (`penaliseRunaways = TRUE`) is censored in the per-fire size likelihood only. The AD, year-area, area-distribution and MAD terms now score the size it burned; `runawaySize` no longer defaults to the landscape's non-`NA` pixel count and applies only when given. With that default, one runaway replicate (typically 1-3 times its observed fire's size) counted as burning the whole landscape, so fits chose parameters that rarely reach a buffer edge and under-burned: held-out simulated/observed area 1.33 -> 0.54 over 10 ELFs (2026-10-01). Fits made under the old default should be redone.
