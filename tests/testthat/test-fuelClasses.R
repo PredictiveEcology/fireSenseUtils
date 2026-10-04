@@ -325,3 +325,50 @@ test_that("assessFuelClasses with no tree species returns the non-forest groups 
     "no forested pixels with a species remain"
   )
 })
+
+test_that("lccFlammableShare is each class's share of the flammable pixels", {
+  skip_if_not_installed("terra")
+  r <- terra::rast(nrows = 2, ncols = 5, vals = c(40, 40, 50, 81, 81, 81, 0, NA, 50, 50))
+  sh <- lccFlammableShare(r)
+  expect_equal(sh, c(`40` = 2, `50` = 3, `81` = 3) / 8)
+  ## a flammable map restricts it further
+  fl <- terra::rast(r, vals = c(1, 1, 1, 1, 1, 1, 1, 1, 0, 0))
+  expect_equal(lccFlammableShare(r, fl), c(`40` = 2, `50` = 1, `81` = 3) / 6)
+})
+
+nfLandscape <- function(rates, n = 600L) {
+  set.seed(2)
+  landscape <- data.table::data.table(cell = seq_len(n), speciesCode = NA_character_,
+                                      lcc = rep(as.integer(names(rates)), each = n / length(rates)),
+                                      B = NA_integer_, totalBiomass = NA_integer_, year = 2020L)
+  landscape[, burned := rbinom(.N, 1, rates[as.character(lcc)])]
+  landscape[]
+}
+noSpp <- function() data.table::data.table(LandR = character(0), FuelClass = character(0))
+
+test_that("a non-forest class under minCovariateProp of the ELF joins the group nearest its burn rate", {
+  withr::local_package("data.table")
+  ## 40 burns like 80; it is 1% of the ELF's flammable pixels, so it is not clustered on its own
+  rates <- c(`40` = 0.6, `50` = 0.05, `80` = 0.6, `100` = 0.3)
+  share <- c(`40` = 0.01, `50` = 0.3, `80` = 0.4, `100` = 0.29)
+  out <- assessFuelClasses(landscape = nfLandscape(rates), fuelCol = "FuelClass", sppEquiv = noSpp(),
+                           sppEquivCol = "LandR", nonforestLCC = c(40L, 50L, 80L, 100L),
+                           lccShare = share, minCovariateProp = 0.05)
+  grp <- out$nonForestedLCCGroups
+  expect_setequal(unlist(grp), c(40, 50, 80, 100))
+  in40 <- names(grp)[vapply(grp, function(g) 40 %in% g, logical(1))]
+  expect_length(in40, 1L)
+  expect_true(80 %in% grp[[in40]])
+  expect_false(identical(grp[[in40]], 40))
+})
+
+test_that("when every non-forest class is rare, they form one group", {
+  withr::local_package("data.table")
+  rates <- c(`40` = 0.6, `50` = 0.05)
+  out <- assessFuelClasses(landscape = nfLandscape(rates), fuelCol = "FuelClass", sppEquiv = noSpp(),
+                           sppEquivCol = "LandR", nonforestLCC = c(40L, 50L),
+                           lccShare = c(`40` = 0.02, `50` = 0.01), minCovariateProp = 0.05)
+  expect_length(out$nonForestedLCCGroups, 1L)
+  expect_setequal(unlist(out$nonForestedLCCGroups), c(40, 50))
+  expect_identical(out$missingLCCgroup, names(out$nonForestedLCCGroups))
+})

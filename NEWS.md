@@ -1,5 +1,6 @@
 # fireSenseUtils (development version)
 
+* Rare land-cover classes are no longer separate spread covariates. New `lccFlammableShare()` gives each class's share of an ELF's flammable pixels. `assessFuelClasses(lccShare =, minCovariateProp = 0.05)` leaves a non-forest class below that share out of the k-means and puts it in the group of the class with the nearest burn coefficient, as `missingForest` already was; if every non-forest class is that rare they form one group. `fireSenseCovariatesCreate(treedWetland = FALSE)` makes no treed-wetland covariate and leaves that tree AGB in the fuel columns. The defaults keep the previous behaviour. Treed wetland is under 5% of the flammable pixels in 7 of the 10 fitted ELFs (13.1, 14.3, 14.4, 4.1, 5.2.1, 5.3.1, 5.3.2).
 * `runDEoptim()`: the final-population rescore, profile and simulations use `clusters::currentCluster()`. Rebalancing during the fit stops the workers it moves, so they ran on closed connections and failed with "invalid connection" after the fit converged.
 
 # fireSenseUtils 0.2.3.9079
