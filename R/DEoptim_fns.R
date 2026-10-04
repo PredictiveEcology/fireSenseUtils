@@ -335,6 +335,11 @@ runDEoptim <- function(landscape,
     # , cacheId = "8448b6a37b54361b"
   ) # iteration 201 to 300
 
+  ## The fit moves workers (rebalancing, dead-worker rebuilds) in its own copy of the cluster and
+  ## stops the old ones, so `cl` may hold closed connections now: "invalid connection" in the
+  ## rescore (ELF 5.2.1 fold 2, 2026-10-03). Use the cluster the workers are on now.
+  cl <- clusters::currentCluster(cl)
+
   ## Re-score the final population `rescoreReps` times each, on the same workers, with the early stop
   ## off (thresh = Inf) so every replicate is a full evaluation. DEoptim's own values are partly luck;
   ## the caller picks its best members from these means (bestByReplicatedMean()).
