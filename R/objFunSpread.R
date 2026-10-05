@@ -9,7 +9,8 @@ utils::globalVariables(c(
 #' Objective function for `fireSense_spreadFit` module
 #'
 #' @param par parameters: the logistic parameters (`maxAsymptote` first, then `upperTail1` if the link has
-#'   one; without `hillSlope1` and `inflectionPoint1`, which are fixed at 1 -- see `fixLogisticPars()`), then the covariate coefficients, and optionally
+#'   one; without `hillSlope1` and `inflectionPoint1`, which are fixed at 1 -- see `fixLogisticPars()`), then the covariate coefficients (the intercept's first, when
+#'   the formula has one -- see [spreadDesignCols()]), and optionally
 #'   `yearSpreadSD` last (see `fitYearSpreadSD`).
 #'
 #' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
@@ -104,6 +105,7 @@ utils::globalVariables(c(
 #' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
 #' @param covCentre Optional named list or vector of values subtracted from the rescaled covariates
 #'   of the same name. `NULL` (default) does no centring. Must be the same at fit and predict.
+#'   [spreadCovCentre()] gives the centres to use with an intercept.
 #' @param pruneAbove Numeric. An upper bound on the accumulated SNLL after the *first* batch of
 #'   fire years, past which the evaluation stops early and returns the fail value. Default `Inf`,
 #'   which leaves `thresh * <years done>` as the only bound -- i.e. no change in behaviour.
@@ -308,7 +310,8 @@ utils::globalVariables(c(
     stop("formulaToFit must be provided as a charater string because it takes too much RAM otherwise.")
   }
   formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
-  colsToUse <- attributes(terms(formulaToFit))[["term.labels"]]
+  ## the terms, preceded by the intercept when the formula has one (see spreadDesignCols())
+  colsToUse <- spreadDesignCols(formulaToFit)
   # How many of the parameters belong to the model?
   parsModel <- length(colsToUse)
   ncells <- ncell(landscape)
@@ -331,14 +334,7 @@ utils::globalVariables(c(
   ## integer vector coerces the whole landscape-length vector on every fire year.
   cells <- numeric(ncells)
   # Nreps <- 10
-  yearSplit <- strsplit(names(nonAnnualDTx1000), "_")
-  names(yearSplit) <- as.character(seq_along(nonAnnualDTx1000))
-  indexNonAnnual <- rbindlist(
-    Map(
-      ind = seq_along(nonAnnualDTx1000), date = yearSplit,
-      function(ind, date) data.table(ind = ind, date = date)
-    )
-  )
+  indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
   historicalFiresAboveMin <- firesAboveMinSize(historicalFires, minFireSize)
 
   sizeWeightMean <- mean(sizeWeight(unlist(lapply(historicalFiresAboveMin, function(x) x$size)), weighted))
@@ -1294,7 +1290,8 @@ sizeWeight <- function(size, weighted) {
 #'
 #' @param colsToUse Optional. If this is supplied, it must be a character vector indicating
 #'   the column names to use in `shortAnnDTx1000`, i.e., it must include everything, 
-#'   annual or nonAnnual, that will be used.
+#'   annual or nonAnnual, that will be used. It may start with `spreadInterceptTxt` (see
+#'   [spreadDesignCols()]): that column is made here, as 1s, after rescaling and centring.
 #'
 #' @inheritParams logisticAll
 #'
@@ -1348,7 +1345,8 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     )
   }
   # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
-  for (cn2 in colsToUse) {
+  covCols <- spreadCovCols(colsToUse) # the intercept, if any, is not a covariate
+  for (cn2 in covCols) {
     set(shortAnnDTx1000, NULL, cn2, shortAnnDTx1000[[cn2]] / 1000)
   }
   
@@ -1356,7 +1354,7 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
   shortAnnDT <- shortAnnDTx1000
 
   if (doAssertions) {
-    assertCovariateRange(shortAnnDT, colsToUse)
+    assertCovariateRange(shortAnnDT, covCols)
     if (logisticPars[1] > maxFireSpread) {
       warning(
         "The first parameter of the logistic is > ", maxFireSpread, ".",
@@ -1369,10 +1367,13 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
   ## cover" only on the uncentred scale, and after the range assertion, which centred (negative)
   ## values would fail. Fitting and prediction both pass through here, so both centre identically.
   if (!is.null(covCentre)) {
-    for (cn in intersect(names(covCentre), colsToUse)) {
+    for (cn in intersect(names(covCentre), covCols)) {
       set(shortAnnDT, NULL, cn, shortAnnDT[[cn]] - covCentre[[cn]])
     }
   }
+
+  ## The intercept is a constant 1, added last so it is never rescaled, centred or asserted on.
+  if (spreadInterceptTxt %in% colsToUse) set(shortAnnDT, NULL, spreadInterceptTxt, 1)
 
   # covPars <- tail(x = par, n = parsModel)
   # logisticPars <- head(x = par, n = length(par) - parsModel)

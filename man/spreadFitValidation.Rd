@@ -74,7 +74,8 @@ terms that must not be active together (mutually exclusive in the
 formula). Default \code{list("youngAge" = c("class", "nf"))}.}
 
 \item{covCentre}{Optional named list or vector of values subtracted from the rescaled covariates
-of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.}
+of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.
+\code{\link[=spreadCovCentre]{spreadCovCentre()}} gives the centres to use with an intercept.}
 
 \item{Nreps}{Simulations per fire; use the fit's \code{Nreps}.}
 

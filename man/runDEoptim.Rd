@@ -59,7 +59,8 @@ runDEoptim(
   runawayEdgeMin = fireSenseRunawayEdgeMin,
   profileReps = 0L,
   simulateMembers = 0L,
-  penaliseCapHits = NULL
+  penaliseCapHits = NULL,
+  covCentre = NULL
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -220,6 +221,11 @@ observed fires without the size cap (\code{\link[=simulateFireSizes]{simulateFir
 for \code{\link[=scoreFireSizes]{scoreFireSizes()}} and \code{\link[=linkSaturation]{linkSaturation()}}. Needs \code{rescoreReps > 0}.}
 
 \item{penaliseCapHits}{Deprecated and ignored; use \code{penaliseRunaways}.}
+
+\item{covCentre}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit, the re-score and the profile and
+simulation diagnostics: values subtracted from the rescaled covariates, from \code{\link[=spreadCovCentre]{spreadCovCentre()}}
+when the formula has an intercept. \code{NULL} (default) centres nothing, and then the call, and so its
+cache key, is what it was before this argument existed.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}

@@ -164,3 +164,32 @@ test_that("plotSpreadFitResponse() returns a ggplot of the pure-stand curves, ti
   expect_equal(a$logitP, stats::qlogis(0.13 + 0.13 / (1 + exp(-eta))))
   expect_no_error(ggplot2::ggplot_build(g))
 })
+
+## With an intercept (formula "~ 1 + ..."): the intercept is a coefficient, not a covariate to plot.
+test_that("the validation data omits the intercept from its covariates but keeps its coefficient", {
+  skip_if_not_installed("SpaDES.tools")
+  inp <- toyValidationInputs()
+  inp$formulaToFit <- "~ 1 + clim + youngAge + agb"
+  inp$par <- c(maxAsymptote = 0.26, `(Intercept)` = -0.4, clim = 2, youngAge = -2, agb = 3)
+  set.seed(3)
+  d <- spreadFitValidationData(
+    par = inp$par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
+    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
+    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
+    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive,
+    covCentre = list(clim = 0.5, youngAge = 0.1, agb = 0.2), Nreps = 2L)
+  info <- attr(d, "spreadFitValidation")
+  expect_identical(info$covariates, c("clim", "youngAge", "agb"))
+  expect_true(info$intercept)
+  expect_false(spreadInterceptTxt %in% names(d))
+  expect_named(info$covPars, c(spreadInterceptTxt, "clim", "youngAge", "agb"))
+  ## p is the hand-built logistic of the intercept and the centred, rescaled covariates
+  raw <- d
+  x <- list(clim = raw$clim / 100, youngAge = raw$youngAge, agb = raw$agb / 1e4)
+  # (mutual exclusivity zeroes agb where youngAge is 1, as the objective does)
+  x$agb[x$youngAge > 0.5] <- 0
+  lp <- -0.4 + 2 * (x$clim - 0.5) - 2 * (x$youngAge - 0.1) + 3 * (x$agb - 0.2)
+  expect_equal(d$p, 0.13 + (0.26 - 0.13) * plogis(lp), tolerance = 1e-6)
+  ## the response curves take the intercept into account without a column for it
+  expect_s3_class(plotSpreadFitResponse(d), "ggplot")
+})

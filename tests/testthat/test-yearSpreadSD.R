@@ -70,7 +70,7 @@ test_that(".objfunSpreadFit takes the sd from the end of a named par, and only w
     nonAnnualDTx1000 = list(`year2001_year2001` = dt(pixelID = 1:2, cov1 = c(100L, 200L))),
     historicalFires = list(year2001 = data.frame(size = c(100, 200), cells = 1:2)),
     fireBufferedListDT = list(year2001 = dt(pixelID = 1:2, buffer = c(1L, 0L), ids = 1L)),
-    formulaToFit = "~ cov1", tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0, ...)
+    formulaToFit = "~ 0 + cov1", tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0, ...)
   ## `par` no longer carries hillSlope1 or inflectionPoint1 (fixed at 1); .objfunSpreadFit()
   ## reinserts them as the 2nd and 3rd elements before objFunInner() sees it -- see fixLogisticPars().
   call(c(a = 0.26, cov1 = 2, yearSpreadSD = 0.7))

@@ -50,6 +50,48 @@ spreadProbCovsOfYear <- function(yr, annDTx1000, nonAnnualDTx1000, indexNonAnnua
   )
 }
 
+#' Which non-annual table (`nonAnnualDTx1000`) belongs to which years
+#'
+#' @param nonAnnualDTx1000 list of `data.table`s named by the years they cover (`"1985_1986"`).
+#' @return a `data.table`: `ind`, the position in the list, and `date`, the years it covers.
+#' @keywords internal
+nonAnnualIndex <- function(nonAnnualDTx1000) {
+  yearSplit <- strsplit(names(nonAnnualDTx1000), "_")
+  data.table::rbindlist(Map(
+    ind = seq_along(nonAnnualDTx1000), date = yearSplit,
+    function(ind, date) data.table::data.table(ind = ind, date = date)))
+}
+
+#' The centre of each covariate of a spread fit: its mean over the data the objective uses
+#'
+#' With an intercept in the model the covariates are centred (`covCentre` of [.objfunSpreadFit()]), so the
+#' coefficients describe variation and the intercept the level. The centre is the mean of each covariate
+#' of the formula, over every pixel-year in `annualDTx1000`, after the rescaling and the mutual
+#' exclusivity the objective applies and before it centres: the very values it goes on to centre.
+#'
+#' @param annualDTx1000,nonAnnualDTx1000,covMinMax,mutuallyExclusive As in [.objfunSpreadFit()].
+#' @param formulaToFit The spread formula; the intercept is not a covariate and has no centre.
+#' @return `NULL` when the formula has no intercept (nothing is centred), else a named list, one mean per
+#'   covariate, to give as `covCentre`.
+#' @export
+spreadCovCentre <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMinMax = NULL,
+                            mutuallyExclusive = list("youngAge" = c("class", "nf"))) {
+  colsToUse <- spreadDesignCols(formulaToFit)
+  if (!spreadInterceptTxt %in% colsToUse) return(NULL)
+  covCols <- spreadCovCols(colsToUse)
+  lapply(nonAnnualDTx1000, data.table::setDT)
+  indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
+  sums <- numeric(length(covCols))
+  n <- numeric(length(covCols))
+  for (yr in names(annualDTx1000)) {
+    covs <- spreadProbCovsOfYear(yr, annualDTx1000[[yr]], nonAnnualDTx1000, indexNonAnnual, covMinMax,
+                                 mutuallyExclusive, covCols, FALSE, NULL, NULL, NULL, NULL)
+    sums <- sums + vapply(covCols, function(cn) sum(covs[[cn]], na.rm = TRUE), numeric(1))
+    n <- n + vapply(covCols, function(cn) sum(!is.na(covs[[cn]])), numeric(1))
+  }
+  as.list(stats::setNames(sums / n, covCols))
+}
+
 #' The spreadProb of each pixel of a year's covariate matrix (`spreadProbCovsOfYear()`, as a matrix)
 #' @keywords internal
 spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link = NULL) {
@@ -123,7 +165,7 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
                             landscape = NULL, years = NULL, doAssertions = FALSE) {
   data.table::setDTthreads(1)
   formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
-  colsToUse <- attributes(terms(formulaToFit))[["term.labels"]]
+  colsToUse <- spreadDesignCols(formulaToFit)
   parsModel <- length(colsToUse)
   if (is.null(years)) {
     escapeMinPx <- if (!is.null(escapeSizeHa)) escapeSizePixels(escapeSizeHa, landscape)
@@ -132,10 +174,7 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
   }
   years <- as.character(years)
   lapply(nonAnnualDTx1000, data.table::setDT)
-  yearSplit <- strsplit(names(nonAnnualDTx1000), "_")
-  indexNonAnnual <- data.table::rbindlist(Map(
-    ind = seq_along(nonAnnualDTx1000), date = yearSplit,
-    function(ind, date) data.table::data.table(ind = ind, date = date)))
+  indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
   single <- !is.list(par)
   pars <- if (single) list(par) else par
   pars <- lapply(pars, function(p) splitSpreadPar(p)$par)
