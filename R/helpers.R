@@ -310,6 +310,40 @@ paramsSeparate <- function(par, parsModel) {
   list(covPars = covPars, logisticPars = logisticPars)
 }
 
+#' The columns of the spread model's design, in the order of its coefficients
+#'
+#' The terms of the formula, preceded by `spreadInterceptTxt` when the formula has an intercept
+#' (`~ 1 + a + b`; the module formulas are `~ 0 + ...` and have none). The intercept is a column of 1s that
+#' `spreadProbFromIntegerCovs()` adds after rescaling and centring, so it is multiplied by its
+#' coefficient like every covariate, and `paramsSeparate(par, length(spreadDesignCols(f)))` finds it as
+#' the first covariate coefficient. [spreadCovCols()] drops it.
+#'
+#' @param formulaToFit The spread formula, a character string or a formula; `NULL` gives no columns.
+#' @return A character vector.
+#' @export
+spreadDesignCols <- function(formulaToFit) {
+  if (is.null(formulaToFit)) return(character(0))
+  tt <- terms(as.formula(formulaToFit, env = .GlobalEnv))
+  c(if (attr(tt, "intercept") == 1L) spreadInterceptTxt, attr(tt, "term.labels"))
+}
+
+#' @param colsToUse A character vector from `spreadDesignCols()`.
+#' @return `spreadCovCols()`: `colsToUse` without the intercept, i.e. the columns that are covariates
+#'   (rescaled, centred, and in `covMinMax`).
+#' @export
+#' @rdname spreadDesignCols
+spreadCovCols <- function(colsToUse) setdiff(colsToUse, spreadInterceptTxt)
+
+#' Names of the arguments that are `NULL`, to give to `Cache(omitArgs =)`
+#'
+#' An argument added to a cached call changes its key even when it is `NULL`. Omitting it while it is
+#' `NULL` keeps the key of a call made before the argument existed, so the cached result is still found.
+#'
+#' @param ... Named arguments.
+#' @return A character vector: the names of those that are `NULL`.
+#' @export
+omitNullArgs <- function(...) names(Filter(is.null, list(...)))
+
 ## hillSlope1 and inflectionPoint1 (the logistic link's slope and Richards exponent) are fixed at 1,
 ## not fitted. With the linear predictor x = covariates %*% beta, hillSlope1 enters
 ## logistic3p()/logistic3pUpper() only as hillSlope1 * x, so scaling every covariate coefficient by k

@@ -61,13 +61,12 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
   if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
   if (isTRUE(fitYearSpreadSD)) par <- par[-length(par)]
   par <- fixLogisticPars(par)
-  colsToUse <- attr(terms(as.formula(formulaToFit)), "term.labels")
+  colsToUse <- spreadDesignCols(formulaToFit)
+  covCols <- spreadCovCols(colsToUse)
   pp <- paramsSeparate(par, length(colsToUse))
 
   lapply(nonAnnualDTx1000, setDT)
-  yearSplit <- strsplit(names(nonAnnualDTx1000), "_")
-  indexNonAnnual <- rbindlist(Map(ind = seq_along(nonAnnualDTx1000), date = yearSplit,
-                                  function(ind, date) data.table(ind = ind, date = date)))
+  indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
   simYears <- names(Filter(Negate(is.null), burned))
   out <- rbindlist(lapply(simYears, function(y) {
     ann <- annualDTx1000[[y]]
@@ -91,14 +90,15 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                     simulated = 0, p = p[keep])
     m <- match(d$pixelID, nBurned$pixelID)
     set(d, which(!is.na(m)), "simulated", nBurned$n[m[!is.na(m)]] / Nreps)
-    for (cn in colsToUse) set(d, NULL, cn, raw[[cn]][keep])
+    for (cn in covCols) set(d, NULL, cn, raw[[cn]][keep])
     d
   }))
   data.table::setattr(out, "spreadFitValidation", list(
     logisticPars = pp$logisticPars, covPars = pp$covPars,
     covMinMax = if (!is.null(covMinMax)) as.list(covMinMax), covCentre = covCentre,
-    lowerSpreadProb = lowerSpreadProb, link = link, Nreps = Nreps, covariates = colsToUse,
-    climateCols = intersect(colsToUse, names(annualDTx1000[[1]])),
+    lowerSpreadProb = lowerSpreadProb, link = link, Nreps = Nreps, covariates = covCols,
+    intercept = spreadInterceptTxt %in% colsToUse,
+    climateCols = intersect(covCols, names(annualDTx1000[[1]])),
     yearsNotSimulated = setdiff(names(burned), simYears)))
   out
 }
@@ -219,6 +219,8 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
   centre <- stats::setNames(numeric(length(allCovs)), allCovs)
   for (cn in intersect(names(info$covCentre), allCovs)) centre[[cn]] <- info$covCentre[[cn]]
   logitP <- function(mat) {
+    ## covPars has the intercept's coefficient first when the fit has one; it multiplies a column of 1s
+    if (isTRUE(info$intercept)) mat <- cbind(1, mat)
     stats::qlogis(as.numeric(logisticAll(info$logisticPars, mat, info$covPars, info$lowerSpreadProb,
                                          link = info$link)))
   }

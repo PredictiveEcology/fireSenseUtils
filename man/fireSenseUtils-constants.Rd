@@ -12,6 +12,8 @@
 \alias{escapesTxt}
 \alias{spreadFitAdditionalColNamesTxt}
 \alias{ignitionFitAdditionalColNamesTxt}
+\alias{spreadInterceptTxt}
+\alias{spreadFitCovCentreTxt}
 \title{Hard-coded name/text constants}
 \format{
 \itemize{
@@ -37,6 +39,12 @@ simList-slot/column names attached to spread-fit outputs
 what prediction needs to rescale covariates exactly as the fit did.
 \item \code{ignitionFitAdditionalColNamesTxt}: \code{character} vector of the list-column names attached
 to ignition-fit ledger rows (\code{"fireSense_IgnitionFitted"}, \code{"fireSense_EscapeFitted"}).
+\item \code{spreadInterceptTxt}: \code{character(1)}. Name of the spread model's intercept, in a formula's
+design (\code{spreadDesignCols()}), in \code{lower}/\code{upper} and in a ledger row's \code{params}
+(currently \code{"(Intercept)"}, what \code{stats::lm()} calls it).
+\item \code{spreadFitCovCentreTxt}: \code{character(1)}. Name of the ledger column that holds the covariate
+centres of a fit made with an intercept (currently \code{"covCentre_spread"}). It is not in
+\code{spreadFitAdditionalColNamesTxt}: a fit without an intercept writes no such column.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).

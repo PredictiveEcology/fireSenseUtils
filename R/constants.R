@@ -27,13 +27,19 @@
 #'     what prediction needs to rescale covariates exactly as the fit did.
 #'   - `ignitionFitAdditionalColNamesTxt`: `character` vector of the list-column names attached
 #'     to ignition-fit ledger rows (`"fireSense_IgnitionFitted"`, `"fireSense_EscapeFitted"`).
+#'   - `spreadInterceptTxt`: `character(1)`. Name of the spread model's intercept, in a formula's
+#'     design (`spreadDesignCols()`), in `lower`/`upper` and in a ledger row's `params`
+#'     (currently `"(Intercept)"`, what `stats::lm()` calls it).
+#'   - `spreadFitCovCentreTxt`: `character(1)`. Name of the ledger column that holds the covariate
+#'     centres of a fit made with an intercept (currently `"covCentre_spread"`). It is not in
+#'     `spreadFitAdditionalColNamesTxt`: a fit without an intercept writes no such column.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt
 NULL
 
 #' @export
@@ -69,3 +75,9 @@ spreadFitAdditionalColNamesTxt <- c(
 
 #' @export
 ignitionFitAdditionalColNamesTxt <- c("fireSense_IgnitionFitted", "fireSense_EscapeFitted")
+
+#' @export
+spreadInterceptTxt <- "(Intercept)"
+
+#' @export
+spreadFitCovCentreTxt <- "covCentre_spread"

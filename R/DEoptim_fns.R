@@ -87,6 +87,11 @@ utils::globalVariables(c(
 #'
 #' @param covMinMax,tests,maxFireSpread,Nreps,.verbose Passed to [.objfunSpreadFit()].
 #'
+#' @param covCentre Passed to [.objfunSpreadFit()] in the fit, the re-score and the profile and
+#'   simulation diagnostics: values subtracted from the rescaled covariates, from [spreadCovCentre()]
+#'   when the formula has an intercept. `NULL` (default) centres nothing, and then the call, and so its
+#'   cache key, is what it was before this argument existed.
+#'
 #' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
 #'
 #' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of [DEoptim::DEoptim] outputs.
@@ -213,7 +218,8 @@ runDEoptim <- function(landscape,
                        runawayEdgeMin = fireSenseRunawayEdgeMin,
                        profileReps = 0L,
                        simulateMembers = 0L,
-                       penaliseCapHits = NULL) {
+                       penaliseCapHits = NULL,
+                       covCentre = NULL) {
   if (!is.null(penaliseCapHits)) deprecatedCapArgs("penaliseCapHits")
   ## the edge ring of each fire's buffer, once, before the tables go to the workers
   fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
@@ -266,8 +272,7 @@ runDEoptim <- function(landscape,
   #####################################################################
   ## name the parameters from `lower`. termsInDEoptim() called every non-formula parameter a "logit"
   ## term, so yearSpreadSD was reported as a third logistic parameter.
-  covTerms <- if (is.null(formulaToFit)) character(0) else
-    attr(terms(as.formula(formulaToFit, env = .GlobalEnv)), "term.labels")
+  covTerms <- spreadDesignCols(formulaToFit) # includes the intercept, if the formula has one
   logisticTerms <- setdiff(names(lower), c(covTerms, yearSpreadSDTxt))
   message("Fitting ", length(lower), " parameters: logistic: ", paste(logisticTerms, collapse = ", "),
           "; covariates: ", paste(covTerms, collapse = ", "),
@@ -293,6 +298,7 @@ runDEoptim <- function(landscape,
       control = control,
       formulaToFit = formulaToFit,
       covMinMax = covMinMax,
+      covCentre = covCentre,
       # tests = c("mad", "SNLL_FS"),
       tests = tests,
       figurePath = visualizeDEoptim,
@@ -326,7 +332,7 @@ runDEoptim <- function(landscape,
       runName = runName),
     cachePath = paths$cachePath,
     ## how often progress figures are drawn does not change the fit
-    omitArgs = c(".verbose", "plotEvery"),
+    omitArgs = c(".verbose", "plotEvery", omitNullArgs(covCentre = covCentre)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -354,6 +360,7 @@ runDEoptim <- function(landscape,
                       yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
                       penaliseRunaways = penaliseRunaways,
                       runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin)
+  rescoreArgs$covCentre <- covCentre # NULL adds nothing, so the cached re-score keeps its key
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(

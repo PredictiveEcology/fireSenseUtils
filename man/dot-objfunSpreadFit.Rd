@@ -50,7 +50,8 @@
 }
 \arguments{
 \item{par}{parameters: the logistic parameters (\code{maxAsymptote} first, then \code{upperTail1} if the link has
-one; without \code{hillSlope1} and \code{inflectionPoint1}, which are fixed at 1 -- see \code{fixLogisticPars()}), then the covariate coefficients, and optionally
+one; without \code{hillSlope1} and \code{inflectionPoint1}, which are fixed at 1 -- see \code{fixLogisticPars()}), then the covariate coefficients (the intercept's first, when
+the formula has one -- see \code{\link[=spreadDesignCols]{spreadDesignCols()}}), and optionally
 \code{yearSpreadSD} last (see \code{fitYearSpreadSD}).}
 
 \item{landscape}{A \code{SpatRaster} with extent, resolution, and projection (crs) used for
@@ -173,7 +174,8 @@ in \link[DEoptim:DEoptim]{DEoptim::DEoptim} rejecting more tests and using the "
 Too high a threshold, and more years will be run and it will take longer to find values.}
 
 \item{covCentre}{Optional named list or vector of values subtracted from the rescaled covariates
-of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.}
+of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.
+\code{\link[=spreadCovCentre]{spreadCovCentre()}} gives the centres to use with an intercept.}
 
 \item{weighted}{Should each fire's log-likelihood be multiplied by a weight that grows with its
 observed size, to give large fires more influence on the SNLL? \code{FALSE}: no. \code{TRUE} or \code{"log"}:

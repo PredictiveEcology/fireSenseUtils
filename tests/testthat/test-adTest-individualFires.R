@@ -51,7 +51,7 @@ test_that(".objfunSpreadFit hands the adTest the individual simulated fires", {
     landscape = terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 10, ymin = 0, ymax = 10, vals = 1),
     annualDTx1000 = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, cov1 = c(100L, 200L))), yrs),
     nonAnnualDTx1000 = list(`2001_2003` = dt(pixelID = 1:2, cov1 = c(100L, 200L))),
-    formulaToFit = "~ cov1",
+    formulaToFit = "~ 0 + cov1",
     historicalFires = list(`2001` = data.frame(size = c(100, 200), cells = 1:2),
                            `2002` = data.frame(size = c(150, 250), cells = 3:4),
                            `2003` = data.frame(size = c(5, 6), cells = 5:6)),

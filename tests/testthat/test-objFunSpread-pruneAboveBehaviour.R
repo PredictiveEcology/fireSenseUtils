@@ -36,7 +36,7 @@ mkFixture <- function() {
                            `2002` = data.frame(size = c(150, 250), cells = 3:4),
                            `2003` = data.frame(size = c(5, 6),     cells = 5:6)),
     fireBufferedListDT = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, buffer = c(1L, 0L), ids = 1L)), yrs),
-    formulaToFit = "~ cov1"
+    formulaToFit = "~ 0 + cov1"
   )
 }
 

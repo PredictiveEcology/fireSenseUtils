@@ -67,7 +67,7 @@ test_that(".objfunSpreadFit(returnSims = TRUE) stacks every year and combines th
                            `2002` = data.frame(size = c(150, 250), cells = 3:4),
                            `2003` = data.frame(size = c(5, 6), cells = 5:6)),
     fireBufferedListDT = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, buffer = c(1L, 0L), ids = 1L)), yrs),
-    formulaToFit = "~ cov1", tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0,
+    formulaToFit = "~ 0 + cov1", tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0,
     thresh = 1, returnSims = TRUE)
   ## thresh = 1 would stop an objective after the first batch; the simulations still cover every year
   expect_setequal(out$yr, yrs)
