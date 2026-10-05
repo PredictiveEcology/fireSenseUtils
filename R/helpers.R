@@ -310,15 +310,35 @@ paramsSeparate <- function(par, parsModel) {
   list(covPars = covPars, logisticPars = logisticPars)
 }
 
-## hillSlope1 (the logistic link's slope) is fixed at 1, not fitted: with the linear predictor
-## x = covariates %*% beta, hillSlope1 enters logistic3p()/logistic3pUpper() only as hillSlope1 * x,
-## so scaling every covariate coefficient by k and dividing hillSlope1 by k leaves every prediction
-## unchanged -- hillSlope1 is not identifiable, and letting DEoptim fit it let every coefficient
-## drift along that ridge. `par` (as DEoptim, or a caller mimicking it, supplies it) is always the
-## logistic parameters (maxAsymptote first) followed by the covariates, so hillSlope1 is inserted at
-## its fixed position, second, before `.objfunSpreadFit()` splits and evaluates it.
-fixHillSlope1 <- function(par) {
-  append(par, c(hillSlope1 = 1), after = 1L)
+## hillSlope1 and inflectionPoint1 (the logistic link's slope and Richards exponent) are fixed at 1,
+## not fitted. With the linear predictor x = covariates %*% beta, hillSlope1 enters
+## logistic3p()/logistic3pUpper() only as hillSlope1 * x, so scaling every covariate coefficient by k
+## and dividing hillSlope1 by k leaves every prediction unchanged -- it is not identifiable, and letting
+## DEoptim fit it let every coefficient drift along that ridge. inflectionPoint1 is not a location but
+## the exponent in (1 + exp(-x))^-inflectionPoint1: in the 2026-10-04 fits its best values were bimodal
+## (at the lower bound or at 2-4), it spanned the bounds within a final population at no cost in the
+## objective, and the coefficients explained a median 50% of its variance. With both at 1 the link is
+## the plain logistic par1 + (maxAsymptote - par1) * plogis(x).
+## `par` (as DEoptim, or a caller mimicking it, supplies it) is always the logistic parameters
+## (maxAsymptote first, upperTail1 next if used) followed by the covariates, so the fixed values are
+## inserted right after maxAsymptote, in the order of logisticParamNames[["3pUpper"]], before
+## `.objfunSpreadFit()` splits and evaluates it. A named `par` that already has one of them (a stored
+## full parameter set from before they were fixed) is not given a second.
+#' The logistic parameters fixed at 1, not fitted
+#'
+#' `hillSlope1` and `inflectionPoint1`, in the position they take in the link, right after
+#' `maxAsymptote`. `DEoptim`'s `par`, `lower` and `upper` do not contain them; the objective, the
+#' validation and the gates insert them (`fixLogisticPars()`), and `fireSense_spreadFit` restores them
+#' in the ledger's parameter sets from this vector.
+#'
+#' @format A named numeric vector.
+#' @export
+fixedLogisticPars <- c(hillSlope1 = 1, inflectionPoint1 = 1)
+
+fixLogisticPars <- function(par) {
+  missingFixed <- if (is.null(names(par))) fixedLogisticPars
+                  else fixedLogisticPars[!names(fixedLogisticPars) %in% names(par)]
+  append(par, missingFixed, after = 1L)
 }
 
 #' Log with a minimum

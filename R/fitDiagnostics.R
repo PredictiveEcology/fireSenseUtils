@@ -151,13 +151,15 @@ covariateCoefs <- function(nms) setdiff(nms, unlist(logisticParamNames))
 #'   bound width; `atBound`, the share of members within 5% of the width from a bound;
 #'   `zPop = |popMedian| / ((q95 - q5) / 3.29)`, the median in units of the population's spread
 #'   (a normal's 5-95% range is 3.29 sd); `rSlope`, the correlation across members with
-#'   `hillSlope1` (the link uses `hillSlope1 * X b`, so the two trade off by construction); and
+#'   `hillSlope1` (the link uses `hillSlope1 * X b`, so the two trade off by construction; `NA` when
+#'   the population has no `hillSlope1` column, as now that it is fixed at 1); and
 #'   `signPinned = zPop >= zMin`. With three runs each of four ELFs, `zPop >= 1` found the
 #'   coefficients whose sign every run agreed on with 94% precision and 44% recall.
 #' @export
 #' @rdname fitDiagnostics
 coefIdentifiability <- function(pop, lower, upper, zMin = 1) {
   pop <- as.matrix(pop)
+  ## hillSlope1 and inflectionPoint1 are fixed at 1 and absent from a current population
   h <- if ("hillSlope1" %in% colnames(pop)) pop[, "hillSlope1"]
   data.table::rbindlist(lapply(covariateCoefs(colnames(pop)), function(cn) {
     x <- pop[, cn]

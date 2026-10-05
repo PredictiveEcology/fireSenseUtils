@@ -134,7 +134,8 @@ population median \code{popMedian}; \code{spread90}, the 5-95\% range across mem
 bound width; \code{atBound}, the share of members within 5\% of the width from a bound;
 \verb{zPop = |popMedian| / ((q95 - q5) / 3.29)}, the median in units of the population's spread
 (a normal's 5-95\% range is 3.29 sd); \code{rSlope}, the correlation across members with
-\code{hillSlope1} (the link uses \verb{hillSlope1 * X b}, so the two trade off by construction); and
+\code{hillSlope1} (the link uses \verb{hillSlope1 * X b}, so the two trade off by construction; \code{NA} when
+the population has no \code{hillSlope1} column, as now that it is fixed at 1); and
 \code{signPinned = zPop >= zMin}. With three runs each of four ELFs, \code{zPop >= 1} found the
 coefficients whose sign every run agreed on with 94\% precision and 44\% recall.
 

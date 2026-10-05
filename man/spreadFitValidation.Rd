@@ -31,8 +31,8 @@ plotSpreadFitValidation(d, nBins = 10L, covariates = NULL, title = NULL)
 plotSpreadFitResponse(d, covariates = NULL, bins = 40L, title = NULL)
 }
 \arguments{
-\item{par}{The fitted parameters, as given to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} (without \code{hillSlope1};
-\code{yearSpreadSD} last if fitted).}
+\item{par}{The fitted parameters, as given to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} (without \code{hillSlope1} and
+\code{inflectionPoint1}, which are fixed at 1; \code{yearSpreadSD} last if fitted).}
 
 \item{landscape}{A \code{SpatRaster} with extent, resolution, and projection (crs) used for
 \link[SpaDES.tools:spread2]{SpaDES.tools::spread2}.}

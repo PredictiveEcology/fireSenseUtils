@@ -56,7 +56,7 @@ spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link
   logisticAll(logisticPars, mat = mat, covPars, lowerSpreadProb, link = link)
 }
 
-#' Split `par` as the objective does: drop the trailing `yearSpreadSD` and insert the fixed `hillSlope1`
+#' Split `par` as the objective does: drop the trailing `yearSpreadSD` and insert the fixed `hillSlope1` and `inflectionPoint1`
 #' @keywords internal
 splitSpreadPar <- function(par, fitYearSpreadSD = NULL) {
   yearSpreadSD <- 0
@@ -67,8 +67,8 @@ splitSpreadPar <- function(par, fitYearSpreadSD = NULL) {
     yearSpreadSD <- unname(par[length(par)])
     par <- par[-length(par)]
   }
-  ## hillSlope1 is fixed at 1, not fitted -- see fixHillSlope1() for why.
-  list(par = fixHillSlope1(par), yearSpreadSD = yearSpreadSD)
+  ## hillSlope1 and inflectionPoint1 are fixed at 1, not fitted -- see fixLogisticPars() for why.
+  list(par = fixLogisticPars(par), yearSpreadSD = yearSpreadSD)
 }
 
 #' The observed fires of each year, at or above `minFireSize`, one row per cell; years left with none

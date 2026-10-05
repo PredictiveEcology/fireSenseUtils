@@ -49,8 +49,8 @@
 )
 }
 \arguments{
-\item{par}{parameters: the logistic parameters (\code{maxAsymptote} first, without \code{hillSlope1}, which
-is fixed at 1 -- see \code{fixHillSlope1()}), then the covariate coefficients, and optionally
+\item{par}{parameters: the logistic parameters (\code{maxAsymptote} first, then \code{upperTail1} if the link has
+one; without \code{hillSlope1} and \code{inflectionPoint1}, which are fixed at 1 -- see \code{fixLogisticPars()}), then the covariate coefficients, and optionally
 \code{yearSpreadSD} last (see \code{fitYearSpreadSD}).}
 
 \item{landscape}{A \code{SpatRaster} with extent, resolution, and projection (crs) used for
@@ -216,11 +216,11 @@ cells included). A year the objective declines to simulate is \code{NULL}. For
 \item{penaliseRunaways}{If \code{TRUE} (default), a simulated fire that burns at least \code{k} pixels of the edge
 ring of its own fire's buffer (see \code{runawayEdgeFrac}, \code{runawayEdgeMin}) is censored: it reached the outer edge of the area it is allowed to
 spread in, so it is "at least this big", a runaway. The edge ring is the buffer pixels with a
-queen neighbour outside the fire's own buffer (see \code{\link[=bufferEdge]{bufferEdge()}}). In every size-based term
-(the per-fire size likelihood, \code{"adTest"}, \code{yearAreaWeight}, \code{"mad"}) the size of a runaway is
-replaced by \code{runawaySize}, and in the per-fire likelihood it has no density at the observed
-size (the likelihood is that of the other replicates times their share; 0, i.e. \code{minLik}, if
-fewer than two replicates remain). \code{FALSE} scores the simulated size. Fires are not capped at any
+queen neighbour outside the fire's own buffer (see \code{\link[=bufferEdge]{bufferEdge()}}). In the per-fire size
+likelihood a runaway has no density at the observed size (the likelihood is that of the other
+replicates times their share; 0, i.e. \code{minLik}, if fewer than two replicates remain). The other
+size-based terms (\code{"adTest"}, \code{yearAreaWeight}, \code{areaDistWeight}, \code{"mad"}) score the size it
+burned, unless \code{runawaySize} is given. \code{FALSE} scores the simulated size everywhere. Fires are not capped at any
 size: spread is bounded only by the year's buffers. Has no effect with \code{returnSims = TRUE} (the
 simulated sizes are returned as simulated). The per-fire likelihood is floored at \code{minLik}
 (1e-29), which bounds the penalty per fire. The ring is computed once per fit (\code{runDEoptim()}
@@ -235,8 +235,12 @@ is the number of ring pixels of that fire; \code{k} is never more than \code{n}.
 not a fire that wants to leave its buffer. Defaults \link{fireSenseRunawayEdgeFrac} and \link{fireSenseRunawayEdgeMin}. Only the classification
 changes: what is done to a runaway is as described for \code{penaliseRunaways}.}
 
-\item{runawaySize}{Size (pixels) given to a runaway replicate when \code{penaliseRunaways = TRUE}. \code{NULL}
-(default): the number of non-\code{NA} pixels of \code{landscape}, or \code{1e7} if \code{landscape} has no values.}
+\item{runawaySize}{\code{NULL} (default), or a size (pixels) given to a runaway replicate in the
+\code{"adTest"}, \code{yearAreaWeight}, \code{areaDistWeight} and \code{"mad"} terms when \code{penaliseRunaways = TRUE}.
+It used to default to the landscape's non-\code{NA} pixel count; that made one runaway replicate, which
+typically had burned 1-3 times its observed fire's size, count as burning the whole landscape, and
+the fit chose parameters that rarely reach a buffer edge, so it under-burned (held-out ELFs,
+2026-10-01: simulated/observed area 1.33 -> 0.54).}
 
 \item{fitYearSpreadSD}{If \code{TRUE}, the last element of \code{par} is the sd of a per-year random effect on
 the logit of spread probability, a seasonal departure: in each replicate the year draws one
