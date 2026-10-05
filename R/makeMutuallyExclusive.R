@@ -49,7 +49,6 @@ makeMutuallyExclusive <- function(dt, mutuallyExclusiveCols = list("youngAge" = 
 #' @export
 #' @importFrom stats setNames
 youngAgeExclusiveCols <- function(covNames, fuelCols = character()) {
-  lcc <- grep("^nfLCC_", covNames, value = TRUE)
-  cols <- setdiff(unique(c(fuelCols, lcc, intersect(treedWetlandTxt, covNames))), youngAgeTxt)
+  cols <- setdiff(unique(c(fuelCols, spreadIndicatorCols(covNames))), youngAgeTxt)
   stats::setNames(list(cols), youngAgeTxt)
 }

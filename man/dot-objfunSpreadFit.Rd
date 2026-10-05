@@ -13,8 +13,8 @@
   historicalFires,
   fireBufferedListDT,
   covMinMax = NULL,
-  maxFireSpread = 0.28,
-  lowerSpreadProb = 0.13,
+  maxFireSpread = spreadProbCeiling,
+  lowerSpreadProb = spreadProbFloor,
   minFireSize = 2,
   escapeSizeHa = NULL,
   jumpTries = 0,
@@ -89,12 +89,16 @@ These will be used to rescale the covariates internally so that they are all bet
 It is important to not simply rescale internally here because only 1 year is run at a time;
 all years must be rescaled for a given covariate by the same amount.}
 
-\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
-Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
+\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above. Default
+\link{spreadProbCeiling}, also the upper bound of \code{maxAsymptote}. \code{maxAsymptote} is the spread-probability
+ceiling in a typical year. The year random effect (\code{yearSpreadSD}) is added on the logit of the final
+spread probability, after the link, so in a given year p can exceed \code{maxAsymptote} or fall below
+\code{lowerSpreadProb}; that is intended. There is no absolute cap, because \code{spreadCpp} does not need one;
+\code{maxAsymptote} is bounded because runaway fires are slow to simulate and wasted if the parameters are wrong.}
 
 \item{lowerSpreadProb}{Numeric. Lower bound for \code{spreadProb}; if a candidate
 \code{spreadProb} falls at or below this, the call exits early to avoid wasted
-simulation work. Default \code{0.13}.}
+simulation work. Default \link{spreadProbFloor}.}
 
 \item{minFireSize}{Integer. Minimum fire size (in pixels) to include when
 scoring simulated against historical fires; fires smaller than this are

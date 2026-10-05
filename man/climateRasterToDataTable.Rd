@@ -13,7 +13,9 @@ climateRasterToDataTable(historicalClimateRasters, Index = NULL)
 containing fire buffer indices}
 }
 \value{
-a long-layout \code{data.table} of climate values in each pixel and year
+a long-layout \code{data.table} of climate values in each pixel and year, at full precision: the
+x1000 integer storage (\code{\link[=toX1000]{toX1000()}}) is where they are rounded, as \code{fireSense_spreadPredict} does, so a
+value is stored as the same integer in the fit and in the prediction
 }
 \description{
 Converts stacks of climate rasters to data.table and optionally subsets to index

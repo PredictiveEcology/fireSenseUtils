@@ -372,3 +372,45 @@ test_that("when every non-forest class is rare, they form one group", {
   expect_setequal(unlist(out$nonForestedLCCGroups), c(40, 50))
   expect_identical(out$missingLCCgroup, names(out$nonForestedLCCGroups))
 })
+
+test_that("missingForest joins the group with its nearest class even when one code is a prefix of another", {
+  withr::local_package("data.table")
+  ## codes 10 and 100: the pattern "10" is a substring of "100". 10 burns alone; 50 and 100 burn alike.
+  ## The forest-less pixels (lcc 99, not in nonforestLCC) burn like 10.
+  n <- 800L
+  landscape <- data.table(cell = seq_len(n), speciesCode = NA_character_,
+                          lcc = rep(c(10L, 50L, 100L, 99L), each = n / 4L),
+                          B = NA_integer_, totalBiomass = NA_integer_, year = 2020L)
+  set.seed(3)
+  landscape[, burned := rbinom(.N, 1, c(`10` = 0.02, `50` = 0.5, `100` = 0.6, `99` = 0.02)[as.character(lcc)])]
+  out <- assessFuelClasses(landscape = landscape, fuelCol = "FuelClass", sppEquiv = noSpp(),
+                           sppEquivCol = "LandR", nonforestLCC = c(10L, 50L, 100L))
+  grp <- out$nonForestedLCCGroups
+  expect_length(out$missingLCCgroup, 1L)
+  expect_true(10 %in% grp[[out$missingLCCgroup]])
+  expect_false(100 %in% grp[[out$missingLCCgroup]])
+})
+
+test_that("assessFuelClasses gives the same groups for the same data whatever the global seed, and leaves the RNG alone", {
+  withr::local_package("data.table")
+  ## 12 classes with irregular burn rates: k-means from random starts gives several partitions
+  burnRates <- c(0.07, 0.07, 0.21, 0.28, 0.30, 0.39, 0.56, 0.64, 0.71, 0.71, 0.83, 0.88)
+  codes <- seq(20L, by = 10L, length.out = length(burnRates))
+  rates <- stats::setNames(burnRates, codes)
+  landscape <- nfLandscape(rates, n = 600L * length(codes)) # sets its own seed: build it before varying the global one
+  run <- function(seed) {
+    set.seed(seed)
+    assessFuelClasses(landscape = landscape, fuelCol = "FuelClass", sppEquiv = noSpp(),
+                      sppEquivCol = "LandR", nonforestLCC = codes,
+                      targetNonForestClasses = 3)$nonForestedLCCGroups
+  }
+  ref <- run(1)
+  for (s in 2:25) expect_identical(run(s), ref)
+
+  set.seed(99)
+  before <- .Random.seed
+  set.seed(99)
+  assessFuelClasses(landscape = landscape, fuelCol = "FuelClass", sppEquiv = noSpp(),
+                    sppEquivCol = "LandR", nonforestLCC = codes, targetNonForestClasses = 3)
+  expect_identical(.Random.seed, before)
+})

@@ -18,8 +18,8 @@ spreadFitValidationData(
   mutuallyExclusive = list(youngAge = c("class", "nf")),
   covCentre = NULL,
   Nreps = 10,
-  lowerSpreadProb = 0.13,
-  maxFireSpread = 0.28,
+  lowerSpreadProb = spreadProbFloor,
+  maxFireSpread = spreadProbCeiling,
   link = NULL,
   fitYearSpreadSD = NULL,
   seed = NULL,
@@ -81,10 +81,14 @@ of the same name. \code{NULL} (default) does no centring. Must be the same at fi
 
 \item{lowerSpreadProb}{Numeric. Lower bound for \code{spreadProb}; if a candidate
 \code{spreadProb} falls at or below this, the call exits early to avoid wasted
-simulation work. Default \code{0.13}.}
+simulation work. Default \link{spreadProbFloor}.}
 
-\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
-Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
+\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above. Default
+\link{spreadProbCeiling}, also the upper bound of \code{maxAsymptote}. \code{maxAsymptote} is the spread-probability
+ceiling in a typical year. The year random effect (\code{yearSpreadSD}) is added on the logit of the final
+spread probability, after the link, so in a given year p can exceed \code{maxAsymptote} or fall below
+\code{lowerSpreadProb}; that is intended. There is no absolute cap, because \code{spreadCpp} does not need one;
+\code{maxAsymptote} is bounded because runaway fires are slow to simulate and wasted if the parameters are wrong.}
 
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic

@@ -160,7 +160,7 @@ effectiveMinFireSize <- function(minFireSize, escapeMinPx) {
 #' @export
 spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFires, formulaToFit,
                             covMinMax = NULL, mutuallyExclusive = list("youngAge" = c("class", "nf")),
-                            covCentre = NULL, link = NULL, maxFireSpread = 0.28, lowerSpreadProb = 0.13,
+                            covCentre = NULL, link = NULL, maxFireSpread = spreadProbCeiling, lowerSpreadProb = spreadProbFloor,
                             lanscape1stQuantileThresh = 0.265, minFireSize = 2, escapeSizeHa = NULL,
                             landscape = NULL, years = NULL, doAssertions = FALSE) {
   data.table::setDTthreads(1)

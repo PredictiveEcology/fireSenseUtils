@@ -60,14 +60,13 @@ rasterFireBufferDT <- function(years, fireRaster, flammableRTM, bufferForFireRas
   return(fireBufferListDT)
 }
 
-## rasterFireBufferDT()'s default seed: a digest of the inputs that decide its buffers, folded into an
-## integer. The rasters enter by their values and geometry, not by their sources, so a file-backed and an
+## rasterFireBufferDT()'s default seed: a digest of the inputs that decide its buffers (see .digestSeed()).
+## ## integer. The rasters enter by their values and geometry, not by their sources, so a file-backed and an
 ## in-memory copy of the same raster give the same seed.
 .bufferSeed <- function(years, fireRaster, flammableRTM, bufferForFireRaster, areaMultiplier, minSize) {
   rasterKey <- function(r) list(terra::values(r, mat = FALSE), dim(r), as.vector(terra::ext(r)))
-  d <- reproducible::.robustDigest(list(as.numeric(years), rasterKey(fireRaster), rasterKey(flammableRTM),
-                                        bufferForFireRaster, areaMultiplier, minSize))
-  strtoi(substr(d, 1, 7), 16L)
+  .digestSeed(list(as.numeric(years), rasterKey(fireRaster), rasterKey(flammableRTM),
+                   bufferForFireRaster, areaMultiplier, minSize))
 }
 
 #' Identify each year's individual fires and buffer them accordingly

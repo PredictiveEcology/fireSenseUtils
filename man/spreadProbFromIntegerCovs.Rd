@@ -82,12 +82,16 @@ named \code{upperTail1} is always \code{logistic3pUpper}, whatever its length.}
 \item{covPars}{Numeric vector of covariate coefficients (same length as
 \code{ncol(mat)}); \code{mat \%*\% covPars} forms the linear predictor.}
 
-\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above.
-Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).}
+\item{maxFireSpread}{A value for \code{spreadProb} that is considered impossible to go above. Default
+\link{spreadProbCeiling}, also the upper bound of \code{maxAsymptote}. \code{maxAsymptote} is the spread-probability
+ceiling in a typical year. The year random effect (\code{yearSpreadSD}) is added on the logit of the final
+spread probability, after the link, so in a given year p can exceed \code{maxAsymptote} or fall below
+\code{lowerSpreadProb}; that is intended. There is no absolute cap, because \code{spreadCpp} does not need one;
+\code{maxAsymptote} is bounded because runaway fires are slow to simulate and wasted if the parameters are wrong.}
 
 \item{lowerSpreadProb}{Numeric. Lower bound for \code{spreadProb}; if a candidate
 \code{spreadProb} falls at or below this, the call exits early to avoid wasted
-simulation work. Default \code{0.13}.}
+simulation work. Default \link{spreadProbFloor}.}
 
 \item{covCentre}{Optional named list or vector: \code{covCentre[[col]]} is subtracted from column \code{col}
 after rescaling, mutual exclusivity and the range assertion. \code{NULL} (default) does no centring.

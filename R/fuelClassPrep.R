@@ -169,11 +169,11 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   } else {
     common <- coefsToSort[setdiff(names(coefsToSort), rare)]
     if (!length(rare)) {
-      nf_classes <- kmeans(x = coefsToSort, centers = targetNonForestClasses)$cluster
+      nf_classes <- nfKmeans(coefsToSort, targetNonForestClasses)
     } else if (length(unique(common)) <= targetNonForestClasses) {
       nf_classes <- stats::setNames(match(common, unique(common)), names(common))
     } else {
-      nf_classes <- kmeans(x = common, centers = targetNonForestClasses)$cluster
+      nf_classes <- nfKmeans(common, targetNonForestClasses)
     }
     for (r in rare)
       nf_classes[r] <- nf_classes[names(common)[which.min(abs(common - coefsToSort[[r]]))]]
@@ -196,8 +196,9 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
     missingCoef <- origCoefs["missingForest"]
     other  <- origCoefs[names(origCoefs) != "missingForest"]
     other <- abs(other - missingCoef)
-    coefMatch <- names(other)[which(other == min(other))]
-    missingForest <- names(nf_vals)[grep(pattern = as.numeric(coefMatch), x = nf_vals )]
+    coefMatch <- names(other)[which(other == min(other))][1]
+    ## exact match on the codes: 10 must not match a group that holds 100
+    missingForest <- names(nf_vals)[vapply(nf_vals, function(codes) as.numeric(coefMatch) %in% codes, logical(1))]
     #essentially - give it the new class name for whichever landcover it was closet to
   } else {
     #this doesn't matter as there is none but return something
@@ -256,6 +257,15 @@ assessFuelClasses <- function(landscape, fuelCol, sppEquiv, sppEquivCol,
   return(list(modSppEquiv = modSppEquiv,
               nonForestedLCCGroups = nf_vals,
               missingLCCgroup = missingForest))
+}
+
+## k-means of the non-forest classes' burn coefficients, seeded from a digest of its inputs: the same
+## coefficients always give the same groups, so replicates of one campaign agree, and the global RNG
+## stream is left as it was (withr::with_seed()). The generator is named, not the session's, so that a
+## session using L'Ecuyer-CMRG gets the same groups as one using the default.
+nfKmeans <- function(x, centers) {
+  withr::with_seed(.digestSeed(list(x, centers)), kmeans(x = x, centers = centers)$cluster,
+                   .rng_kind = "Mersenne-Twister", .rng_normal_kind = "Inversion", .rng_sample_kind = "Rejection")
 }
 
 #' Each land-cover class's share of an ELF's flammable pixels
