@@ -41,8 +41,8 @@
 spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1000, formulaToFit,
                                     historicalFires, fireBufferedListDT, covMinMax = NULL,
                                     mutuallyExclusive = list("youngAge" = c("class", "nf")),
-                                    covCentre = NULL, Nreps = 10, lowerSpreadProb = 0.13,
-                                    maxFireSpread = 0.28, link = NULL, fitYearSpreadSD = NULL,
+                                    covCentre = NULL, Nreps = 10, lowerSpreadProb = spreadProbFloor,
+                                    maxFireSpread = spreadProbCeiling, link = NULL, fitYearSpreadSD = NULL,
                                     seed = NULL, ...) {
   if (!is.null(seed)) withr::local_seed(seed)
   objArgs <- utils::modifyList(

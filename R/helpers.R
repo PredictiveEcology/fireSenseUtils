@@ -375,6 +375,29 @@ fixLogisticPars <- function(par) {
   append(par, missingFixed, after = 1L)
 }
 
+#' The spread-probability ceiling and floor
+#'
+#' One value each, used wherever the spread model needs them. `spreadProbCeiling` is the upper bound
+#' `fireSense_spreadFit` gives `maxAsymptote`, and the default `maxFireSpread` of the objective, the
+#' gates and the validation: a fitted `maxAsymptote` above it draws a warning. How a year's random
+#' effect can take a pixel past it is described at `maxFireSpread` in [.objfunSpreadFit()].
+#' `spreadProbFloor` is the default `lowerSpreadProb`, the link's lower asymptote, in the objective, the
+#' gates, the validation and `fireSense_spreadPredict`.
+#'
+#' @format Numeric scalars.
+#' @name spreadProbBounds
+#' @aliases spreadProbCeiling spreadProbFloor
+#' @export
+spreadProbCeiling <- 0.276
+
+#' @rdname spreadProbBounds
+#' @export
+spreadProbFloor <- 0.13
+
+## An integer seed from a digest of `x`: the same inputs always give the same seed, so a random step
+## that is seeded with it (withr::with_seed()) is reproducible without fixing a seed by hand.
+.digestSeed <- function(x) strtoi(substr(reproducible::.robustDigest(x), 1, 7), 16L)
+
 #' Log with a minimum
 #'
 #' Used for transforming Biomass to the log scale
@@ -385,10 +408,15 @@ fixLogisticPars <- function(par) {
 #'
 #' @export
 logMinB <- function(x) {
-  minimumB <- exp(log(100) - 1)
+  minimumB <- exp(.logMinBFloor)
   x[x < minimumB] <- minimumB
   x <- log(x)
 }
+
+## the floor logMinB() applies, on the log scale (3.6), and how close to it a value is "on" it; the one
+## place they are defined, for logMinB(), fuelLogToLinear() and emptySpreadCovariates()
+.logMinBFloor <- log(100) - 1
+.logMinBTol <- 1e-3
 
 #' Range that puts linear fuel biomass on the scale the spread fit uses
 #'
@@ -422,9 +450,8 @@ fuelLinearRange <- c(0, 1e4)
 #' @return Biomass on the linear scale; values on the [logMinB()] floor become 0.
 #' @export
 fuelLogToLinear <- function(x) {
-  floorLog <- log(100) - 1 # the floor logMinB() applies
   out <- exp(x)
-  out[x <= floorLog + 1e-3] <- 0
+  out[x <= .logMinBFloor + .logMinBTol] <- 0
   out
 }
 

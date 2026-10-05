@@ -4,11 +4,12 @@
 #' @param Index optional list of `data.table` objects named by `fireYear` and
 #' containing fire buffer indices
 #'
-#' @return a long-layout `data.table` of climate values in each pixel and year
+#' @return a long-layout `data.table` of climate values in each pixel and year, at full precision: the
+#' x1000 integer storage ([toX1000()]) is where they are rounded, as `fireSense_spreadPredict` does, so a
+#' value is stored as the same integer in the fit and in the prediction
 #'
 #' @export
 #' @importFrom data.table as.data.table melt.data.table merge.data.table setnames
-#' @importFrom LandR asInteger
 #' @importFrom terra as.data.frame
 #' @rdname climateRasterToDataTable
 climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
@@ -30,8 +31,6 @@ climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
     out <- out[[1]]
   }
   setnames(out, old = "cell", new = "pixelID")
-
-  out[, (climVar) := lapply(.SD, asInteger), .SDcols = climVar]
 
   if (!is.null(Index)) {
     out <- out[pixelID %in% Index]

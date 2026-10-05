@@ -48,8 +48,12 @@ utils::globalVariables(c(
 #'   It is important to not simply rescale internally here because only 1 year is run at a time;
 #'   all years must be rescaled for a given covariate by the same amount.
 #'
-#' @param maxFireSpread A value for `spreadProb` that is considered impossible to go above.
-#'   Default 0.28, which is overly generous unless there are many non-flammable pixels (e.g., lakes).
+#' @param maxFireSpread A value for `spreadProb` that is considered impossible to go above. Default
+#'   [spreadProbCeiling], also the upper bound of `maxAsymptote`. `maxAsymptote` is the spread-probability
+#'   ceiling in a typical year. The year random effect (`yearSpreadSD`) is added on the logit of the final
+#'   spread probability, after the link, so in a given year p can exceed `maxAsymptote` or fall below
+#'   `lowerSpreadProb`; that is intended. There is no absolute cap, because `spreadCpp` does not need one;
+#'   `maxAsymptote` is bounded because runaway fires are slow to simulate and wasted if the parameters are wrong.
 #'
 #' @param minFireSize Integer. Minimum fire size (in pixels) to include when
 #'   scoring simulated against historical fires; fires smaller than this are
@@ -202,7 +206,7 @@ utils::globalVariables(c(
 #'
 #' @param lowerSpreadProb Numeric. Lower bound for `spreadProb`; if a candidate
 #'   `spreadProb` falls at or below this, the call exits early to avoid wasted
-#'   simulation work. Default `0.13`.
+#'   simulation work. Default [spreadProbFloor].
 #'
 #' @param mutuallyExclusive Named list of vectors describing groups of model
 #'   terms that must not be active together (mutually exclusive in the
@@ -236,8 +240,8 @@ utils::globalVariables(c(
                              historicalFires,
                              fireBufferedListDT,
                              covMinMax = NULL,
-                             maxFireSpread = 0.28, # 0.257 makes gigantic fires
-                             lowerSpreadProb = 0.13,
+                             maxFireSpread = spreadProbCeiling,
+                             lowerSpreadProb = spreadProbFloor,
                              minFireSize = 2,
                              escapeSizeHa = NULL,
                              jumpTries = 0,

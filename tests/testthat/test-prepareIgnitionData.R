@@ -99,13 +99,13 @@ test_that("igOrEscNames builds object names in the asked case", {
   expect_identical(igOrEscNames("escape", pre = "", post = "", case = "title"), "Escape")
 })
 
-test_that("climateRasterToDataTable makes one integer column per variable, by pixel and year", {
+test_that("climateRasterToDataTable makes one column per variable, by pixel and year, at full precision", {
   clim <- list(MDC = ignRas(cbind(1:16 + 0.4, 1:16), c("year2001", "year2002")),
                CMD = ignRas(cbind(rep(5, 16), rep(6, 16)), c("year2001", "year2002")))
   out <- climateRasterToDataTable(clim)
   expect_identical(nrow(out), 32L)
-  expect_true(is.integer(out$MDC))
-  expect_identical(out[pixelID == 2 & year == "year2001", MDC], 2L)
+  expect_true(is.numeric(out$MDC))
+  expect_identical(out[pixelID == 2 & year == "year2001", MDC], 2.4) # not rounded to 2L: toX1000() stores it
   expect_identical(nrow(climateRasterToDataTable(clim["MDC"], Index = 1:3)), 6L)
 })
 
