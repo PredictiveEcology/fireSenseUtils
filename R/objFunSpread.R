@@ -8,8 +8,8 @@ utils::globalVariables(c(
 
 #' Objective function for `fireSense_spreadFit` module
 #'
-#' @param par parameters: the logistic parameters (`maxAsymptote` first, without `hillSlope1`, which
-#'   is fixed at 1 -- see `fixHillSlope1()`), then the covariate coefficients, and optionally
+#' @param par parameters: the logistic parameters (`maxAsymptote` first, then `upperTail1` if the link has
+#'   one; without `hillSlope1` and `inflectionPoint1`, which are fixed at 1 -- see `fixLogisticPars()`), then the covariate coefficients, and optionally
 #'   `yearSpreadSD` last (see `fitYearSpreadSD`).
 #'
 #' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
@@ -276,7 +276,7 @@ utils::globalVariables(c(
   sizeLik <- match.arg(sizeLik, c("kde", "t"))
   if (isTRUE(returnBurned)) returnSims <- TRUE
   ## the per-year random effect's sd, fitted as the LAST element of `par`
-  ## and hillSlope1 is fixed at 1, not fitted -- see fixHillSlope1() for why.
+  ## and hillSlope1 and inflectionPoint1 are fixed at 1, not fitted -- see fixLogisticPars() for why.
   parSplit <- splitSpreadPar(par, fitYearSpreadSD)
   par <- parSplit$par
   yearSpreadSD <- parSplit$yearSpreadSD

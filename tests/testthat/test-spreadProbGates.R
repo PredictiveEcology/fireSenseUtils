@@ -14,7 +14,7 @@ gateFix <- list(
                          `2005` = data.frame(size = 80, cells = 2L, ids = 1L),
                          `2006` = data.frame(size = 5, cells = 3L, ids = 1L)),
   formulaToFit = "~ 0 + cov1 + cov2")
-drawPar <- function() c(maxAsymptote = runif(1, 0.2, 0.3), inflectionPoint1 = runif(1, -20, 20),
+drawPar <- function() c(maxAsymptote = runif(1, 0.2, 0.3),
                         cov1 = runif(1, -50, 50), cov2 = runif(1, -50, 50))
 
 ## did the objective refuse the year? objFunInner() reaches spread() only if the gates pass

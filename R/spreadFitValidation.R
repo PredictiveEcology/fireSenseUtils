@@ -15,8 +15,8 @@
 #' Both plot functions take the data as their first argument and return a `ggplot`, so they can be
 #' given to [SpaDES.core::Plots()] as `fn`.
 #'
-#' @param par The fitted parameters, as given to [.objfunSpreadFit()] (without `hillSlope1`;
-#'   `yearSpreadSD` last if fitted).
+#' @param par The fitted parameters, as given to [.objfunSpreadFit()] (without `hillSlope1` and
+#'   `inflectionPoint1`, which are fixed at 1; `yearSpreadSD` last if fitted).
 #' @inheritParams .objfunSpreadFit
 #' @param Nreps Simulations per fire; use the fit's `Nreps`.
 #' @param seed If not `NULL`, the simulations run with this seed and the session's random number
@@ -60,7 +60,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
   ## the parameters as the objective uses them
   if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
   if (isTRUE(fitYearSpreadSD)) par <- par[-length(par)]
-  par <- fixHillSlope1(par)
+  par <- fixLogisticPars(par)
   colsToUse <- attr(terms(as.formula(formulaToFit)), "term.labels")
   pp <- paramsSeparate(par, length(colsToUse))
 

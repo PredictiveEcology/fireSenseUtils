@@ -126,6 +126,10 @@ test_that("coefIdentifiability() scores only covariates, and zPop is the median 
   ## and one every member holds at 5 is pinned
   pop[, "agb_fir"] <- 5
   expect_true(coefIdentifiability(pop, lower, upper)$signPinned[2])
+  ## a population without hillSlope1 and inflectionPoint1 (both fixed at 1) has no slope correlation
+  popFixed <- pop[, c("maxAsymptote", "agb_pine", "agb_fir")]
+  expect_identical(coefIdentifiability(popFixed, lower, upper)$coef, c("agb_pine", "agb_fir"))
+  expect_true(all(is.na(coefIdentifiability(popFixed, lower, upper)$rSlope)))
 })
 
 test_that("profileCoefficients() pairs every point with the best member on the same seeds", {

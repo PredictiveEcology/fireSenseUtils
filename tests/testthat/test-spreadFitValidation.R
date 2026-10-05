@@ -29,7 +29,7 @@ toyValidationInputs <- function() {
        formulaToFit = "~ 0 + clim + youngAge + agb",
        covMinMax = data.table::data.table(clim = c(0, 100), youngAge = c(0, 1), agb = c(0, 1e4)),
        mutuallyExclusive = list(youngAge = "agb"),
-       par = c(maxAsymptote = 0.26, inflectionPoint1 = 1, clim = 2, youngAge = -2, agb = 3))
+       par = c(maxAsymptote = 0.26, clim = 2, youngAge = -2, agb = 3))
 }
 
 callObjective <- function(inp, ...) {
