@@ -195,6 +195,20 @@ test_that("off, covCentre is omitted from the cache key and absent from the re-s
   expect_length(omitNullArgs(b = 1), 0L)
 })
 
+test_that("runawayBufferMultiple, as covCentre: in the key when given, omitted and absent when NULL", {
+  lowerN <- c(maxAsymptote = 0.25, x = -1)
+  seen <- new.env()
+  mockDEoptim(seen, matrix(c(0.26, 1), nrow = 1))
+  callRunDEoptimI(lowerN)
+  expect_false("runawayBufferMultiple" %in% names(seen$fnArgs))
+  expect_true("runawayBufferMultiple" %in% seen$omitArgs[[1]])
+  seen <- new.env()
+  mockDEoptim(seen, matrix(c(0.26, 1), nrow = 1))
+  callRunDEoptimI(lowerN, runawayBufferMultiple = 2)
+  expect_identical(seen$fnArgs$runawayBufferMultiple, 2)
+  expect_false(any(vapply(seen$omitArgs, function(o) "runawayBufferMultiple" %in% o, logical(1))))
+})
+
 test_that("runDEoptim names the intercept a covariate, not a logistic parameter", {
   lowerI <- c(maxAsymptote = 0.25, `(Intercept)` = -1, x = -1)
   seen <- new.env()

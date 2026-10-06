@@ -43,6 +43,7 @@
   runawayEdgeFrac = fireSenseRunawayEdgeFrac,
   runawayEdgeMin = fireSenseRunawayEdgeMin,
   runawaySize = NULL,
+  runawayBufferMultiple = NULL,
   fitYearSpreadSD = NULL,
   verbose = 2,
   ...
@@ -226,7 +227,7 @@ queen neighbour outside the fire's own buffer (see \code{\link[=bufferEdge]{buff
 likelihood a runaway has no density at the observed size (the likelihood is that of the other
 replicates times their share; 0, i.e. \code{minLik}, if fewer than two replicates remain). The other
 size-based terms (\code{"adTest"}, \code{yearAreaWeight}, \code{areaDistWeight}, \code{"mad"}) score the size it
-burned, unless \code{runawaySize} is given. \code{FALSE} scores the simulated size everywhere. Fires are not capped at any
+burned, unless \code{runawayBufferMultiple} or \code{runawaySize} is given. \code{FALSE} scores the simulated size everywhere. Fires are not capped at any
 size: spread is bounded only by the year's buffers. Has no effect with \code{returnSims = TRUE} (the
 simulated sizes are returned as simulated). The per-fire likelihood is floored at \code{minLik}
 (1e-29), which bounds the penalty per fire. The ring is computed once per fit (\code{runDEoptim()}
@@ -247,6 +248,14 @@ It used to default to the landscape's non-\code{NA} pixel count; that made one r
 typically had burned 1-3 times its observed fire's size, count as burning the whole landscape, and
 the fit chose parameters that rarely reach a buffer edge, so it under-burned (held-out ELFs,
 2026-10-01: simulated/observed area 1.33 -> 0.54).}
+
+\item{runawayBufferMultiple}{\code{NULL} (default), or a number: with \code{penaliseRunaways = TRUE}, a runaway
+replicate counts in the \code{"adTest"}, \code{yearAreaWeight}, \code{areaDistWeight} and \code{"mad"} terms as this
+multiple of the size (pixels) of its own fire's buffer, i.e. all rows of that fire's \code{ids} in the
+year's \code{fireBufferedListDT} table, burned and unburned. The size it burned up to the early stop
+was too cheap: fits that matched the observed area inside the buffers ran away on the whole
+landscape (ELF 5.4 hindcast, 2026-10-06: fires of 3-6 Mha, median 2-12 times the observed area).
+Give either this or \code{runawaySize}, not both.}
 
 \item{fitYearSpreadSD}{If \code{TRUE}, the last element of \code{par} is the sd of a per-year random effect on
 the logit of spread probability, a seasonal departure: in each replicate the year draws one

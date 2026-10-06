@@ -137,6 +137,8 @@ utils::globalVariables(c(
 #' @param runawayEdgeFrac,runawayEdgeMin Passed to [.objfunSpreadFit()] in the fit and the re-score: a
 #'   replicate is a runaway only if it burns at least `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))`
 #'   of the `n` edge-ring pixels of its fire (at most `n`). Defaults [fireSenseRunawayEdgeFrac] and [fireSenseRunawayEdgeMin].
+#' @param runawayBufferMultiple Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL`
+#'   (default), or the multiple of its own fire's buffer size that a runaway counts as in the size-based terms.
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
@@ -216,6 +218,7 @@ runDEoptim <- function(landscape,
                        penaliseRunaways = TRUE,
                        runawayEdgeFrac = fireSenseRunawayEdgeFrac,
                        runawayEdgeMin = fireSenseRunawayEdgeMin,
+                       runawayBufferMultiple = NULL,
                        profileReps = 0L,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL,
@@ -328,11 +331,13 @@ runDEoptim <- function(landscape,
       penaliseRunaways = penaliseRunaways,
       runawayEdgeFrac = runawayEdgeFrac,
       runawayEdgeMin = runawayEdgeMin,
+      runawayBufferMultiple = runawayBufferMultiple,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
     ## how often progress figures are drawn does not change the fit
-    omitArgs = c(".verbose", "plotEvery", omitNullArgs(covCentre = covCentre)),
+    omitArgs = c(".verbose", "plotEvery",
+                 omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -360,7 +365,9 @@ runDEoptim <- function(landscape,
                       yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
                       penaliseRunaways = penaliseRunaways,
                       runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin)
-  rescoreArgs$covCentre <- covCentre # NULL adds nothing, so the cached re-score keeps its key
+  ## NULL adds nothing, so the cached re-score keeps its key
+  rescoreArgs$covCentre <- covCentre
+  rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(

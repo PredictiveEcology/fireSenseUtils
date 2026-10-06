@@ -83,6 +83,11 @@ test_that("penaliseRunaways reaches the objective in the fit and the re-score, d
   callRunDEoptimLik(penaliseRunaways = FALSE)
   expect_false(seen$dots$penaliseRunaways)
   expect_false(seen$fnArgs$penaliseRunaways)
+  ## runawayBufferMultiple: the fit and the re-score score runaways the same way; NULL by default
+  expect_identical(formals(runDEoptim)$runawayBufferMultiple, formals(.objfunSpreadFit)$runawayBufferMultiple)
+  callRunDEoptimLik(runawayBufferMultiple = 2)
+  expect_identical(seen$dots$runawayBufferMultiple, 2)
+  expect_identical(seen$fnArgs$runawayBufferMultiple, 2)
 })
 
 test_that("penaliseCapHits is deprecated: a warning, and it is not passed on", {

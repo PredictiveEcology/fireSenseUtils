@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* New `runawayBufferMultiple` in `.objfunSpreadFit()` and `runDEoptim()` (fit, re-score, profile and simulation diagnostics): with `penaliseRunaways = TRUE`, a runaway replicate counts in the size-based terms (`"adTest"`, `yearAreaWeight`, `areaDistWeight`, `"mad"`) as this multiple of its own fire's buffer size, not the size it burned up to the early stop. A full-landscape hindcast of ELF 5.4 showed fits that matched observed area inside the buffers ran away on the whole landscape. `NULL` (default) keeps the previous behaviour; giving both it and `runawaySize` is an error.
+
 * Covariate-consistency changes for the spread model. Fits change, and cached fits re-key.
   - `climateCovRanges`: one table of fixed climate ranges (units documented; `cumMDC` is a unitless index). The values stay 0-100 and are provisional. `fireSense_spreadFit` uses it as its default `covFixedRange` and stops on a climate covariate that has no entry.
   - `climateRasterToDataTable()` no longer rounds to whole numbers; the x1000 integer storage is the only rounding, as in `fireSense_spreadPredict`, so a climate value is the same stored integer in the fit and the prediction.
