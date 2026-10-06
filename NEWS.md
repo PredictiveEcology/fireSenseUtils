@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `plotELFs()` gets `labels` (`"code"` default, `"name"` for the ecozone name, `"none"`), `labelWhich` (`"all"` default, or `"highlighted"` to label only the `which` ELFs), `buffers` (`FALSE` draws the ELF cores without the buffer rings) and `axes` (`"m"` default, `"longlat"` for a graticule in degrees on the same projection, `"none"`). Overlapping labels are moved apart, with a leader line. New exported `elfLabels()` gives the label text. The ELF codes are ecoprovince codes, which carry no names in the source shapefile, so `"name"` is the ecozone name (the part before the first `.`); two ELFs in one zone get their code added. The defaults reproduce the previous plot.
+
 * New `runawayBufferMultiple` in `.objfunSpreadFit()` and `runDEoptim()` (fit, re-score, profile and simulation diagnostics): with `penaliseRunaways = TRUE`, a runaway replicate counts in the size-based terms (`"adTest"`, `yearAreaWeight`, `areaDistWeight`, `"mad"`) as this multiple of its own fire's buffer size, not the size it burned up to the early stop. A full-landscape hindcast of ELF 5.4 showed fits that matched observed area inside the buffers ran away on the whole landscape. `NULL` (default) keeps the previous behaviour; giving both it and `runawaySize` is an error.
 
 * Covariate-consistency changes for the spread model. Fits change, and cached fits re-key.
