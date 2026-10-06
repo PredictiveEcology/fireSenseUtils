@@ -137,6 +137,8 @@ utils::globalVariables(c(
 #' @param runawayEdgeFrac,runawayEdgeMin Passed to [.objfunSpreadFit()] in the fit and the re-score: a
 #'   replicate is a runaway only if it burns at least `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))`
 #'   of the `n` edge-ring pixels of its fire (at most `n`). Defaults [fireSenseRunawayEdgeFrac] and [fireSenseRunawayEdgeMin].
+#' @param runawayBufferMultiple Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL`
+#'   (default), or the multiple of its own fire's buffer size that a runaway counts as in the size-based terms.
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
@@ -216,6 +218,7 @@ runDEoptim <- function(landscape,
                        penaliseRunaways = TRUE,
                        runawayEdgeFrac = fireSenseRunawayEdgeFrac,
                        runawayEdgeMin = fireSenseRunawayEdgeMin,
+                       runawayBufferMultiple = NULL,
                        profileReps = 0L,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL,
@@ -328,6 +331,7 @@ runDEoptim <- function(landscape,
       penaliseRunaways = penaliseRunaways,
       runawayEdgeFrac = runawayEdgeFrac,
       runawayEdgeMin = runawayEdgeMin,
+      runawayBufferMultiple = runawayBufferMultiple,
       rep = rep,
       runName = runName),
     cachePath = paths$cachePath,
@@ -359,7 +363,8 @@ runDEoptim <- function(landscape,
                       jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
                       yearAreaWeight = yearAreaWeight, areaDistWeight = areaDistWeight,
                       penaliseRunaways = penaliseRunaways,
-                      runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin)
+                      runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin,
+                      runawayBufferMultiple = runawayBufferMultiple)
   rescoreArgs$covCentre <- covCentre # NULL adds nothing, so the cached re-score keeps its key
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)

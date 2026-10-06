@@ -182,7 +182,7 @@ utils::globalVariables(c(
 #'   likelihood a runaway has no density at the observed size (the likelihood is that of the other
 #'   replicates times their share; 0, i.e. `minLik`, if fewer than two replicates remain). The other
 #'   size-based terms (`"adTest"`, `yearAreaWeight`, `areaDistWeight`, `"mad"`) score the size it
-#'   burned, unless `runawaySize` is given. `FALSE` scores the simulated size everywhere. Fires are not capped at any
+#'   burned, unless `runawayBufferMultiple` or `runawaySize` is given. `FALSE` scores the simulated size everywhere. Fires are not capped at any
 #'   size: spread is bounded only by the year's buffers. Has no effect with `returnSims = TRUE` (the
 #'   simulated sizes are returned as simulated). The per-fire likelihood is floored at `minLik`
 #'   (1e-29), which bounds the penalty per fire. The ring is computed once per fit (`runDEoptim()`
@@ -201,6 +201,13 @@ utils::globalVariables(c(
 #'   typically had burned 1-3 times its observed fire's size, count as burning the whole landscape, and
 #'   the fit chose parameters that rarely reach a buffer edge, so it under-burned (held-out ELFs,
 #'   2026-10-01: simulated/observed area 1.33 -> 0.54).
+#' @param runawayBufferMultiple `NULL` (default), or a number: with `penaliseRunaways = TRUE`, a runaway
+#'   replicate counts in the `"adTest"`, `yearAreaWeight`, `areaDistWeight` and `"mad"` terms as this
+#'   multiple of the size (pixels) of its own fire's buffer, i.e. all rows of that fire's `ids` in the
+#'   year's `fireBufferedListDT` table, burned and unburned. The size it burned up to the early stop
+#'   was too cheap: fits that matched the observed area inside the buffers ran away on the whole
+#'   landscape (ELF 5.4 hindcast, 2026-10-06: fires of 3-6 Mha, median 2-12 times the observed area).
+#'   Give either this or `runawaySize`, not both.
 #'
 #' @param verbose If >= 2, then this will show more information about `spreadProb` fitting.
 #'
@@ -270,6 +277,7 @@ utils::globalVariables(c(
                              runawayEdgeFrac = fireSenseRunawayEdgeFrac,
                              runawayEdgeMin = fireSenseRunawayEdgeMin,
                              runawaySize = NULL,
+                             runawayBufferMultiple = NULL,
                              fitYearSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
@@ -321,8 +329,13 @@ utils::globalVariables(c(
   ncells <- ncell(landscape)
 
   r <- rast(landscape)
+  if (!is.null(runawaySize) && !is.null(runawayBufferMultiple))
+    stop("Give `runawaySize` or `runawayBufferMultiple`, not both: each sets the size a runaway counts as.")
   censorRunaways <- isTRUE(penaliseRunaways)
-  if (!censorRunaways) runawaySize <- NULL
+  if (!censorRunaways) {
+    runawaySize <- NULL
+    runawayBufferMultiple <- NULL
+  }
   ## an escaped fire has at least `escapeMinPx` pixels: only such observed fires are fitted, and every
   ## simulated fire burns that many cells first (spreadCpp(minSize =)). NULL keeps the historical rules.
   escapeMinPx <- if (!is.null(escapeSizeHa)) escapeSizePixels(escapeSizeHa, landscape)
@@ -392,7 +405,7 @@ utils::globalVariables(c(
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
         returnSims = returnSims, returnBurned = returnBurned, censorRunaways = censorRunaways,
-        runawaySize = runawaySize,
+        runawaySize = runawaySize, runawayBufferMultiple = runawayBufferMultiple,
         runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin, yearSpreadSD = yearSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         doYearArea = doYearArea,
@@ -666,7 +679,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
-                        runawaySize = NULL, censorRunaways = !is.null(runawaySize), runawayEdgeFrac = fireSenseRunawayEdgeFrac, runawayEdgeMin = fireSenseRunawayEdgeMin, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
+                        runawaySize = NULL, runawayBufferMultiple = NULL, censorRunaways = !is.null(runawaySize), runawayEdgeFrac = fireSenseRunawayEdgeFrac, runawayEdgeMin = fireSenseRunawayEdgeMin, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
@@ -816,9 +829,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       edgeRing <- if ("edge" %in% names(annualFireBufferedDT)) annualFireBufferedDT$edge else
         bufferEdge(annualFireBufferedDT, r)
       edgeRing <- annualFireBufferedDT[which(edgeRing), list(ids, pixelID)]
+      ## the size (pixels) of each fire's buffer, burned and unburned
+      bufferSizes <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
       if (doAssertions || SpaDES.core::anyPlotting(plot.it)) {
-        tableOfBufferedMaps <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
-        tableOfBufferedMaps <- tableOfBufferedMaps[annualFires, on = "ids"]
+        tableOfBufferedMaps <- bufferSizes[annualFires, on = "ids"]
         setnames(tableOfBufferedMaps, old = "cells", new = "initialLocus")
         minSizes <- tableOfBufferedMaps$numAvailPixels
         minSize <- quantile(minSizes, 0.3)
@@ -944,10 +958,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## One row per simulated fire. A fire that burned at least k pixels of the edge ring of its own
       ## buffer (k = max(runawayEdgeMin, ceiling(runawayEdgeFrac * ring size)), at most the ring size) is
       ## censored ("at least this big") in the per-fire likelihood. The other size-based terms below score the
-      ## size it burned (up to the early stop), or `runawaySize` if the caller gave one.
+      ## size it burned (up to the early stop), `runawayBufferMultiple` x its own fire's buffer size, or
+      ## `runawaySize`, if the caller gave one of these.
+      idsOfLocus <- function(locus) annualFires$ids[match(locus, annualFires$cells)]
       simSizes <- spreadState[, list(N = .N), by = c("rep", "initialLocus")]
       burnedRing <- spreadState[, list(rep, initialLocus,
-                                       ids = annualFires$ids[match(initialLocus, annualFires$cells)],
+                                       ids = idsOfLocus(initialLocus),
                                        pixelID = indices)]
       burnedRing <- burnedRing[edgeRing, on = c("ids", "pixelID"), nomatch = NULL]
       runaway <- rep(FALSE, NROW(simSizes))
@@ -957,6 +973,9 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         runaway[simSizes[hits, on = c("rep", "initialLocus"), which = TRUE]] <- TRUE
       }
       censored <- runaway & isTRUE(censorRunaways)
+      if (any(censored) && !is.null(runawayBufferMultiple))
+        runawaySize <- runawayBufferMultiple *
+          bufferSizes$numAvailPixels[match(idsOfLocus(simSizes$initialLocus[censored]), bufferSizes$ids)]
       if (any(censored) && !is.null(runawaySize)) set(simSizes, NULL, "N", replace(as.numeric(simSizes$N), censored, runawaySize))
       ret <- append(ret, list(runaways = sum(runaway), nSims = length(runaway), gated = FALSE))
       if (isTRUE(doSNLL_FSTest)) {

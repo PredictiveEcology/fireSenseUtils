@@ -6,11 +6,12 @@
 r60 <- terra::rast(nrows = 60, ncols = 60, xmin = 0, xmax = 60, ymin = 0, ymax = 60)
 cellOf60 <- function(row, col) (row - 1L) * 60L + col
 
-## five fires, each in its own n x n buffer block, ignited at the block's centre
+## five fires, each in its own n x n buffer block (`n` recycled over the fires), ignited at the block's centre
 runawayFixture <- function(n = 10L) {
+  n <- rep_len(n, 5L)
   tops <- c(2L, 2L, 22L, 22L, 42L); lefts <- c(2L, 22L, 2L, 22L, 2L)
   buf <- data.table::rbindlist(lapply(1:5, function(i)
-    data.table::data.table(ids = i, pixelID = as.vector(outer(tops[i] + 0:(n - 1L), lefts[i] + 0:(n - 1L),
+    data.table::data.table(ids = i, pixelID = as.vector(outer(tops[i] + 0:(n[i] - 1L), lefts[i] + 0:(n[i] - 1L),
                                                               cellOf60)), buffer = 0L)))
   centre <- cellOf60(tops + n %/% 2L, lefts + n %/% 2L)
   list(buf = buf, fires = data.table::data.table(cells = centre, size = c(25L, 30L, 20L, 28L, 22L), ids = 1:5))
@@ -141,6 +142,53 @@ test_that(".objfunSpreadFit() censors runaways by default without a runawaySize,
   expect_equal(run()[[1]], list(size = NULL, censor = TRUE))
   expect_equal(run(runawaySize = 99)[[1]], list(size = 99, censor = TRUE))
   expect_equal(run(penaliseRunaways = FALSE)[[1]], list(size = NULL, censor = FALSE))
+})
+
+test_that("runawayBufferMultiple: a runaway counts as that multiple of its own fire's buffer in the size terms", {
+  skip_if_not_installed("SpaDES.tools")
+  ## A fit that matched observed area inside the buffers ran away on the whole landscape (ELF 5.4
+  ## hindcast, 2026-10-06): a runaway scored at the size it reached before the early stop was too
+  ## cheap. Buffers of 36, 64, 36, 100 and 36 pixels; every replicate is saturated and runs away.
+  fx <- runawayFixture(c(6L, 8L, 6L, 10L, 6L))
+  bufN <- c(36, 64, 36, 100, 36)
+  byRule <- runawayObjective(c(0.9, 0.99), fx = fx, censorRunaways = TRUE, runawayBufferMultiple = 2)
+  asBurned <- runawayObjective(c(0.9, 0.99), fx = fx, censorRunaways = TRUE)
+  expect_equal(byRule$runaways, byRule$nSims)
+  expect_setequal(byRule$allFireSizes, 2 * unique(bufN))
+  expect_equal(sort(byRule$allFireSizes), sort(rep(2 * bufN, 6L)))
+  expect_true(all(byRule$annualAreaByRep == 2 * sum(bufN)))
+  expect_true(all(asBurned$allFireSizes < 2 * 36))   # NULL: the size it burned, as before
+  expect_identical(byRule$SNLL_FS, asBurned$SNLL_FS)   # the per-fire likelihood censors either way
+})
+
+test_that("runawayBufferMultiple reaches the inner objective; with runawaySize too it stops", {
+  seen <- list()
+  local_mocked_bindings(
+    objFunInner = function(runawaySize, runawayBufferMultiple = "absent", censorRunaways, ...) {
+      seen[[length(seen) + 1L]] <<- list(size = runawaySize, mult = runawayBufferMultiple)
+      list(SNLL_FS = 0)
+    },
+    .package = "fireSenseUtils"
+  )
+  land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+  run <- function(...) {
+    seen <<- list()
+    fireSenseUtils::.objfunSpreadFit(
+      par = c(0.27, 1, 1, 1), landscape = land,
+      annualDTx1000 = list(year2004 = data.table::data.table(pixelID = 1:400, cov = 0L)),
+      nonAnnualDTx1000 = list(`year2004` = data.table::data.table(pixelID = 1:400)),
+      formulaToFit = "~ 0 + cov",
+      historicalFires = list(year2004 = data.frame(size = 40L, cells = 1L, ids = 1L)),
+      fireBufferedListDT = list(year2004 = data.table::data.table(ids = 1L, pixelID = 1:400)),
+      indexNonAnnual = data.table::data.table(ind = 1L, date = "2004"), doAssertions = FALSE, ...
+    )
+    seen
+  }
+  expect_null(formals(fireSenseUtils::.objfunSpreadFit)$runawayBufferMultiple)
+  expect_equal(run()[[1]], list(size = NULL, mult = NULL))
+  expect_equal(run(runawayBufferMultiple = 2)[[1]], list(size = NULL, mult = 2))
+  expect_equal(run(runawayBufferMultiple = 2, penaliseRunaways = FALSE)[[1]], list(size = NULL, mult = NULL))
+  expect_error(run(runawayBufferMultiple = 2, runawaySize = 99), "runawaySize.*runawayBufferMultiple|runawayBufferMultiple.*runawaySize")
 })
 
 test_that("capSizes and penaliseCapHits are deprecated: one warning, then ignored", {
