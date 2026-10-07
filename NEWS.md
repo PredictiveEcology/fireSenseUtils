@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `bufferToArea()` keeps a fire whose buffer cannot reach its target size. Such a fire (every large fire when `areaMultiplier` is `10 * multiplier(size)`) never outgrew its target within the old limit of 100 iterations, or ran out of landscape first, and was dropped without a message, so spread fits ignored the largest fires (ELF 5.4 lost its 7 largest, 4.5-75 kha). It now gets the largest buffer the raster allows, up to the raster's size in iterations. `harmonizeFireData()` counts removed fires from the fire polygons, so a fire lost in the buffer step shows in its message. Buffers of fires that reached their target are unchanged.
+
 * New `runawayBufferMultiple` in `.objfunSpreadFit()` and `runDEoptim()` (fit, re-score, profile and simulation diagnostics): with `penaliseRunaways = TRUE`, a runaway replicate counts in the size-based terms (`"adTest"`, `yearAreaWeight`, `areaDistWeight`, `"mad"`) as this multiple of its own fire's buffer size, not the size it burned up to the early stop. A full-landscape hindcast of ELF 5.4 showed fits that matched observed area inside the buffers ran away on the whole landscape. `NULL` (default) keeps the previous behaviour; giving both it and `runawaySize` is an error.
 
 * Covariate-consistency changes for the spread model. Fits change, and cached fits re-key.
