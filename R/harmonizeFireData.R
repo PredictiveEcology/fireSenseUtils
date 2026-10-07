@@ -70,7 +70,8 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
     annual <- fireBufferedListDT[[year]]
     annual[, Year := year]
   })
-  totalFires <- nrow(rbindlist(fireBufferedListDT)[, .N, .(Year, ids)])
+  ## count from the polygons, so a fire lost in bufferToArea is reported too
+  totalFires <- sum(vapply(firePolys, function(f) length(unique(f[[pointsIDcolumn]])), integer(1)))
 
   fireBufferedListDT1 <- lapply(fireBufferedListDT, FUN = removeBufferedFiresOutsideRTM,
                                flammableRTM = flammableRTM)

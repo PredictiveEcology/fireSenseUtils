@@ -159,7 +159,17 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   spreadProb <- 1
   # }
   it <- 1L
-  maxIts <- 100L ## TODO: what's reasonable here???
+  ## A buffer grows one cell per iteration, so it can take at most this many to cover the raster.
+  maxIts <- max(terra::nrow(r), terra::ncol(r)) + 1L
+  ## Every cell of every pixel of `idsToEmit` reached so far, as buffer rows.
+  emitAll <- function(df, idsToEmit) {
+    lapply(idsToEmit, function(idAll) {
+      dtOut <- df[df$ids %in% idAll, list(buffer = 0L, pixelID = pixels, ids)]
+      dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idAll], buffer := 1L]
+      dtOut
+    })
+  }
+  prevSize <- setNames(fireSize$actualSize, fireSize$ids)
   while ((length(loci) > 0) & (it <= maxIts)) {
     dups <- duplicated(loci)
     df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq_along(ids[!dups]))
@@ -171,6 +181,15 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
     simSizes <- df[, list(simSize = .N), by = "ids"]
     simSizes <- fireSize[simSizes, on = "ids"]
     bigger <- simSizes$simSize > simSizes$goalSize
+    ## A buffer that did not grow has filled the landscape (raster edge) before reaching its target:
+    ## keep it, at the largest size the landscape allows, rather than lose the fire.
+    stalled <- !bigger & simSizes$simSize <= prevSize[as.character(simSizes$ids)]
+    prevSize[as.character(simSizes$ids)] <- simSizes$simSize
+    if (any(stalled)) {
+      idsStalled <- simSizes$ids[stalled]
+      names(idsStalled) <- idsStalled
+      out <- append(out, emitAll(df, idsStalled))
+    }
 
     if (any(bigger)) {
       idsBigger <- simSizes$ids[bigger]
@@ -199,9 +218,10 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
       })
       out <- append(out, out1)
     }
-    if (any(!bigger)) {
-      if (!all(!bigger)) {
-        simSizes <- simSizes[simSize <= goalSize]
+    done <- bigger | stalled
+    if (any(!done)) {
+      if (any(done)) {
+        simSizes <- simSizes[!done]
         df <- df[df$ids %in% simSizes$ids]
       }
       loci <- df$pixels
@@ -210,6 +230,12 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
     } else {
       loci <- integer(0)
     }
+  }
+  ## fires still growing when the iterations ran out
+  if (length(loci) > 0) {
+    idsLeft <- unique(df$ids)
+    names(idsLeft) <- idsLeft
+    out <- append(out, emitAll(df, idsLeft))
   }
   out3 <- if (length(out) > 0) {
     rbindlist(out)
