@@ -115,7 +115,6 @@ bufferToArea.SpatialPolygons <- function(poly, rasterToMatch, areaMultiplier = 1
 #' @importFrom LandR asInteger
 #' @importFrom terra rasterize values
 #' @importFrom sf st_crs st_transform
-#' @importFrom SpaDES.tools spread2
 #' @rdname bufferToArea
 bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
                             verb = FALSE, polyName = NULL, field = NULL,
@@ -136,106 +135,89 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
   loci <- which(!is.na(rvals))
   ids <- as.integer(rvals[loci])
 
-  initialDf <- data.table(loci, ids, id = seq(ids))
   am <- if (is(areaMultiplier, "function")) {
     areaMultiplier
   } else {
     function(x) areaMultiplier * x
   }
-  fireSize <- initialDf[, list(
-    actualSize = .N,
-    # simSize = .N,# needed for numIters
-    goalSize = asInteger(pmax(minSize, am(.N)))
-  ), by = "ids"]
+  fireIds <- unique(ids)
+  nFires <- length(fireIds)
+  fire <- match(ids, fireIds) # fire (index into `fireIds`) of each burned cell, `loci`
+  actualSize <- tabulate(fire, nFires)
+  goalSize <- asInteger(pmax(minSize, vapply(actualSize, am, numeric(1))))
 
+  ## A buffer grows one ring (the 8 neighbours of its newest cells) per iteration. Only the newest ring
+  ## can reach a new cell, so each iteration looks at that ring alone, not at the whole buffer. A cell
+  ## belongs to the one fire that claims it first, as in SpaDES.tools::spread2(), which picks at random
+  ## among the fires next to a contested cell.
+  owner <- integer(terra::ncell(r)) # 0L = unclaimed
+  owner[loci] <- fire
+  burned <- split(loci, factor(fire, levels = seq_len(nFires)))
+  ## cells of each fire, one element per ring, burned cells first
+  rings <- lapply(burned, list)
+  size <- actualSize
+  active <- rep(TRUE, nFires)
+  frontier <- loci
+  ## Buffer rows of fire `k` from the cells `cells`, flagging the burned cells
+  bufferRows <- function(k, cells) {
+    data.table(buffer = as.integer(cells %in% burned[[k]]), pixelID = cells, ids = fireIds[k])
+  }
   out <- list()
-  simSizes <- initialDf[, list(simSize = .N), by = "ids"]
-  simSizes <- fireSize[simSizes, on = "ids"]
 
-  # if (!is.null(allowCells)) {
-  #   spreadProb <- rep(NA, ncell(r))
-  #   spreadProb[allowCells] <- 1
-  # } else {
-  spreadProb <- 1
-  # }
   it <- 1L
   ## A buffer grows one cell per iteration, so it can take at most this many to cover the raster.
   maxIts <- max(terra::nrow(r), terra::ncol(r)) + 1L
-  ## Every cell of every pixel of `idsToEmit` reached so far, as buffer rows.
-  emitAll <- function(df, idsToEmit) {
-    lapply(idsToEmit, function(idAll) {
-      dtOut <- df[df$ids %in% idAll, list(buffer = 0L, pixelID = pixels, ids)]
-      dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idAll], buffer := 1L]
-      dtOut
-    })
-  }
-  prevSize <- setNames(fireSize$actualSize, fireSize$ids)
-  while ((length(loci) > 0) & (it <= maxIts)) {
-    dups <- duplicated(loci)
-    df <- data.table(loci = loci[!dups], ids = ids[!dups], id = seq_along(ids[!dups]))
-    r1 <- SpaDES.tools::spread2(
-      landscape = r, start = df$loci, iterations = 1,
-      spreadProb = spreadProb, asRaster = FALSE
-    )
-    df <- df[r1, on = c("loci" = "initialPixels")] # TODO: confirm this
-    simSizes <- df[, list(simSize = .N), by = "ids"]
-    simSizes <- fireSize[simSizes, on = "ids"]
-    bigger <- simSizes$simSize > simSizes$goalSize
+  while (any(active) && it <= maxIts) {
+    pairs <- terra::adjacent(r, frontier, directions = 8, pairs = TRUE)
+    pairs <- pairs[owner[pairs[, "to"]] == 0L, , drop = FALSE]
+    pairs <- pairs[sample.int(nrow(pairs)), , drop = FALSE]
+    pairs <- pairs[!duplicated(pairs[, "to"]), , drop = FALSE]
+    newCells <- pairs[, "to"]
+    newFire <- owner[pairs[, "from"]]
+    owner[newCells] <- newFire
+    grew <- tabulate(newFire, nFires)
+    size <- size + grew
+    newRing <- split(newCells, factor(newFire, levels = seq_len(nFires)))
+
+    bigger <- active & size > goalSize
     ## A buffer that did not grow has filled the landscape (raster edge) before reaching its target:
     ## keep it, at the largest size the landscape allows, rather than lose the fire.
-    stalled <- !bigger & simSizes$simSize <= prevSize[as.character(simSizes$ids)]
-    prevSize[as.character(simSizes$ids)] <- simSizes$simSize
-    if (any(stalled)) {
-      idsStalled <- simSizes$ids[stalled]
-      names(idsStalled) <- idsStalled
-      out <- append(out, emitAll(df, idsStalled))
+    stalled <- active & !bigger & grew == 0L
+    for (k in which(stalled)) {
+      out[[length(out) + 1L]] <- bufferRows(k, unlist(rings[[k]], use.names = FALSE))
     }
-
-    if (any(bigger)) {
-      idsBigger <- simSizes$ids[bigger]
-      names(idsBigger) <- idsBigger
-      out1 <- lapply(idsBigger, function(idBig) {
-        wh <- which(df$ids %in% idBig)
-        if (as.integer(verb) >= 2) {
-          df
-        }
-        lastIters <- !df[wh]$state == "activeSource"
-        needMore <- simSizes[ids == idBig]$goalSize - sum(lastIters)
-        if (needMore > 0) {
-          dt <- try(rbindlist(list(
-            df[wh][lastIters],
-            df[wh][sample(which(df[wh]$state == "activeSource"), needMore)]
-          )))
-        } else {
-          dt <- df[wh][lastIters][sample(sum(lastIters), simSizes[ids == idBig]$goalSize)]
-        }
-        if (is(dt, "try-error"))
-          stop("could not sample pixels for fire ", idBig, ": ", conditionMessage(attr(dt, "condition")))
-        dtOut <- dt[, list(buffer = 0L, pixelID = pixels, ids)]
-
-        dtOut[dtOut$pixelID %in% initialDf$loci[initialDf$ids %in% idBig], buffer := 1L]
-        dtOut
-      })
-      out <- append(out, out1)
+    for (k in which(bigger)) {
+      earlier <- unlist(rings[[k]], use.names = FALSE)
+      last <- newRing[[k]]
+      needMore <- goalSize[k] - length(earlier)
+      cells <- if (needMore > 0) {
+        c(earlier, last[sample.int(length(last), needMore)])
+      } else {
+        earlier[sample.int(length(earlier), goalSize[k])]
+      }
+      out[[length(out) + 1L]] <- bufferRows(k, cells)
     }
     done <- bigger | stalled
-    if (any(!done)) {
-      if (any(done)) {
-        simSizes <- simSizes[!done]
-        df <- df[df$ids %in% simSizes$ids]
+    active <- active & !done
+    for (k in which(active & grew > 0L)) rings[[k]] <- c(rings[[k]], newRing[k])
+    ## the next frontier is the cells just claimed by fires still growing ...
+    frontier <- newCells[active[newFire]]
+    if (any(done)) {
+      ## ... and a finished fire's cells are free again for the others, so the cells of fires still
+      ## growing that touch them are on the frontier too
+      freed <- unlist(c(lapply(rings[done], unlist, use.names = FALSE), newRing[done]), use.names = FALSE)
+      owner[freed] <- 0L
+      if (any(active) && length(freed) > 0L) {
+        touching <- unique(terra::adjacent(r, freed, directions = 8, pairs = TRUE)[, "to"])
+        frontier <- unique(c(frontier, touching[owner[touching] != 0L]))
       }
-      loci <- df$pixels
-      ids <- df$ids
-      it <- it + 1L
-    } else {
-      loci <- integer(0)
+      rings[done] <- list(NULL)
     }
+    it <- it + 1L
   }
   ## fires still growing when the iterations ran out
-  if (length(loci) > 0) {
-    idsLeft <- unique(df$ids)
-    names(idsLeft) <- idsLeft
-    out <- append(out, emitAll(df, idsLeft))
+  for (k in which(active)) {
+    out[[length(out) + 1L]] <- bufferRows(k, unlist(rings[[k]], use.names = FALSE))
   }
   out3 <- if (length(out) > 0) {
     rbindlist(out)
