@@ -114,6 +114,10 @@ utils::globalVariables(c(
 #'   so that runs with different `runName` values get distinct cache entries.
 #'   Default `""` (no suffix).
 #'
+#' @param progressFile Passed to `clusters::DEoptimIterative()`: `NULL` (default) lets it choose
+#'   `DEoptimProgress_<runName>.csv` in `visualizeDEoptim`; `FALSE` writes none; or a path. The file has
+#'   one row per generation and a `FINISHED` row at the end. It is not part of the cache key.
+#'
 #' @param nCoresNeeded Integer. How many workers to request for the DEoptim cluster; defaults to
 #'   about 10 per estimated parameter, `10 * length(lower)`. DEoptim's `NP` is set to the number of
 #'   workers the cluster actually gets, so a smaller allocation means a smaller population.
@@ -203,6 +207,7 @@ runDEoptim <- function(landscape,
                        .plotSize = list(height = 1600, width = 2000),
                        rep = 1L,
                        runName = "",
+                       progressFile = NULL,
                        nCoresNeeded = 10L * length(lower),
                        rescoreReps = 10L,
                        sizeLik = "kde",
@@ -333,10 +338,11 @@ runDEoptim <- function(landscape,
       runawayEdgeMin = runawayEdgeMin,
       runawayBufferMultiple = runawayBufferMultiple,
       rep = rep,
-      runName = runName),
+      runName = runName,
+      progressFile = progressFile),
     cachePath = paths$cachePath,
-    ## how often progress figures are drawn does not change the fit
-    omitArgs = c(".verbose", "plotEvery",
+    ## how often progress figures are drawn, and where the progress file goes, do not change the fit
+    omitArgs = c(".verbose", "plotEvery", "progressFile",
                  omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their

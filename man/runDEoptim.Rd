@@ -42,6 +42,7 @@ runDEoptim(
   .plotSize = list(height = 1600, width = 2000),
   rep = 1L,
   runName = "",
+  progressFile = NULL,
   nCoresNeeded = 10L * length(lower),
   rescoreReps = 10L,
   sizeLik = "kde",
@@ -183,6 +184,10 @@ Used in cache tags and plot filenames. Default 1L.}
 \code{clusters::DEoptimIterative()} and used as a suffix for the cache \code{.functionName}
 so that runs with different \code{runName} values get distinct cache entries.
 Default \code{""} (no suffix).}
+
+\item{progressFile}{Passed to \code{clusters::DEoptimIterative()}: \code{NULL} (default) lets it choose
+\verb{DEoptimProgress_<runName>.csv} in \code{visualizeDEoptim}; \code{FALSE} writes none; or a path. The file has
+one row per generation and a \code{FINISHED} row at the end. It is not part of the cache key.}
 
 \item{nCoresNeeded}{Integer. How many workers to request for the DEoptim cluster; defaults to
 about 10 per estimated parameter, \code{10 * length(lower)}. DEoptim's \code{NP} is set to the number of
