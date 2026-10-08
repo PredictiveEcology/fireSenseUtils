@@ -485,7 +485,14 @@ mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonFore
     )
   
   
-  fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates)
+  ## a fuel or LCC class absent from a data year's layers has zero cover there; only those
+  ## columns are filled with 0, so NAs in other columns (e.g., climate) stay NA
+  colNames <- lapply(fireSense_ignitionCovariates, names)
+  notInAll <- setdiff(Reduce(union, colNames), Reduce(intersect, colNames))
+  fireSense_ignitionCovariates <- rbindlist(fireSense_ignitionCovariates, use.names = TRUE, fill = TRUE)
+  for (col in notInAll) {
+    set(fireSense_ignitionCovariates, which(is.na(fireSense_ignitionCovariates[[col]])), col, 0)
+  }
   
   ## remove any pixels that are 0 for all classes; treed wetland is a site layer, not cover
   fireSense_ignitionCovariates[, coverSums := rowSums(.SD),
