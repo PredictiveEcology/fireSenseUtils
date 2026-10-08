@@ -52,6 +52,22 @@ test_that("mergePreparedCovs drops cells with no fuel or land cover and adds lig
   expect_equal(out[pixelID == 16 & year == 2002, lightningDensity], 1.6)
 })
 
+test_that("mergePreparedCovs fills a fuel class missing from some data years with 0", {
+  fuelOld <- c(ignRas(rep(1, 16), "class2"), ignRas(rep(0, 16), "nf1"))
+  fuelNew <- c(ignRas(rep(1, 16), "class2"), ignRas(rep(0.5, 16), "class3"), ignRas(rep(0, 16), "nf1"))
+  lightning <- list(lightningDensity = ignRas(1:16 / 10))
+
+  out <- mergePreparedCovs(years = list("year2001", "year2002"), fuelCovsCoarse = list(fuelOld, fuelNew),
+                           ignitionFirePoints = ignFires(), nonForestedLCCGroups = list(nf1 = 1),
+                           ignitionClimateCoarse = ignClimate(), lightningMap = lightning,
+                           digest = NULL, useCache = FALSE)
+
+  expect_true("class3" %in% names(out))
+  expect_true(all(out$class3[out$year == 2001] == 0))
+  expect_true(all(out$class3[out$year == 2002] == 0.5))
+  expect_false(anyNA(out$MDC))
+})
+
 test_that("prepare_ignitionClimate aggregates each climate variable to the coarse grid", {
   out <- prepare_ignitionClimate(ignClimate(), fact = 2, useCache = FALSE)
   expect_equal(dim(out$MDC), c(2, 2, 2))
