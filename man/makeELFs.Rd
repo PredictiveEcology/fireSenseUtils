@@ -14,7 +14,15 @@ makeELFs(
   useCache = TRUE
 )
 
-plotELFs(destinationPath = ".", which = NULL, fill = "green")
+plotELFs(
+  destinationPath = ".",
+  which = NULL,
+  fill = "green",
+  labels = c("code", "name", "none"),
+  labelWhich = c("all", "highlighted"),
+  buffers = TRUE,
+  axes = c("m", "longlat", "none")
+)
 }
 \arguments{
 \item{x}{A polygon layer (\code{SpatVector} or \code{sf}) or gridded layer (\code{SpatRaster})
@@ -42,6 +50,17 @@ If \code{FALSE}, then some (or most) will not be cached.}
 fills with \code{fill}. Default \code{NULL} fills none.}
 
 \item{fill}{The colour used to fill the \code{which} ELFs.}
+
+\item{labels}{What \code{plotELFs()} prints on each ELF: \code{"code"} (the ELF name, e.g. \code{"13.1"}),
+\code{"name"} (the name of the ecozone the ELF lies in, e.g. \code{"Pacific Maritime"}; see
+\code{\link[=elfLabels]{elfLabels()}}) or \code{"none"}.}
+
+\item{labelWhich}{\code{"all"} labels every ELF; \code{"highlighted"} labels only those in \code{which}.}
+
+\item{buffers}{If \code{FALSE}, \code{plotELFs()} draws only the ELF cores, without the buffer rings.}
+
+\item{axes}{\code{"m"} shows the map's own axes (metres); \code{"longlat"} keeps the map projection
+and draws a graticule labelled in degrees; \code{"none"} draws no axes and no box.}
 }
 \value{
 A list of length 2, with \code{rasWhole} and \code{rasCentered}. Each of these
