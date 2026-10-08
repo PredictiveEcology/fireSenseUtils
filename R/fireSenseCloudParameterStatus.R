@@ -220,7 +220,12 @@ elfLayer <- function(ELFsPoly, buffers = TRUE) {
 elfGraticule <- function(v, step = 10) {
   e <- terra::ext(v)
   ll <- terra::ext(terra::project(terra::as.polygons(e, crs = terra::crs(v)), "EPSG:4326"))[]
-  grid <- function(lo, hi) seq(ceiling(ll[[lo]] / step) * step, floor(ll[[hi]] / step) * step, step)
+  ## the multiples of `step` inside the range; none when the map spans less than one step
+  grid <- function(lo, hi) {
+    from <- ceiling(ll[[lo]] / step) * step
+    to <- floor(ll[[hi]] / step) * step
+    if (from > to) numeric(0) else seq(from, to, step)
+  }
   ## one graticule line cut to the map extent
   line <- function(x, y) {
     terra::vect(cbind(x, y), "lines", crs = "EPSG:4326") |>
