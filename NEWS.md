@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `runDEoptim()` has a `progressFile` argument, passed to `clusters::DEoptimIterative()`, which writes a CSV of each generation's progress and a `FINISHED` row. `NULL` (default) is `DEoptimProgress_<runName>.csv` in `visualizeDEoptim`; `FALSE` writes none. It is left out of the cache key. Needs clusters >= 0.0.73 (PredictiveEcology/clusters, branch `feat/deoptim-progress-file`).
+
 * `mergePreparedCovs()` no longer fails when a fuel class is present in some data years and absent in others (ELF 11.2: `Popu_tre` only in 2020, "Item 5 has 14 columns, inconsistent with item 1 which has 13 columns"). The year tables are bound with `fill = TRUE` and the classes missing from a year get 0 cover; other NAs (climate) are untouched.
 
 * `bufferToArea()` is much faster for large fires. Each buffer grew one ring per iteration by re-spreading every cell of every fire over the whole grid (`SpaDES.tools::spread2()`); it now expands only from the newest ring, so the work per iteration no longer grows with the buffer. Every fire keeps its size, and a fire whose target ends on a complete ring (or that fills the landscape) keeps its exact cells. The cells of a last, partial ring, and a cell that two fires reach in the same iteration, are still drawn at random, with a different random stream, so those cells can differ between runs of the old and new code for the same seed.
