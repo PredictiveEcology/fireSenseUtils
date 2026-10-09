@@ -1,6 +1,6 @@
 # fireSenseUtils (development version)
 
-* `runDEoptim()` passes `runName` to `clusters::clusterSetup()`, which uses it to place workers by the memory per worker this fit used last time. Needs the clusters version with that argument (PredictiveEcology/clusters#47, not yet merged).
+* `runDEoptim()` passes `runName` to `clusters::clusterSetup()`, which uses it to place workers by the memory per worker this fit used last time, and sets `options(clusters.workerMemoryGB)` to the new `spreadFitWorkerMemoryGB` (14 GB, measured 2026-10-09) for the fit unless the user set it, so a fit's first cluster is capped by free memory before it has a record. Needs clusters >= 0.0.75 (PredictiveEcology/clusters#47).
 
 * New `defaultFireYears()`: 1985 to the latest year with historical climate (`1985L:climateData::latestHistoricalYear()`). `fireSense_dataPrepFit` and `fireSense_ELFs` take their `fireYears` default from it, so the ELF merging and the fit count the same years. `climateData` is now an import.
 

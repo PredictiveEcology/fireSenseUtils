@@ -21,11 +21,13 @@ mockCluster <- function(seen, builtWorkers = 40L) {
     clusterSetup = function(..., nCoresNeeded, NP) {
       seen$nCoresNeeded <- nCoresNeeded
       seen$setupArgs <- list(...)
+      seen$memAtSetup <- getOption("clusters.workerMemoryGB")
       ## what clusterSetup() returns once a cluster of `builtWorkers` is running
       list(itermax = 5, trace = FALSE, strategy = 2L, NP = builtWorkers)
     },
     DEoptimIterative = function(fn, lower, upper, control, ...) {
       seen$control <- control
+      seen$memAtRun <- getOption("clusters.workerMemoryGB")
       list()
     },
     .package = "clusters", .env = parent.frame())
@@ -93,4 +95,21 @@ test_that("clusterSetup() is told the runName the fit is run under", {
   mockCluster(seen)
   callRunDEoptim(seen, runName = "ELF7_phase1")
   expect_identical(seen$setupArgs$runName, "ELF7_phase1")
+})
+
+test_that("the fit's clusters assume spreadFitWorkerMemoryGB per worker unless the user set it", {
+  ## 2026-10-09: placed by free cores alone, a fit's workers filled host core's memory and it hung
+  withr::local_options(clusters.workerMemoryGB = NULL)
+  seen <- new.env()
+  mockCluster(seen)
+  callRunDEoptim(seen)
+  expect_identical(seen$memAtSetup, spreadFitWorkerMemoryGB)
+  expect_identical(seen$memAtRun, spreadFitWorkerMemoryGB) # rebalancing during the run reads it too
+  expect_null(getOption("clusters.workerMemoryGB"))        # restored after the fit
+
+  withr::local_options(clusters.workerMemoryGB = 6)
+  seen <- new.env()
+  mockCluster(seen)
+  callRunDEoptim(seen)
+  expect_identical(seen$memAtSetup, 6)
 })

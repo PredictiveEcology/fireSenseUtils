@@ -18,7 +18,7 @@ Depends:
     R (>= 4.3)
 Imports:
     climateData,
-    clusters (>= 0.0.73),
+    clusters (>= 0.0.75),
     cowplot,
     crayon,
     data.table,
