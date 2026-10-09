@@ -3,7 +3,7 @@ Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 Date: 2026-09-28
-Version: 0.2.3.9089
+Version: 0.2.3.9090
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -17,6 +17,7 @@ Authors@R: c(
 Depends:
     R (>= 4.3)
 Imports:
+    climateData,
     clusters (>= 0.0.73),
     cowplot,
     crayon,
@@ -70,6 +71,7 @@ Suggests:
     spelling,
     testthat
 Remotes:
+    PredictiveEcology/climateData@development,
     PredictiveEcology/clusters@development,
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,
