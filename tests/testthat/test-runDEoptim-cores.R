@@ -20,6 +20,7 @@ mockCluster <- function(seen, builtWorkers = 40L) {
   testthat::local_mocked_bindings(
     clusterSetup = function(..., nCoresNeeded, NP) {
       seen$nCoresNeeded <- nCoresNeeded
+      seen$setupArgs <- list(...)
       ## what clusterSetup() returns once a cluster of `builtWorkers` is running
       list(itermax = 5, trace = FALSE, strategy = 2L, NP = builtWorkers)
     },
@@ -84,4 +85,12 @@ test_that("runDEoptim runs where R has no OpenMP", {
   testthat::local_mocked_bindings(omp_get_max_threads = function() NA_integer_)
   expect_no_error(callRunDEoptim(seen, npar = 12L))
   expect_identical(as.integer(seen$nCoresNeeded), 120L)
+})
+
+test_that("clusterSetup() is told the runName the fit is run under", {
+  ## clusters uses runName to size hosts from the memory this fit used last time
+  seen <- new.env()
+  mockCluster(seen)
+  callRunDEoptim(seen, runName = "ELF7_phase1")
+  expect_identical(seen$setupArgs$runName, "ELF7_phase1")
 })

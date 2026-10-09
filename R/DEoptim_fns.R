@@ -266,7 +266,7 @@ runDEoptim <- function(landscape,
     cores = cores, # logPath = file.path(dataPath(sim)),
     ## about 10 workers per estimated parameter; clusterSetup() sets NP to the workers it gets
     nCoresNeeded = nCoresNeeded,
-    libPath = libPath[1], NP = NP,
+    libPath = libPath[1], NP = NP, runName = runName,
     logPath = logPath,
     objsNeeded = objsNeeded,
     pkgsNeeded = neededPkgs, envir = environment(),
