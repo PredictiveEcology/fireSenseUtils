@@ -228,6 +228,10 @@ runDEoptim <- function(landscape,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL,
                        covCentre = NULL) {
+  ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
+  ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
+  withr::local_options(clusters.workerMemoryGB =
+                         getOption("clusters.workerMemoryGB", spreadFitWorkerMemoryGB))
   if (!is.null(penaliseCapHits)) deprecatedCapArgs("penaliseCapHits")
   ## the edge ring of each fire's buffer, once, before the tables go to the workers
   fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
@@ -266,7 +270,7 @@ runDEoptim <- function(landscape,
     cores = cores, # logPath = file.path(dataPath(sim)),
     ## about 10 workers per estimated parameter; clusterSetup() sets NP to the workers it gets
     nCoresNeeded = nCoresNeeded,
-    libPath = libPath[1], NP = NP,
+    libPath = libPath[1], NP = NP, runName = runName,
     logPath = logPath,
     objsNeeded = objsNeeded,
     pkgsNeeded = neededPkgs, envir = environment(),
