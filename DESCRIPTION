@@ -17,6 +17,7 @@ Authors@R: c(
 Depends:
     R (>= 4.3)
 Imports:
+    climateData,
     clusters (>= 0.0.73),
     cowplot,
     crayon,
@@ -70,6 +71,7 @@ Suggests:
     spelling,
     testthat
 Remotes:
+    PredictiveEcology/climateData@development,
     PredictiveEcology/clusters@development,
     PredictiveEcology/LandR@development,
     PredictiveEcology/pemisc@development,

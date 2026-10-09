@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* New `defaultFireYears()`: 1985 to the latest year with historical climate (`1985L:climateData::latestHistoricalYear()`). `fireSense_dataPrepFit` and `fireSense_ELFs` take their `fireYears` default from it, so the ELF merging and the fit count the same years. `climateData` is now an import.
+
 * `runDEoptim()` has a `progressFile` argument, passed to `clusters::DEoptimIterative()`, which writes a CSV of each generation's progress and a `FINISHED` row. `NULL` (default) is `DEoptimProgress_<runName>.csv` in `visualizeDEoptim`; `FALSE` writes none. It is left out of the cache key. Needs clusters >= 0.0.73 (PredictiveEcology/clusters, branch `feat/deoptim-progress-file`).
 
 * `mergePreparedCovs()` no longer fails when a fuel class is present in some data years and absent in others (ELF 11.2: `Popu_tre` only in 2020, "Item 5 has 14 columns, inconsistent with item 1 which has 13 columns"). The year tables are bound with `fill = TRUE` and the classes missing from a year get 0 cover; other NAs (climate) are untouched.
