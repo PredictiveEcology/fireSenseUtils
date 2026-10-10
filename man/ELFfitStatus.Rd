@@ -4,21 +4,28 @@
 \alias{ELFfitStatus}
 \title{Classify each ELF as zero, few or ok on its fire counts}
 \usage{
-ELFfitStatus(counts, minNaturalIgnitions = 50, minFirePolygons = 50)
+ELFfitStatus(
+  counts,
+  minNaturalIgnitions = 50,
+  minFirePolygons = 50,
+  minEscapes = 5
+)
 }
 \arguments{
 \item{counts}{\code{data.table} from \code{\link[=ELFfireCounts]{ELFfireCounts()}}.}
 
-\item{minNaturalIgnitions, minFirePolygons}{thresholds below which an ELF is \code{"few"}.}
+\item{minNaturalIgnitions, minFirePolygons, minEscapes}{thresholds below which an ELF is \code{"few"}.}
 }
 \value{
-A \code{data.table} with one row per ELF: \code{ELF}, \code{naturalIgnitions},
+A \code{data.table} with one row per ELF: \code{ELF}, \code{naturalIgnitions}, \code{escapes},
 \code{firePolygons}, \code{yearsWithFire}, \code{status} (\code{"zero"}, \code{"few"} or \code{"ok"}).
 }
 \description{
 An ELF with no natural ignitions, or no fire polygons, over the whole fitting window
-cannot be fitted and is \code{"zero"}. One below either threshold is \code{"few"}: it can be
+cannot be fitted and is \code{"zero"}. One below any threshold is \code{"few"}: it can be
 fitted, but the thin end of the data drives the escape model's 5-fold CV
 (\verb{fireSense_ignitionFit.R:463,889}), which needs at least 10 ignited cell-years
-before some fold is left holding a single row.
+before some fold is left holding a single row. The escape and spread fits use only escaped
+fires (see \code{\link[=escapedFires]{escapedFires()}}), so an ELF with many small fires and few large ones is \code{"few"}
+through \code{minEscapes}.
 }

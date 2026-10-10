@@ -95,29 +95,31 @@ ELFmergedName <- function(members) {
 #' partner is the neighbouring ELF with the same base and the same depth -- another piece of the
 #' same split ecoprovince, or another whole ecoprovince of the same ecozone -- that shares the
 #' longest core border (ties: more fires, then ELF order) and is not already part of a merge. If
-#' the two together reach both thresholds they are merged; otherwise neither is fitted. An ELF with
+#' the two together reach all three thresholds they are merged; otherwise neither is fitted. An ELF with
 #' no such neighbour is not fitted.
 #'
 #' @param status `data.table` from [ELFfitStatus()].
 #' @param neighbours `data.table` from [ELFneighbours()].
-#' @param minNaturalIgnitions,minFirePolygons thresholds a merged ELF must reach, as in
+#' @param minNaturalIgnitions,minFirePolygons,minEscapes thresholds a merged ELF must reach, as in
 #'   [ELFfitStatus()].
 #'
 #' @return A `data.table` with one row per decision: `action` (`"merge"` or `"skip"`), `ELF` (the
 #'   merged ELF's name, `NA` for a skip), `members` (list of the ELF ids involved),
-#'   `naturalIgnitions` and `firePolygons` (their totals) and `reason`.
+#'   `naturalIgnitions`, `escapes` and `firePolygons` (their totals) and `reason`.
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist
-ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePolygons = 50) {
+ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePolygons = 50,
+                         minEscapes = 5) {
   stopifnot(
     is.data.frame(status),
-    all(c("ELF", "naturalIgnitions", "firePolygons", "status") %in% names(status)),
+    all(c("ELF", "naturalIgnitions", "escapes", "firePolygons", "status") %in% names(status)),
     is.data.frame(neighbours),
     all(c("ELF1", "ELF2", "sharedLength") %in% names(neighbours))
   )
   ids <- as.character(status$ELF)
   ign <- stats::setNames(status$naturalIgnitions, ids)
+  esc <- stats::setNames(status$escapes, ids)
   polys <- stats::setNames(status$firePolygons, ids)
   thin <- ids[status$status %in% c("zero", "few") & !ids %in% ELFsArctic(ids)]
   thin <- thin[order(numeric_version(thin))]
@@ -128,6 +130,7 @@ ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePo
       ELF = if (action == "merge") ELFmergedName(members) else NA_character_,
       members = list(members[order(numeric_version(members))]),
       naturalIgnitions = sum(ign[members]),
+      escapes = sum(esc[members]),
       firePolygons = sum(polys[members]),
       reason = reason
     )
@@ -149,9 +152,10 @@ ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePo
     }
     other <- other[ok]
     shared <- touching$sharedLength[ok]
-    partner <- other[order(-shared, -(ign[other] + polys[other]), numeric_version(other))][1]
+    partner <- other[order(-shared, -(ign[other] + polys[other] + esc[other]), numeric_version(other))][1]
     members <- c(elf, partner)
-    enough <- sum(ign[members]) >= minNaturalIgnitions && sum(polys[members]) >= minFirePolygons
+    enough <- sum(ign[members]) >= minNaturalIgnitions && sum(polys[members]) >= minFirePolygons &&
+      sum(esc[members]) >= minEscapes
     out[[length(out) + 1L]] <- if (enough) {
       decision("merge", members, paste0("too few fires; merged with ", partner, ", the longest shared border"))
     } else {
@@ -162,7 +166,8 @@ ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePo
 
   if (!length(out)) {
     return(data.table::data.table(action = character(0), ELF = character(0), members = list(),
-                                  naturalIgnitions = integer(0), firePolygons = integer(0),
+                                  naturalIgnitions = integer(0), escapes = integer(0),
+                                  firePolygons = integer(0),
                                   reason = character(0)))
   }
   data.table::rbindlist(out)
