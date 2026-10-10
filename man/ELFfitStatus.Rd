@@ -8,7 +8,7 @@ ELFfitStatus(
   counts,
   minNaturalIgnitions = 50,
   minFirePolygons = 50,
-  minEscapes = 20
+  minEscapes = 5
 )
 }
 \arguments{

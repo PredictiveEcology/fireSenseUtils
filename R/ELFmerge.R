@@ -110,7 +110,7 @@ ELFmergedName <- function(members) {
 #' @export
 #' @importFrom data.table data.table rbindlist
 ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePolygons = 50,
-                         minEscapes = 20) {
+                         minEscapes = 5) {
   stopifnot(
     is.data.frame(status),
     all(c("ELF", "naturalIgnitions", "escapes", "firePolygons", "status") %in% names(status)),

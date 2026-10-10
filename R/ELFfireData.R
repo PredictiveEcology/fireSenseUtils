@@ -127,7 +127,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
 #'
 #' @export
 #' @importFrom data.table as.data.table fifelse setkeyv
-ELFfitStatus <- function(counts, minNaturalIgnitions = 50, minFirePolygons = 50, minEscapes = 20) {
+ELFfitStatus <- function(counts, minNaturalIgnitions = 50, minFirePolygons = 50, minEscapes = 5) {
   stopifnot(
     is.data.frame(counts),
     all(c("ELF", "year", "naturalIgnitions", "escapes", "firePolygons") %in% names(counts))

@@ -22,7 +22,7 @@ statusOf <- function(ELF, naturalIgnitions, firePolygons, escapes = naturalIgnit
   data.table::data.table(ELF = ELF, naturalIgnitions = naturalIgnitions, escapes = escapes,
                          firePolygons = firePolygons,
                          status = ifelse(naturalIgnitions == 0 | firePolygons == 0, "zero",
-                                         ifelse(naturalIgnitions < 50 | firePolygons < 50 | escapes < 20,
+                                         ifelse(naturalIgnitions < 50 | firePolygons < 50 | escapes < 5,
                                                 "few", "ok")))
 }
 
@@ -57,20 +57,20 @@ test_that("a thin piece merges with its sibling when together they have enough f
 })
 
 test_that("an ELF with enough ignitions and polygons but one escape is merged to reach the escapes", {
-  ## ELF 7.3's case: 60 ignitions, 60 polygons, 1 escape. 7.2 brings the pair to 25 escapes.
-  status <- statusOf(c("7.2", "7.3"), c(80, 60), c(80, 60), escapes = c(24, 1))
+  ## ELF 7.3's case: 60 ignitions, 60 polygons, 1 escape. 7.2 brings the pair to 6 escapes.
+  status <- statusOf(c("7.2", "7.3"), c(80, 60), c(80, 60), escapes = c(5, 1))
   expect_identical(status$status, c("ok", "few"))
   plan <- ELFmergePlan(status, neighboursOf("7.2", "7.3", 4000))
   expect_identical(plan$action, "merge")
   expect_identical(plan$ELF, "7.2_3")
-  expect_identical(plan$escapes, 25)
+  expect_identical(plan$escapes, 6)
   ## a pair that is still short of escapes is not fitted
-  status <- statusOf(c("7.2", "7.3"), c(80, 60), c(80, 60), escapes = c(10, 1))
+  status <- statusOf(c("7.2", "7.3"), c(80, 60), c(80, 60), escapes = c(2, 1))
   plan <- ELFmergePlan(status, neighboursOf("7.2", "7.3", 4000))
   expect_identical(plan$action, "skip")
   expect_setequal(ELFsSkipped(plan), c("7.2", "7.3"))
   ## minEscapes is a parameter
-  plan <- ELFmergePlan(status, neighboursOf("7.2", "7.3", 4000), minEscapes = 11)
+  plan <- ELFmergePlan(status, neighboursOf("7.2", "7.3", 4000), minEscapes = 3)
   expect_identical(plan$action, "merge")
 })
 
