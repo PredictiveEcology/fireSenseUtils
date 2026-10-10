@@ -17,10 +17,13 @@ bandELFs <- function(bands, nrow = 4L, buffers = list()) {
   out
 }
 
-statusOf <- function(ELF, naturalIgnitions, firePolygons) {
-  data.table::data.table(ELF = ELF, naturalIgnitions = naturalIgnitions, firePolygons = firePolygons,
+## Escapes default to the number of ignitions, so tests that do not care about them are unchanged.
+statusOf <- function(ELF, naturalIgnitions, firePolygons, escapes = naturalIgnitions) {
+  data.table::data.table(ELF = ELF, naturalIgnitions = naturalIgnitions, escapes = escapes,
+                         firePolygons = firePolygons,
                          status = ifelse(naturalIgnitions == 0 | firePolygons == 0, "zero",
-                                         ifelse(naturalIgnitions < 50 | firePolygons < 50, "few", "ok")))
+                                         ifelse(naturalIgnitions < 50 | firePolygons < 50 | escapes < 20,
+                                                "few", "ok")))
 }
 
 neighboursOf <- function(ELF1, ELF2, sharedLength) {
@@ -51,6 +54,24 @@ test_that("a thin piece merges with its sibling when together they have enough f
   expect_identical(plan$members[[1]], c("3.1.1", "3.1.2"))
   expect_identical(plan$naturalIgnitions, 70)
   expect_identical(ELFsSkipped(plan), character(0))
+})
+
+test_that("an ELF with enough ignitions and polygons but one escape is merged to reach the escapes", {
+  ## ELF 7.3's case: 60 ignitions, 60 polygons, 1 escape. 7.2 brings the pair to 25 escapes.
+  status <- statusOf(c("7.2", "7.3"), c(80, 60), c(80, 60), escapes = c(24, 1))
+  expect_identical(status$status, c("ok", "few"))
+  plan <- ELFmergePlan(status, neighboursOf("7.2", "7.3", 4000))
+  expect_identical(plan$action, "merge")
+  expect_identical(plan$ELF, "7.2_3")
+  expect_identical(plan$escapes, 25)
+  ## a pair that is still short of escapes is not fitted
+  status <- statusOf(c("7.2", "7.3"), c(80, 60), c(80, 60), escapes = c(10, 1))
+  plan <- ELFmergePlan(status, neighboursOf("7.2", "7.3", 4000))
+  expect_identical(plan$action, "skip")
+  expect_setequal(ELFsSkipped(plan), c("7.2", "7.3"))
+  ## minEscapes is a parameter
+  plan <- ELFmergePlan(status, neighboursOf("7.2", "7.3", 4000), minEscapes = 11)
+  expect_identical(plan$action, "merge")
 })
 
 test_that("if the pair still has too few fires, neither is fitted", {

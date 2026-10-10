@@ -13,8 +13,9 @@
 
 #' Count fires in each ELF
 #'
-#' Counts natural-cause ignitions and fire polygons falling in each ELF's fitting
-#' area (core plus buffer), per year.
+#' Counts natural-cause ignitions, escaped natural ignitions and fire polygons falling in
+#' each ELF's fitting area (core plus buffer), per year. An escaped ignition is one that
+#' [escapedFires()] keeps: the escape and spread fits use only these.
 #'
 #' Points are counted on the grid of `rasWhole` with a single [terra::cellFromXY()]
 #' lookup. Polygons are intersected with each ELF's area and their clipped area is
@@ -25,22 +26,24 @@
 #'   built by [makeELFs()] (`sim$ELFs$rasWhole`). Cells are 0 (outside), 1 (buffer) or
 #'   2 (core).
 #' @param firePoints `SpatVector` of fire points, as returned by
-#'   `fireregimetools::load_nfdb_points()`. Needs columns `YEAR` and `CAUSE`.
+#'   `fireregimetools::load_nfdb_points()`. Needs columns `YEAR`, `CAUSE` and `SIZE_HA`.
 #' @param firePolys `SpatVector` of fire perimeters, as returned by
 #'   `fireregimetools::load_nbac_polys()`. Needs column `YEAR`.
 #' @param fireYears integer vector of the years being fitted.
 #' @param pixelAreaHa area of one fitting pixel, in hectares. A polygon counts when its
 #'   area inside the ELF exceeds this.
 #' @param naturalCauses causes treated as natural ignitions.
+#' @param escapeSizeHa size (ha) a fire must reach to count as escaped, as in [escapedFires()]
+#'   (`pixelAreaHa` is its pixel area).
 #'
 #' @return A `data.table` with one row per ELF and year: `ELF`, `year`,
-#'   `naturalIgnitions`, `firePolygons`.
+#'   `naturalIgnitions`, `escapes`, `firePolygons`.
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist setkeyv
 #' @importFrom terra cellFromXY crds crs project
 ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
-                          pixelAreaHa, naturalCauses = c("L", "N")) {
+                          pixelAreaHa, naturalCauses = c("L", "N"), escapeSizeHa = 50) {
   stopifnot(
     inherits(rasWhole, "SpatRaster"),
     inherits(firePoints, "SpatVector"),
@@ -54,12 +57,15 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
 
   ## Points: one cellFromXY on the common grid, then index each layer's values.
   natural <- firePoints[firePoints$CAUSE %in% naturalCauses, ]
+  natural$.row <- seq_len(nrow(natural))
+  isEscape <- natural$.row %in% escapedFires(natural, escapeSizeHa, pixelAreaHa)$.row
   natural <- terra::project(natural, terra::crs(rasWhole))
   ptCell <- terra::cellFromXY(rasWhole, terra::crds(natural))
   ptYear <- as.integer(natural$YEAR)
   keep <- !is.na(ptCell) & ptYear %in% fireYears
   ptCell <- ptCell[keep]
   ptYear <- ptYear[keep]
+  ptEscape <- isEscape[keep]
 
   ## Polygons: clipped area per ELF, so a fire straddling an edge is judged on the part inside.
   polys <- terra::project(firePolys, terra::crs(rasWhole))
@@ -69,11 +75,13 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
     inArea <- rasWhole[[elf]][ptCell][[1]] > 0
     inArea[is.na(inArea)] <- FALSE
     ign <- table(factor(ptYear[inArea], levels = fireYears))
+    esc <- table(factor(ptYear[inArea & ptEscape], levels = fireYears))
 
     data.table::data.table(
       ELF = elf,
       year = fireYears,
       naturalIgnitions = as.integer(ign),
+      escapes = as.integer(esc),
       firePolygons = .ELFpolygonCounts(rasWhole[[elf]], polys, fireYears, pixelAreaHa)
     )
   })
@@ -104,30 +112,33 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
 #' Classify each ELF as zero, few or ok on its fire counts
 #'
 #' An ELF with no natural ignitions, or no fire polygons, over the whole fitting window
-#' cannot be fitted and is `"zero"`. One below either threshold is `"few"`: it can be
+#' cannot be fitted and is `"zero"`. One below any threshold is `"few"`: it can be
 #' fitted, but the thin end of the data drives the escape model's 5-fold CV
 #' (`fireSense_ignitionFit.R:463,889`), which needs at least 10 ignited cell-years
-#' before some fold is left holding a single row.
+#' before some fold is left holding a single row. The escape and spread fits use only escaped
+#' fires (see [escapedFires()]), so an ELF with many small fires and few large ones is `"few"`
+#' through `minEscapes`.
 #'
 #' @param counts `data.table` from [ELFfireCounts()].
-#' @param minNaturalIgnitions,minFirePolygons thresholds below which an ELF is `"few"`.
+#' @param minNaturalIgnitions,minFirePolygons,minEscapes thresholds below which an ELF is `"few"`.
 #'
-#' @return A `data.table` with one row per ELF: `ELF`, `naturalIgnitions`,
+#' @return A `data.table` with one row per ELF: `ELF`, `naturalIgnitions`, `escapes`,
 #'   `firePolygons`, `yearsWithFire`, `status` (`"zero"`, `"few"` or `"ok"`).
 #'
 #' @export
 #' @importFrom data.table as.data.table fifelse setkeyv
-ELFfitStatus <- function(counts, minNaturalIgnitions = 50, minFirePolygons = 50) {
+ELFfitStatus <- function(counts, minNaturalIgnitions = 50, minFirePolygons = 50, minEscapes = 20) {
   stopifnot(
     is.data.frame(counts),
-    all(c("ELF", "year", "naturalIgnitions", "firePolygons") %in% names(counts))
+    all(c("ELF", "year", "naturalIgnitions", "escapes", "firePolygons") %in% names(counts))
   )
 
-  naturalIgnitions <- firePolygons <- status <- NULL # data.table NSE
+  naturalIgnitions <- escapes <- firePolygons <- status <- NULL # data.table NSE
 
   out <- data.table::as.data.table(counts)[
     , list(
       naturalIgnitions = sum(naturalIgnitions),
+      escapes = sum(escapes),
       firePolygons = sum(firePolygons),
       yearsWithFire = sum(naturalIgnitions > 0 | firePolygons > 0)
     ),
@@ -137,7 +148,8 @@ ELFfitStatus <- function(counts, minNaturalIgnitions = 50, minFirePolygons = 50)
   out[, status := data.table::fifelse(
     naturalIgnitions == 0 | firePolygons == 0, "zero",
     data.table::fifelse(
-      naturalIgnitions < minNaturalIgnitions | firePolygons < minFirePolygons,
+      naturalIgnitions < minNaturalIgnitions | firePolygons < minFirePolygons |
+        escapes < minEscapes,
       "few", "ok"
     )
   )]

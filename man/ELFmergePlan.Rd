@@ -8,7 +8,8 @@ ELFmergePlan(
   status,
   neighbours,
   minNaturalIgnitions = 50,
-  minFirePolygons = 50
+  minFirePolygons = 50,
+  minEscapes = 20
 )
 }
 \arguments{
@@ -16,19 +17,19 @@ ELFmergePlan(
 
 \item{neighbours}{\code{data.table} from \code{\link[=ELFneighbours]{ELFneighbours()}}.}
 
-\item{minNaturalIgnitions, minFirePolygons}{thresholds a merged ELF must reach, as in
+\item{minNaturalIgnitions, minFirePolygons, minEscapes}{thresholds a merged ELF must reach, as in
 \code{\link[=ELFfitStatus]{ELFfitStatus()}}.}
 }
 \value{
 A \code{data.table} with one row per decision: \code{action} (\code{"merge"} or \code{"skip"}), \code{ELF} (the
 merged ELF's name, \code{NA} for a skip), \code{members} (list of the ELF ids involved),
-\code{naturalIgnitions} and \code{firePolygons} (their totals) and \code{reason}.
+\code{naturalIgnitions}, \code{escapes} and \code{firePolygons} (their totals) and \code{reason}.
 }
 \description{
 Every ELF that \code{\link[=ELFfitStatus]{ELFfitStatus()}} calls \code{"zero"} or \code{"few"} is considered once, in ELF order. Its
 partner is the neighbouring ELF with the same base and the same depth -- another piece of the
 same split ecoprovince, or another whole ecoprovince of the same ecozone -- that shares the
 longest core border (ties: more fires, then ELF order) and is not already part of a merge. If
-the two together reach both thresholds they are merged; otherwise neither is fitted. An ELF with
+the two together reach all three thresholds they are merged; otherwise neither is fitted. An ELF with
 no such neighbour is not fitted.
 }
