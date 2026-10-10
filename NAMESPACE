@@ -14,11 +14,13 @@ export(ELFflammableArea)
 export(ELFmergePlan)
 export(ELFmergedName)
 export(ELFneighbours)
+export(ELFregionStats)
 export(ELFrunName)
 export(ELFsArctic)
 export(ELFsExcluded)
 export(ELFsInStudyArea)
 export(ELFsSkipped)
+export(ELFsizePlan)
 export(ELFtemplateRaster)
 export(adWeightAuto)
 export(addBufferEdge)
@@ -360,6 +362,7 @@ importFrom(terra,
   res,
   set.names,
   setValues,
+  spatSample,
   sprc,
   trim,
   values,

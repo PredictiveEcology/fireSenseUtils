@@ -1,22 +1,6 @@
 ## ELFs with too few fires are merged with a neighbour that shares their base, or left out
 ## (Eliot, 2026-09-14). These pin the decisions on small synthetic maps and tables.
 
-## ELFs as vertical bands of core cells on one grid (1000 m cells), optionally with a buffer band.
-bandELFs <- function(bands, nrow = 4L, buffers = list()) {
-  ncol <- max(unlist(c(bands, buffers)))
-  r <- terra::rast(nrows = nrow, ncols = ncol, xmin = 0, xmax = ncol * 1000,
-                   ymin = 0, ymax = nrow * 1000, crs = "EPSG:3978")
-  layers <- Map(cols = bands, nam = names(bands), function(cols, nam) {
-    v <- matrix(0L, nrow, ncol)
-    if (!is.null(buffers[[nam]])) v[, buffers[[nam]]] <- 1L
-    v[, cols] <- 2L
-    terra::setValues(r, as.vector(t(v)))
-  })
-  out <- terra::rast(unname(layers))
-  names(out) <- names(bands)
-  out
-}
-
 ## Escapes default to the number of ignitions, so tests that do not care about them are unchanged.
 statusOf <- function(ELF, naturalIgnitions, firePolygons, escapes = naturalIgnitions) {
   data.table::data.table(ELF = ELF, naturalIgnitions = naturalIgnitions, escapes = escapes,
@@ -24,11 +8,6 @@ statusOf <- function(ELF, naturalIgnitions, firePolygons, escapes = naturalIgnit
                          status = ifelse(naturalIgnitions == 0 | firePolygons == 0, "zero",
                                          ifelse(naturalIgnitions < 50 | firePolygons < 50 | escapes < 5,
                                                 "few", "ok")))
-}
-
-neighboursOf <- function(ELF1, ELF2, sharedLength) {
-  data.table::data.table(ELF1 = ELF1, ELF2 = ELF2, sharedEdges = sharedLength / 1000,
-                         sharedLength = sharedLength)
 }
 
 test_that("ELFneighbours measures the core border each pair of ELFs shares", {
