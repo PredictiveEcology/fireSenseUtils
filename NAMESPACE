@@ -14,11 +14,13 @@ export(ELFflammableArea)
 export(ELFmergePlan)
 export(ELFmergedName)
 export(ELFneighbours)
+export(ELFregionStats)
 export(ELFrunName)
 export(ELFsArctic)
 export(ELFsExcluded)
 export(ELFsInStudyArea)
 export(ELFsSkipped)
+export(ELFsizePlan)
 export(ELFtemplateRaster)
 export(adWeightAuto)
 export(addBufferEdge)
@@ -45,6 +47,7 @@ export(defaultFireYears)
 export(dtReplaceNAwith0)
 export(emptySpreadCovariates)
 export(escapeSizePixels)
+export(escapedFires)
 export(escapesTxt)
 export(firePixelsByYear)
 export(fireSenseCloudParameters)
@@ -359,6 +362,7 @@ importFrom(terra,
   res,
   set.names,
   setValues,
+  spatSample,
   sprc,
   trim,
   values,

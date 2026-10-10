@@ -10,7 +10,8 @@ ELFfireCounts(
   firePolys,
   fireYears,
   pixelAreaHa,
-  naturalCauses = c("L", "N")
+  naturalCauses = c("L", "N"),
+  escapeSizeHa = 50
 )
 }
 \arguments{
@@ -19,7 +20,7 @@ built by \code{\link[=makeELFs]{makeELFs()}} (\code{sim$ELFs$rasWhole}). Cells a
 2 (core).}
 
 \item{firePoints}{\code{SpatVector} of fire points, as returned by
-\code{fireregimetools::load_nfdb_points()}. Needs columns \code{YEAR} and \code{CAUSE}.}
+\code{fireregimetools::load_nfdb_points()}. Needs columns \code{YEAR}, \code{CAUSE} and \code{SIZE_HA}.}
 
 \item{firePolys}{\code{SpatVector} of fire perimeters, as returned by
 \code{fireregimetools::load_nbac_polys()}. Needs column \code{YEAR}.}
@@ -30,14 +31,18 @@ built by \code{\link[=makeELFs]{makeELFs()}} (\code{sim$ELFs$rasWhole}). Cells a
 area inside the ELF exceeds this.}
 
 \item{naturalCauses}{causes treated as natural ignitions.}
+
+\item{escapeSizeHa}{size (ha) a fire must reach to count as escaped, as in \code{\link[=escapedFires]{escapedFires()}}
+(\code{pixelAreaHa} is its pixel area).}
 }
 \value{
 A \code{data.table} with one row per ELF and year: \code{ELF}, \code{year},
-\code{naturalIgnitions}, \code{firePolygons}.
+\code{naturalIgnitions}, \code{escapes}, \code{firePolygons}.
 }
 \description{
-Counts natural-cause ignitions and fire polygons falling in each ELF's fitting
-area (core plus buffer), per year.
+Counts natural-cause ignitions, escaped natural ignitions and fire polygons falling in
+each ELF's fitting area (core plus buffer), per year. An escaped ignition is one that
+\code{\link[=escapedFires]{escapedFires()}} keeps: the escape and spread fits use only these.
 }
 \details{
 Points are counted on the grid of \code{rasWhole} with a single \code{\link[terra:cellFromXY]{terra::cellFromXY()}}
