@@ -115,8 +115,10 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
 
   # This is where a species disappears from the map: create a map of zeros
   for (fuel in noFuelForRequiredClass) {
+    ## 0 wherever a present class would be: every cell with a pixelGroup, and every flammable cell
     rasVals <- as.numeric(pgv)
-    rasVals[!is.na(rasVals) & rasVals > 0] <- 0
+    rasVals[!is.na(rasVals)] <- 0
+    rasVals[flamValsGood & is.na(rasVals)] <- 0
     cc[[fuel]] <- rasVals
   }
   ## No tree fuel classes at all (no tree species and none required): there is nothing to
