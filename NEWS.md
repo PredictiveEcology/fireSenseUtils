@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `makeELFs()` no longer depends on things outside its arguments. It reads the ecostratification as a `SpatVector` whatever `reproducible.shapefileRead` is (an `sf` gave a 4999.933 x 5001.110 m grid instead of 5000 m), and `mergeAndSplitRas()` sets its own RNG for the random split of oversized ecoprovinces, so the ELF maps no longer change with the caller's seed, RNG kind or cache hits. The seed reproduces the ELFs used since 2026-10-05. New suggested package `digest` (tests).
+
 * New `ELFfireOverlay()` clips the fire polygons to every ELF once (fitting area and core); `ELFfireCounts()` and `ELFregionStats()` read it instead of each intersecting all polygons (the NBAC polygons have about 98 million vertices, and each pass took 20 minutes or more). Only polygons crossing a zone's edge are intersected; the others keep their own area. Counts and burn rates are unchanged (burn rate to 4e-16).
 
 * `fewFireELFs()`, `combinePlans()`, `fireRecordShapefile()` and `sizeRuleLandCover()` move here from `fireSense_ELFs`, exported, so the plan code has one copy. `fewFireELFs()` reads the NFDB and NBAC archives with `reproducible::prepInputs()` (cached on the release, `fireYears` and the study area) and caches the clipped-polygon table on the ELF maps, the NBAC release and `fireYears`, so a change to the plan rules re-runs in seconds. It takes `nfdbUrl`, `nbacUrl` and `destinationPath` instead of shapefile paths. New import `fireregimetools`.

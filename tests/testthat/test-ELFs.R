@@ -233,3 +233,70 @@ test_that("runELFs uploads the ELF outputs for emcintir", {
   expect_identical(runELFs(prj), c("4.1", "4.2"))
   expect_match(uploaded$media, "ELFs[^/]*\\.rds$")
 })
+
+test_that("mergeAndSplitRas gives the same split whatever RNG state or kind the caller has", {
+  skip_if_not_installed("dismo")
+  skip_if_not_installed("deldir")
+  ecos <- makeTestEcos()
+  dp <- localELFsDir()
+  tmpl <- terra::rast(ecos, resolution = 5000)
+  ecopRseg <- terra::rast(lapply(seq_len(nrow(ecos)), function(i) terra::rasterize(ecos[i], tmpl, field = 1)))
+  names(ecopRseg) <- ecos$ECOPROVINC
+  split <- function() {
+    out <- suppressWarnings(mergeAndSplitRas(ecopRseg, ecos, maxArea = 1e11, useCache = FALSE,
+                                             destinationPath = dp))
+    terra::values(out[["4.3"]], mat = FALSE)
+  }
+
+  withr::with_seed(1, ref <- split())
+  expect_gt(length(unique(stats::na.omit(ref))), 1)       # 4.3 really was split
+  withr::with_seed(99, expect_identical(split(), ref))
+  withr::with_seed(5, expect_identical(split(), ref), .rng_kind = "Wichmann-Hill")
+
+  ## the caller's stream is restored, so the draw after the call does not depend on the call
+  set.seed(7); expected <- stats::runif(1)
+  set.seed(7); split()
+  expect_identical(stats::runif(1), expected)
+})
+
+test_that("makeELFs reads the ecostratification as a SpatVector whatever reproducible.shapefileRead says", {
+  ecos <- makeTestEcos()
+  dp <- localELFsDir()
+  funs <- list()
+  local_mocked_bindings(prepInputs = function(url, ..., fun = NULL) {
+    funs[[length(funs) + 1]] <<- fun
+    ecos
+  }, .package = "reproducible")
+  suppressWarnings(makeELFs(makeTestFRU(ecos), destinationPath = dp, useCache = FALSE, maxArea = 1e11))
+  expect_length(funs, 4)
+  expect_true(all(vapply(funs, identical, logical(1), terra::vect)))
+})
+
+test_that("makeELFs on the real ecostratification gives the ELF maps the 2026-10-05 campaign used", {
+  skip_on_cran()
+  skip_on_ci()   # downloads the SCANFI template and four ecostratification shapefiles; takes many minutes
+  skip_if_offline("sis.agr.gc.ca")
+  skip_if_not_installed("dismo")
+  skip_if_not_installed("digest")
+  dp <- withr::local_tempdir(tmpdir = dirname(tempdir()))
+  ## cold cache and a caller RNG state unlike the campaign's; the result must not depend on either
+  withr::local_options(reproducible.cachePath = file.path(dp, "cache"),
+                       reproducible.destinationPathShared = file.path(dp, "shared"),
+                       reproducible.useCloud = FALSE)
+  withr::local_seed(456)
+  runif(1000)
+  ## one call only: a second makeELFs() in a fresh cache can fail with "no categories" (reproducible)
+  out <- makeELFs(ELFtemplateRaster(dp), desiredBuffer = 20000, destinationPath = dp)
+  ## the ca_<id>.tif files of ELFs_final are out$rasWhole
+  f <- vapply(out$rasWhole, terra::sources, character(1))
+  ids <- sub("^ca_(.*)\\.tif$", "\\1", basename(f))
+  f <- f[order(ids)]
+  sums <- vapply(f, function(p) {
+    r <- terra::rast(p)
+    digest::digest(list(round(as.vector(terra::ext(r)), 2), dim(r), terra::values(r, mat = FALSE)),
+                   algo = "xxhash64")
+  }, character(1))
+  names(sums) <- sort(ids)
+  expect_length(sums, 82)
+  expect_identical(digest::digest(sums, algo = "xxhash64"), "ec1a815c01d736e6")
+})

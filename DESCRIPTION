@@ -54,6 +54,7 @@ Suggests:
     codetools,
     curl,
     deldir,
+    digest,
     DEoptim,
     dismo,
     dplyr,
