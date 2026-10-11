@@ -91,6 +91,13 @@ test_that("plotELFs draws the post-merge state: the merged ELF in place of its m
   expect_false(any(c("11.1", "11.2") %in% out$labels))
 })
 
+test_that("plotELFs(labels = 'name') names a merged ELF by its ecozone, keeping its merged code to tell it apart", {
+  out <- drawn(plan = mergePlan(), labels = "name")
+  expect_setequal(out$labels, c("Taiga Cordillera (11.1_2)", "Taiga Cordillera (11.3)", "Arctic Cordillera"))
+  ## multi-level merged codes also resolve to their ecozone, never to the bare merged code
+  expect_identical(elfLabels(c("3.1.1_2", "10.3.1_2"), "name"), c("Southern Arctic", "Prairie"))
+})
+
 test_that("merged and Arctic ELFs have their own fill and a legend entry", {
   out <- drawn(plan = mergePlan(), mergedFill = "blue", arcticFill = "beige", fewFiresFill = "grey70")
   fillOf <- function(col) unique(unlist(lapply(Filter(function(p) identical(p$col, col), out$plots), function(p) p$x$ID)))

@@ -58,7 +58,6 @@ fireSenseCloudParametersMap <-
         else
           destinationPath <- "."
         ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE)
-        ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)
 
         ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
         ## cf. ELFsInStudyArea(), which already does this. `singleSpatVector` no longer switches the
