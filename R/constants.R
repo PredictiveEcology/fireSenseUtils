@@ -81,3 +81,12 @@ spreadInterceptTxt <- "(Intercept)"
 
 #' @export
 spreadFitCovCentreTxt <- "covCentre_spread"
+
+#' Memory (GB) assumed per DEoptim worker before a fit has a memory record
+#'
+#' `runDEoptim()` sets `options(clusters.workerMemoryGB)` to this, unless the user has set it, so
+#' `clusters` (>= 0.0.75) caps workers per host by free memory from a fit's first cluster build.
+#' Measured 2026-10-09 over 457 spread-fit workers on 15 hosts: peak resident memory median 4.5 GB,
+#' 90th percentile about 6.5 GB, maximum 14.1 GB. Once a fit has run a chunk, its own record is used.
+#' @export
+spreadFitWorkerMemoryGB <- 14

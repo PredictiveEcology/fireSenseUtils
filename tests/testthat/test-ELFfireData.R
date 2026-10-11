@@ -13,17 +13,19 @@ makeTestELFs <- function() {
 }
 
 ## n points in the ELF footprint, spread over `years`.
-makePoints <- function(n, years, cause = "N") {
+makePoints <- function(n, years, cause = "N", sizeHa = 100) {
   if (n == 0) {
     v <- terra::vect(cbind(-1e6, -1e6), crs = "EPSG:3978")
     v$YEAR <- 1985L
     v$CAUSE <- cause
+    v$SIZE_HA <- sizeHa[1]
     return(v)
   }
   xy <- cbind(seq(500, 9500, length.out = n), rep(5000, n))
   v <- terra::vect(xy, crs = "EPSG:3978")
   v$YEAR <- as.integer(rep_len(years, n))
   v$CAUSE <- cause
+  v$SIZE_HA <- rep_len(sizeHa, n)
   v
 }
 
@@ -59,6 +61,35 @@ test_that("ELFfireCounts counts points and polygons per ELF and year", {
   expect_true(all(counts$firePolygons >= 0))
 })
 
+test_that("ELFfireCounts counts escapes: natural ignitions that escapedFires() keeps", {
+  elfs <- makeTestELFs()
+  years <- 1985:1989
+  ## sizes 1, 5, 49.9, 50, 200 ha; pixel 5.76 ha. Only the 50 and 200 ha fires escape.
+  counts <- ELFfireCounts(elfs, makePoints(10, years, sizeHa = c(1, 5, 49.9, 50, 200)),
+                          makePolys(5, years), fireYears = years, pixelAreaHa = 5.76,
+                          escapeSizeHa = 50)
+  expect_identical(sum(counts$naturalIgnitions), 30L)
+  expect_identical(sum(counts$escapes), 12L)
+  ## a lower threshold keeps more; 5 ha is below the pixel area's 5.76 so 1 and 5 never escape
+  low <- ELFfireCounts(elfs, makePoints(10, years, sizeHa = c(1, 5, 49.9, 50, 200)),
+                       makePolys(5, years), fireYears = years, pixelAreaHa = 5.76, escapeSizeHa = 0)
+  expect_identical(sum(low$escapes), 18L)
+  ## human-caused fires never count as escapes
+  human <- ELFfireCounts(elfs, makePoints(10, years, cause = "H"), makePolys(5, years),
+                         fireYears = years, pixelAreaHa = 5.76)
+  expect_identical(sum(human$escapes), 0L)
+})
+
+test_that("escapedFires keeps fires above one pixel and at least escapeSizeHa", {
+  fires <- data.frame(id = 1:5, SIZE_HA = c(1, 5.76, 6, 50, 500))
+  expect_identical(escapedFires(fires, escapeSizeHa = 50, pixSizeHa = 5.76)$id, 4:5)
+  expect_identical(escapedFires(fires, escapeSizeHa = 0, pixSizeHa = 5.76)$id, 3:5)
+  expect_identical(escapedFires(fires, 0, 0, sizeCol = "SIZE_HA")$id, 1:5)
+  v <- terra::vect(cbind(1:5, 1:5), crs = "EPSG:3978")
+  v$SIZE_HA <- fires$SIZE_HA
+  expect_equal(nrow(escapedFires(v, 50, 5.76)), 2)
+})
+
 test_that("ELFfireCounts counts only natural causes", {
   elfs <- makeTestELFs()
   years <- 1985:1989
@@ -91,6 +122,7 @@ test_that("ELFfitStatus separates zero, few and ok", {
     ELF = rep(c("noIgnitions", "noPolys", "thin", "busy"), each = 2),
     year = rep(1985:1986, 4),
     naturalIgnitions = c(0L, 0L, 5L, 5L, 3L, 4L, 60L, 70L),
+    escapes = c(0L, 0L, 5L, 5L, 3L, 4L, 60L, 70L),
     firePolygons = c(4L, 4L, 0L, 0L, 2L, 2L, 80L, 90L)
   )
   status <- ELFfitStatus(counts, minNaturalIgnitions = 50, minFirePolygons = 50)
@@ -99,9 +131,23 @@ test_that("ELFfitStatus separates zero, few and ok", {
   expect_identical(status$status[status$ELF == "noPolys"], "zero")
   expect_identical(status$status[status$ELF == "thin"], "few")
   expect_identical(status$status[status$ELF == "busy"], "ok")
+  expect_identical(status$escapes[status$ELF == "busy"], 130L)
   ## Counts are summed over the whole window, not judged per year.
   expect_identical(status$naturalIgnitions[status$ELF == "busy"], 130L)
   expect_identical(status$yearsWithFire[status$ELF == "busy"], 2L)
+})
+
+test_that("an ELF with many small fires but one escape is few", {
+  ## ELF 7.3: plenty of ignitions and polygons, 1 escape, so the escape fit has 1 positive.
+  counts <- data.table::data.table(
+    ELF = rep(c("smallFires", "bigFires"), each = 2), year = rep(1985:1986, 2),
+    naturalIgnitions = c(40L, 40L, 40L, 40L), escapes = c(1L, 0L, 10L, 15L),
+    firePolygons = c(40L, 40L, 40L, 40L)
+  )
+  status <- ELFfitStatus(counts)
+  expect_identical(status$status[status$ELF == "smallFires"], "few")
+  expect_identical(status$status[status$ELF == "bigFires"], "ok")
+  expect_identical(ELFfitStatus(counts, minEscapes = 1)$status[1:2], c("ok", "ok"))
 })
 
 test_that("ELFsExcluded returns only zero ELFs", {
@@ -116,7 +162,7 @@ test_that("a few-fire ELF is not excluded", {
   ## 10.1 has fire but not much: it must be flagged, never removed.
   counts <- data.table::data.table(
     ELF = "10.1", year = 1985:1986,
-    naturalIgnitions = c(16L, 16L), firePolygons = c(57L, 58L)
+    naturalIgnitions = c(16L, 16L), escapes = c(16L, 16L), firePolygons = c(57L, 58L)
   )
   status <- ELFfitStatus(counts)
   expect_identical(status$status, "few")
