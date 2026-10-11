@@ -10,7 +10,9 @@ ELFregionStats(
   firePolys = NULL,
   fireYears = NULL,
   classes = c(20, 30, 40, 50, 100, 210, 220, 230),
-  maxSample = 20000L
+  maxSample = 20000L,
+  overlay = NULL,
+  members = NULL
 )
 }
 \arguments{
@@ -19,7 +21,8 @@ ELFregionStats(
 
 \item{landCover}{\code{SpatRaster} of land-cover class codes.}
 
-\item{firePolys}{\code{SpatVector} of fire perimeters with column \code{YEAR}, or \code{NULL} (burn rate \code{NA}).}
+\item{firePolys}{\code{SpatVector} of fire perimeters with column \code{YEAR}, or \code{NULL} (burn rate \code{NA}, unless
+\code{overlay} is given).}
 
 \item{fireYears}{years over which \code{firePolys} are counted; their number is the divisor of the burn rate.}
 
@@ -27,6 +30,12 @@ ELFregionStats(
 shrubs, herbs, coniferous, broadleaf, mixedwood.}
 
 \item{maxSample}{largest number of sample points per region.}
+
+\item{overlay}{table from \code{\link[=ELFfireOverlay]{ELFfireOverlay()}} (its \code{"core"} rows are used) instead of \code{firePolys}, so the
+clipping is not done again. It is for the ELFs the regions are made of, see \code{members}.}
+
+\item{members}{named list giving, for each region (name of a layer of \code{rasWhole}), the ids of the ELFs in
+\code{overlay} it is made of. Default: each region is its own ELF.}
 }
 \value{
 A \code{data.table} with one row per region: \code{ELF}, \code{areaKm2}, \code{burnRate} (\%/yr) and \code{landCover}

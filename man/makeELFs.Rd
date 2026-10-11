@@ -14,7 +14,16 @@ makeELFs(
   useCache = TRUE
 )
 
-plotELFs(destinationPath = ".", which = NULL, fill = "green")
+plotELFs(
+  destinationPath = ".",
+  which = NULL,
+  fill = "green",
+  plan = NULL,
+  fewFires = NULL,
+  fewFiresFill = "grey80",
+  ELFs = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{A polygon layer (\code{SpatVector} or \code{sf}) or gridded layer (\code{SpatRaster})
@@ -42,6 +51,23 @@ If \code{FALSE}, then some (or most) will not be cached.}
 fills with \code{fill}. Default \code{NULL} fills none.}
 
 \item{fill}{The colour used to fill the \code{which} ELFs.}
+
+\item{plan}{The merges and skips to show: \code{sim$ELFmerges} of \code{fireSense_ELFs}, as returned by
+\code{\link[=ELFmergePlan]{ELFmergePlan()}} or \code{\link[=fewFireELFs]{fewFireELFs()}}. \code{plotELFs()} always draws the state after the merges
+(\code{\link[=mergeELFs]{mergeELFs()}}), with each merged ELF under its merged name (e.g. \verb{11.1_2}). \code{NULL} (default)
+computes the plan with \code{\link[=fewFireELFs]{fewFireELFs()}} at its default settings (Cached).}
+
+\item{fewFires}{ELF ids to fill as "not enough fires". \code{NULL} (default) uses the ELFs the plan
+skips (\code{\link[=ELFsSkipped]{ELFsSkipped()}}); \code{character(0)} fills none.}
+
+\item{fewFiresFill}{The colour used to fill the \code{fewFires} ELFs.}
+
+\item{ELFs}{The list \code{\link[=makeELFs]{makeELFs()}} returns (before any merging), if the caller has it. \code{NULL}
+(default) builds it with \code{\link[=makeELFs]{makeELFs()}} (Cached). Without a \code{poly} element the outlines are drawn
+from \code{rasWhole}.}
+
+\item{...}{Passed to \code{\link[=fewFireELFs]{fewFireELFs()}} when \code{plan} is \code{NULL}, e.g. \code{pixelAreaHa} (default 5.76) or
+\code{fireYears} (default \code{\link[=defaultFireYears]{defaultFireYears()}}).}
 }
 \value{
 A list of length 2, with \code{rasWhole} and \code{rasCentered}. Each of these

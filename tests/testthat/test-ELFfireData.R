@@ -90,6 +90,60 @@ test_that("escapedFires keeps fires above one pixel and at least escapeSizeHa", 
   expect_equal(nrow(escapedFires(v, 50, 5.76)), 2)
 })
 
+test_that("ELFfireOverlay clips fire polygons to each ELF's fitting area and core, once", {
+  r <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 10000, ymin = 0, ymax = 10000, crs = "EPSG:3978")
+  ## "half": core on the left 5 columns, buffer on the right 5; "far": a footprint no polygon reaches
+  half <- terra::setValues(r, rep(rep(c(2, 1), each = 5), 10))
+  far <- terra::setValues(r, 0)
+  far[1, 1] <- 2
+  elfs <- c(half, far)
+  names(elfs) <- c("half", "far")
+  ## 800 x 900 m = 72 ha: one polygon in the core, one across the core/buffer edge (x 4600-5400), one in the buffer
+  polys <- terra::vect(c(
+    "POLYGON ((500 4000, 500 4900, 1300 4900, 1300 4000, 500 4000))",
+    "POLYGON ((4600 4000, 4600 4900, 5400 4900, 5400 4000, 4600 4000))",
+    "POLYGON ((7000 4000, 7000 4900, 7800 4900, 7800 4000, 7000 4000))",
+    "POLYGON ((500 4000, 500 4900, 1300 4900, 1300 4000, 500 4000))"), crs = "EPSG:3978")
+  polys$YEAR <- c(1985L, 1985L, 1986L, 1999L)               # the 1999 polygon is outside fireYears
+  ov <- ELFfireOverlay(elfs, polys, fireYears = 1985:1989)
+  expect_s3_class(ov, "data.table")
+  expect_named(ov, c("ELF", "zone", "YEAR", "ha"))
+  expect_setequal(ov$ELF, "half")                             # nothing reaches "far"
+  fit <- ov[ov$zone == "fit", ]
+  core <- ov[ov$zone == "core", ]
+  expect_equal(sort(fit$ha), c(72, 72, 72), tolerance = 1e-2)
+  expect_equal(sort(core$ha), c(36, 72), tolerance = 1e-2)    # the edge polygon is half in the core
+  expect_identical(sort(fit$YEAR), c(1985L, 1985L, 1986L))
+  ## no polygon at all: an empty table with the same columns
+  none <- ELFfireOverlay(elfs, polys[0, ], fireYears = 1985:1989)
+  expect_identical(nrow(none), 0L)
+  expect_named(none, names(ov))
+})
+
+test_that("ELFfireCounts and ELFregionStats read a given overlay and give the same answer as without", {
+  elfs <- makeTestELFs()
+  years <- 1985:1989
+  pts <- makePoints(10, years)
+  polys <- makePolys(5, years)
+  ov <- ELFfireOverlay(elfs, polys, years)
+  expect_identical(ELFfireCounts(elfs, pts, polys, years, pixelAreaHa = 5.76),
+                   ELFfireCounts(elfs, pts, polys, years, pixelAreaHa = 5.76, overlay = ov))
+  ## a polygon that does not clip to more than one pixel is not counted, whatever the overlay holds
+  expect_identical(sum(ELFfireCounts(elfs, pts, polys, years, pixelAreaHa = 5000, overlay = ov)$firePolygons), 0L)
+
+  lcc <- terra::setValues(elfs[[1]], 210)
+  direct <- ELFregionStats(elfs, lcc, firePolys = polys, fireYears = years)
+  viaOverlay <- ELFregionStats(elfs, lcc, fireYears = years, overlay = ov)
+  expect_identical(viaOverlay, direct)
+  ## a merged region's burn is the sum over its members; its burn rate is that over its own area
+  merged <- max(elfs[[c("busy", "empty")]])
+  names(merged) <- "busy_empty"
+  st <- ELFregionStats(merged, lcc, fireYears = years, overlay = ov,
+                       members = list(busy_empty = c("busy", "empty")))
+  one <- direct$burnRate[1]
+  expect_equal(st$burnRate, one * 2 / 1, tolerance = 1e-6)   # twice the burned area over the same core area
+})
+
 test_that("ELFfireCounts counts only natural causes", {
   elfs <- makeTestELFs()
   years <- 1985:1989

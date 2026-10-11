@@ -1,3 +1,16 @@
+## Outlines of the ELFs as makeELFs()'s `poly`: one polygon per ELF and zone, `buffer` 1 (buffer) or 2 (core)
+.ELFoutlines <- function(rasWhole) {
+  polys <- lapply(names(rasWhole), function(nm) {
+    a <- rasWhole[[nm]]
+    a[a[] == 0] <- NA
+    v <- terra::as.polygons(a)
+    v$ID <- nm
+    v$buffer <- v[[1]][, 1]
+    v[, c("ID", "buffer")]
+  })
+  do.call(rbind, polys)
+}
+
 #' Get current state of FireSense Fit parameters as a map
 #'
 #' Download the FireSense parameter object, strip the list columns and
@@ -68,30 +81,61 @@ fireSenseCloudParametersMap <-
 #' @param which Character. ELF names (e.g., `c("13.1", "4.1")`) whose cores `plotELFs()`
 #'   fills with `fill`. Default `NULL` fills none.
 #' @param fill The colour used to fill the `which` ELFs.
+#' @param plan The merges and skips to show: `sim$ELFmerges` of `fireSense_ELFs`, as returned by
+#'   [ELFmergePlan()] or [fewFireELFs()]. `plotELFs()` always draws the state after the merges
+#'   ([mergeELFs()]), with each merged ELF under its merged name (e.g. `11.1_2`). `NULL` (default)
+#'   computes the plan with [fewFireELFs()] at its default settings (Cached).
+#' @param fewFires ELF ids to fill as "not enough fires". `NULL` (default) uses the ELFs the plan
+#'   skips ([ELFsSkipped()]); `character(0)` fills none.
+#' @param fewFiresFill The colour used to fill the `fewFires` ELFs.
+#' @param ELFs The list [makeELFs()] returns (before any merging), if the caller has it. `NULL`
+#'   (default) builds it with [makeELFs()] (Cached). Without a `poly` element the outlines are drawn
+#'   from `rasWhole`.
+#' @param ... Passed to [fewFireELFs()] when `plan` is `NULL`, e.g. `pixelAreaHa` (default 5.76) or
+#'   `fireYears` (default [defaultFireYears()]).
 #' @export
 #' @rdname makeELFs
 #' @seealso [fireSenseCloudParameters()]
-plotELFs <- function(destinationPath = ".", which = NULL, fill = "green") {
-  ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE) |>
-    Cache()
-  ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)|>
-    Cache()
+plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan = NULL,
+                     fewFires = NULL, fewFiresFill = "grey80", ELFs = NULL, ...) {
+  if (is.null(ELFs))
+    ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE) |>
+      Cache()
+
+  if (is.null(plan)) {
+    args <- utils::modifyList(list(fireYears = defaultFireYears(), pixelAreaHa = 5.76,
+                                   landCoverFile = sizeRuleLandCover(destinationPath)), list(...))
+    plan <- do.call(fewFireELFs, c(list(ELFs = ELFs, destinationPath = destinationPath), args)) |>
+      Cache(omitArgs = "destinationPath")
+    plan <- plan$plan
+  }
+  ## the map shows the merged ELFs, not the ones they were made from
+  ELFs <- mergeELFs(ELFs, plan)
+  if (is.null(fewFires)) fewFires <- ELFsSkipped(plan)
 
   ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
   ## cf. ELFsInStudyArea(), which already does this. `singleSpatVector` no longer switches the
   ## return type -- the code that used it is commented out in makeELFs().
   ELFsPoly <- ELFs$poly
+  if (is.null(ELFsPoly)) ELFsPoly <- .ELFoutlines(ELFs$rasWhole)
 
-  # terra::plot(ELFsPoly, col = c("turquoise", "yellow")[ELFsPoly$buffer], alpha = 0.5)
   terra::plot(ELFsPoly)
   keep <- ELFsPoly$buffer %in% 2
+  fills <- list()
+  if (length(fewFires)) {
+    terra::plot(ELFsPoly[keep & ELFsPoly$ID %in% fewFires, ], col = fewFiresFill, add = TRUE)
+    fills[["not enough fires"]] <- fewFiresFill
+  }
   if (length(which)) {
     missingELFs <- setdiff(which, ELFsPoly$ID)
     if (length(missingELFs))
       warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
     terra::plot(ELFsPoly[keep & ELFsPoly$ID %in% which, ], col = fill, add = TRUE)
+    fills[[paste("ELFs", paste(which, collapse = ", "))]] <- fill
   }
   terra::text(terra::centroids(ELFsPoly[ keep, ]), labels = ELFsPoly$ID[keep], cex = 0.7)
+  if (length(fills))
+    graphics::legend("bottomleft", legend = names(fills), fill = unlist(fills), bty = "n", cex = 0.8)
   return(invisible(ELFs))
 }
 
