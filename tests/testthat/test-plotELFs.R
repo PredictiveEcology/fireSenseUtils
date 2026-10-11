@@ -1,6 +1,16 @@
 ## plotELFs(which, fill, labels, labelWhich, buffers, axes) fills the cores of the named ELFs. makeELFs() and Cache() are
 ## stubbed with a two-ELF polygon layer; terra::plot() records what is drawn.
 
+## no merges and no skips
+noPlan <- data.table::data.table(action = character(0), ELF = character(0), members = list(), reason = character(0))
+## labels are placed with strwidth(), which needs an open device (terra::plot is mocked here)
+local_plotDevice <- function(env = parent.frame()) {
+  grDevices::pdf(NULL)
+  withr::defer(grDevices::dev.off(), envir = env)
+  graphics::plot.new()
+  graphics::plot.window(c(0, 1e6), c(0, 1e6))
+}
+
 test_that("plotELFs fills the cores of the ELFs named in `which`", {
   sq <- function(x0) sprintf("POLYGON ((%1$s 0, %2$s 0, %2$s 1, %1$s 1, %1$s 0))", x0, x0 + 1)
   poly <- terra::vect(c(sq(0), sq(0), sq(2), sq(2)))
@@ -24,25 +34,129 @@ test_that("plotELFs fills the cores of the ELFs named in `which`", {
     .package = "terra"
   )
 
-  plotELFs(which = "13.1", fill = "red")
+  local_mocked_bindings(legend = function(...) NULL, .package = "graphics")
+  local_plotDevice()
+
+  plotELFs(which = "13.1", fill = "red", plan = noPlan)
   expect_length(filled, 1L)
   expect_identical(filled[[1]]$x$ID, "13.1")
   expect_identical(filled[[1]]$x$buffer, 2)
   expect_identical(filled[[1]]$col, "red")
 
   filled <- list()
-  expect_warning(plotELFs(which = c("4.1", "99.9")), "ELFs not found: 99.9")
+  expect_warning(plotELFs(which = c("4.1", "99.9"), plan = noPlan), "ELFs not found: 99.9")
   expect_identical(filled[[1]]$x$ID, "4.1")
 
   filled <- list()
-  plotELFs()
+  plotELFs(plan = noPlan)
   expect_length(filled, 0L)
 })
 
+## Four ELFs side by side, as makeELFs() returns them (rasters and `poly`). 11.1 and 11.2 merge, 11.3 is skipped,
+## 1.1 is Arctic.
+post <- function() {
+  whole <- bandELFs(list(`11.1` = 1:2, `11.2` = 3:4, `11.3` = 5:6, `1.1` = 7:8))
+  rasWhole <- stats::setNames(as.list(whole), names(whole))
+  poly <- .ELFoutlines(rasWhole)
+  list(rasWhole = rasWhole, rasCentered = rasWhole, poly = poly)
+}
+mergePlan <- function() {
+  data.table::data.table(
+    action = c("skip", "merge"), ELF = c(NA, "11.1_2"), members = list("11.3", c("11.1", "11.2")),
+    naturalIgnitions = 1L, escapes = 1L, firePolygons = 1L, reason = c("too few fires", "smaller than 35000 km2"))
+}
+drawn <- function(...) {
+  local_plotDevice()
+  calls <- list(plots = list(), labels = character(0), legend = NULL)
+  local_mocked_bindings(
+    makeELFs = function(...) post(),
+    Cache = function(x, ...) x
+  )
+  local_mocked_bindings(
+    plot = function(x, ..., col = NULL, add = FALSE) calls$plots[[length(calls$plots) + 1L]] <<- list(x = x, col = col, add = add),
+    text = function(x, labels, ...) calls$labels <<- c(calls$labels, labels),
+    .package = "terra"
+  )
+  local_mocked_bindings(legend = function(x, legend, fill, ...) calls$legend <<- list(legend = legend, fill = fill),
+                        .package = "graphics")
+  plotELFs(...)
+  calls
+}
+
+test_that("plotELFs draws the post-merge state: the merged ELF in place of its members", {
+  out <- drawn(plan = mergePlan())
+  expect_setequal(unique(out$plots[[1]]$x$ID), c("11.1_2", "11.3", "1.1"))   # the outlines
+  expect_equal(unique(out$plots[[1]]$x$buffer), 2)                           # of the cores only: no border twice
+  expect_setequal(out$labels, c("11.1_2", "11.3", "1.1"))
+  expect_false(any(c("11.1", "11.2") %in% out$labels))
+})
+
+test_that("merged and Arctic ELFs have their own fill and a legend entry", {
+  out <- drawn(plan = mergePlan(), mergedFill = "blue", arcticFill = "beige", fewFiresFill = "grey70")
+  fillOf <- function(col) unique(unlist(lapply(Filter(function(p) identical(p$col, col), out$plots), function(p) p$x$ID)))
+  expect_identical(fillOf("blue"), "11.1_2")
+  expect_identical(fillOf("beige"), "1.1")
+  expect_identical(fillOf("grey70"), "11.3")
+  expect_identical(out$legend$legend, c("not fitted (Arctic)", "merged", "not enough fires"))
+  expect_identical(out$legend$fill, c("beige", "blue", "grey70"))
+})
+
+test_that("the ELFs without enough fires are shaded: by default the plan's skips, or those given", {
+  out <- drawn(plan = mergePlan(), fewFiresFill = "grey70")
+  shaded <- Filter(function(p) identical(p$col, "grey70"), out$plots)
+  expect_length(shaded, 1L)
+  expect_identical(shaded[[1]]$x$ID, "11.3")                                  # the skipped ELF, core only
+  expect_equal(shaded[[1]]$x$buffer, 2)
+  expect_true("not enough fires" %in% out$legend$legend)
+  expect_true("grey70" %in% out$legend$fill)
+
+  out <- drawn(plan = mergePlan(), fewFires = "11.1_2", fewFiresFill = "grey70")  # explicit: overrides the skips
+  shaded <- Filter(function(p) identical(p$col, "grey70"), out$plots)
+  expect_length(shaded, 1L)
+  expect_identical(shaded[[1]]$x$ID, "11.1_2")
+
+  out <- drawn(plan = mergePlan(), fewFires = character(0), fewFiresFill = "grey70")  # none
+  expect_length(Filter(function(p) identical(p$col, "grey70"), out$plots), 0L)
+  expect_false("not enough fires" %in% out$legend$legend)
+})
+
+test_that("`which` is in the legend when it is used", {
+  out <- drawn(plan = mergePlan(), which = "11.3", fill = "red", fewFires = character(0))
+  expect_true("red" %in% out$legend$fill)
+})
+
+test_that("without a plan, plotELFs computes one with fewFireELFs()", {
+  seen <- NULL
+  local_mocked_bindings(
+    fewFireELFs = function(ELFs, ...) { seen <<- list(...); list(ELFs = ELFs, plan = mergePlan()) },
+    sizeRuleLandCover = function(...) "lcc.tif"
+  )
+  out <- drawn()
+  expect_identical(seen$fireYears, defaultFireYears())
+  expect_setequal(out$labels, c("11.1_2", "11.3", "1.1"))
+})
+
+test_that("a given ELFs list is used, drawn from rasWhole when it has no outlines", {
+  made <- FALSE
+  local_mocked_bindings(makeELFs = function(...) { made <<- TRUE; post() }, Cache = function(x, ...) x)
+  ELFs <- post()
+  ELFs$poly <- NULL
+  calls <- list(plots = list(), labels = character(0))
+  local_mocked_bindings(
+    plot = function(x, ..., col = NULL, add = FALSE) calls$plots[[length(calls$plots) + 1L]] <<- list(x = x, col = col),
+    text = function(x, labels, ...) calls$labels <<- c(calls$labels, labels),
+    .package = "terra")
+  local_mocked_bindings(legend = function(...) NULL, .package = "graphics")
+  local_plotDevice()
+  plotELFs(plan = mergePlan(), ELFs = ELFs)
+  expect_false(made)
+  expect_setequal(calls$labels, c("11.1_2", "11.3", "1.1"))
+})
+
 test_that("plotELFs rejects values outside the allowed options", {
-  expect_error(plotELFs(labels = "ecoregion"), "should be one of")
-  expect_error(plotELFs(labelWhich = "some"), "should be one of")
-  expect_error(plotELFs(axes = "km"), "should be one of")
+  expect_error(plotELFs(labels = "ecoregion", plan = noPlan), "should be one of")
+  expect_error(plotELFs(labelWhich = "some", plan = noPlan), "should be one of")
+  expect_error(plotELFs(axes = "km", plan = noPlan), "should be one of")
 })
 
 test_that("elfLayer() drops the buffer rings when buffers = FALSE", {
@@ -103,16 +217,16 @@ test_that("plotELFs labels only the highlighted ELFs, with names, when asked", {
     text = function(x, labels, ...) shown <<- labels,
     .package = "terra"
   )
-  plotELFs(which = "13.1", labels = "name", labelWhich = "highlighted", buffers = FALSE, axes = "none")
+  plotELFs(which = "13.1", labels = "name", labelWhich = "highlighted", buffers = FALSE, axes = "none", plan = noPlan)
   expect_identical(shown, "Pacific Maritime")
   expect_identical(drawn$buffer, c(2, 2))
 
-  plotELFs(labels = "code")
+  plotELFs(labels = "code", plan = noPlan)
   expect_identical(shown, c("4.1", "13.1"))
   expect_equal(NROW(drawn), 4)
 
   shown <- NULL
-  plotELFs(which = "13.1", labels = "none")
+  plotELFs(which = "13.1", labels = "none", plan = noPlan)
   expect_null(shown)
 })
 
@@ -137,16 +251,16 @@ test_that("plotELFs(axes = 'none' / 'longlat') switches off the map axes; only '
     text = function(...) NULL,
     .package = "terra"
   )
-  plotELFs(axes = "m")
+  plotELFs(axes = "m", plan = noPlan)
   expect_null(plotArgs$axes)
   expect_null(gratFor)
 
-  plotELFs(axes = "none")
+  plotELFs(axes = "none", plan = noPlan)
   expect_false(plotArgs$axes)
   expect_false(plotArgs$box)
   expect_null(gratFor)
 
-  plotELFs(axes = "longlat")
+  plotELFs(axes = "longlat", plan = noPlan)
   expect_false(plotArgs$axes)
   expect_identical(plotArgs$mar, c(3, 3, 1, 1))
   expect_equal(NROW(gratFor), 2)
@@ -168,11 +282,11 @@ test_that("plotELFs widens the extent only when it labels the highlighted ELFs",
     text = function(...) NULL,
     .package = "terra"
   )
-  plotELFs(which = "4.1", labelWhich = "highlighted")
+  plotELFs(which = "4.1", labelWhich = "highlighted", plan = noPlan)
   expect_equal(unname(as.vector(plotArgs$ext)), c(-0.24, 3.24, -0.24, 1.24))
-  plotELFs(which = "4.1", labelWhich = "highlighted", labels = "none")
+  plotELFs(which = "4.1", labelWhich = "highlighted", labels = "none", plan = noPlan)
   expect_null(plotArgs$ext)
-  plotELFs(which = "4.1", labelWhich = "all")
+  plotELFs(which = "4.1", labelWhich = "all", plan = noPlan)
   expect_null(plotArgs$ext)
 })
 
@@ -195,7 +309,7 @@ test_that("plotELFs draws a leader line for a label moved off its ELF", {
     text = function(x, labels, ...) shown <<- list(xy = terra::crds(x), labels = labels),
     .package = "terra"
   )
-  plotELFs()
+  plotELFs(plan = noPlan)
   expect_identical(shown$labels, c("4.1", "13.1"))
   expect_length(segs[[1]], 1L) # one label moved, from its centroid ...
   expect_equal(unname(c(segs[[1]], segs[[2]])), c(0.1, 0.5))

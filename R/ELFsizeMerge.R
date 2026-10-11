@@ -16,8 +16,13 @@
 #' @param rasWhole `SpatRaster` of region layers on one grid, as in [ELFfireCounts()]. Cells are 0, 1 or 2
 #'   (core). Its map units must be metres.
 #' @param landCover `SpatRaster` of land-cover class codes.
-#' @param firePolys `SpatVector` of fire perimeters with column `YEAR`, or `NULL` (burn rate `NA`).
+#' @param firePolys `SpatVector` of fire perimeters with column `YEAR`, or `NULL` (burn rate `NA`, unless
+#'   `overlay` is given).
 #' @param fireYears years over which `firePolys` are counted; their number is the divisor of the burn rate.
+#' @param overlay table from [ELFfireOverlay()] (its `"core"` rows are used) instead of `firePolys`, so the
+#'   clipping is not done again. It is for the ELFs the regions are made of, see `members`.
+#' @param members named list giving, for each region (name of a layer of `rasWhole`), the ids of the ELFs in
+#'   `overlay` it is made of. Default: each region is its own ELF.
 #' @param classes land-cover codes whose shares are returned. The default is SCANFI's: water, rock, bryoids,
 #'   shrubs, herbs, coniferous, broadleaf, mixedwood.
 #' @param maxSample largest number of sample points per region.
@@ -27,16 +32,17 @@
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist
-#' @importFrom terra as.polygons classify crs expanse extract intersect project spatSample
+#' @importFrom terra as.polygons classify crs expanse extract project spatSample
 ELFregionStats <- function(rasWhole, landCover, firePolys = NULL, fireYears = NULL,
-                           classes = c(20, 30, 40, 50, 100, 210, 220, 230), maxSample = 20000L) {
+                           classes = c(20, 30, 40, 50, 100, 210, 220, 230), maxSample = 20000L,
+                           overlay = NULL, members = NULL) {
   stopifnot(inherits(rasWhole, "SpatRaster"), inherits(landCover, "SpatRaster"))
-  if (!is.null(firePolys)) {
+  if (!is.null(firePolys) || !is.null(overlay)) {
     stopifnot(!is.null(fireYears))
     fireYears <- sort(unique(as.integer(fireYears)))
-    firePolys <- terra::project(firePolys, terra::crs(rasWhole))
-    firePolys <- firePolys[as.integer(firePolys$YEAR) %in% fireYears, ]
   }
+  if (is.null(overlay) && !is.null(firePolys)) overlay <- ELFfireOverlay(rasWhole, firePolys, fireYears)
+  if (!is.null(overlay)) overlay <- overlay[overlay$zone == "core", ]
   rows <- lapply(names(rasWhole), function(elf) {
     core <- terra::as.polygons(terra::classify(rasWhole[[elf]], cbind(c(0, 1), NA)), dissolve = TRUE)
     areaKm2 <- sum(terra::expanse(core, unit = "km"))
@@ -45,12 +51,9 @@ ELFregionStats <- function(rasWhole, landCover, firePolys = NULL, fireYears = NU
     shares <- tabulate(match(lcc, classes), length(classes))
     shares <- stats::setNames(shares / max(sum(shares), 1), classes)
     burn <- NA_real_
-    if (!is.null(firePolys)) {
-      burnedKm2 <- 0
-      if (nrow(firePolys)) {
-        clipped <- suppressWarnings(terra::intersect(firePolys, core)) # warns when nothing overlaps
-        if (nrow(clipped)) burnedKm2 <- sum(terra::expanse(clipped, unit = "km"))
-      }
+    if (!is.null(overlay)) {
+      from <- if (is.null(members)) elf else members[[elf]]
+      burnedKm2 <- sum(overlay$ha[overlay$ELF %in% from]) / 100
       burn <- 100 * burnedKm2 / areaKm2 / length(fireYears)
     }
     data.table::data.table(ELF = elf, areaKm2 = areaKm2, burnRate = burn, landCover = list(shares))

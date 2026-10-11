@@ -28,11 +28,13 @@
 #' @param firePoints `SpatVector` of fire points, as returned by
 #'   `fireregimetools::load_nfdb_points()`. Needs columns `YEAR`, `CAUSE` and `SIZE_HA`.
 #' @param firePolys `SpatVector` of fire perimeters, as returned by
-#'   `fireregimetools::load_nbac_polys()`. Needs column `YEAR`.
+#'   `fireregimetools::load_nbac_polys()`. Needs column `YEAR`. May be `NULL` when `overlay` is given.
 #' @param fireYears integer vector of the years being fitted.
 #' @param pixelAreaHa area of one fitting pixel, in hectares. A polygon counts when its
 #'   area inside the ELF exceeds this.
 #' @param naturalCauses causes treated as natural ignitions.
+#' @param overlay the table from [ELFfireOverlay()] for `rasWhole`, `firePolys` and `fireYears`, or `NULL`
+#'   (default) to compute it. Passing it lets the clipping be done once and cached.
 #' @param escapeSizeHa size (ha) a fire must reach to count as escaped, as in [escapedFires()]
 #'   (`pixelAreaHa` is its pixel area).
 #'
@@ -43,11 +45,12 @@
 #' @importFrom data.table data.table rbindlist setkeyv
 #' @importFrom terra cellFromXY crds crs project
 ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
-                          pixelAreaHa, naturalCauses = c("L", "N"), escapeSizeHa = 50) {
+                          pixelAreaHa, naturalCauses = c("L", "N"), escapeSizeHa = 50,
+                          overlay = NULL) {
   stopifnot(
     inherits(rasWhole, "SpatRaster"),
     inherits(firePoints, "SpatVector"),
-    inherits(firePolys, "SpatVector"),
+    inherits(firePolys, "SpatVector") || !is.null(overlay),
     length(fireYears) > 0,
     is.numeric(pixelAreaHa), length(pixelAreaHa) == 1
   )
@@ -68,8 +71,8 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
   ptEscape <- isEscape[keep]
 
   ## Polygons: clipped area per ELF, so a fire straddling an edge is judged on the part inside.
-  polys <- terra::project(firePolys, terra::crs(rasWhole))
-  polys <- polys[as.integer(polys$YEAR) %in% fireYears, ]
+  if (is.null(overlay)) overlay <- ELFfireOverlay(rasWhole, firePolys, fireYears)
+  overlay <- overlay[overlay$zone == "fit" & overlay$ha > pixelAreaHa, ]
 
   counts <- lapply(ELFnames, function(elf) {
     inArea <- rasWhole[[elf]][ptCell][[1]] > 0
@@ -82,7 +85,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
       year = fireYears,
       naturalIgnitions = as.integer(ign),
       escapes = as.integer(esc),
-      firePolygons = .ELFpolygonCounts(rasWhole[[elf]], polys, fireYears, pixelAreaHa)
+      firePolygons = as.integer(table(factor(overlay$YEAR[overlay$ELF == elf], levels = fireYears)))
     )
   })
 
@@ -91,22 +94,69 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
   counts[]
 }
 
-## Fire polygons per year whose area inside one ELF exceeds one pixel. The ELF's area is the
-## footprint of its non-zero cells, so this needs no polygon version of the ELF map.
-#' @importFrom terra as.polygons expanse intersect
-.ELFpolygonCounts <- function(elfRas, polys, fireYears, pixelAreaHa) {
-  zeroes <- rep(0L, length(fireYears))
-  area <- terra::as.polygons(elfRas > 0, dissolve = TRUE)
-  area <- area[as.logical(area[[1]][, 1]), ]
-  if (nrow(area) == 0 || nrow(polys) == 0) {
-    return(zeroes)
+#' Clip fire polygons to each ELF, once
+#'
+#' Intersects the fire polygons with each ELF's fitting area (core plus buffer) and with its core, and
+#' returns one row per clipped piece. [ELFfireCounts()] counts the pieces larger than a pixel in the
+#' fitting area, and [ELFregionStats()] sums the core pieces into a burn rate, so the slow intersection
+#' is done once for both. A polygon wholly inside a zone is not clipped; only those crossing its edge
+#' are, which is most of the saving.
+#'
+#' @param rasWhole `SpatRaster` of ELF layers on one common grid, as in [ELFfireCounts()].
+#' @param firePolys `SpatVector` of fire perimeters with column `YEAR`.
+#' @param fireYears integer vector of the years to keep.
+#'
+#' @return A `data.table`: `ELF`, `zone` (`"fit"` for core plus buffer, `"core"`), `YEAR` and `ha`, the
+#'   geodesic area of the piece. ELFs no polygon reaches have no rows.
+#'
+#' @export
+#' @importFrom data.table data.table rbindlist
+#' @importFrom terra as.polygons crs expanse intersect project relate
+ELFfireOverlay <- function(rasWhole, firePolys, fireYears) {
+  stopifnot(inherits(rasWhole, "SpatRaster"), inherits(firePolys, "SpatVector"))
+  fireYears <- sort(unique(as.integer(fireYears)))
+  polys <- terra::project(firePolys, terra::crs(rasWhole))
+  polys <- polys[as.integer(polys$YEAR) %in% fireYears, ]
+  empty <- data.table::data.table(ELF = character(0), zone = character(0), YEAR = integer(0), ha = numeric(0))
+  if (!nrow(polys)) return(empty)
+
+  ## A polygon wholly inside a zone is not clipped: its own area is its piece. Only polygons that cross
+  ## the zone's edge are intersected with it, which is the slow step (fire perimeters have thousands of
+  ## vertices).
+  polys$ha <- terra::expanse(polys, unit = "ha")
+  ## Bounding boxes, once: a zone is tested only against the polygons whose box meets its own, because
+  ## testing all of them against each of the ELFs' zones is slow.
+  x <- y <- NULL # data.table NSE
+  vertices <- data.table::as.data.table(terra::geom(polys))
+  boxes <- vertices[, list(xmin = min(x), xmax = max(x), ymin = min(y), ymax = max(y)), by = "geom"]
+  data.table::setorderv(boxes, "geom")
+  clipTo <- function(area) {
+    area <- area[as.logical(area[[1]][, 1]), ]
+    if (!nrow(area)) return(NULL)
+    e <- as.vector(terra::ext(area))
+    near <- which(boxes$xmax >= e[["xmin"]] & boxes$xmin <= e[["xmax"]] &
+                    boxes$ymax >= e[["ymin"]] & boxes$ymin <= e[["ymax"]])
+    candidates <- polys[near, ]
+    hit <- candidates[as.vector(terra::relate(candidates, area, "intersects")), ]
+    if (!nrow(hit)) return(NULL)
+    inside <- as.vector(terra::relate(hit, area, "within"))
+    ## the intersect warns when nothing overlaps
+    crossing <- if (any(!inside)) suppressWarnings(terra::intersect(hit[!inside, ], area))
+    list(YEAR = c(as.integer(hit$YEAR[inside]), if (!is.null(crossing)) as.integer(crossing$YEAR)),
+         ha = c(hit$ha[inside], if (!is.null(crossing)) terra::expanse(crossing, unit = "ha")))
   }
-  clipped <- terra::intersect(polys, area)
-  if (nrow(clipped) == 0) {
-    return(zeroes)
-  }
-  big <- terra::expanse(clipped, unit = "ha") > pixelAreaHa
-  as.integer(table(factor(as.integer(clipped$YEAR)[big], levels = fireYears)))
+  rows <- lapply(names(rasWhole), function(elf) {
+    elfRas <- rasWhole[[elf]]
+    out <- list(fit = clipTo(terra::as.polygons(elfRas > 0, dissolve = TRUE)),
+                core = clipTo(terra::as.polygons(elfRas == 2, dissolve = TRUE)))
+    out <- out[!vapply(out, is.null, logical(1))]
+    if (!length(out)) return(NULL)
+    data.table::rbindlist(lapply(names(out), function(z)
+      data.table::data.table(ELF = elf, zone = z, YEAR = out[[z]]$YEAR, ha = out[[z]]$ha)))
+  })
+  rows <- rows[!vapply(rows, is.null, logical(1))]
+  if (!length(rows)) return(empty)
+  data.table::rbindlist(rows)
 }
 
 #' Classify each ELF as zero, few or ok on its fire counts

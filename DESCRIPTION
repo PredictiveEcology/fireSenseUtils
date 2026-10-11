@@ -24,6 +24,7 @@ Imports:
     data.table,
     EnvStats,
     fastDummies,
+    fireregimetools,
     ggplot2,
     googledrive,
     LandR (>= 1.2.0.9022),
@@ -53,6 +54,7 @@ Suggests:
     codetools,
     curl,
     deldir,
+    digest,
     DEoptim,
     dismo,
     dplyr,
@@ -71,6 +73,7 @@ Suggests:
     spelling,
     testthat
 Remotes:
+    FOR-CAST/fireregimetools@main,
     PredictiveEcology/climateData@development,
     PredictiveEcology/clusters@development,
     PredictiveEcology/LandR@development,

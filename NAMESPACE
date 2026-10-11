@@ -9,6 +9,7 @@ S3method(bufferToArea,sf)
 export(.doDataChecks)
 export(.objfunSpreadFit)
 export(ELFfireCounts)
+export(ELFfireOverlay)
 export(ELFfitStatus)
 export(ELFflammableArea)
 export(ELFmergePlan)
@@ -41,6 +42,7 @@ export(climateCovRanges)
 export(climateRasterToDataTable)
 export(coefIdentifiability)
 export(cohortsToFuelClasses)
+export(combinePlans)
 export(combineSpreadProbSummaries)
 export(covsX1000AndSetDF)
 export(defaultFireYears)
@@ -50,7 +52,9 @@ export(emptySpreadCovariates)
 export(escapeSizePixels)
 export(escapedFires)
 export(escapesTxt)
+export(fewFireELFs)
 export(firePixelsByYear)
+export(fireRecordShapefile)
 export(fireSenseCloudParameters)
 export(fireSenseCloudParametersMap)
 export(fireSenseCovariatesCreate)
@@ -139,6 +143,7 @@ export(runDEoptim)
 export(runELFs)
 export(scoreFireSizes)
 export(simulateFireSizes)
+export(sizeRuleLandCover)
 export(spreadCovCentre)
 export(spreadCovCols)
 export(spreadDesignCols)
@@ -360,6 +365,7 @@ importFrom(terra,
   project,
   rast,
   rasterize,
+  relate,
   res,
   set.names,
   setValues,

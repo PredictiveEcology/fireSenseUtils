@@ -102,6 +102,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
     reproducible::prepInputs(url = url,
                              destinationPath = destinationPath,
                              projectTo = x,
+                             ## always a SpatVector: an sf gives a different 5 km grid below
+                             fun = terra::vect,
                              useCache = useCache) |>
       reproducible::Cache(omitArgs = "projectTo",
                           .cacheExtra = list(x = digNFP),
@@ -451,6 +453,12 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
                              field = "ECOPROVINC", useCache = TRUE,
                              destinationPath) { # FRU 27 ... or FRU 26 is 4.02075e+11
   # Require::Require(c(sf, dismo))
+  ## split_poly() is random (sf::st_sample(), kmeans()). Set the RNG here so the split does not depend
+  ## on what ran before. Seed 123 then 31 uniform draws is the state the ELFs used since 2026-10-05
+  ## were split with, so those maps do not change.
+  withr::local_seed(123, .rng_kind = "Mersenne-Twister", .rng_normal_kind = "Inversion",
+                    .rng_sample_kind = "Rejection")
+  stats::runif(31)
   # Each ecoprovince is written to its own .tif below, named by the province code ("4.1.tif").
   # Those used to go straight into destinationPath, scattering ~36 anonymous files through a shared
   # inputs directory and letting successive calls overwrite one another. Give each call its own

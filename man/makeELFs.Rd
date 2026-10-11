@@ -18,10 +18,17 @@ plotELFs(
   destinationPath = ".",
   which = NULL,
   fill = "green",
+  plan = NULL,
+  fewFires = NULL,
+  fewFiresFill = "grey80",
+  mergedFill = "lightblue",
+  arcticFill = "#fdf2d0",
+  ELFs = NULL,
   labels = c("code", "name", "none"),
   labelWhich = c("all", "highlighted"),
   buffers = TRUE,
-  axes = c("m", "longlat", "none")
+  axes = c("m", "longlat", "none"),
+  ...
 )
 }
 \arguments{
@@ -51,6 +58,23 @@ fills with \code{fill}. Default \code{NULL} fills none.}
 
 \item{fill}{The colour used to fill the \code{which} ELFs.}
 
+\item{plan}{The merges and skips to show: \code{sim$ELFmerges} of \code{fireSense_ELFs}, as returned by
+\code{\link[=ELFmergePlan]{ELFmergePlan()}} or \code{\link[=fewFireELFs]{fewFireELFs()}}. \code{plotELFs()} always draws the state after the merges
+(\code{\link[=mergeELFs]{mergeELFs()}}), with each merged ELF under its merged name (e.g. \verb{11.1_2}). \code{NULL} (default)
+computes the plan with \code{\link[=fewFireELFs]{fewFireELFs()}} at its default settings (Cached).}
+
+\item{fewFires}{ELF ids to fill as "not enough fires". \code{NULL} (default) uses the ELFs the plan
+skips (\code{\link[=ELFsSkipped]{ELFsSkipped()}}); \code{character(0)} fills none.}
+
+\item{fewFiresFill}{The colour used to fill the \code{fewFires} ELFs.}
+
+\item{mergedFill, arcticFill}{The colours used to fill the merged ELFs (those the plan merges) and the
+Arctic ELFs (\code{\link[=ELFsArctic]{ELFsArctic()}}, which are not fitted).}
+
+\item{ELFs}{The list \code{\link[=makeELFs]{makeELFs()}} returns (before any merging), if the caller has it. \code{NULL}
+(default) builds it with \code{\link[=makeELFs]{makeELFs()}} (Cached). Without a \code{poly} element the outlines are drawn
+from \code{rasWhole}.}
+
 \item{labels}{What \code{plotELFs()} prints on each ELF: \code{"code"} (the ELF name, e.g. \code{"13.1"}),
 \code{"name"} (the name of the ecozone the ELF lies in, e.g. \code{"Pacific Maritime"}; see
 \code{\link[=elfLabels]{elfLabels()}}) or \code{"none"}.}
@@ -61,6 +85,9 @@ fills with \code{fill}. Default \code{NULL} fills none.}
 
 \item{axes}{\code{"m"} shows the map's own axes (metres); \code{"longlat"} keeps the map projection
 and draws a graticule labelled in degrees; \code{"none"} draws no axes and no box.}
+
+\item{...}{Passed to \code{\link[=fewFireELFs]{fewFireELFs()}} when \code{plan} is \code{NULL}, e.g. \code{pixelAreaHa} (default 5.76) or
+\code{fireYears} (default \code{\link[=defaultFireYears]{defaultFireYears()}}).}
 }
 \value{
 A list of length 2, with \code{rasWhole} and \code{rasCentered}. Each of these

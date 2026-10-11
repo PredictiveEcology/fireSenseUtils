@@ -11,7 +11,8 @@ ELFfireCounts(
   fireYears,
   pixelAreaHa,
   naturalCauses = c("L", "N"),
-  escapeSizeHa = 50
+  escapeSizeHa = 50,
+  overlay = NULL
 )
 }
 \arguments{
@@ -23,7 +24,7 @@ built by \code{\link[=makeELFs]{makeELFs()}} (\code{sim$ELFs$rasWhole}). Cells a
 \code{fireregimetools::load_nfdb_points()}. Needs columns \code{YEAR}, \code{CAUSE} and \code{SIZE_HA}.}
 
 \item{firePolys}{\code{SpatVector} of fire perimeters, as returned by
-\code{fireregimetools::load_nbac_polys()}. Needs column \code{YEAR}.}
+\code{fireregimetools::load_nbac_polys()}. Needs column \code{YEAR}. May be \code{NULL} when \code{overlay} is given.}
 
 \item{fireYears}{integer vector of the years being fitted.}
 
@@ -34,6 +35,9 @@ area inside the ELF exceeds this.}
 
 \item{escapeSizeHa}{size (ha) a fire must reach to count as escaped, as in \code{\link[=escapedFires]{escapedFires()}}
 (\code{pixelAreaHa} is its pixel area).}
+
+\item{overlay}{the table from \code{\link[=ELFfireOverlay]{ELFfireOverlay()}} for \code{rasWhole}, \code{firePolys} and \code{fireYears}, or \code{NULL}
+(default) to compute it. Passing it lets the clipping be done once and cached.}
 }
 \value{
 A \code{data.table} with one row per ELF and year: \code{ELF}, \code{year},

@@ -1,3 +1,16 @@
+## Outlines of the ELFs as makeELFs()'s `poly`: one polygon per ELF and zone, `buffer` 1 (buffer) or 2 (core)
+.ELFoutlines <- function(rasWhole) {
+  polys <- lapply(names(rasWhole), function(nm) {
+    a <- rasWhole[[nm]]
+    a[a[] == 0] <- NA
+    v <- terra::as.polygons(a)
+    v$ID <- nm
+    v$buffer <- v[[1]][, 1]
+    v[, c("ID", "buffer")]
+  })
+  do.call(rbind, polys)
+}
+
 #' Get current state of FireSense Fit parameters as a map
 #'
 #' Download the FireSense parameter object, strip the list columns and
@@ -68,6 +81,18 @@ fireSenseCloudParametersMap <-
 #' @param which Character. ELF names (e.g., `c("13.1", "4.1")`) whose cores `plotELFs()`
 #'   fills with `fill`. Default `NULL` fills none.
 #' @param fill The colour used to fill the `which` ELFs.
+#' @param plan The merges and skips to show: `sim$ELFmerges` of `fireSense_ELFs`, as returned by
+#'   [ELFmergePlan()] or [fewFireELFs()]. `plotELFs()` always draws the state after the merges
+#'   ([mergeELFs()]), with each merged ELF under its merged name (e.g. `11.1_2`). `NULL` (default)
+#'   computes the plan with [fewFireELFs()] at its default settings (Cached).
+#' @param fewFires ELF ids to fill as "not enough fires". `NULL` (default) uses the ELFs the plan
+#'   skips ([ELFsSkipped()]); `character(0)` fills none.
+#' @param fewFiresFill The colour used to fill the `fewFires` ELFs.
+#' @param mergedFill,arcticFill The colours used to fill the merged ELFs (those the plan merges) and the
+#'   Arctic ELFs ([ELFsArctic()], which are not fitted).
+#' @param ELFs The list [makeELFs()] returns (before any merging), if the caller has it. `NULL`
+#'   (default) builds it with [makeELFs()] (Cached). Without a `poly` element the outlines are drawn
+#'   from `rasWhole`.
 #' @param labels What `plotELFs()` prints on each ELF: `"code"` (the ELF name, e.g. `"13.1"`),
 #'   `"name"` (the name of the ecozone the ELF lies in, e.g. `"Pacific Maritime"`; see
 #'   [elfLabels()]) or `"none"`.
@@ -75,27 +100,44 @@ fireSenseCloudParametersMap <-
 #' @param buffers If `FALSE`, `plotELFs()` draws only the ELF cores, without the buffer rings.
 #' @param axes `"m"` shows the map's own axes (metres); `"longlat"` keeps the map projection
 #'   and draws a graticule labelled in degrees; `"none"` draws no axes and no box.
+#' @param ... Passed to [fewFireELFs()] when `plan` is `NULL`, e.g. `pixelAreaHa` (default 5.76) or
+#'   `fireYears` (default [defaultFireYears()]).
 #' @export
 #' @rdname makeELFs
 #' @seealso [fireSenseCloudParameters()]
-plotELFs <- function(destinationPath = ".", which = NULL, fill = "green",
+plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan = NULL,
+                     fewFires = NULL, fewFiresFill = "grey80", mergedFill = "lightblue", arcticFill = "#fdf2d0",
+                     ELFs = NULL,
                      labels = c("code", "name", "none"), labelWhich = c("all", "highlighted"),
-                     buffers = TRUE, axes = c("m", "longlat", "none")) {
+                     buffers = TRUE, axes = c("m", "longlat", "none"), ...) {
   labels <- match.arg(labels)
   labelWhich <- match.arg(labelWhich)
   axes <- match.arg(axes)
-  ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE) |>
-    Cache()
-  ELFs2 <- makeELFs(destinationPath = destinationPath, singleSpatVector = FALSE)|>
-    Cache()
+  if (is.null(ELFs))
+    ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE) |>
+      Cache()
+
+  if (is.null(plan)) {
+    args <- utils::modifyList(list(fireYears = defaultFireYears(), pixelAreaHa = 5.76,
+                                   landCoverFile = sizeRuleLandCover(destinationPath)), list(...))
+    plan <- do.call(fewFireELFs, c(list(ELFs = ELFs, destinationPath = destinationPath), args)) |>
+      Cache(omitArgs = "destinationPath")
+    plan <- plan$plan
+  }
+  ## the map shows the merged ELFs, not the ones they were made from
+  ELFs <- mergeELFs(ELFs, plan)
+  if (is.null(fewFires)) fewFires <- ELFsSkipped(plan)
 
   ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
   ## cf. ELFsInStudyArea(), which already does this. `singleSpatVector` no longer switches the
   ## return type -- the code that used it is commented out in makeELFs().
   ELFsPoly <- ELFs$poly
+  if (is.null(ELFsPoly)) ELFsPoly <- .ELFoutlines(ELFs$rasWhole)
+
+  ## the cores are what is filled and labelled; `buffers = FALSE` draws only them, otherwise their rings too
+  core <- ELFsPoly[ELFsPoly$buffer %in% 2, ]
   drawn <- elfLayer(ELFsPoly, buffers = buffers)
 
-  # terra::plot(ELFsPoly, col = c("turquoise", "yellow")[ELFsPoly$buffer], alpha = 0.5)
   ## a few labels on a map edge need room beside it to avoid the ELFs: widen the extent then
   args <- list(drawn)
   if (!identical(labels, "none") && identical(labelWhich, "highlighted")) {
@@ -106,14 +148,24 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green",
   if (identical(axes, "longlat")) args$mar <- c(3, 3, 1, 1)
   do.call(terra::plot, args)
   if (identical(axes, "longlat")) elfGraticule(drawn)
-  keep <- ELFsPoly$buffer %in% 2
+  fills <- list()
+  fillELFs <- function(ids, colour, label) {
+    ids <- intersect(ids, core$ID)
+    if (!length(ids)) return(invisible())
+    terra::plot(core[core$ID %in% ids, ], col = colour, add = TRUE)
+    fills[[label]] <<- colour
+  }
+  fillELFs(ELFsArctic(core$ID), arcticFill, "not fitted (Arctic)")
+  fillELFs(plan$ELF[plan$action %in% "merge"], mergedFill, "merged")
+  fillELFs(fewFires, fewFiresFill, "not enough fires")
   if (length(which)) {
     missingELFs <- setdiff(which, ELFsPoly$ID)
     if (length(missingELFs))
       warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
-    terra::plot(ELFsPoly[keep & ELFsPoly$ID %in% which, ], col = fill, add = TRUE)
+    fillELFs(which, fill, paste("ELFs", paste(which, collapse = ", ")))
   }
   if (!identical(labels, "none")) {
+    keep <- ELFsPoly$buffer %in% 2
     if (identical(labelWhich, "highlighted")) keep <- keep & ELFsPoly$ID %in% which
     if (any(keep)) {
       ## halo: a white outline keeps the text readable over the polygon lines
@@ -130,6 +182,8 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green",
                   cex = cex, halo = TRUE, hc = "white", hw = 0.2)
     }
   }
+  if (length(fills))
+    graphics::legend("bottomleft", legend = names(fills), fill = unname(unlist(fills)), bty = "n", cex = 0.8)
   return(invisible(ELFs))
 }
 
