@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `fireSenseCloudParametersMap()` no longer calls `makeELFs()` a second time for an object it never used. `plotELFs(labels = "name")` is tested on merged ELFs (`11.1_2`, `3.1.1_2`, `10.3.1_2`): they already take their ecozone name.
+
 * `makeELFs()` no longer depends on things outside its arguments. It reads the ecostratification as a `SpatVector` whatever `reproducible.shapefileRead` is (an `sf` gave a 4999.933 x 5001.110 m grid instead of 5000 m), and `mergeAndSplitRas()` sets its own RNG for the random split of oversized ecoprovinces, so the ELF maps no longer change with the caller's seed, RNG kind or cache hits. The seed reproduces the ELFs used since 2026-10-05. New suggested package `digest` (tests).
 
 * New `ELFfireOverlay()` clips the fire polygons to every ELF once (fitting area and core); `ELFfireCounts()` and `ELFregionStats()` read it instead of each intersecting all polygons (the NBAC polygons have about 98 million vertices, and each pass took 20 minutes or more). Only polygons crossing a zone's edge are intersected; the others keep their own area. Counts and burn rates are unchanged (burn rate to 4e-16).
