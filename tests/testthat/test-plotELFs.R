@@ -37,9 +37,10 @@ test_that("plotELFs fills the cores of the ELFs named in `which`", {
   expect_length(filled, 0L)
 })
 
-## Three ELFs side by side, as makeELFs() returns them (rasters and `poly`). 11.1 and 11.2 merge, 11.3 is skipped.
+## Four ELFs side by side, as makeELFs() returns them (rasters and `poly`). 11.1 and 11.2 merge, 11.3 is skipped,
+## 1.1 is Arctic.
 post <- function() {
-  whole <- bandELFs(list(`11.1` = 1:2, `11.2` = 3:4, `11.3` = 5:6))
+  whole <- bandELFs(list(`11.1` = 1:2, `11.2` = 3:4, `11.3` = 5:6, `1.1` = 7:8))
   rasWhole <- stats::setNames(as.list(whole), names(whole))
   poly <- .ELFoutlines(rasWhole)
   list(rasWhole = rasWhole, rasCentered = rasWhole, poly = poly)
@@ -68,9 +69,20 @@ drawn <- function(...) {
 
 test_that("plotELFs draws the post-merge state: the merged ELF in place of its members", {
   out <- drawn(plan = mergePlan())
-  expect_setequal(unique(out$plots[[1]]$x$ID), c("11.1_2", "11.3"))        # the outlines
-  expect_setequal(out$labels, c("11.1_2", "11.3"))
+  expect_setequal(unique(out$plots[[1]]$x$ID), c("11.1_2", "11.3", "1.1"))   # the outlines
+  expect_equal(unique(out$plots[[1]]$x$buffer), 2)                           # of the cores only: no border twice
+  expect_setequal(out$labels, c("11.1_2", "11.3", "1.1"))
   expect_false(any(c("11.1", "11.2") %in% out$labels))
+})
+
+test_that("merged and Arctic ELFs have their own fill and a legend entry", {
+  out <- drawn(plan = mergePlan(), mergedFill = "blue", arcticFill = "beige", fewFiresFill = "grey70")
+  fillOf <- function(col) unique(unlist(lapply(Filter(function(p) identical(p$col, col), out$plots), function(p) p$x$ID)))
+  expect_identical(fillOf("blue"), "11.1_2")
+  expect_identical(fillOf("beige"), "1.1")
+  expect_identical(fillOf("grey70"), "11.3")
+  expect_identical(out$legend$legend, c("not fitted (Arctic)", "merged", "not enough fires"))
+  expect_identical(out$legend$fill, c("beige", "blue", "grey70"))
 })
 
 test_that("the ELFs without enough fires are shaded: by default the plan's skips, or those given", {
@@ -105,7 +117,7 @@ test_that("without a plan, plotELFs computes one with fewFireELFs()", {
   )
   out <- drawn()
   expect_identical(seen$fireYears, defaultFireYears())
-  expect_setequal(out$labels, c("11.1_2", "11.3"))
+  expect_setequal(out$labels, c("11.1_2", "11.3", "1.1"))
 })
 
 test_that("a given ELFs list is used, drawn from rasWhole when it has no outlines", {
@@ -121,5 +133,5 @@ test_that("a given ELFs list is used, drawn from rasWhole when it has no outline
   local_mocked_bindings(legend = function(...) NULL, .package = "graphics")
   plotELFs(plan = mergePlan(), ELFs = ELFs)
   expect_false(made)
-  expect_setequal(calls$labels, c("11.1_2", "11.3"))
+  expect_setequal(calls$labels, c("11.1_2", "11.3", "1.1"))
 })

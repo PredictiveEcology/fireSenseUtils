@@ -88,6 +88,8 @@ fireSenseCloudParametersMap <-
 #' @param fewFires ELF ids to fill as "not enough fires". `NULL` (default) uses the ELFs the plan
 #'   skips ([ELFsSkipped()]); `character(0)` fills none.
 #' @param fewFiresFill The colour used to fill the `fewFires` ELFs.
+#' @param mergedFill,arcticFill The colours used to fill the merged ELFs (those the plan merges) and the
+#'   Arctic ELFs ([ELFsArctic()], which are not fitted).
 #' @param ELFs The list [makeELFs()] returns (before any merging), if the caller has it. `NULL`
 #'   (default) builds it with [makeELFs()] (Cached). Without a `poly` element the outlines are drawn
 #'   from `rasWhole`.
@@ -97,7 +99,8 @@ fireSenseCloudParametersMap <-
 #' @rdname makeELFs
 #' @seealso [fireSenseCloudParameters()]
 plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan = NULL,
-                     fewFires = NULL, fewFiresFill = "grey80", ELFs = NULL, ...) {
+                     fewFires = NULL, fewFiresFill = "grey80", mergedFill = "lightblue", arcticFill = "#fdf2d0",
+                     ELFs = NULL, ...) {
   if (is.null(ELFs))
     ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE) |>
       Cache()
@@ -119,23 +122,28 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
   ELFsPoly <- ELFs$poly
   if (is.null(ELFsPoly)) ELFsPoly <- .ELFoutlines(ELFs$rasWhole)
 
-  terra::plot(ELFsPoly)
-  keep <- ELFsPoly$buffer %in% 2
+  ## core outlines only: the buffers overlap their neighbours' and would draw every border twice
+  core <- ELFsPoly[ELFsPoly$buffer %in% 2, ]
+  terra::plot(core)
   fills <- list()
-  if (length(fewFires)) {
-    terra::plot(ELFsPoly[keep & ELFsPoly$ID %in% fewFires, ], col = fewFiresFill, add = TRUE)
-    fills[["not enough fires"]] <- fewFiresFill
+  fillELFs <- function(ids, colour, label) {
+    ids <- intersect(ids, core$ID)
+    if (!length(ids)) return(invisible())
+    terra::plot(core[core$ID %in% ids, ], col = colour, add = TRUE)
+    fills[[label]] <<- colour
   }
+  fillELFs(ELFsArctic(core$ID), arcticFill, "not fitted (Arctic)")
+  fillELFs(plan$ELF[plan$action %in% "merge"], mergedFill, "merged")
+  fillELFs(fewFires, fewFiresFill, "not enough fires")
   if (length(which)) {
     missingELFs <- setdiff(which, ELFsPoly$ID)
     if (length(missingELFs))
       warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
-    terra::plot(ELFsPoly[keep & ELFsPoly$ID %in% which, ], col = fill, add = TRUE)
-    fills[[paste("ELFs", paste(which, collapse = ", "))]] <- fill
+    fillELFs(which, fill, paste("ELFs", paste(which, collapse = ", ")))
   }
-  terra::text(terra::centroids(ELFsPoly[ keep, ]), labels = ELFsPoly$ID[keep], cex = 0.7)
+  terra::text(terra::centroids(core, inside = TRUE), labels = core$ID, cex = 0.7)
   if (length(fills))
-    graphics::legend("bottomleft", legend = names(fills), fill = unlist(fills), bty = "n", cex = 0.8)
+    graphics::legend("bottomleft", legend = names(fills), fill = unname(unlist(fills)), bty = "n", cex = 0.8)
   return(invisible(ELFs))
 }
 

@@ -21,6 +21,8 @@ plotELFs(
   plan = NULL,
   fewFires = NULL,
   fewFiresFill = "grey80",
+  mergedFill = "lightblue",
+  arcticFill = "#fdf2d0",
   ELFs = NULL,
   ...
 )
@@ -61,6 +63,9 @@ computes the plan with \code{\link[=fewFireELFs]{fewFireELFs()}} at its default 
 skips (\code{\link[=ELFsSkipped]{ELFsSkipped()}}); \code{character(0)} fills none.}
 
 \item{fewFiresFill}{The colour used to fill the \code{fewFires} ELFs.}
+
+\item{mergedFill, arcticFill}{The colours used to fill the merged ELFs (those the plan merges) and the
+Arctic ELFs (\code{\link[=ELFsArctic]{ELFsArctic()}}, which are not fitted).}
 
 \item{ELFs}{The list \code{\link[=makeELFs]{makeELFs()}} returns (before any merging), if the caller has it. \code{NULL}
 (default) builds it with \code{\link[=makeELFs]{makeELFs()}} (Cached). Without a \code{poly} element the outlines are drawn
