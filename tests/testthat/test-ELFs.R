@@ -199,8 +199,9 @@ localRunELFs <- function(userName, excluded = NULL, env = parent.frame()) {
   sim$ELFs <- list(rasCentered = rasList, rasWhole = rasList)
   sim$spreadFitPreRun <- setNames(data.frame(c("2.1", "4.1", "4.2")), polygonIDTxt)
   sim$ELFsExcluded <- excluded
-  SpaDES.core::outputs(sim) <- data.frame(objectName = c("ELFs", "other"),
-                                          file = c("ELFs.rds", "other.rds"))
+  SpaDES.core::outputs(sim) <- data.frame(objectName = c("ELFs", "ELFsPostMerge", "studyAreas"),
+                                          file = c("ELF_polygons.rds", "ELFs_postMerge.rds", "studyAreas4.rds"))
+  sim@outputs$file <- sub("\\.rds$", ".png", sim@outputs$file)  # the pngs Plots() saves
   uploaded <- new.env()
   local_mocked_bindings(Cache = function(x, ...) x, cacheId = function(x) "id", .env = env)
   local_mocked_bindings(simInitAndSpades2 = function(l) sim, .package = "SpaDES.core", .env = env)
@@ -231,7 +232,7 @@ test_that("runELFs uploads the ELF outputs for emcintir", {
   uploaded <- localRunELFs("emcintir")
 
   expect_identical(runELFs(prj), c("4.1", "4.2"))
-  expect_match(uploaded$media, "ELFs[^/]*\\.rds$")
+  expect_match(uploaded$media, "ELF_polygons[^/]*\\.png$")
 })
 
 test_that("mergeAndSplitRas gives the same split whatever RNG state or kind the caller has", {

@@ -647,12 +647,17 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
   out
 }
 
-#' The ELF output file among a simList's output files; stops if there is none
+#' The ELF map among a simList's output files; stops unless there is exactly one
+#'
+#' `googledrive::drive_update(media = )` takes one file. `fireSense_ELFs` saves several
+#' pngs (`ELF_polygons.png`, `ELFs_postMerge.png`, `studyAreas4.png`); the one uploaded is
+#' `ELF_polygons.png` (SpaDES may add a `_year<N>` stamp), matched on the file name.
 #' @keywords internal
 .elfOutputFile <- function(files) {
-  elf <- grep("ELF", files, value = TRUE)
-  if (!length(elf))
-    stop("No ELF output file in sim@outputs$file (", paste(files, collapse = ", "),
+  elf <- files[grepl("^ELF_polygons(_year[0-9]+)?\\.png$", basename(files))]
+  if (length(elf) != 1L)
+    stop(if (length(elf)) "More than one" else "No", " ELF output file (ELF_polygons.png) in ",
+         "sim@outputs$file (", paste(files, collapse = ", "),
          "); the fireSense_ELFs module did not run or did not save its output", call. = FALSE)
   elf
 }
