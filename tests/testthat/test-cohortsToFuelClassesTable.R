@@ -60,7 +60,8 @@ oldCohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, lan
     for (fuel in noFuelForRequiredClass) {
       ras <- Copy(pixelGroupMap)
       rasVals <- values(ras, mat = FALSE)
-      rasVals[rasVals > 0] <- 0
+      rasVals[!is.na(rasVals)] <- 0
+      rasVals[flamValsGood & is.na(rasVals)] <- 0
       cc[[fuel]] <- setValues(x = ras, values = rasVals)
     }
     
@@ -171,4 +172,36 @@ test_that("fireSenseCovariatesCreate with a fuelClassTable gives the same covari
     expect_identical(suppressWarnings(mk(mode, fuelClassTable = tbl)), suppressWarnings(mk(mode)))
     expect_identical(tbl, tblBefore)
   }
+})
+
+test_that("a required fuel class with no cohorts is 0 on every flammable pixel, including those outside any pixelGroup", {
+  args <- fuelFixture(seed = 5, landcover = FALSE)
+  nPix <- terra::ncell(args$pixelGroupMap)
+  set.seed(5)
+  terra::values(args$pixelGroupMap) <- sample(1:30, nPix, TRUE)
+  terra::values(args$flammableRTM) <- 1
+  ## pixel 1 is flammable, has no pixelGroup, and is in no non-forest group: the missingLCCgroup case
+  naPix <- 1L
+  args$pixelGroupMap[naPix] <- NA
+  ldt <- data.table::data.table(pixelID = 1:nPix, nfLCC_1 = 0L, nfLCC_2 = 0L)
+  data.table::set(ldt, 2:11, "nfLCC_2", 1L)
+  tsd <- terra::rast(args$pixelGroupMap, vals = sample(0:60, nPix, TRUE))
+
+  tbl <- cohortsToFuelClasses(cohortData = args$cohortData, pixelGroupMap = args$pixelGroupMap,
+                              flammableRTM = args$flammableRTM, landcoverDT = data.table::copy(ldt),
+                              sppEquiv = args$sppEquiv, sppEquivCol = "LandR", fuelClassCol = "FuelClass",
+                              requiredFuelClasses = args$requiredFuelClasses, cutoffForYoungAge = 15,
+                              asTable = TRUE)
+  expect_false(anyNA(tbl$w)) # "w" is required but no species maps to it
+  expect_true(all(tbl$w == 0))
+
+  cov <- suppressWarnings(fireSenseCovariatesCreate(
+    cohortData = args$cohortData, pixelGroupMap = args$pixelGroupMap, flammableRTM = args$flammableRTM,
+    sppEquiv = args$sppEquiv, landcoverDT = data.table::copy(ldt), fuelClassCol = "FuelClass",
+    requiredFuelClasses = args$requiredFuelClasses, sppEquivCol = "LandR", missingLCCgroup = "nfLCC_1",
+    nonForestedLCCGroups = list(nfLCC_1 = 1, nfLCC_2 = 2), nonForest_timeSinceDisturbance = tsd,
+    cutoffForYoungAge = 15, nonForestCanBeYoungAge = TRUE, studyAreaName = "t", useCache = FALSE,
+    fuelCovariates = "species"))
+  expect_false(anyNA(cov$w))
+  expect_equal(cov$nfLCC_1[cov$pixelID == naPix], 1L)
 })
