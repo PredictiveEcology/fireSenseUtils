@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `runELFs()` runs the ELFs module without a `Cache()` wrapper, and no longer reads the remote hash of `urlELFresults`, sets `hashSpreadFitRemoteFile`, or uploads `ELF_polygons.png` to Google Drive. `fireSense_ELFs` now caches the national ELF list itself, keyed on its `ELFversion` parameter alone and shared through the cloud cache, so the run is cheap. `.elfOutputFile()`, the `drive_update` and `SpaDES.project` imports are removed; `urlELFresults` is kept in the signature but unused. Depends-on: PredictiveEcology/fireSense_ELFs#29.
+
 * `fireSenseCloudParametersMap()` no longer calls `makeELFs()` a second time for an object it never used. `plotELFs(labels = "name")` is tested on merged ELFs (`11.1_2`, `3.1.1_2`, `10.3.1_2`): they already take their ecozone name.
 
 * `runELFs()` uploads only `ELF_polygons.png` to Google Drive. `.elfOutputFile()` matched every file with "ELF" in its path, so once `fireSense_ELFs` also saved `ELFs_postMerge.png` the upload failed with two files; it now returns exactly `ELF_polygons.png` and stops on none or several.

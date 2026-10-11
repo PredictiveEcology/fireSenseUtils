@@ -6,7 +6,7 @@
 #' @importFrom grDevices rgb
 #' @importFrom stats terms.formula
 #' @importFrom terra cats classify cover crs freq mask mosaic sprc
-#' @importFrom reproducible .robustDigest Copy Filenames asPath cacheId
+#' @importFrom reproducible .robustDigest Copy Filenames
 #' @importFrom SpaDES.tools rastFromDF
 #' @importFrom data.table setattr
 #'

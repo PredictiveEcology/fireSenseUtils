@@ -192,8 +192,8 @@ test_that("moveSliversToOtherELFs reports pixels no other ELF covers", {
   expect_identical(terra::values(out$ca[[1]], mat = FALSE), c(2, 2, 0, 0))
 })
 
-## runELFs(): the module run and Drive are stubbed; the simList carries the ELF names.
-localRunELFs <- function(userName, excluded = NULL, env = parent.frame()) {
+## runELFs(): the module run is stubbed; the simList carries the ELF names.
+localRunELFs <- function(excluded = NULL, env = parent.frame()) {
   sim <- SpaDES.core::simInit()
   rasList <- setNames(as.list(1:4), c("1.1", "4.1", "4.2", "6.1"))
   sim$ELFs <- list(rasCentered = rasList, rasWhole = rasList)
@@ -202,37 +202,40 @@ localRunELFs <- function(userName, excluded = NULL, env = parent.frame()) {
   SpaDES.core::outputs(sim) <- data.frame(objectName = c("ELFs", "ELFsPostMerge", "studyAreas"),
                                           file = c("ELF_polygons.rds", "ELFs_postMerge.rds", "studyAreas4.rds"))
   sim@outputs$file <- sub("\\.rds$", ".png", sim@outputs$file)  # the pngs Plots() saves
-  uploaded <- new.env()
-  local_mocked_bindings(Cache = function(x, ...) x, cacheId = function(x) "id", .env = env)
   local_mocked_bindings(simInitAndSpades2 = function(l) sim, .package = "SpaDES.core", .env = env)
-  local_mocked_bindings(user = function() userName, .package = "SpaDES.project", .env = env)
-  local_mocked_bindings(drive_update = function(file, media) uploaded$media <- media,
-                        .package = "googledrive", .env = env)
-  local_mocked_bindings(getRemoteMetadata = function(...) list(remoteHash = "h"),
-                        .package = "reproducible", .env = env)
-  uploaded
+  invisible(sim)
 }
 
 test_that("runELFs returns fitted, all, or map ELFs without the excluded ones", {
   prj <- list(modules = c("fireSense_ELFs", "other"),
               paths = list(modulePath = withr::local_tempdir()),
               params = list(fireSense_ELFs = list()))
-  uploaded <- localRunELFs("someoneElse", excluded = "4.2")
+  localRunELFs(excluded = "4.2")
 
   expect_identical(runELFs(prj), "4.1")                         # 2.1 is Arctic, 4.2 has no fire
   expect_identical(runELFs(prj, whatOut = "all"), c("4.1", "6.1"))
   maps <- runELFs(prj, whatOut = "maps")
   expect_named(maps$rasWhole, c("4.1", "6.1"))
-  expect_null(uploaded$media)
 })
 
-test_that("runELFs uploads the ELF outputs for emcintir", {
+test_that("runELFs runs the module on every call, with no Cache, Drive hash or png upload", {
   prj <- list(modules = "fireSense_ELFs", paths = list(modulePath = withr::local_tempdir()),
               params = list(fireSense_ELFs = list()))
-  uploaded <- localRunELFs("emcintir")
+  sim <- localRunELFs()
+  runs <- 0L
+  seen <- NULL
+  local_mocked_bindings(simInitAndSpades2 = function(l) { runs <<- runs + 1L; seen <<- l; sim },
+                        .package = "SpaDES.core")
+  local_mocked_bindings(getRemoteMetadata = function(...) stop("runELFs must not read Drive"),
+                        .package = "reproducible")
+  local_mocked_bindings(drive_update = function(...) stop("runELFs must not upload"),
+                        .package = "googledrive")
 
-  expect_identical(runELFs(prj), c("4.1", "4.2"))
-  expect_match(uploaded$media, "ELF_polygons[^/]*\\.png$")
+  runELFs(prj)
+  runELFs(prj)
+
+  expect_identical(runs, 2L)
+  expect_null(seen$params$fireSense_ELFs$hashSpreadFitRemoteFile)
 })
 
 test_that("mergeAndSplitRas gives the same split whatever RNG state or kind the caller has", {

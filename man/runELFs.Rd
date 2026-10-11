@@ -2,7 +2,7 @@
 % Please edit documentation in R/ELFs.R
 \name{runELFs}
 \alias{runELFs}
-\title{Run ELFs modules and optionally update googledrive png}
+\title{Run the ELFs module and return the ELF names or maps}
 \usage{
 runELFs(
   preRunSetupProject,
@@ -13,8 +13,8 @@ runELFs(
 }
 \arguments{
 \item{preRunSetupProject}{list. A SpaDES project object prepared for
-\code{SpaDES.core::simInitAndSpades2()}, containing \code{$modules},
-\code{$paths$modulePath}, and \code{$params$fireSense_ELFs}.}
+\code{SpaDES.core::simInitAndSpades2()}, containing \code{$modules} and
+\code{$paths$modulePath}.}
 
 \item{whatOut}{string. One of \code{c("fittedNamesOnly", "allNames", "maps" )}. Partial
 matching is active (i.e., \code{fit} will do \code{fittedNamesOnly}). Will
@@ -22,9 +22,8 @@ default to the first one if more than one supplied. If not \code{fittedNamesOnly
 then will do \code{maps}. \code{fittedNamesOnly} will return the vector of the \code{.ELFind} names
 that have \verb{SpreadFit`` values in the Cloud Geo Cache. }allNames\verb{will return all .ELFind names, even if they have no fits.}maps\verb{or not one of the first two options, will return a list of length 2, each with length}NROW(names(.ELFinds))\verb{. These are individual rasters, one per .ELFind, either with the entire map of  Canada (}rasWhole\verb{) or with a projection centered on the centroid of the ELF (}rasCentred`).}
 
-\item{urlELFresults}{A googledrive url where the ELF data.frame that contains
-geometries and fitted SpreadFit parameters and several other
-attributes.}
+\item{urlELFresults}{Unused and deprecated; kept so existing calls still work. \code{runELFs()} no longer
+reads this Google Drive file or uploads to it.}
 }
 \value{
 A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
@@ -33,59 +32,26 @@ ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor
 3.2.1 or 3.2.4, which have no SCANFI species.
 }
 \description{
-Extracting only the "ELF" module, runs the projectmodule
-via \code{SpaDES.core::simInitAndSpades2()} with caching (optionally
-updates a Google Drive file if the current user is \code{"emcintir"}), and
-returns the vector of polygon IDs from \code{spreadFitPreRun}.
+Extracting only the "ELF" module, runs it via \code{SpaDES.core::simInitAndSpades2()} and
+returns the vector of polygon IDs from \code{spreadFitPreRun}, or the ELF maps. The run is not
+cached here: the module caches the national ELF list itself, keyed on its \code{ELFversion}
+parameter alone and shared through the cloud cache, so a run only downloads it.
 }
 \details{
 The function:
 \enumerate{
 \item Restricts \code{preRunSetupProject$modules} to entries matching \code{"ELFs"}.
-\item Collects all \code{.R} source files under each module directory (recursively),
-excluding any under \code{tests/}, and uses these as part of the cache key.
-\item Retrieves remote metadata (hash) from a Google Drive file URL and assigns
-the remote hash to \code{preRunSetupProject$params$fireSense_ELFs$hashSpreadFitRemoteFile}.
-\item Initializes and runs the simulation with \code{SpaDES.core::simInitAndSpades2()},
-wrapping the call in \code{Cache()} so that the run is skipped unless inputs
-(source files and remote hash) have changed.
-\item If the current \code{SpaDES.project::user()} is \code{"emcintir"}, updates
-the Google Drive file at the provided URL with any output files whose names
-contain \code{"ELF"}, caching the update by \code{cacheId(sim)}.
-\item Returns \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
-}
-
-Internal \code{Cache}ing relies on two extra keys:
-\itemize{
-\item \code{src}: paths to module \code{.R} files (excluding \code{tests/}).
-\item \code{remoteHash}: the remote metadata hash obtained from the URL.
+\item Initializes and runs the simulation with \code{SpaDES.core::simInitAndSpades2()}.
+\item Returns \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}, or the names or maps
+chosen by \code{whatOut}.
 }
 
 The function expects \code{preRunSetupProject} to be a SpaDES project list with at least:
 \itemize{
 \item \code{$modules}: character vector of module names.
 \item \code{$paths$modulePath}: base directory containing module folders.
-\item \code{$params$fireSense_ELFs}: a list where \code{hashSpreadFitRemoteFile} can be set.
 }
 }
-\section{Side Effects}{
-
-Updates a Google Drive file when the current user is \code{"emcintir"} and when
-the run produces outputs with names containing \code{"ELF"}.
-}
-
-\section{Notes}{
-
-\itemize{
-\item The remote file URL is hard-coded as:
-\code{"https://drive.google.com/file/d/1tkC944mPzR9-y-qCMDB5o2cAR_1MoDz4/view?usp=drive_link"}.
-\item \code{Cache()} and \code{cacheId()} are assumed to be available (typically from
-\pkg{reproducible} in SpaDES workflows).
-\item \code{asPath()} is expected to be available in your environment (commonly from
-\pkg{reproducible}); adjust if your project defines it elsewhere.
-}
-}
-
 \examples{
 \dontrun{
 # Assuming 'prj' is a valid SpaDES project list:
@@ -95,9 +61,7 @@ ids <- runELFs(prj)
 
 }
 \seealso{
-\code{\link[SpaDES.core]{simInitAndSpades2}},
-\code{\link[reproducible]{Cache}},
-\code{\link[googledrive]{drive_update}}
+\code{\link[SpaDES.core]{simInitAndSpades2}}
 }
 \author{
 Based on the provided code snippet.
