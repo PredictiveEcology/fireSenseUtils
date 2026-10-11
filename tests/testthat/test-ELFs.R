@@ -260,6 +260,8 @@ test_that("mergeAndSplitRas gives the same split whatever RNG state or kind the 
 })
 
 test_that("makeELFs reads the ecostratification as a SpatVector whatever reproducible.shapefileRead says", {
+  skip_if_not_installed("dismo")
+  skip_if_not_installed("deldir")
   ecos <- makeTestEcos()
   dp <- localELFsDir()
   funs <- list()
@@ -277,6 +279,7 @@ test_that("makeELFs on the real ecostratification gives the ELF maps the 2026-10
   skip_on_ci()   # downloads the SCANFI template and four ecostratification shapefiles; takes many minutes
   skip_if_offline("sis.agr.gc.ca")
   skip_if_not_installed("dismo")
+  skip_if_not_installed("deldir")
   skip_if_not_installed("digest")
   dp <- withr::local_tempdir(tmpdir = dirname(tempdir()))
   ## cold cache and a caller RNG state unlike the campaign's; the result must not depend on either
