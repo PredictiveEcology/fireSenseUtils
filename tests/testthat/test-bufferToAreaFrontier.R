@@ -115,8 +115,14 @@ test_that("a large fire's buffer is built from its frontier, not the whole buffe
   rtm <- gridRTM(1000)
   fire <- sf::st_buffer(sf::st_sf(FIRE_ID = 1L, geometry = sf::st_sfc(sf::st_point(c(500000, 500000)), crs = 3978)), 30000)
   am <- function(x) 10 * x
-  tNew <- system.time(new <- bufferToArea(fire, rtm, areaMultiplier = am, field = "FIRE_ID", minSize = 1))[["elapsed"]]
-  tOld <- system.time(old <- bufferToAreaSpread2(fire, rtm, areaMultiplier = am, field = "FIRE_ID", minSize = 1))[["elapsed"]]
+  new <- bufferToArea(fire, rtm, areaMultiplier = am, field = "FIRE_ID", minSize = 1)
+  old <- bufferToAreaSpread2(fire, rtm, areaMultiplier = am, field = "FIRE_ID", minSize = 1)
   expect_equal(nrow(new), nrow(old))
-  expect_lt(tNew, tOld / 5)
+  ## both are warm now; the fastest of 3 interleaved runs each, so one stall on a shared CI runner
+  ## does not decide the comparison (a single cold run failed once on ubuntu oldrel-2: 1.01 vs 0.85 s)
+  tm <- replicate(3, c(
+    new = system.time(bufferToArea(fire, rtm, areaMultiplier = am, field = "FIRE_ID", minSize = 1))[["elapsed"]],
+    old = system.time(bufferToAreaSpread2(fire, rtm, areaMultiplier = am, field = "FIRE_ID", minSize = 1))[["elapsed"]]
+  ))
+  expect_lt(min(tm["new", ]), min(tm["old", ]) / 5)
 })
