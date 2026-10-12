@@ -796,7 +796,7 @@ fireSenseCovariatesCreate <- function(cohortData,
   set(spreadCovariates, NULL, "rowcheck", NULL)
   
   if (youngAge && nonForestCanBeYoungAge) {
-    dig1 <- reproducible::.robustDigest(list(landcoverDT, flammableRTM))
+    dig1 <- .digestIfCaching(list(landcoverDT, flammableRTM), useCache) # only keys Cache()
     
     LCCras <- putBackIntoRaster(landcoverDT = landcoverDT, # list(sim$landcoverDT2010, sim$landcoverDT2020),
                                 flammableMap = flammableRTM, # list(sim$flammableRTM2010, sim$flammableRTM2020),
