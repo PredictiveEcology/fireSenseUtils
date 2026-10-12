@@ -396,6 +396,9 @@ spreadProbFloor <- 0.13
 
 ## An integer seed from a digest of `x`: the same inputs always give the same seed, so a random step
 ## that is seeded with it (withr::with_seed()) is reproducible without fixing a seed by hand.
+## `x`'s digest, or NULL when caching is off: the digests only feed Cache(.cacheExtra =), which is unused then
+.digestIfCaching <- function(x, useCache) if (isFALSE(useCache)) NULL else reproducible::.robustDigest(x)
+
 .digestSeed <- function(x) strtoi(substr(reproducible::.robustDigest(x), 1, 7), 16L)
 
 #' Log with a minimum

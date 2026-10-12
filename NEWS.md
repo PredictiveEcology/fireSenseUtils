@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* Per-year prediction is faster with identical results. `.fuelClassVectors()` (used by `cohortsToFuelClasses()`) no longer joins `sppEquiv` onto every cohort row, and takes one grouped max and one grouped sum on an integer key instead of a join, `split()` and a `match()` per class (4.4 to 1.6 s on 10M cohort rows). `prepare_ignitionClimate()` and `fireSenseCovariatesCreate()` compute the `.robustDigest()` for the cache key only when `useCache` is not `FALSE`.
+
 * `fireSenseCloudParametersMap()` no longer calls `makeELFs()` a second time for an object it never used. `plotELFs(labels = "name")` is tested on merged ELFs (`11.1_2`, `3.1.1_2`, `10.3.1_2`): they already take their ecozone name.
 
 * `runELFs()` uploads only `ELF_polygons.png` to Google Drive. `.elfOutputFile()` matched every file with "ELF" in its path, so once `fireSense_ELFs` also saved `ELFs_postMerge.png` the upload failed with two files; it now returns exactly `ELF_polygons.png` and stops on none or several.
