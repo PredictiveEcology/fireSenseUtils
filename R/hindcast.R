@@ -172,6 +172,7 @@ plotHindcastDistributions <- function(reps, observed, title = NULL) {
 #'
 #' @export
 plotHindcastSizes <- function(simSizes, observed, minHa = 50, title = NULL) {
+  ha <- NULL # ggplot2 NSE
   d <- rbind(data.frame(source = rep("simulated", length(simSizes)), ha = simSizes),
              data.frame(source = ifelse(observed$sizes$cause == "natural", "observed, natural cause",
                                         "observed, all causes"), ha = observed$sizes$ha))
