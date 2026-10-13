@@ -23,7 +23,7 @@ latestIgnitionFits(cloudFolderID, destinationPath, polygonIDs = NULL)
 }
 \value{
 \code{ignitionFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
-e.g. \code{"fireSenseIgnitionParams_1985-2024_xgboost.rds"}.
+e.g. \code{"fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds"}.
 
 \code{latestIgnitionFits()}: the ledger rows, in the form fireSense_IgnitionFit writes them
 (a \code{data.frame} with a \code{geometry} column), or \code{NULL} when no file matches. Attribute
@@ -42,7 +42,9 @@ all of them are found. A file already in \code{destinationPath} with the same MD
 downloaded again; one that differs is downloaded again with \code{\link[reproducible:preProcess]{reproducible::preProcess()}}.
 }
 \details{
-\code{ignitionFitFileTag} marks the files whose fits use the current model: xgboost ignition and
-escape fits (\code{fireSense_IgnitionFit}'s \code{modelAlgorithm = "xgboost"}). A fit made under a new
-model needs a new tag, so the old files drop out of \code{"latest"}.
+\code{ignitionFitFileTag} marks the files whose fits use the current model: xgboost Poisson
+ignition and escape fits (\code{fireSense_IgnitionFit}'s \code{modelAlgorithm = "xgboost"} with objective
+\code{count:poisson}). The date is the model version. A fit made under a new model needs a new tag,
+so the old files drop out of \code{"latest"}; files with an older tag, e.g. \code{"_xgboost"} (Tweedie
+fits), are never read.
 }

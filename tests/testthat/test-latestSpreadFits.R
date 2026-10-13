@@ -1,15 +1,32 @@
 test_that("spreadFitFilenameFor() names a fit by its fire years and the model tag", {
-  expect_identical(spreadFitFilenameFor(1985:2024), "fireSenseParams_1985-2024_linearFuel_esc50.rds")
-  expect_identical(spreadFitFilenameFor(c(NA, 2001, 1990)), "fireSenseParams_1990-2001_linearFuel_esc50.rds")
+  expect_identical(spreadFitFilenameFor(1985:2024), "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds")
+  expect_identical(spreadFitFilenameFor(c(NA, 2001, 1990)), "fireSenseParams_1990-2001_linearFuel_esc50_20260925.rds")
   expect_error(spreadFitFilenameFor(NA), "no years")
+})
+
+test_that("undated and suffixed experiment files are not ledger files; the dated tag is", {
+  d <- withr::local_tempdir()
+  drive <- fakeDrive(list(
+    "fireSenseParams_1985-2024_linearFuel_esc50.rds" = list(modified = "2026-10-12T10:00:00Z",
+                                                      ledger = ledgerRows(c("4.1", "5.1"), c(9, 9))),
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925_repStab_rep3.rds" = list(modified = "2026-10-12T11:00:00Z",
+                                                      ledger = ledgerRows(c("4.1", "6.1"), c(8, 8))),
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-01T10:00:00Z",
+                                                      ledger = ledgerRows("4.1", 1))))
+  out <- latestSpreadFits("folder", d)
+  expect_identical(out$polygonID, "4.1")
+  expect_identical(out$objFunVal, 1)
+  expect_identical(drive$downloads, "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds")
+  oldPattern <- "^fireSenseParams_.*_linearFuel_esc50\\.rds$"
+  expect_false(grepl(oldPattern, spreadFitFilenameFor(1985:2024)))
 })
 
 test_that("each polygon comes from the newest file that has it; other models' files are ignored", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
-    "fireSenseParams_1985-2024_linearFuel_esc50.rds" = list(modified = "2026-09-20T10:00:00Z",
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
                                                       ledger = ledgerRows(c("4.1", "4.3"), c(1, 1))),
-    "fireSenseParams_1985-2025_linearFuel_esc50.rds" = list(modified = "2026-09-24T10:00:00Z",
+    "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-24T10:00:00Z",
                                                       ledger = ledgerRows("4.1", 2)),
     ## log fuel: newest of all, and has 5.1, but must never be read
     "fireSenseParams_1985-2024.rds" = list(modified = "2026-09-25T10:00:00Z",
@@ -21,7 +38,7 @@ test_that("each polygon comes from the newest file that has it; other models' fi
   expect_setequal(out$polygonID, c("4.1", "4.3"))
   expect_identical(out$objFunVal[out$polygonID == "4.1"], 2)      # the newer file's fit
   expect_identical(out$objFunVal[out$polygonID == "4.3"], 1)
-  expect_identical(attr(out, "spreadFitFiles")[["4.3"]], "fireSenseParams_1985-2024_linearFuel_esc50.rds")
+  expect_identical(attr(out, "spreadFitFiles")[["4.3"]], "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds")
   expect_false("fireSenseParams_1985-2024.rds" %in% drive$downloads)
   expect_false("fireSenseParams_1985-2024_linearFuel.rds" %in% drive$downloads)
   expect_s3_class(sf::st_as_sf(out), "sf")                        # still a ledger CacheGeo can read
@@ -30,16 +47,16 @@ test_that("each polygon comes from the newest file that has it; other models' fi
 test_that("reading stops at the first file that has every polygon asked for, and reuses local copies", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
-    "fireSenseParams_1985-2024_linearFuel_esc50.rds" = list(modified = "2026-09-20T10:00:00Z",
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
                                                       ledger = ledgerRows("4.3", 1)),
-    "fireSenseParams_1985-2025_linearFuel_esc50.rds" = list(modified = "2026-09-24T10:00:00Z",
+    "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-24T10:00:00Z",
                                                       ledger = ledgerRows("4.1", 2))))
   out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
-  expect_identical(drive$downloads, "fireSenseParams_1985-2025_linearFuel_esc50.rds")
+  expect_identical(drive$downloads, "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds")
   ## second call: the same file is on disk with Drive's MD5, so nothing is downloaded
   latestSpreadFits("folder", d, polygonIDs = "4.1")
-  expect_identical(drive$downloads, "fireSenseParams_1985-2025_linearFuel_esc50.rds")
+  expect_identical(drive$downloads, "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds")
   ## an ELF in no file: every file is read, and the result has only what exists
   out <- latestSpreadFits("folder", d, polygonIDs = "9.9")
   expect_setequal(out$polygonID, c("4.1", "4.3"))
@@ -53,10 +70,10 @@ test_that("no matching file gives NULL", {
 
 test_that("a ledger file is fetched with reproducible::preProcess() into destinationPath", {
   d <- withr::local_tempdir()
-  nm <- "fireSenseParams_1985-2025_linearFuel_esc50.rds"
+  nm <- "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds"
   drive <- fakeDrive(list(a = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.3", 1)),
                           b = list(modified = "2026-09-24T10:00:00Z", ledger = ledgerRows("4.1", 2))) |>
-                       setNames(c("fireSenseParams_1985-2024_linearFuel_esc50.rds", nm)))
+                       setNames(c("fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds", nm)))
   out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
   expect_length(drive$calls, 1L)
