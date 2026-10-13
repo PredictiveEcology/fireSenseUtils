@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* New `hindcastObserved()`, `hindcastSimulated()` and `plotHindcastDistributions()`, `plotHindcastSizes()`, `plotHindcastMap()` for the hindcast validation. `hindcastObserved()` gives the natural-cause ignitions, escapes (`escapedFires()`), core-clipped area burned (natural-cause and all-cause polygons, from `ELFfireCounts()` and `ELFfireOverlay()`) and fire sizes of one year in an ELF core; `hindcastSimulated()` gives the core-clipped sizes of a simulated year's fires; the plots set the simulated rep-years beside the observed year.
+
 * Per-year prediction is faster with identical results. `.fuelClassVectors()` (used by `cohortsToFuelClasses()`) no longer joins `sppEquiv` onto every cohort row, and takes one grouped max and one grouped sum on an integer key instead of a join, `split()` and a `match()` per class (4.4 to 1.6 s on 10M cohort rows). `prepare_ignitionClimate()` and `fireSenseCovariatesCreate()` compute the `.robustDigest()` for the cache key only when `useCache` is not `FALSE`.
 
 * `fireSenseCloudParametersMap()` no longer calls `makeELFs()` a second time for an object it never used. `plotELFs(labels = "name")` is tested on merged ELFs (`11.1_2`, `3.1.1_2`, `10.3.1_2`): they already take their ecozone name.

@@ -79,6 +79,8 @@ export(getFirePolygons)
 export(harmonizeBufferAndPoints)
 export(harmonizeFireData)
 export(harmonizeFireDataDeps)
+export(hindcastObserved)
+export(hindcastSimulated)
 export(identifiedInIsolation)
 export(igOrEscNames)
 export(ignitionFitAdditionalColNamesTxt)
@@ -118,6 +120,9 @@ export(paramsSeparate)
 export(plotBurnSummary)
 export(plotCumulativeBurns)
 export(plotELFs)
+export(plotHindcastDistributions)
+export(plotHindcastMap)
+export(plotHindcastSizes)
 export(plotHistoricFires)
 export(plotSpreadFitResponse)
 export(plotSpreadFitValidation)
@@ -356,6 +361,7 @@ importFrom(terra,
   extract,
   focal,
   freq,
+  geom,
   ifel,
   intersect,
   mask,
