@@ -59,7 +59,13 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
                               sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol,
                               requiredFuelClasses) {
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
+  ## An NA fuel class means "not a fuel" (a species with no cohorts when the model was fitted has
+  ## FuelClass = NA in the spread ledger, see fireSense_dataPrepFit R/sppEquivFuelClass.R). Drop
+  ## those species like species absent from `sppEquiv`, and an NA from `requiredFuelClasses`;
+  ## otherwise a layer named NA reaches the covariate table.
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
+  sppEquivSubset <- sppEquivSubset[!is.na(sppEquivSubset[[fuelClassCol]])]
+  requiredFuelClasses <- requiredFuelClasses[!is.na(requiredFuelClasses)]
 
   ## `unique()` above is over BOTH columns, but the join below keys on the species column
   ## ALONE. A species carrying two different `fuelClassCol` values therefore survives as
@@ -136,8 +142,7 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
     vals[pgOfRow[w]] <- as.numeric(BperClass[w])
     rasVals <- vals[pgIdx]
     rasVals[flamValsGood & is.na(rasVals)] <- 0
-    ## paste(): an NA fuel class is named "NA", as `split()` named it
-    cc[[if (k == youngK) youngAgeTxt else paste(classes[k])]] <- rasVals
+    cc[[if (k == youngK) youngAgeTxt else classes[k]]] <- rasVals
   }
 
   noFuelForRequiredClass <- character()
