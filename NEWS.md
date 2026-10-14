@@ -1,5 +1,6 @@
 # fireSenseUtils (development version)
 
+* New `dataYearFor()` and `dataYearElement()`: the one rule for matching a year to a vegetation or land-cover data year (the data year closest to, and not after, it), for `fireSense_dataPrepFit` (fire years, the fit's structure decisions) and `fireSense_dataPrepPredict` (the vegetation of `time(sim)`), so a fit and every prediction read the same data for the same year.
 * `climateRasterToDataTable()` merges any number of climate variables. With three or more it stopped with "`by.x` and `by.y` must be of same length" (the third table was matched to `by.x`), which broke the ignition refit of ELFs whose spread variables, with their neighbours', number three or more.
 
 * `cohortsToFuelClasses()` treats a fuel class of `NA` as "not a fuel". A species with no cohorts at fit time has `FuelClass = NA` in the spread ledger, and `fireSense_dataPrepPredict` passes that in `requiredFuelClasses`; the result had a layer named `NA`, and `fireSenseCovariatesCreate()` stopped with ".SDcols missing at the following indices" (ELFs 6.5 and 6.3.2 failed every prediction). Species with an `NA` class are dropped like species absent from `sppEquiv`; results without `NA` are unchanged.
