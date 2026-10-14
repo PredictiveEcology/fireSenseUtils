@@ -111,13 +111,17 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
 
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
+  ## No `writeTo` here: the builder would write its native-resolution raster to
+  ## file.path(destinationPath, writeTo), the path of the final result below, and this function reads
+  ## that raster block by block. Another job sharing `destinationPath` that restores or writes that
+  ## file mid-read breaks it ("[classify] too few values for writing: 0 < N"). Only the final results
+  ## are written to `writeTo`.
   lccFun <- if (lccSource == "NTEMS") prepInputs_NTEMS_LCC_FAO else .scanfiLCC
   lccArgs <- list(year = neededYear,
                    disturbedCode = 240, # Optional: specify disturbed code if needed
                    overwrite = overwrite,
                    destinationPath = destinationPath,
                    cropTo = to,
-                   writeTo = writeTo,
                    maskTo = maskToArg)
   if (identical(lccSource, "SCANFI")) lccArgs$scanfiVersion <- scanfiVersion
   rstLCC <- do.call(lccFun, lccArgs)
