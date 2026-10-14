@@ -52,11 +52,3 @@ test_that("runELFs stops clearly when the project has no ELFs module", {
   prj <- list(modules = "PredictiveEcology/unrelated@development", paths = list(modulePath = mp))
   expect_error(runELFs(prj), "fireSense_ELFs.*unrelated")
 })
-
-test_that(".elfOutputFile stops before upload when the ELF file is missing", {
-  expect_error(.elfOutputFile(c("a/checkpoint.rds", "a/progress.png")), "No ELF output file")
-  expect_error(.elfOutputFile(c("a/checkpoint.rds", "a/ELFs.rds")), "No ELF output file")
-  expect_identical(.elfOutputFile(c("a/ELF_polygons.png", "a/ELFs_postMerge.png", "a/studyAreas4.png")),
-                   "a/ELF_polygons.png")
-  expect_error(.elfOutputFile(c("a/ELF_polygons.png", "b/ELF_polygons.png")), "More than one")
-})

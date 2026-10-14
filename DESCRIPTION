@@ -41,7 +41,6 @@ Imports:
     sf,
     sp,
     SpaDES.core (>= 3.2.1.9027),
-    SpaDES.project,
     SpaDES.tools (>= 2.1.3.9013),
     stats,
     terra,
@@ -82,7 +81,6 @@ Remotes:
     PredictiveEcology/Require@development,
     PredictiveEcology/scfmutils@development,
     PredictiveEcology/SpaDES.core@development,
-    PredictiveEcology/SpaDES.project@development,
     PredictiveEcology/SpaDES.tools@development
 VignetteBuilder:
     knitr,

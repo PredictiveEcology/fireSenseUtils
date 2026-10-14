@@ -203,7 +203,6 @@ importFrom(SpaDES.core,
   moduleMetadata,
   simInitAndSpades2
 )
-importFrom(SpaDES.project,user)
 importFrom(SpaDES.tools,
   distanceFromEachPoint,
   rastFromDF,
@@ -253,7 +252,6 @@ importFrom(ggplot2,
   theme_minimal,
   xlab
 )
-importFrom(googledrive,drive_update)
 importFrom(grDevices,
   dev.off,
   png,
@@ -296,8 +294,6 @@ importFrom(reproducible,
   Checksums,
   Copy,
   Filenames,
-  asPath,
-  cacheId,
   checkPath,
   loadFromCache,
   postProcess,
