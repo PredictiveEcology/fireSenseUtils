@@ -6,14 +6,16 @@
 #' functions instead of one named file. Parallel to the spread-fit ledger helpers
 #' (`spreadFitFilenameFor()`, `latestSpreadFits()`).
 #'
-#' `ignitionFitFileTag` marks the files whose fits use the current model: xgboost ignition and
-#' escape fits (`fireSense_IgnitionFit`'s `modelAlgorithm = "xgboost"`). A fit made under a new
-#' model needs a new tag, so the old files drop out of `"latest"`.
+#' `ignitionFitFileTag` marks the files whose fits use the current model: xgboost Poisson
+#' ignition and escape fits (`fireSense_IgnitionFit`'s `modelAlgorithm = "xgboost"` with objective
+#' `count:poisson`). The date is the model version. A fit made under a new model needs a new tag,
+#' so the old files drop out of `"latest"`; files with an older tag, e.g. `"_xgboost"` (Tweedie
+#' fits), are never read.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
 #'
 #' @return `ignitionFitFilenameFor()`: the file name a fit over `fireYears` is written to,
-#'   e.g. `"fireSenseIgnitionParams_1985-2024_xgboost.rds"`.
+#'   e.g. `"fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds"`.
 #' @export
 #' @rdname ignitionFitLedger
 ignitionFitFilenameFor <- function(fireYears) {
@@ -27,7 +29,7 @@ ignitionFitFilePrefix <- "fireSenseIgnitionParams_"
 
 #' @export
 #' @rdname ignitionFitLedger
-ignitionFitFileTag <- "_xgboost"
+ignitionFitFileTag <- "_xgboostPoisson_20261013"
 
 #' @description
 #' `latestIgnitionFits()` returns, for every polygon, its rows from the most recently modified
