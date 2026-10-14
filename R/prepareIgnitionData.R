@@ -196,7 +196,8 @@ prepare_LightningData <- function(rtm, igAggFactor, dPath) {
 #' @export
 prepare_ignitionClimate <- function(ignitionClimateList, fact, digest = NULL, useCache = TRUE) {
   # ignitionClimateList <- sim$historicalClimateRasters[sim$climateVariablesForFire$ignition]
-  digClimate <- .robustDigest(ignitionClimateList)
+  ## the digest only keys Cache(): skip its cost when caching is off
+  digClimate <- .digestIfCaching(ignitionClimateList, useCache)
   dig3 <- append(digest, digClimate)
   ignitionClimateCoarse <- lapply(X = ignitionClimateList, FUN = terra::aggregate,
                                   fact = fact, fun = mean) |>

@@ -117,7 +117,7 @@ ELFfireOverlay <- function(rasWhole, firePolys, fireYears) {
   fireYears <- sort(unique(as.integer(fireYears)))
   polys <- terra::project(firePolys, terra::crs(rasWhole))
   polys <- polys[as.integer(polys$YEAR) %in% fireYears, ]
-  empty <- data.table::data.table(ELF = character(0), zone = character(0), YEAR = integer(0), ha = numeric(0))
+  empty <- .emptyOverlay()
   if (!nrow(polys)) return(empty)
 
   ## A polygon wholly inside a zone is not clipped: its own area is its piece. Only polygons that cross
@@ -273,4 +273,9 @@ ELFflammableArea <- function(rasWhole, rstLCC, nonflammableLCC = fireSenseNonfla
   out <- data.table::rbindlist(out)
   data.table::setkeyv(out, "ELF")
   out[]
+}
+
+## The table ELFfireOverlay() returns when nothing is clipped.
+.emptyOverlay <- function() {
+  data.table::data.table(ELF = character(0), zone = character(0), YEAR = integer(0), ha = numeric(0))
 }

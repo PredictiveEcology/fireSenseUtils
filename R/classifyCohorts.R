@@ -59,7 +59,13 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
                               sppEquiv, sppEquivCol, cutoffForYoungAge, fuelClassCol,
                               requiredFuelClasses) {
   joinCol <- c(fuelClassCol, eval(sppEquivCol))
+  ## An NA fuel class means "not a fuel" (a species with no cohorts when the model was fitted has
+  ## FuelClass = NA in the spread ledger, see fireSense_dataPrepFit R/sppEquivFuelClass.R). Drop
+  ## those species like species absent from `sppEquiv`, and an NA from `requiredFuelClasses`;
+  ## otherwise a layer named NA reaches the covariate table.
   sppEquivSubset <- unique(sppEquiv[, .SD, .SDcols = joinCol])
+  sppEquivSubset <- sppEquivSubset[!is.na(sppEquivSubset[[fuelClassCol]])]
+  requiredFuelClasses <- requiredFuelClasses[!is.na(requiredFuelClasses)]
 
   ## `unique()` above is over BOTH columns, but the join below keys on the species column
   ## ALONE. A species carrying two different `fuelClassCol` values therefore survives as
@@ -85,29 +91,59 @@ cohortsToFuelClasses <- function(cohortData, pixelGroupMap, flammableRTM, landco
          call. = FALSE)
   }
 
-  cD <- cohortData[sppEquivSubset, on = c("speciesCode" = sppEquivCol)]
-  setnames(cD, old = fuelClassCol, new = "FuelClass") # so we don't have to use eval, which trips up some dt
-  # data.table needs an argument for which column names are kept during join
-  cD[, maxAge := max(age), .(pixelGroup)]
-  cD[isYoungAge(maxAge, cutoffForYoungAge), FuelClass := youngAgeTxt]
-  cD[, maxAge := NULL]
-  cD <- cD[, .(BperClass = asInteger(sum(B))), by = c("FuelClass", "pixelGroup")]
+  ## Everything below works on integer indices instead of the 10M-row right join, the grouped
+  ## max/sum by (FuelClass, pixelGroup), `split()` and a `match()` per class that this function
+  ## used to run: same values, ~3x faster. `speciesCode` is mapped to a fuel-class index through
+  ## its factor levels, and rows whose species is not in `sppEquiv` are dropped (as the join did).
+  spp <- sppEquivSubset[[sppEquivCol]]
+  fcOfSpp <- sppEquivSubset[[fuelClassCol]]
+  classes <- unique(fcOfSpp)
+  youngK <- length(classes) + 1L # index of the youngAge class
+  clsOfSpp <- match(fcOfSpp, classes)
+  sc <- cohortData$speciesCode
+  cls <- if (is.factor(sc)) clsOfSpp[match(levels(sc), spp)][as.integer(sc)] else clsOfSpp[match(sc, spp)]
+  pg <- cohortData$pixelGroup
+  age <- cohortData$age
+  B <- cohortData$B
+  keep <- which(!is.na(cls) & !is.na(pg))
+  if (length(keep) < length(pg)) {
+    pg <- pg[keep]; cls <- cls[keep]; age <- age[keep]; B <- B[keep]
+  }
 
+  ## a pixelGroup is young when its oldest cohort is (an NA age is never young)
+  maxPG <- if (length(pg)) max(pg) else 0L
+  isYoungPG <- logical(maxPG)
+  if (length(pg)) {
+    maxAge <- data.table(pg = pg, age = age)[, .(maxAge = max(age)), by = pg]
+    isYoungPG[maxAge$pg[isYoungAge(maxAge$maxAge, cutoffForYoungAge)]] <- TRUE
+  }
+  cls[isYoungPG[pg]] <- youngK
+
+  ## biomass per (pixelGroup, class): one grouped sum (GForce) on a single integer key
+  perClass <- data.table(k = (pg - 1L) * youngK + cls, B = B)[, .(BperClass = sum(B)), by = k]
+  pgOfRow <- (perClass$k - 1L) %/% youngK + 1L
+  clsOfRow <- (perClass$k - 1L) %% youngK + 1L
+  BperClass <- asInteger(perClass$BperClass)
   # youngAge is better treated as a binary cover variable than continuous measure of biomass
-  cD[FuelClass == youngAgeTxt, BperClass := 1]
+  BperClass[clsOfRow == youngK] <- 1L
 
   ## Everything below is vector arithmetic over cells. It used to build one SpatRaster per
   ## fuel class with rastFromDF() and stack them, then fireSenseCovariatesCreate() converted
   ## the stack straight back to a table: ~6 s of the ~10 s call on 6.7M cells.
   pgv <- values(pixelGroupMap, mat = FALSE)
   flamValsGood <- !is.na(values(flammableRTM, mat = FALSE))
-  cD <- cD[!is.na(cD$pixelGroup)]
-  cc <- lapply(split(cD, by = "FuelClass"), function(r) {
+  pgIdx <- pgv
+  pgIdx[!is.na(pgIdx) & (pgIdx < 1 | pgIdx > maxPG)] <- NA
+  cc <- list()
+  for (k in sort(unique(clsOfRow))) {
     ## a cell takes the class's biomass of its pixelGroup; NA where the class is absent
-    rasVals <- as.numeric(r$BperClass[match(pgv, r$pixelGroup)])
+    w <- clsOfRow == k
+    vals <- rep(NA_real_, maxPG)
+    vals[pgOfRow[w]] <- as.numeric(BperClass[w])
+    rasVals <- vals[pgIdx]
     rasVals[flamValsGood & is.na(rasVals)] <- 0
-    rasVals
-  })
+    cc[[if (k == youngK) youngAgeTxt else classes[k]]] <- rasVals
+  }
 
   noFuelForRequiredClass <- character()
   if (!is.null(requiredFuelClasses))
