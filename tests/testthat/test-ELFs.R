@@ -227,13 +227,13 @@ test_that("runELFs accepts partial whatOut matching (\"fit\" / \"allNames\")", {
   expect_identical(runELFs(prj, whatOut = "allNames"), c("4.1", "6.1"))
 })
 
-test_that("runELFs maps path keeps all ELFs when none are excluded", {
+test_that("runELFs maps path keeps all ELFs when none are excluded (Arctic excluded as always)", {
   prj <- list(modules = "fireSense_ELFs", paths = list(modulePath = withr::local_tempdir()),
               params = list(fireSense_ELFs = list()))
   localRunELFs(excluded = NULL)
 
   maps <- runELFs(prj, whatOut = "maps")
-  expect_named(maps$rasWhole, c("1.1", "4.1", "4.2", "6.1"))
+  expect_named(maps$rasWhole, c("4.1", "4.2", "6.1"))   # 1.1 is Arctic, excluded
 })
 
 test_that("runELFs runs the module on every call, with no Cache, Drive hash or png upload", {
