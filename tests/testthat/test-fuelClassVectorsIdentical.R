@@ -118,7 +118,11 @@ test_that(".fuelClassVectors returns exactly what the old implementation returne
     a <- fcvInputs(young, naClass)
     for (landcoverDT in list(NULL, lc)) for (cutoff in c(15, 40)) for (req in list(NULL, c("x", "y", "z", "w", "q"))) {
       args <- c(a, list(landcoverDT = landcoverDT, cutoffForYoungAge = cutoff, requiredFuelClasses = req))
-      expect_identical(do.call(.fuelClassVectors, args), do.call(.fuelClassVectorsReference, args),
+      ## An NA fuel class is "not a fuel" (see test-fuelClassNA.R): the reference gets the same
+      ## input without those species and without NA in `requiredFuelClasses`.
+      refArgs <- args
+      refArgs$sppEquiv <- a$sppEquiv[!is.na(FuelClass)]
+      expect_identical(do.call(.fuelClassVectors, args), do.call(.fuelClassVectorsReference, refArgs),
                        info = paste("allYoung", young, "NAclass", naClass, "landcoverDT", !is.null(landcoverDT),
                                     "cutoff", cutoff, "required", length(req)))
     }
