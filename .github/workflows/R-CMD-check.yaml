@@ -35,3 +35,9 @@ jobs:
       ## deliberate back-compat coverage, so they are preserved.
       extra-config: |
         [{"config": {"os": "ubuntu-latest", "nosuggests": false, "r": "oldrel-2"}}, {"config": {"os": "windows-latest", "nosuggests": false, "r": "oldrel-2"}}]
+      ## A PR with a `Depends-on: owner/repo#N` line: install that unmerged PR with its
+      ## version raised by one (the post-merge bump), wait until its checks are green,
+      ## and run release on ubuntu/windows/macOS only while it is still open.
+      depends-on-virtual-bump: true
+      depends-on-gate: true
+      depends-on-reduced-matrix: true
