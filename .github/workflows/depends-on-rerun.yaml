@@ -1,0 +1,14 @@
+## Re-runs this repo's PR checks that the Depends-on gate skipped, once every
+## upstream PR they depend on is green or merged. Uses only this repo's own
+## automatic token. Scheduled runs only fire from the default branch.
+name: depends-on-rerun
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+jobs:
+  rerun:
+    permissions:
+      actions: write
+      pull-requests: read
+    uses: PredictiveEcology/actions/.github/workflows/depends-on-rerun.yaml@main

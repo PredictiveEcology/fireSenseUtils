@@ -36,6 +36,10 @@ concurrency:
 jobs:
   test-coverage:
     uses: PredictiveEcology/actions/.github/workflows/test-coverage.yaml@main
+    with:
+      ## see R-CMD-check.yaml: Depends-on PRs install the bumped upstream and wait for it
+      depends-on-virtual-bump: true
+      depends-on-gate: true
     secrets:
       GOOGLEDRIVE_AUTH: ${{ secrets.GOOGLEDRIVE_AUTH }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
