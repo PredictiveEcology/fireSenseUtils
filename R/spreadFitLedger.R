@@ -36,7 +36,7 @@ spreadFitFileTag <- "_linearFuel_esc50_20260925"
 #' downloaded again; one that differs is downloaded again with [reproducible::preProcess()], into a
 #' temporary folder first.
 #'
-#' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files.
+#' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [spreadFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
 #'
@@ -45,7 +45,7 @@ spreadFitFileTag <- "_linearFuel_esc50_20260925"
 #'   `"spreadFitFiles"` names the file each polygon came from.
 #' @export
 #' @rdname spreadFitLedger
-latestSpreadFits <- function(cloudFolderID, destinationPath, polygonIDs = NULL) {
+latestSpreadFits <- function(cloudFolderID = spreadFitLedgerFolder(), destinationPath, polygonIDs = NULL) {
   .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = "fireSenseParams_",
                     fileTag = spreadFitFileTag, caller = "latestSpreadFits", attrName = "spreadFitFiles")
 }

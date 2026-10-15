@@ -183,6 +183,57 @@ test_that("ELFtemplateRaster aggregates the downloaded raster by 8 and writes it
                    normalizePath(file.path(dp, "rastTemplate_Canada.tif")))
 })
 
+test_that("ELFtemplateRaster defaults to the SCANFI v2 Douglas-fir file on Arbutus", {
+  expect_identical(formals(ELFtemplateRaster)$url,
+                   "https://object-arbutus.alliancecan.ca/529feda02d404836b0e91b1d360b4df0:predictiveecology/SCANFI_v2/2020/SCANFI_spsCC_PSEU_MEN_2020_v2_20260119.tif")
+  dp <- localELFsDir()
+  src <- terra::rast(nrows = 16, ncols = 16, xmin = 0, xmax = 16, ymin = 0, ymax = 16,
+                     vals = 1, crs = "EPSG:3978")
+  got <- NULL
+  local_mocked_bindings(getRemoteMetadata = function(...) list(remoteHash = "abc"),
+                        .package = "reproducible")
+  local_mocked_bindings(prepInputs = function(url, destinationPath, ...) {
+    got <<- url
+    src
+  })
+  ELFtemplateRaster(dp)
+  expect_identical(got, formals(ELFtemplateRaster)$url)
+})
+
+test_that("ELFtemplateRaster returns a 1/NA mask of where the aggregated source has data", {
+  dp <- localELFsDir()
+  v <- rep(37, 16 * 16)                       # cover values, not 1
+  src <- terra::rast(nrows = 16, ncols = 16, xmin = 0, xmax = 16, ymin = 0, ymax = 16,
+                     vals = v, crs = "EPSG:3978")
+  src[1:8, 1:8] <- NA                         # top-left aggregation block has no data
+  src[9:16, 9:16] <- 0                        # zero cover is still data
+  local_mocked_bindings(getRemoteMetadata = function(...) list(remoteHash = "abc"),
+                        .package = "reproducible")
+  local_mocked_bindings(prepInputs = function(url, destinationPath, ...) src)
+
+  out <- ELFtemplateRaster(dp)
+
+  expect_equal(terra::values(out, mat = FALSE), c(NA, 1, 1, 1))
+})
+
+test_that("ELFtemplateRaster downloads the url it is given, and caches per url", {
+  dp <- localELFsDir()
+  src <- terra::rast(nrows = 16, ncols = 16, xmin = 0, xmax = 16, ymin = 0, ymax = 16,
+                     vals = 1, crs = "EPSG:3978")
+  got <- character()
+  local_mocked_bindings(getRemoteMetadata = function(...) list(remoteHash = "abc"),
+                        .package = "reproducible")
+  local_mocked_bindings(prepInputs = function(url, destinationPath, ...) {
+    got <<- c(got, url)
+    src
+  })
+  withr::local_options(reproducible.cachePath = withr::local_tempdir(), reproducible.useCache = TRUE)
+  ELFtemplateRaster(dp, url = "https://example.org/a.tif")
+  ELFtemplateRaster(dp, url = "https://example.org/b.tif")
+  ELFtemplateRaster(dp, url = "https://example.org/a.tif")   # cached
+  expect_identical(got, c("https://example.org/a.tif", "https://example.org/b.tif"))
+})
+
 test_that("moveSliversToOtherELFs reports pixels no other ELF covers", {
   r <- terra::rast(nrows = 2, ncols = 2, xmin = 0, xmax = 2, ymin = 0, ymax = 2,
                    vals = c(2, 2, 0, 0), crs = "EPSG:3978")
@@ -296,7 +347,7 @@ test_that("makeELFs reads the ecostratification as a SpatVector whatever reprodu
   expect_true(all(vapply(funs, identical, logical(1), terra::vect)))
 })
 
-test_that("makeELFs on the real ecostratification gives the ELF maps the 2026-10-05 campaign used", {
+test_that("makeELFs on the real ecostratification gives the ELF maps of the SCANFI v2 template", {
   skip_on_cran()
   skip_on_ci()   # downloads the SCANFI template and four ecostratification shapefiles; takes many minutes
   skip_if_offline("sis.agr.gc.ca")
@@ -323,5 +374,7 @@ test_that("makeELFs on the real ecostratification gives the ELF maps the 2026-10
   }, character(1))
   names(sums) <- sort(ids)
   expect_length(sums, 82)
-  expect_identical(digest::digest(sums, algo = "xxhash64"), "ec1a815c01d736e6")
+  ## "ec1a815c01d736e6" was the 2026-10-05 campaign's maps (SCANFI v1.2 template); the SCANFI v2 mask
+  ## template changes about 0.3% of cells, so the hash below is the v2 one
+  expect_identical(digest::digest(sums, algo = "xxhash64"), "3dd5c361ed1acdda")
 })

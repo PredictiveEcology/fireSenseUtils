@@ -3,6 +3,22 @@ utils::globalVariables(c(
   "dif", "variable", "pred"
 ))
 
+#' Default DEoptim population size for a fit
+#'
+#' The number of workers, and so the DEoptim population `NP`, [runDEoptim()] asks for when
+#' `nCoresNeeded` is `NULL`: `20 + 10 * floor((nParams + 2) / 5)`, i.e. 30 for 4 to 7 parameters,
+#' 40 for 8 to 12 and 50 for 13 to 15. Ten times the number of parameters was tested against other
+#' sizes; 40 was a good middle with very little improvement above it, and the current spread ledgers
+#' have 10 to 12 parameters, so every current ELF gets 40.
+#'
+#' @param nParams Integer. The number of parameters estimated (`length(lower)`).
+#'
+#' @return An integer.
+#' @export
+deoptimPopulationSize <- function(nParams) {
+  as.integer(20L + 10L * floor((nParams + 2L) / 5L))
+}
+
 #' Run `DEoptim`
 #'
 #' Provides a wrapper around [DEoptim::DEoptim], setting up the multiple cluster connections.
@@ -118,9 +134,10 @@ utils::globalVariables(c(
 #'   `DEoptimProgress_<runName>.csv` in `visualizeDEoptim`; `FALSE` writes none; or a path. The file has
 #'   one row per generation and a `FINISHED` row at the end. It is not part of the cache key.
 #'
-#' @param nCoresNeeded Integer. How many workers to request for the DEoptim cluster; defaults to
-#'   about 10 per estimated parameter, `10 * length(lower)`. DEoptim's `NP` is set to the number of
-#'   workers the cluster actually gets, so a smaller allocation means a smaller population.
+#' @param nCoresNeeded Integer. How many workers to request for the DEoptim cluster. `NULL` (the
+#'   default) takes [deoptimPopulationSize()] of `length(lower)`: 30 for 4 to 7 parameters, 40 for
+#'   8 to 12, 50 for 13 to 15. DEoptim's `NP` is set to the number of workers the cluster actually
+#'   gets, so a smaller allocation means a smaller population.
 #'
 #' @param rescoreReps Integer. After the fit, each member of the final population is evaluated this
 #'   many more times (full evaluations, no early stop) and the result is attached to the returned
@@ -208,7 +225,7 @@ runDEoptim <- function(landscape,
                        rep = 1L,
                        runName = "",
                        progressFile = NULL,
-                       nCoresNeeded = 10L * length(lower),
+                       nCoresNeeded = NULL,
                        rescoreReps = 10L,
                        sizeLik = "kde",
                        sizeLikDf = 5,
@@ -236,6 +253,8 @@ runDEoptim <- function(landscape,
   ## the edge ring of each fire's buffer, once, before the tables go to the workers
   fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
   if (isTRUE(is.na(cores))) cores <- NULL
+  ## resolved to an integer before the cluster is built, so NULL and an explicit 40L are the same call
+  if (is.null(nCoresNeeded)) nCoresNeeded <- deoptimPopulationSize(length(lower))
   origBlas <- blas_get_num_procs()
   if (origBlas > 1) {
     blas_set_num_threads(1)
@@ -268,7 +287,7 @@ runDEoptim <- function(landscape,
     messagePrefix = as.character(rep), # .runName,
     strategy = strategy, itermax = itermax,
     cores = cores, # logPath = file.path(dataPath(sim)),
-    ## about 10 workers per estimated parameter; clusterSetup() sets NP to the workers it gets
+    ## deoptimPopulationSize() workers; clusterSetup() sets NP to the workers it gets
     nCoresNeeded = nCoresNeeded,
     libPath = libPath[1], NP = NP, runName = runName,
     logPath = logPath,

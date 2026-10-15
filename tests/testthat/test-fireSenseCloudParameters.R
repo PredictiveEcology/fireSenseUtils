@@ -51,7 +51,7 @@ test_that("fireSenseCloudParameters finds targetFile when url is a folder", {
     .package = "googledrive"
   )
   dp <- withr::local_tempdir()
-  out <- fireSenseCloudParameters(url = "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf",
+  out <- fireSenseCloudParameters(url = spreadFitLedgerFolder(),
                                   targetFile = "fireSenseParams2026-09.rds", destinationPath = dp)
   expect_identical(got$id, "b")
   expect_identical(out$polygonID, "5.4")

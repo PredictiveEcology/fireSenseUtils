@@ -37,7 +37,7 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
 #' downloaded again; one that differs is downloaded again with [reproducible::preProcess()].
 #'
-#' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files.
+#' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [ignitionFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
 #'
@@ -46,7 +46,7 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #'   `"ignitionFitFiles"` names the file each polygon came from.
 #' @export
 #' @rdname ignitionFitLedger
-latestIgnitionFits <- function(cloudFolderID, destinationPath, polygonIDs = NULL) {
+latestIgnitionFits <- function(cloudFolderID = ignitionFitLedgerFolder(), destinationPath, polygonIDs = NULL) {
   .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = ignitionFitFilePrefix,
                     fileTag = ignitionFitFileTag, caller = "latestIgnitionFits", attrName = "ignitionFitFiles")
 }
