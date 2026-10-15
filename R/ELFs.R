@@ -859,25 +859,34 @@ ELFsInStudyArea <- function(studyArea, inputPath, ELFsRaster = NULL, ELFsPolygon
 
 #' Build a Canada-wide raster template for ELF construction
 #'
-#' Downloads the SCANFI v1.2 Douglas-fir (SW) raster from NRCan, aggregates it
-#' by a factor of 8, loads it into memory, and writes it to disk as a reusable
-#' template for building Ecologically-based Low Fractal-dimensional (ELF)
-#' objects. Both the remote download and the aggregation step are cached via
-#' `reproducible::Cache()`, keyed on the remote file's hash, so the template
-#' is only rebuilt when the upstream source changes.
+#' Downloads the SCANFI Douglas-fir raster (by default the v2 2020 file on the
+#' Arbutus object store), aggregates it by a factor of 8, turns it into a 1/`NA`
+#' mask, loads it into memory, and writes it to disk as a reusable template for
+#' building Ecologically-based Low Fractal-dimensional (ELF) objects. Both the
+#' remote download and the aggregation step are cached via `reproducible::Cache()`,
+#' keyed on `url` and the remote file's hash, so the template is only rebuilt when
+#' the source changes.
 #'
 #' @param inputPath Character. Directory in which to store the downloaded
 #'   source raster and the resulting `rastTemplate_Canada.tif`.
+#' @param url Character. The source raster. It is used only for its footprint
+#'   and grid, so any SCANFI layer with the national extent will do. The default
+#'   is the v2 Douglas-fir 2020 file, which has the same extent, 30 m
+#'   resolution and CRS as the v1.2 file on `ftp.maps.canada.ca` it replaced,
+#'   and is smaller (163 MB vs 226 MB).
 #'
 #' @return A `SpatRaster` pointing to `rastTemplate_Canada.tif` inside
-#'   `inputPath`. The raster covers Canada at roughly 8× the native SCANFI
-#'   resolution and is suitable as a template for downstream ELF construction.
+#'   `inputPath`. The raster covers Canada at roughly 8x the native SCANFI
+#'   resolution; it is `1` where the aggregated source has data (including zero
+#'   cover) and `NA` elsewhere, and is suitable as a template for downstream ELF
+#'   construction.
 #'
 #' @details
-#' The Douglas-fir layer is used purely for its spatial footprint and grid —
-#' the cell values themselves are not meaningful for ELF construction. The
-#' source layer is fetched from
-#' `https://ftp.maps.canada.ca/pub/nrcan_rncan/Forests_Foret/SCANFI/v1/`.
+#' The Douglas-fir layer is used purely for its spatial footprint and grid, so
+#' the returned values are a mask, not cover. At `fact = 8`, the v1.2 file has
+#' 156,026,794 non-`NA` cells and the v2 file 156,482,565; 460,121 cells are `NA`
+#' only in v1.2 and 4,350 only in v2, so ELF maps and `rasterToMatch` built from
+#' the template differ by about 0.3% of cells between the two.
 #' Remote metadata is checked at most once per week
 #' (`notOlderThan = Sys.time() - 60*60*24*7`) to avoid unnecessary network
 #' calls.
@@ -886,21 +895,20 @@ ELFsInStudyArea <- function(studyArea, inputPath, ELFsRaster = NULL, ELFsPolygon
 #'   [terra::aggregate()], [terra::writeRaster()]
 #'
 #' @export
-ELFtemplateRaster <- function(inputPath) {
-  rastTemplate <- {  
-    templateURL <- "https://ftp.maps.canada.ca/pub/nrcan_rncan/Forests_Foret/SCANFI/v1/SCANFI_sps_douglasFir_SW_2020_v1.2.tif"
-    hash <- utils::getFromNamespace("getRemoteMetadata", "reproducible")(isGDurl = FALSE, url = templateURL) |>
+ELFtemplateRaster <- function(inputPath,
+                              url = "https://object-arbutus.alliancecan.ca/529feda02d404836b0e91b1d360b4df0:predictiveecology/SCANFI_v2/2020/SCANFI_spsCC_PSEU_MEN_2020_v2_20260119.tif") {
+  rastTemplate <- {
+    hash <- utils::getFromNamespace("getRemoteMetadata", "reproducible")(isGDurl = FALSE, url = url) |>
       Cache(notOlderThan = Sys.time() - 60*60*24*7)
-    # fn <- dir(getOption("reproducible.destinationPathShared"), pattern = "douglasFir", full.names = TRUE)[1]
     {
-      # r <- terra::rast(paste0("/vsicurl/", templateURL)) |>
-      prepInputs(url = templateURL, destinationPath = inputPath) |>
-        # terra::rast(fn) |>
-        terra::aggregate(fact = 8, na.rm = TRUE) |> 
+      prepInputs(url = url, destinationPath = inputPath) |>
+        terra::aggregate(fact = 8, na.rm = TRUE) |>
+        is.na() |>
+        terra::ifel(NA, 1) |>
         terra::toMemory()
-    } |> Cache(omitArgs = TRUE, .cacheExtra = list(hash$remoteHash))
+    } |> Cache(omitArgs = TRUE, .cacheExtra = list(url, hash$remoteHash))
   }
-  
+
   rastTemplate <- terra::writeRaster(
     rastTemplate, filename = file.path(inputPath, "rastTemplate_Canada.tif"), 
     overwrite = TRUE) 

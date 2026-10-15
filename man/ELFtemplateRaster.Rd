@@ -4,30 +4,44 @@
 \alias{ELFtemplateRaster}
 \title{Build a Canada-wide raster template for ELF construction}
 \usage{
-ELFtemplateRaster(inputPath)
+ELFtemplateRaster(
+  inputPath,
+  url =
+    "https://object-arbutus.alliancecan.ca/529feda02d404836b0e91b1d360b4df0:predictiveecology/SCANFI_v2/2020/SCANFI_spsCC_PSEU_MEN_2020_v2_20260119.tif"
+)
 }
 \arguments{
 \item{inputPath}{Character. Directory in which to store the downloaded
 source raster and the resulting \code{rastTemplate_Canada.tif}.}
+
+\item{url}{Character. The source raster. It is used only for its footprint
+and grid, so any SCANFI layer with the national extent will do. The default
+is the v2 Douglas-fir 2020 file, which has the same extent, 30 m
+resolution and CRS as the v1.2 file on \code{ftp.maps.canada.ca} it replaced,
+and is smaller (163 MB vs 226 MB).}
 }
 \value{
 A \code{SpatRaster} pointing to \code{rastTemplate_Canada.tif} inside
-\code{inputPath}. The raster covers Canada at roughly 8× the native SCANFI
-resolution and is suitable as a template for downstream ELF construction.
+\code{inputPath}. The raster covers Canada at roughly 8x the native SCANFI
+resolution; it is \code{1} where the aggregated source has data (including zero
+cover) and \code{NA} elsewhere, and is suitable as a template for downstream ELF
+construction.
 }
 \description{
-Downloads the SCANFI v1.2 Douglas-fir (SW) raster from NRCan, aggregates it
-by a factor of 8, loads it into memory, and writes it to disk as a reusable
-template for building Ecologically-based Low Fractal-dimensional (ELF)
-objects. Both the remote download and the aggregation step are cached via
-\code{reproducible::Cache()}, keyed on the remote file's hash, so the template
-is only rebuilt when the upstream source changes.
+Downloads the SCANFI Douglas-fir raster (by default the v2 2020 file on the
+Arbutus object store), aggregates it by a factor of 8, turns it into a 1/\code{NA}
+mask, loads it into memory, and writes it to disk as a reusable template for
+building Ecologically-based Low Fractal-dimensional (ELF) objects. Both the
+remote download and the aggregation step are cached via \code{reproducible::Cache()},
+keyed on \code{url} and the remote file's hash, so the template is only rebuilt when
+the source changes.
 }
 \details{
-The Douglas-fir layer is used purely for its spatial footprint and grid —
-the cell values themselves are not meaningful for ELF construction. The
-source layer is fetched from
-\verb{https://ftp.maps.canada.ca/pub/nrcan_rncan/Forests_Foret/SCANFI/v1/}.
+The Douglas-fir layer is used purely for its spatial footprint and grid, so
+the returned values are a mask, not cover. At \code{fact = 8}, the v1.2 file has
+156,026,794 non-\code{NA} cells and the v2 file 156,482,565; 460,121 cells are \code{NA}
+only in v1.2 and 4,350 only in v2, so ELF maps and \code{rasterToMatch} built from
+the template differ by about 0.3\% of cells between the two.
 Remote metadata is checked at most once per week
 (\code{notOlderThan = Sys.time() - 60*60*24*7}) to avoid unnecessary network
 calls.

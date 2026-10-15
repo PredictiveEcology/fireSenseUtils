@@ -10,12 +10,16 @@ ignitionFitFilenameFor(fireYears)
 
 ignitionFitFileTag
 
-latestIgnitionFits(cloudFolderID, destinationPath, polygonIDs = NULL)
+latestIgnitionFits(
+  cloudFolderID = ignitionFitLedgerFolder(),
+  destinationPath,
+  polygonIDs = NULL
+)
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
 
-\item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files.}
+\item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=ignitionFitLedgerFolder]{ignitionFitLedgerFolder()}}.}
 
 \item{destinationPath}{Local folder for the downloaded files.}
 

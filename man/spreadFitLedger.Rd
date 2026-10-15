@@ -10,12 +10,16 @@ spreadFitFilenameFor(fireYears)
 
 spreadFitFileTag
 
-latestSpreadFits(cloudFolderID, destinationPath, polygonIDs = NULL)
+latestSpreadFits(
+  cloudFolderID = spreadFitLedgerFolder(),
+  destinationPath,
+  polygonIDs = NULL
+)
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
 
-\item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files.}
+\item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=spreadFitLedgerFolder]{spreadFitLedgerFolder()}}.}
 
 \item{destinationPath}{Local folder for the downloaded files.}
 

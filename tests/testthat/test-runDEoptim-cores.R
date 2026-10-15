@@ -34,11 +34,23 @@ mockCluster <- function(seen, builtWorkers = 40L) {
   testthat::local_mocked_bindings(termsInDEoptim = function(...) invisible(NULL), .env = parent.frame())
 }
 
-test_that("runDEoptim asks for about 10 workers per estimated parameter", {
+test_that("deoptimPopulationSize is 30 for 4-7 parameters, 40 for 8-12 and 50 for 13-15", {
+  expect_identical(deoptimPopulationSize(4:15),
+                   c(rep(30L, 4), rep(40L, 5), rep(50L, 3)))
+})
+
+test_that("runDEoptim asks for deoptimPopulationSize() workers: 40 for 12 parameters", {
   seen <- new.env()
   mockCluster(seen)
   callRunDEoptim(seen, npar = 12L)
-  expect_identical(as.integer(seen$nCoresNeeded), 120L)
+  expect_identical(seen$nCoresNeeded, 40L)
+})
+
+test_that("an explicit NULL nCoresNeeded (as fireSense_spreadFit passes) falls back to the rule", {
+  seen <- new.env()
+  mockCluster(seen)
+  callRunDEoptim(seen, npar = 6L, nCoresNeeded = NULL)
+  expect_identical(seen$nCoresNeeded, 30L)
 })
 
 test_that("the cluster request can be overridden", {
@@ -86,7 +98,7 @@ test_that("runDEoptim runs where R has no OpenMP", {
   mockCluster(seen)
   testthat::local_mocked_bindings(omp_get_max_threads = function() NA_integer_)
   expect_no_error(callRunDEoptim(seen, npar = 12L))
-  expect_identical(as.integer(seen$nCoresNeeded), 120L)
+  expect_identical(as.integer(seen$nCoresNeeded), 40L)
 })
 
 test_that("clusterSetup() is told the runName the fit is run under", {

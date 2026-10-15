@@ -43,7 +43,7 @@ runDEoptim(
   rep = 1L,
   runName = "",
   progressFile = NULL,
-  nCoresNeeded = 10L * length(lower),
+  nCoresNeeded = NULL,
   rescoreReps = 10L,
   sizeLik = "kde",
   sizeLikDf = 5,
@@ -189,9 +189,10 @@ Default \code{""} (no suffix).}
 \verb{DEoptimProgress_<runName>.csv} in \code{visualizeDEoptim}; \code{FALSE} writes none; or a path. The file has
 one row per generation and a \code{FINISHED} row at the end. It is not part of the cache key.}
 
-\item{nCoresNeeded}{Integer. How many workers to request for the DEoptim cluster; defaults to
-about 10 per estimated parameter, \code{10 * length(lower)}. DEoptim's \code{NP} is set to the number of
-workers the cluster actually gets, so a smaller allocation means a smaller population.}
+\item{nCoresNeeded}{Integer. How many workers to request for the DEoptim cluster. \code{NULL} (the
+default) takes \code{\link[=deoptimPopulationSize]{deoptimPopulationSize()}} of \code{length(lower)}: 30 for 4 to 7 parameters, 40 for
+8 to 12, 50 for 13 to 15. DEoptim's \code{NP} is set to the number of workers the cluster actually
+gets, so a smaller allocation means a smaller population.}
 
 \item{rescoreReps}{Integer. After the fit, each member of the final population is evaluated this
 many more times (full evaluations, no early stop) and the result is attached to the returned
