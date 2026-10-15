@@ -9,6 +9,9 @@
 #' @return As [latestSpreadFits()].
 #' @keywords internal
 #' @noRd
+## The link of a Google Drive file, as recorded in reproducible's download ledger and used to download it.
+.driveFileUrl <- function(id) paste0("https://drive.google.com/file/d/", id)
+
 .latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, caller, attrName) {
   files <- googledrive::drive_ls(cloudFolderID)
   files <- files[grepl(paste0("^", filePrefix, ".*", fileTag, "\\.rds$"), files$name), ]
@@ -26,12 +29,15 @@
     fname <- files$name[i]
     local <- file.path(destinationPath, fname)
     remoteMd5 <- files$drive_resource[[i]]$md5Checksum
+    fileUrl <- .driveFileUrl(files$id[i])
+    ## read from the local copy or downloaded: either way this file's data came from Drive
+    reproducible::logUrlAccess(fileUrl, fn = caller, targetFile = fname, destinationPath = destinationPath)
     if (!file.exists(local) || !identical(unname(tools::md5sum(local)), remoteMd5)) {
       ## reproducible downloads into a temporary folder and then replaces `local`, so a job
       ## reading the same file (two jobs on one ELF share `destinationPath`) never sees it half-written.
       ## `purge = 7` because CHECKSUMS.txt still matches the old local file.
       local <- reproducible::preProcess(
-        url = paste0("https://drive.google.com/file/d/", files$id[i]),
+        url = fileUrl,
         targetFile = fname, destinationPath = destinationPath, fun = NA,
         purge = if (file.exists(local)) 7 else FALSE)$targetFilePath
     }

@@ -57,3 +57,22 @@ test_that("fireSenseCloudParameters finds targetFile when url is a folder", {
   expect_identical(out$polygonID, "5.4")
   expect_true(file.exists(file.path(dp, "fireSenseParams2026-09.rds")))
 })
+
+test_that("fireSenseCloudParameters records the Drive file it reads in the download ledger", {
+  withr::local_options(reproducible.urlLog = NULL)
+  reproducible::clearUrlLog()
+  local_mocked_bindings(
+    drive_get = function(id, ...) structure(list(id = "abc123"), class = "fakeDribble"),
+    is_folder = function(x) FALSE,
+    drive_download = function(file, path, ...) {
+      saveRDS(data.frame(polygonID = "4.1"), path)
+      invisible(file)
+    },
+    .package = "googledrive"
+  )
+  fireSenseCloudParameters(destinationPath = withr::local_tempdir())
+  rec <- reproducible::prepInputsLog()
+  expect_length(rec, 1L)
+  expect_identical(rec[[1]]$url, "https://drive.google.com/file/d/abc123")
+  expect_identical(rec[[1]]$fn, "fireSenseCloudParameters")
+})

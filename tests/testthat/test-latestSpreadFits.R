@@ -87,3 +87,18 @@ test_that("a ledger file is fetched with reproducible::preProcess() into destina
   expect_length(drive$calls, 2L)
   expect_identical(drive$calls[[2]]$purge, 7)
 })
+
+test_that("every Drive file latestSpreadFits() reads is in the download ledger, downloaded or already local", {
+  d <- withr::local_tempdir()
+  withr::local_options(reproducible.urlLog = NULL)
+  reproducible::clearUrlLog()
+  drive <- fakeDrive(list(
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
+                                                      ledger = ledgerRows("4.1", 1))))
+  latestSpreadFits("folder", d)          # downloads
+  latestSpreadFits("folder", d)          # the local copy is current: no download
+  urls <- vapply(reproducible::prepInputsLog(), `[[`, character(1), "url")
+  expect_identical(length(drive$downloads), 1L)
+  expect_true("https://drive.google.com/file/d/id_1" %in% urls)
+  expect_identical(reproducible::prepInputsLog()[[1]]$fn, "latestSpreadFits")
+})

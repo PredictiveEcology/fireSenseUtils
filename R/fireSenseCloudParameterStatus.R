@@ -353,6 +353,8 @@ fireSenseCloudParameters <- function(
     if (NROW(remote) != 1L)
       stop("Expected one file named '", targetFile, "' in ", url, "; found ", NROW(remote), ".")
   }
+  reproducible::logUrlAccess(.driveFileUrl(remote$id), targetFile = targetFile,
+                             destinationPath = destinationPath)
   tmp <- tempfile(fileext = ".rds")
   on.exit(unlink(tmp), add = TRUE)
   googledrive::drive_download(remote, path = tmp, overwrite = TRUE)
