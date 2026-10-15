@@ -230,6 +230,10 @@ test_that("ELFtemplateRaster downloads the url it is given, and caches per url",
   withr::local_options(reproducible.cachePath = withr::local_tempdir(), reproducible.useCache = TRUE)
   ELFtemplateRaster(dp, url = "https://example.org/a.tif")
   ELFtemplateRaster(dp, url = "https://example.org/b.tif")
+  expect_identical(unique(got), c("https://example.org/a.tif", "https://example.org/b.tif"))
+  ## covr rewrites function bodies to count lines, which changes what Cache() digests, so the
+  ## "served from cache" count only holds outside coverage runs
+  testthat::skip_on_covr()
   ELFtemplateRaster(dp, url = "https://example.org/a.tif")   # cached
   expect_identical(got, c("https://example.org/a.tif", "https://example.org/b.tif"))
 })
