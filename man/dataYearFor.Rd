@@ -10,7 +10,7 @@ dataYearFor(dataYears, years)
 
 dataYearBefore(dataYears, years)
 
-dataYearElement(x, year)
+dataYearElement(x, year, before = FALSE)
 }
 \arguments{
 \item{dataYears}{integer years with data, in any order.}
@@ -22,6 +22,9 @@ dataYearElement(x, year)
 digits are the year will do.}
 
 \item{year}{one integer year.}
+
+\item{before}{if \code{TRUE}, the data year strictly before \code{year} (\code{\link[=dataYearBefore]{dataYearBefore()}}) instead of
+the one not after it.}
 }
 \value{
 \code{dataYearFor()}: integer, one data year per element of \code{years}. Stops if a year precedes
@@ -31,7 +34,7 @@ the first data year: it has no vegetation data.
 Stops if a year is not after the first data year.
 
 \code{dataYearElement()}: the name of the element of \code{x} that \code{year} uses, the one of
-\verb{dataYearFor(<the years in names(x)>, year)}.
+\verb{dataYearFor(<the years in names(x)>, year)} (\code{dataYearBefore()} with \code{before = TRUE}).
 }
 \description{
 The one rule for matching a year to a vegetation or land-cover data year: the data year closest
@@ -50,4 +53,5 @@ keep \code{dataYearFor()} (not after).
 dataYearFor(c(1985, 1990, 2000, 2010, 2020), c(1985, 1999, 2015, 2024))
 dataYearBefore(c(1985, 1990, 2000, 2010, 2020), c(1986, 1990, 1991, 2020))
 dataYearElement(list(year2010 = "a", year2020 = "b"), 2015)
+dataYearElement(list(year2010 = "a", year2020 = "b"), 2020, before = TRUE)
 }

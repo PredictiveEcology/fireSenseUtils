@@ -40,7 +40,7 @@ dataYearFor <- function(dataYears, years) {
 dataYearBefore <- function(dataYears, years) {
   dataYears <- sort(as.integer(dataYears))
   if (anyNA(dataYears) || any(years <= min(dataYears))) {
-    stop("years not after the first dataYear (", min(dataYears), ") have no vegetation data: ",
+    stop("years at or before the first dataYear (", min(dataYears), ") have no vegetation data: ",
          paste(years[years <= min(dataYears)], collapse = ", "))
   }
   dataYears[findInterval(years, dataYears, left.open = TRUE)]
@@ -50,14 +50,17 @@ dataYearBefore <- function(dataYears, years) {
 #'   (`yearTxt`) as `fireSense_dataPrepFit` names `cohortDatas`, `rstLCCs`, ...; any name whose
 #'   digits are the year will do.
 #' @param year one integer year.
+#' @param before if `TRUE`, the data year strictly before `year` ([dataYearBefore()]) instead of
+#'   the one not after it.
 #'
 #' @return `dataYearElement()`: the name of the element of `x` that `year` uses, the one of
-#'   `dataYearFor(<the years in names(x)>, year)`.
+#'   `dataYearFor(<the years in names(x)>, year)` (`dataYearBefore()` with `before = TRUE`).
 #' @export
 #' @rdname dataYearFor
 #' @examples
 #' dataYearElement(list(year2010 = "a", year2020 = "b"), 2015)
-dataYearElement <- function(x, year) {
+#' dataYearElement(list(year2010 = "a", year2020 = "b"), 2020, before = TRUE)
+dataYearElement <- function(x, year, before = FALSE) {
   dataYears <- as.integer(gsub("[^0-9]", "", names(x)))
-  names(x)[match(dataYearFor(dataYears, year), dataYears)]
+  names(x)[match((if (before) dataYearBefore else dataYearFor)(dataYears, year), dataYears)]
 }
