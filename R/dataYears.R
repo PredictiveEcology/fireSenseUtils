@@ -24,6 +24,28 @@ dataYearFor <- function(dataYears, years) {
   dataYears[findInterval(years, dataYears)]
 }
 
+#' @param dataYears integer years with data, in any order.
+#' @param years integer years.
+#'
+#' @return `dataYearBefore()`: integer, the latest data year strictly before each element of `years`.
+#'   Stops if a year is not after the first data year.
+#' @details `dataYearBefore()` is the rule of a fit: SCANFI vegetation of year Y already shows year
+#'   Y's burns, so `fireSense_dataPrepFit` builds a fire year's vegetation table from the data year
+#'   strictly before it, and the spread objective must read the same table. Prediction and forecast
+#'   keep `dataYearFor()` (not after).
+#' @export
+#' @rdname dataYearFor
+#' @examples
+#' dataYearBefore(c(1985, 1990, 2000, 2010, 2020), c(1986, 1990, 1991, 2020))
+dataYearBefore <- function(dataYears, years) {
+  dataYears <- sort(as.integer(dataYears))
+  if (anyNA(dataYears) || any(years <= min(dataYears))) {
+    stop("years not after the first dataYear (", min(dataYears), ") have no vegetation data: ",
+         paste(years[years <= min(dataYears)], collapse = ", "))
+  }
+  dataYears[findInterval(years, dataYears, left.open = TRUE)]
+}
+
 #' @param x a list (anything with names) with one element per data year, named `year<dataYear>`
 #'   (`yearTxt`) as `fireSense_dataPrepFit` names `cohortDatas`, `rstLCCs`, ...; any name whose
 #'   digits are the year will do.

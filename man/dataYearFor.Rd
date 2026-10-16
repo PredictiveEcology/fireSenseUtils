@@ -2,10 +2,13 @@
 % Please edit documentation in R/dataYears.R
 \name{dataYearFor}
 \alias{dataYearFor}
+\alias{dataYearBefore}
 \alias{dataYearElement}
 \title{The data year a year's vegetation comes from}
 \usage{
 dataYearFor(dataYears, years)
+
+dataYearBefore(dataYears, years)
 
 dataYearElement(x, year)
 }
@@ -24,6 +27,9 @@ digits are the year will do.}
 \code{dataYearFor()}: integer, one data year per element of \code{years}. Stops if a year precedes
 the first data year: it has no vegetation data.
 
+\code{dataYearBefore()}: integer, the latest data year strictly before each element of \code{years}.
+Stops if a year is not after the first data year.
+
 \code{dataYearElement()}: the name of the element of \code{x} that \code{year} uses, the one of
 \verb{dataYearFor(<the years in names(x)>, year)}.
 }
@@ -34,7 +40,14 @@ and decides a fit's model structure on it; \code{fireSense_dataPrepPredict} take
 \code{time(sim)} with it; so a fit and every prediction, hindcast or forecast, read the same data for
 the same year.
 }
+\details{
+\code{dataYearBefore()} is the rule of a fit: SCANFI vegetation of year Y already shows year
+Y's burns, so \code{fireSense_dataPrepFit} builds a fire year's vegetation table from the data year
+strictly before it, and the spread objective must read the same table. Prediction and forecast
+keep \code{dataYearFor()} (not after).
+}
 \examples{
 dataYearFor(c(1985, 1990, 2000, 2010, 2020), c(1985, 1999, 2015, 2024))
+dataYearBefore(c(1985, 1990, 2000, 2010, 2020), c(1986, 1990, 1991, 2020))
 dataYearElement(list(year2010 = "a", year2020 = "b"), 2015)
 }
