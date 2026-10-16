@@ -1288,13 +1288,12 @@ sizeWeight <- function(size, weighted) {
 #' @param nonAnnualDTx1000 If `shortAnnDTx1000` is not supplied, this must be supplied.
 #'   A named list of data.frames/data.tables that has all the non-annual covariates (e.g., `>=1` forest biomass, 
 #'   `>=0` non forest binary), whose values are 1000x their original values so they can be stored
-#'   as integers. These non annual covariates must have a `date` column that can be assessed
-#'   against `yr` (via `nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]`)
+#'   as integers, named by their data year. The table used for `yr` is that of the latest data year
+#'   strictly before `yr` ([dataYearBefore()]); the function stops if a pixel of `annDTx1000` is
+#'   not in it.
 #'
-#' @param indexNonAnnual `data.table` with 2 columns: `ind` and `date` which links the
-#'   list elements in `nonAnnualDTx1000` with their date (in case `nonAnnualDTx1000` is 
-#'   not a named list. This is not necessary if the `nonAnnualDTx1000` is named with 
-#'   equivalent convention (e.g., character or numeric with year) as `yr`.
+#' @param indexNonAnnual Unused, kept for callers: the table of `yr` is chosen from the names of
+#'   `nonAnnualDTx1000`, which must be the data years (see [dataYearBefore()]).
 #'
 #' @param yr A single character or numeric/integer representing the full year (e.g., 2020) to
 #'   but used. This year will be extracted from both the `annDTx1000` and `nonAnnualDTx1000` if
@@ -1338,16 +1337,17 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     yr <- gsub("[[:alpha:]]+", "", yr) |> as.integer()
   }
   if (is.null(shortAnnDTx1000)) {
-    if (!is.null(names(nonAnnualDTx1000))) {
-      whElement <- which(as.integer(names(nonAnnualDTx1000)) <= yr)
-    } 
-    
-    if (is.numeric(whElement) && all(!is.na(whElement))) {
-      whKeep <- tail(whElement, 1)
-    } else {
-      whKeep <- tail(indexNonAnnual$ind[indexNonAnnual$date <= yr], 1)
-    }
+    ## the table of the latest data year strictly before `yr`, as fireSense_dataPrepFit built it
+    tableYears <- as.integer(names(nonAnnualDTx1000))
+    whKeep <- match(dataYearBefore(tableYears, yr), tableYears)
     shortAnnDTx1000 <- nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]
+    covsInTable <- intersect(spreadCovCols(colsToUse), names(nonAnnualDTx1000[[whKeep]]))
+    nNA <- sum(!stats::complete.cases(shortAnnDTx1000[, covsInTable, with = FALSE]))
+    if (nNA > 0L) {
+      stop("fire year ", yr, " has ", nNA, " pixel(s) without covariates in vegetation table \"",
+           names(nonAnnualDTx1000)[whKeep], "\": the table and the fire data disagree about which ",
+           "vegetation year a fire year uses")
+    }
   }
   if (!is.null(covMinMax)) {
     for (cn in colnames(covMinMax)) {

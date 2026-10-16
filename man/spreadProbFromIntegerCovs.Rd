@@ -36,13 +36,12 @@ as integers.}
 \item{nonAnnualDTx1000}{If \code{shortAnnDTx1000} is not supplied, this must be supplied.
 A named list of data.frames/data.tables that has all the non-annual covariates (e.g., \verb{>=1} forest biomass,
 \verb{>=0} non forest binary), whose values are 1000x their original values so they can be stored
-as integers. These non annual covariates must have a \code{date} column that can be assessed
-against \code{yr} (via \code{nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]})}
+as integers, named by their data year. The table used for \code{yr} is that of the latest data year
+strictly before \code{yr} (\code{\link[=dataYearBefore]{dataYearBefore()}}); the function stops if a pixel of \code{annDTx1000} is
+not in it.}
 
-\item{indexNonAnnual}{\code{data.table} with 2 columns: \code{ind} and \code{date} which links the
-list elements in \code{nonAnnualDTx1000} with their date (in case \code{nonAnnualDTx1000} is
-not a named list. This is not necessary if the \code{nonAnnualDTx1000} is named with
-equivalent convention (e.g., character or numeric with year) as \code{yr}.}
+\item{indexNonAnnual}{Unused, kept for callers: the table of \code{yr} is chosen from the names of
+\code{nonAnnualDTx1000}, which must be the data years (see \code{\link[=dataYearBefore]{dataYearBefore()}}).}
 
 \item{yr}{A single character or numeric/integer representing the full year (e.g., 2020) to
 but used. This year will be extracted from both the \code{annDTx1000} and \code{nonAnnualDTx1000} if
