@@ -70,7 +70,8 @@ Suggests:
     scfmutils,
     spatstat,
     spelling,
-    testthat
+    testthat,
+    xgboost
 Remotes:
     FOR-CAST/fireregimetools@main,
     PredictiveEcology/climateData@development,

@@ -63,3 +63,42 @@ test_that("no matching file gives NULL", {
   fakeDrive(list("fireSenseIgnitionParams.rds" = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.1", 1))))
   expect_null(suppressMessages(latestIgnitionFits("folder", d)))
 })
+
+test_that("rows of several ledger files are combined without touching the xgboost models in them", {
+  skip_if_not_installed("xgboost")
+  set.seed(1)
+  newdata <- matrix(rnorm(20), ncol = 2)
+  ## a ledger row holds AsIs lists of fitted objects whose boosters, once read back with readRDS(),
+  ## are backed by ALTREP lists that cannot be assigned into
+  fitOne <- function() {
+    x <- matrix(rnorm(200), ncol = 2)
+    y <- rpois(100, exp(0.5 * x[, 1]))
+    booster <- xgboost::xgboost(x = x, y = y, objective = "count:poisson", nrounds = 3, nthreads = 1)
+    list(modelList = list(model = list(Fold1 = booster), rescales = NULL, fittingRes = 1,
+                          lambdaRescaleFactor = 1),
+         scaleData = list(dim = dim(x)))
+  }
+  fits <- list(fitOne(), fitOne(), fitOne())
+  expected <- lapply(fits, function(f) predict(f$modelList$model$Fold1, newdata))
+  ledger <- function(ids, which) {
+    df <- ledgerRows(ids, seq_along(ids))
+    df$fireSense_IgnitionFitted <- I(fits[which])
+    df$fireSense_EscapeFitted <- I(fits[which])
+    df
+  }
+  d <- withr::local_tempdir()
+  fakeDrive(list(
+    "fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds" = list(modified = "2026-09-20T10:00:00Z",
+                                                      ledger = ledger(c("4.3", "5.1"), 1:2)),
+    "fireSenseIgnitionParams_1985-2025_xgboostPoisson_20261013.rds" = list(modified = "2026-09-24T10:00:00Z",
+                                                      ledger = ledger("4.1", 3))))
+  out <- latestIgnitionFits("folder", d)
+  expect_identical(out$polygonID, c("4.1", "4.3", "5.1"))
+  expect_s3_class(out$fireSense_IgnitionFitted, "AsIs")
+  expect_s3_class(sf::st_as_sf(out), "sf")
+  expect_identical(.row_names_info(out), -3L)     # automatic row names
+  for (col in c("fireSense_IgnitionFitted", "fireSense_EscapeFitted")) {
+    got <- lapply(out[[col]], function(f) predict(f$modelList$model$Fold1, newdata))
+    expect_equal(got, expected[c(3, 1, 2)])
+  }
+})
