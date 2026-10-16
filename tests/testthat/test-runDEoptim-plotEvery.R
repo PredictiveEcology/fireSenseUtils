@@ -2,32 +2,6 @@
 ## generation (16% of the wall time) in a FireSense fit. runDEoptim() now passes `plotEvery` to
 ## clusters::DEoptimIterative(); how often figures are drawn must not change the fit's cache key.
 
-callRunDEoptimPlotEvery <- function(cachePath, ...) {
-  lower <- stats::setNames(c(0.25, 0.2, 0.1, 0), c("maxAsymptote", "hillSlope1", "inflectionPoint1", "x"))
-  suppressMessages(runDEoptim(
-    landscape = NULL, annualDTx1000 = NULL, nonAnnualDTx1000 = NULL,
-    fireBufferedListDT = NULL, historicalFires = NULL,
-    itermax = 5, trace = FALSE, strategy = 2L, cores = c("hostA", "hostB"),
-    paths = list(cachePath = cachePath),
-    lower = lower, upper = lower + 1, mutuallyExclusive = NULL, formulaToFit = NULL,
-    objFunCoresInternal = 1L, covMinMax = NULL, maxFireSpread = 0.3, Nreps = 1L,
-    ## the default logPath (and so visualizeDEoptim) is a new tempfile each call, which is in the key
-    logPath = file.path(cachePath, "fit.log"), .verbose = FALSE, ...))
-}
-
-mockDEoptimPlotEvery <- function(seen, env = parent.frame()) {
-  testthat::local_mocked_bindings(
-    clusterSetup = function(...) structure(list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L),
-                                           objsDigest = seen$dataDigest),
-    DEoptimIterative = function(fn, lower, upper, control, ...) {
-      seen$calls <- seen$calls + 1L
-      seen$plotEvery <- list(...)$plotEvery
-      list()
-    },
-    .package = "clusters", .env = env)
-  testthat::local_mocked_bindings(termsInDEoptim = function(...) invisible(NULL), .env = env)
-}
-
 test_that("plotEvery reaches clusters::DEoptimIterative(), 25 by default", {
   seen <- new.env(); seen$calls <- 0L
   mockDEoptimPlotEvery(seen)

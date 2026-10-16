@@ -108,6 +108,12 @@ deoptimPopulationSize <- function(nParams) {
 #'   when the formula has an intercept. `NULL` (default) centres nothing, and then the call, and so its
 #'   cache key, is what it was before this argument existed.
 #'
+#' @param convergence `NULL` (default: `clusters`' options and defaults decide) or a list with any of
+#'   `window`, `minGenerations`, `se`, `sdChange`: when [clusters::DEoptimIterative()] stops a fit
+#'   whose population has stopped improving (see [clusters::deoptimConvergence()]). Unlike `plotEvery`, it is
+#'   part of the fit's cache key when not `NULL`; `clusters` does not put it in any generation's key, so a
+#'   fit that stopped early resumes from its cached generations and continues under a stricter rule.
+#'
 #' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
 #'
 #' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of [DEoptim::DEoptim] outputs.
@@ -244,7 +250,8 @@ runDEoptim <- function(landscape,
                        profileReps = 0L,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL,
-                       covCentre = NULL) {
+                       covCentre = NULL,
+                       convergence = NULL) {
   ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
@@ -362,11 +369,13 @@ runDEoptim <- function(landscape,
       runawayBufferMultiple = runawayBufferMultiple,
       rep = rep,
       runName = runName,
-      progressFile = progressFile),
+      progressFile = progressFile,
+      convergence = convergence),
     cachePath = paths$cachePath,
     ## how often progress figures are drawn, and where the progress file goes, do not change the fit
     omitArgs = c(".verbose", "plotEvery", "progressFile",
-                 omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple)),
+                 omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
+                              convergence = convergence)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
