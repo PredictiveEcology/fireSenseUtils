@@ -223,3 +223,18 @@ test_that("a size merge replaces the fire-count merge it contains, and a skipped
   expect_identical(plan$naturalIgnitions, c(1L, 11L))
   expect_identical(combinePlans(fire, size[0, ], status), fire)
 })
+
+test_that("sizeRuleLandCover() downloads through LandR's SCANFI mirror, not Google Drive", {
+  skip_if_not(exists(".withScanfiRemap", asNamespace("LandR")))
+  withr::local_options(reproducible.urlRemap = NULL, reproducible.inputPaths = NULL, LandR.scanfiMirror = TRUE)
+  remapped <- NULL
+  local_mocked_bindings(
+    preProcess = function(url, targetFile, ...) {
+      remapped <<- getOption("reproducible.urlRemap")(url, filename = targetFile)
+      list(targetFilePath = targetFile)
+    },
+    .package = "reproducible"
+  )
+  sizeRuleLandCover(withr::local_tempdir())
+  expect_match(remapped, "^https://object-arbutus\\.")
+})

@@ -24,8 +24,8 @@ fireRecordShapefile <- function(url, destinationPath, ...) {
 #'
 #' SCANFI v2 land cover for 2020 in Canada LCC class codes, the same map and source as
 #' [LandR::prepInputs_SCANFI_LCC_FAO()] starts from. The file's name carries its release, so a copy in
-#' `destinationPath` or `getOption("reproducible.inputPaths")` is used as it is, with no call to Google
-#' Drive; otherwise it is downloaded.
+#' `destinationPath` or `getOption("reproducible.inputPaths")` is used as it is; otherwise it is downloaded
+#' from LandR's SCANFI mirror, which needs no Google login.
 #'
 #' @param destinationPath Directory to download into.
 #'
@@ -36,8 +36,11 @@ sizeRuleLandCover <- function(destinationPath) {
   local <- file.path(c(destinationPath, getOption("reproducible.inputPaths")), source$targetFile)
   local <- local[file.exists(local)]
   if (length(local)) return(local[1])
-  reproducible::preProcess(url = source$url, targetFile = source$targetFile,
-                           destinationPath = destinationPath, fun = NA)$targetFilePath
+  ## LandR's wrapper fetches the Drive id from its public SCANFI mirror, so no Google login is needed
+  LandR:::.withSCANFIAccess(
+    reproducible::preProcess(url = source$url, targetFile = source$targetFile,
+                             destinationPath = destinationPath, fun = NA)$targetFilePath,
+    what = "the SCANFI land cover map", dataYear = 2020, dataVersion = "V2", urlArg = "url")
 }
 
 ## A fire-record archive read with a fireregimetools loader through prepInputs(), which caches the loaded
