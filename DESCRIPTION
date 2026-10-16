@@ -3,7 +3,7 @@ Type: Package
 Title: Utilities for Working With the 'fireSense' Group of 'SpaDES' Modules
 Description: Utilities for working with the 'fireSense' group of 'SpaDES' modules.
 Date: 2026-10-16
-Version: 0.2.3.9101
+Version: 0.2.3.9102
 Authors@R: c(
     person("Jean", "Marchal", email = "jean.d.marchal@gmail.com",
            role = c("aut")),
@@ -35,7 +35,7 @@ Imports:
     pemisc (>= 0.0.4.9011),
     purrr,
     quickPlot,
-    reproducible (>= 3.2.1.9072),
+    reproducible (>= 3.2.1.9073),
     Require (>= 0.3.1),
     RhpcBLASctl,
     sf,
