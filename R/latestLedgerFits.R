@@ -56,9 +56,13 @@
   out <- if (length(rows) == 1L) {
     rows[[1]]
   } else {
-    ## as reproducible::CacheGeo() appends rows to a ledger
-    as.data.frame(data.table::rbindlist(lapply(rows, data.table::as.data.table),
-                                        fill = TRUE, use.names = TRUE))
+    ## as reproducible::CacheGeo() appends rows to a ledger. rbind() of data.frames, not rbindlist():
+    ## that assigns into list columns, which fails for the ALTREP lists of xgboost models read by readRDS()
+    cols <- unique(unlist(lapply(rows, names), use.names = FALSE))
+    do.call(rbind, unname(lapply(rows, function(r) {
+      r[setdiff(cols, names(r))] <- NA
+      r[cols]
+    })))
   }
   rownames(out) <- NULL
   for (f in unique(from))
