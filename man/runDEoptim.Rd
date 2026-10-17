@@ -62,7 +62,8 @@ runDEoptim(
   profileReps = 0L,
   simulateMembers = 0L,
   penaliseCapHits = NULL,
-  covCentre = NULL
+  covCentre = NULL,
+  convergence = NULL
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -236,6 +237,12 @@ for \code{\link[=scoreFireSizes]{scoreFireSizes()}} and \code{\link[=linkSaturat
 simulation diagnostics: values subtracted from the rescaled covariates, from \code{\link[=spreadCovCentre]{spreadCovCentre()}}
 when the formula has an intercept. \code{NULL} (default) centres nothing, and then the call, and so its
 cache key, is what it was before this argument existed.}
+
+\item{convergence}{\code{NULL} (default: \code{clusters}' options and defaults decide) or a list with any of
+\code{window}, \code{minGenerations}, \code{se}, \code{sdChange}: when \code{\link[clusters:DEoptimIterative]{clusters::DEoptimIterative()}} stops a fit
+whose population has stopped improving (see \code{\link[clusters:deoptimConvergence]{clusters::deoptimConvergence()}}). Unlike \code{plotEvery}, it is
+part of the fit's cache key when not \code{NULL}; \code{clusters} does not put it in any generation's key, so a
+fit that stopped early resumes from its cached generations and continues under a stricter rule.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
