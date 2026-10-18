@@ -103,9 +103,12 @@ knitr::opts_chunk$set(
   echo = TRUE,
   eval = FALSE ## TODO: temporary until I can rework this vignette to actually run
 )
+## Every chunk below also says eval=FALSE itself: knitr (>= 1.5x) does not apply this global option when it
+## tangles the vignette, and `R CMD check --no-build-vignettes` sources the tangled code, which must not run.
+## CI builds the vignettes, which skips that step, so it never saw the difference.
 ```
 
-```{r init}
+```{r init, eval=FALSE}
 library(Require)
 Require(c(
   "data.table", "dplyr", "pemisc", "PtProcess", "quickPlot",
@@ -166,7 +169,7 @@ We can predict it using the `fireSense_SizePredict` module and fit the model to 
 This tutorial is intended to provide examples to run all `fireSense` modules without the need to download actual data.
 Depending on the fact that some of them have dependencies.
 
-```{r create_data, message=FALSE}
+```{r create_data, message=FALSE, eval=FALSE}
 # Create a raster template describing the study area
 raster_width <- raster_height <- 100
 r_template <- raster(matrix(nrow = raster_height, ncol = raster_width))
@@ -303,7 +306,7 @@ fireAttributesFireSense_SpreadFit <- SpatialPointsDataFrame(fireLocations[as.log
 
 ## Fit the statistical model of fire ignitions
 
-```{r fit_ignition_model, message=FALSE}
+```{r fit_ignition_model, message=FALSE, eval=FALSE}
 modules <- list("fireSense_ignitionFit")
 
 times <- list(start = 1, end = 1)
@@ -347,7 +350,7 @@ fireSense_IgnitionFitted <- sim$fireSense_IgnitionFitted # Extract the fitted mo
 
 ## Fit the statistical model of fire escapes
 
-```{r fit_escape_model, message=FALSE}
+```{r fit_escape_model, message=FALSE, eval=FALSE}
 modules <- list("fireSense_EscapeFit")
 
 times <- list(start = 1, end = 1)
@@ -387,7 +390,7 @@ Although the use of fireSense_SizeFit is optional, it can be used to reduce the 
 Here, we use the fireSense_SizeFit module to model the relation between fire sizes and flammability conditions as represented by the drought index and the type of fuels.
 We then use the fireSense_spreadFit module to convert the fitted equations produced by fireSense_SizeFit into variable probabilities of fire spread at the cell level, which are also sensitive to environmental drivers that control fire size.
 
-```{r fit_size_distribution_model, message=FALSE}
+```{r fit_size_distribution_model, message=FALSE, eval=FALSE}
 modules <- list("fireSense_SizeFit")
 
 times <- list(start = 1, end = 1)
@@ -433,7 +436,7 @@ fireSense_SizeFitted <- sim$fireSense_SizeFitted # Extract the fitted model from
 
 ### Produce the maps of the tapered Pareto parameters
 
-```{r produce_maps_tp_params, message=FALSE}
+```{r produce_maps_tp_params, message=FALSE, eval=FALSE}
 modules <- list("fireSense_SizePredict")
 
 times <- list(start = 1, end = 1)
@@ -486,7 +489,7 @@ sim <- simInitAndSpades(
 
 Here, we use the `fireSense_spreadFit` module to convert them into spatially variable spread probabilities. 
 
-```{r fit_spread_model, message=FALSE}
+```{r fit_spread_model, message=FALSE, eval=FALSE}
 modules <- list("fireSense_spreadFit")
 
 times <- list(start = 1, end = 1)
@@ -548,7 +551,7 @@ fireSense_SpreadFitted <- sim$fireSense_SpreadFitted # Extract the fitted model 
 
 ### Fire ignition rates
 
-```{r predict_ignition_rates, message=FALSE}
+```{r predict_ignition_rates, message=FALSE, eval=FALSE}
 modules <- list("fireSense_ignitionPredict")
 
 times <- list(start = 1, end = 1)
@@ -592,7 +595,7 @@ sim <- simInitAndSpades(
 
 ### Fire escape probabilities
 
-```{r predict_escape_probabilities, message=FALSE}
+```{r predict_escape_probabilities, message=FALSE, eval=FALSE}
 modules <- list("fireSense_EscapePredict")
 
 times <- list(start = 1, end = 1)
@@ -636,7 +639,7 @@ sim <- simInitAndSpades(
 
 ### Fire spread probabilities
 
-```{r predict_spread_probabilities, message=FALSE}
+```{r predict_spread_probabilities, message=FALSE, eval=FALSE}
 modules <- list("fireSense_spreadPredict")
 
 times <- list(start = 1, end = 1)
@@ -700,7 +703,7 @@ sim <- simInitAndSpades(
 
 ## Run fireSense, finally!
 
-```{r run_fireSense, message=FALSE}
+```{r run_fireSense, message=FALSE, eval=FALSE}
 modules <- list("fireSense")
 
 times <- list(start = 1, end = 1)
