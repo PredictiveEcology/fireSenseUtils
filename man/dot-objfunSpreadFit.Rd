@@ -37,6 +37,7 @@
   sizeLikDf = 5,
   adWeight = "auto",
   link = NULL,
+  climateRef = NULL,
   returnSims = FALSE,
   returnBurned = FALSE,
   penaliseRunaways = TRUE,
@@ -204,6 +205,14 @@ balanced the two only for \code{sizeLik = "kde"} with \code{weighted = FALSE}.}
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
 parameter is \code{upperTail1}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
+
+\item{climateRef}{\code{NULL} (default): the climate covariates are inside the logistic, under the
+\code{maxAsymptote} ceiling, as always. A named numeric or list (\code{\link[=spreadClimateRef]{spreadClimateRef()}}): climate is taken
+outside the ceiling, \code{p = plogis(qlogis(p0) + beta_clim * (climate - climateRef))} with \code{p0} the
+logistic of the other covariates; see \code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}, which computes both links. The year
+effect (\code{fitYearSpreadSD}) is added on the same logit, after climate. The gates
+(\code{\link[=spreadProbGateTest]{spreadProbGateTest()}}) and the saturation summary are then applied to \code{p0}, the spread probability
+at the reference climate, not to \code{p}.}
 
 \item{returnSims}{If \code{TRUE}, return the simulated fires instead of the objective value: a
 \code{data.table} with one row per fire year x fire x replicate -- \code{yr}, \code{rep}, \code{initialLocus}, \code{ids},

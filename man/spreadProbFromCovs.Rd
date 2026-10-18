@@ -2,11 +2,59 @@
 % Please edit documentation in R/spreadProbGates.R
 \name{spreadProbFromCovs}
 \alias{spreadProbFromCovs}
-\title{The spreadProb of each pixel of a year's covariate matrix (\code{spreadProbCovsOfYear()}, as a matrix)}
+\title{The spread probability of each pixel from its covariates: the one place the spread link is computed}
 \usage{
-spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link = NULL)
+spreadProbFromCovs(
+  mat,
+  logisticPars,
+  covPars,
+  lowerSpreadProb,
+  link = NULL,
+  climateRef = NULL,
+  climateAtRef = FALSE
+)
+}
+\arguments{
+\item{mat}{Numeric matrix, one row per pixel, one column per design column (with \code{colnames} when
+\code{climateRef} is given), as \code{spreadProbCovsOfYear()} gives them: \code{as.matrix(covs[, ..colsToUse])}.}
+
+\item{logisticPars, covPars, lowerSpreadProb, link}{As for \code{\link[=logisticAll]{logisticAll()}}; \code{covPars} in the order of the
+columns of \code{mat}.}
+
+\item{climateRef}{\code{NULL}, or a named numeric or list: the reference value of each climate column, on the
+scale of \code{mat} (\code{\link[=spreadClimateRef]{spreadClimateRef()}}). Every name must be a column of \code{mat}.}
+
+\item{climateAtRef}{Logical. With \code{climateRef}, \code{TRUE} returns \code{p0}, the spread probability with climate
+held at its reference: what the ceiling applies to. The objective's gates and its saturation summary
+look at \code{p0}, because under this link a dry year legitimately takes the landscape past \code{maxFireSpread}
+and a gate on \code{p} would refuse the years that carry the climate signal. Ignored without \code{climateRef}.}
+}
+\value{
+A one-column numeric matrix, one value per row of \code{mat} (as \code{\link[=logisticAll]{logisticAll()}}).
 }
 \description{
-The spreadProb of each pixel of a year's covariate matrix (\code{spreadProbCovsOfYear()}, as a matrix)
+Every spread probability the model gives -- in the objective (\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}), its gates
+(\code{\link[=spreadProbGates]{spreadProbGates()}}), the validation (\code{\link[=spreadFitValidationData]{spreadFitValidationData()}}, \code{\link[=plotSpreadFitResponse]{plotSpreadFitResponse()}}) and
+the prediction (\code{fireSense_spreadPredict}) -- comes from this function, so the fit and the prediction
+use one formula.
 }
-\keyword{internal}
+\details{
+Two links, chosen by \code{climateRef}:
+\itemize{
+\item \code{climateRef = NULL} (the default; \code{spreadLink = "ceiling"} in \code{fireSense_spreadFit}): the logistic of
+the whole linear predictor, \code{p = f + (maxAsymptote - f) * plogis(x)} with \code{x = mat \%*\% covPars}
+(\code{\link[=logisticAll]{logisticAll()}}; \code{f} is \code{lowerSpreadProb}). Climate is one of the covariates in \code{x}, so it acts under
+the \code{maxAsymptote} ceiling: where fuel alone puts a pixel near the ceiling a dry year adds almost
+nothing (in the 2026-10 hindcasts of three ELFs, 59-77\% of pixels sat within 0.01 of the ceiling every
+year, and spread barely changed between years).
+\item \code{climateRef} a named numeric (\code{spreadLink = "climateOutside"}): the climate covariates (its names,
+columns of \code{mat}) are taken out of the ceiling. \code{p0 = f + (maxAsymptote - f) * plogis(x_fuel)}, with
+\code{x_fuel} the linear predictor of every other column (intercept, fuels, youngAge, non-forest, ...), is
+the spread probability at the reference climate; then
+\code{p = plogis(qlogis(p0) + sum(beta_clim * (climate - climateRef)))}, uncapped. The year effect
+\code{eps_Y} (\code{yearSpreadSD} in the objective, \code{fireSense_SpreadSD} in \code{fireSense_burn}) is added on the
+same logit afterwards, so climate and the year effect act together after the fuel ceiling. At
+\code{climate = climateRef} the two links give the same \code{p} for the same \code{p0}. The sign constraint on the
+climate coefficient (\verb{>= 0}, from \code{fireSense_spreadFit}'s bounds) is unchanged.
+}
+}

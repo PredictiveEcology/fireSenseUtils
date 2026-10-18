@@ -107,6 +107,10 @@ deoptimPopulationSize <- function(nParams) {
 #'   simulation diagnostics: values subtracted from the rescaled covariates, from [spreadCovCentre()]
 #'   when the formula has an intercept. `NULL` (default) centres nothing, and then the call, and so its
 #'   cache key, is what it was before this argument existed.
+#' @param climateRef Passed to [.objfunSpreadFit()] in the fit, the re-score and the profile and simulation
+#'   diagnostics: `NULL` (default) keeps climate under the `maxAsymptote` ceiling, and the call and its cache
+#'   key are what they were; a named numeric ([spreadClimateRef()]) takes climate outside the ceiling
+#'   ([spreadProbFromCovs()]).
 #'
 #' @param convergence `NULL` (default: `clusters`' options and defaults decide) or a list with any of
 #'   `window`, `minGenerations`, `se`, `sdChange`: when [clusters::DEoptimIterative()] stops a fit
@@ -251,7 +255,8 @@ runDEoptim <- function(landscape,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL,
                        covCentre = NULL,
-                       convergence = NULL) {
+                       convergence = NULL,
+                       climateRef = NULL) {
   ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
@@ -337,6 +342,7 @@ runDEoptim <- function(landscape,
       formulaToFit = formulaToFit,
       covMinMax = covMinMax,
       covCentre = covCentre,
+      climateRef = climateRef,
       # tests = c("mad", "SNLL_FS"),
       tests = tests,
       figurePath = visualizeDEoptim,
@@ -375,7 +381,7 @@ runDEoptim <- function(landscape,
     ## how often progress figures are drawn, and where the progress file goes, do not change the fit
     omitArgs = c(".verbose", "plotEvery", "progressFile",
                  omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
-                              convergence = convergence)),
+                              convergence = convergence, climateRef = climateRef)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -405,6 +411,7 @@ runDEoptim <- function(landscape,
                       runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin)
   ## NULL adds nothing, so the cached re-score keeps its key
   rescoreArgs$covCentre <- covCentre
+  rescoreArgs$climateRef <- climateRef
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
