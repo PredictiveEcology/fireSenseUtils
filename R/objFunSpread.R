@@ -154,6 +154,13 @@ utils::globalVariables(c(
 #' @param link Passed to [logisticAll()]: `NULL` for the form implied by the logistic parameters, or
 #'   `"logistic3pUpper"` for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
 #'   parameter is `upperTail1`. Pass it explicitly when fitting: `par` may arrive unnamed.
+#' @param climateRef `NULL` (default): the climate covariates are inside the logistic, under the
+#'   `maxAsymptote` ceiling, as always. A named numeric or list ([spreadClimateRef()]): climate is taken
+#'   outside the ceiling, `p = plogis(qlogis(p0) + beta_clim * (climate - climateRef))` with `p0` the
+#'   logistic of the other covariates; see [spreadProbFromCovs()], which computes both links. The year
+#'   effect (`fitYearSpreadSD`) is added on the same logit, after climate. The gates
+#'   ([spreadProbGateTest()]) and the saturation summary are then applied to `p0`, the spread probability
+#'   at the reference climate, not to `p`.
 #'
 #' @param returnSims If `TRUE`, return the simulated fires instead of the objective value: a
 #'   `data.table` with one row per fire year x fire x replicate -- `yr`, `rep`, `initialLocus`, `ids`,
@@ -271,6 +278,7 @@ utils::globalVariables(c(
                              sizeLikDf = 5,
                              adWeight = "auto",
                              link = NULL,
+                             climateRef = NULL,
                              returnSims = FALSE,
                              returnBurned = FALSE,
                              penaliseRunaways = TRUE,
@@ -403,7 +411,7 @@ utils::globalVariables(c(
         doMADTest = doMADTest, doADTest = doADTest || doAreaDist,
         cells = cells,
         covCentre = covCentre,
-        sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link,
+        sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link, climateRef = climateRef,
         returnSims = returnSims, returnBurned = returnBurned, censorRunaways = censorRunaways,
         runawaySize = runawaySize, runawayBufferMultiple = runawayBufferMultiple,
         runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin, yearSpreadSD = yearSpreadSD,
@@ -680,7 +688,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         runawaySize = NULL, runawayBufferMultiple = NULL, censorRunaways = !is.null(runawaySize), runawayEdgeFrac = fireSenseRunawayEdgeFrac, runawayEdgeMin = fireSenseRunawayEdgeMin, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
-                        doYearArea = FALSE) {
+                        doYearArea = FALSE, climateRef = NULL) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -695,9 +703,17 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     yr, annDTx1000, nonAnnualDTx1000, indexNonAnnual, covMinMax, mutuallyExclusive, colsToUse,
     doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
   )
-  set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(as.matrix(shortAnnDT[, ..colsToUse]), logisticPars,
-                                                         covPars, lowerSpreadProb, link))
-  pSummary <- if (isTRUE(returnSims)) spreadProbSummary(shortAnnDT$spreadProb, ceiling = logisticPars[1])
+  mat <- as.matrix(shortAnnDT[, ..colsToUse])
+  set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
+                                                         climateRef = climateRef))
+  ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
+  ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
+  ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
+  ## years that carry the climate signal. Without climateRef it is spreadProb itself, as always.
+  pGate <- if (is.null(climateRef)) shortAnnDT$spreadProb else
+    as.numeric(spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = climateRef,
+                                  climateAtRef = TRUE))
+  pSummary <- if (isTRUE(returnSims)) spreadProbSummary(pGate, ceiling = logisticPars[1])
   ## Initialised here, not inside the branch below, because the function returns
   ## it unconditionally. With no test selected -- which is how the module's
   ## `debug` mode calls this, passing tests = "" -- doFitting is FALSE, the branch
@@ -788,7 +804,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
     # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
     # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
-    gate <- spreadProbGateTest(shortAnnDT$spreadProb, logisticPars[1], lowerSpreadProb, maxFireSpread,
+    gate <- spreadProbGateTest(pGate, logisticPars[1], lowerSpreadProb, maxFireSpread,
                                lanscape1stQuantileThresh)
     nonEdgeValues <- gate$nonEdgeValues
     summ <- gate$summ

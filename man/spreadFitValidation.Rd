@@ -22,6 +22,7 @@ spreadFitValidationData(
   maxFireSpread = spreadProbCeiling,
   link = NULL,
   fitYearSpreadSD = NULL,
+  climateRef = NULL,
   seed = NULL,
   ...
 )
@@ -102,6 +103,14 @@ medians too large and the largest fires too small at once (2026-09-23). \code{sd
 without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{TRUE} when \code{par} is named and
 includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
 
+\item{climateRef}{\code{NULL} (default): the climate covariates are inside the logistic, under the
+\code{maxAsymptote} ceiling, as always. A named numeric or list (\code{\link[=spreadClimateRef]{spreadClimateRef()}}): climate is taken
+outside the ceiling, \code{p = plogis(qlogis(p0) + beta_clim * (climate - climateRef))} with \code{p0} the
+logistic of the other covariates; see \code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}, which computes both links. The year
+effect (\code{fitYearSpreadSD}) is added on the same logit, after climate. The gates
+(\code{\link[=spreadProbGateTest]{spreadProbGateTest()}}) and the saturation summary are then applied to \code{p0}, the spread probability
+at the reference climate, not to \code{p}.}
+
 \item{seed}{If not \code{NULL}, the simulations run with this seed and the session's random number
 stream is restored afterwards.}
 
@@ -127,7 +136,7 @@ of the fire year), \code{pixelID}, \code{observed} (1 if the pixel is inside an 
 probability, without the per-year random effect), and one column per covariate of the formula
 with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 \code{attr(, "spreadFitValidation")} holds what the plots need: the parameters, \code{covMinMax},
-\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{Nreps}, the names of the covariates and of the
+\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{Nreps}, the names of the covariates and of the
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 

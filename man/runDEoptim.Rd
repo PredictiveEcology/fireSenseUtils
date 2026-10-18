@@ -63,7 +63,8 @@ runDEoptim(
   simulateMembers = 0L,
   penaliseCapHits = NULL,
   covCentre = NULL,
-  convergence = NULL
+  convergence = NULL,
+  climateRef = NULL
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -243,6 +244,11 @@ cache key, is what it was before this argument existed.}
 whose population has stopped improving (see \code{\link[clusters:deoptimConvergence]{clusters::deoptimConvergence()}}). Unlike \code{plotEvery}, it is
 part of the fit's cache key when not \code{NULL}; \code{clusters} does not put it in any generation's key, so a
 fit that stopped early resumes from its cached generations and continues under a stricter rule.}
+
+\item{climateRef}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit, the re-score and the profile and simulation
+diagnostics: \code{NULL} (default) keeps climate under the \code{maxAsymptote} ceiling, and the call and its cache
+key are what they were; a named numeric (\code{\link[=spreadClimateRef]{spreadClimateRef()}}) takes climate outside the ceiling
+(\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}).}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}

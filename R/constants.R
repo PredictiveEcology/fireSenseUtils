@@ -36,13 +36,21 @@
 #'   - `spreadFitCovCentreTxt`: `character(1)`. Name of the ledger column that holds the covariate
 #'     centres of a fit made with an intercept (currently `"covCentre_spread"`). It is not in
 #'     `spreadFitAdditionalColNamesTxt`: a fit without an intercept writes no such column.
+#'   - `spreadLinkTxt`, `spreadFitClimateRefTxt`: `character(1)` each. Names of the ledger columns a fit
+#'     made with climate outside the ceiling writes (`"spreadLink"`, holding `"climateOutside"`, and
+#'     `"climateRef_spread"`, the fit's climate reference from [spreadClimateRef()]), so prediction applies
+#'     the same link ([spreadProbFromCovs()]). A fit with climate under the ceiling writes neither; a row
+#'     without them, every row written before, predicts as it always did.
+#'   - `spreadLinkOptions`: `character` vector of the values `fireSense_spreadFit`'s `spreadLink` can
+#'     take: `"ceiling"` (the default: climate inside the logistic, under `maxAsymptote`) and
+#'     `"climateOutside"`.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadLinkOptions
 NULL
 
 #' @export
@@ -87,6 +95,15 @@ spreadInterceptTxt <- "(Intercept)"
 
 #' @export
 spreadFitCovCentreTxt <- "covCentre_spread"
+
+#' @export
+spreadLinkTxt <- "spreadLink"
+
+#' @export
+spreadFitClimateRefTxt <- "climateRef_spread"
+
+#' @export
+spreadLinkOptions <- c("ceiling", "climateOutside")
 
 #' Memory (GB) assumed per DEoptim worker before a fit has a memory record
 #'

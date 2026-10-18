@@ -7,3 +7,7 @@
 .vscode/
 .claude/
 .aider*
+
+## R CMD build regenerates these from the .Rmd; a tracked copy goes stale and `R CMD check --no-build-vignettes` runs it
+vignettes/*.R
+vignettes/*.html

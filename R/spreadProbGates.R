@@ -78,24 +78,120 @@ spreadCovCentre <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMi
                             mutuallyExclusive = list("youngAge" = c("class", "nf"))) {
   colsToUse <- spreadDesignCols(formulaToFit)
   if (!spreadInterceptTxt %in% colsToUse) return(NULL)
-  covCols <- spreadCovCols(colsToUse)
+  spreadCovMeans(annualDTx1000, nonAnnualDTx1000, spreadCovCols(colsToUse), covMinMax, mutuallyExclusive)
+}
+
+## The mean of each of `covCols` over every pixel-year of `annualDTx1000`, on the scale the objective's
+## design matrix has them: rescaled, made mutually exclusive and, with `covCentre`, centred. Used by
+## spreadCovCentre() (no centre: the values it goes on to centre) and spreadClimateRef() (the fit's centre, so
+## the reference is on the design scale).
+spreadCovMeans <- function(annualDTx1000, nonAnnualDTx1000, covCols, covMinMax = NULL, mutuallyExclusive = NULL,
+                           covCentre = NULL) {
   lapply(nonAnnualDTx1000, data.table::setDT)
   indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
   sums <- numeric(length(covCols))
   n <- numeric(length(covCols))
   for (yr in names(annualDTx1000)) {
     covs <- spreadProbCovsOfYear(yr, annualDTx1000[[yr]], nonAnnualDTx1000, indexNonAnnual, covMinMax,
-                                 mutuallyExclusive, covCols, FALSE, NULL, NULL, NULL, NULL)
+                                 mutuallyExclusive, covCols, FALSE, NULL, NULL, NULL, NULL, covCentre = covCentre)
     sums <- sums + vapply(covCols, function(cn) sum(covs[[cn]], na.rm = TRUE), numeric(1))
     n <- n + vapply(covCols, function(cn) sum(!is.na(covs[[cn]])), numeric(1))
   }
   as.list(stats::setNames(sums / n, covCols))
 }
 
-#' The spreadProb of each pixel of a year's covariate matrix (`spreadProbCovsOfYear()`, as a matrix)
-#' @keywords internal
-spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link = NULL) {
-  logisticAll(logisticPars, mat = mat, covPars, lowerSpreadProb, link = link)
+#' The climate covariates of a spread formula
+#'
+#' The covariates of the formula that are annual (columns of `annualDTx1000`) and not 0/1 indicators
+#' (`youngAge`, `nfLCC_*`, `treedWetland`; see [spreadIndicatorRanges()]): the rule `fireSense_spreadFit`
+#' uses to require a fixed range for a climate covariate.
+#'
+#' @param formulaToFit The spread formula, a character string or a formula.
+#' @param annualDTx1000 The annual covariate tables, as in [.objfunSpreadFit()]; only the column names of
+#'   the first are used.
+#' @return A character vector; empty when the formula has no climate covariate.
+#' @export
+spreadClimateCols <- function(formulaToFit, annualDTx1000) {
+  covCols <- spreadCovCols(spreadDesignCols(formulaToFit))
+  annual <- intersect(covCols, names(annualDTx1000[[1]]))
+  setdiff(annual, spreadIndicatorCols(annual))
+}
+
+#' The climate reference of a spread fit with climate outside the ceiling
+#'
+#' With climate outside the ceiling (`climateRef` of [spreadProbFromCovs()]; `spreadLink = "climateOutside"`
+#' in `fireSense_spreadFit`) the climate term is `beta_clim * (climate - climateRef)`, added on the logit of the
+#' spread probability after the fuel ceiling. `climateRef` is the fit's typical climate: the mean of each
+#' climate covariate ([spreadClimateCols()]) over every pixel-year in `annualDTx1000`, on the scale of the
+#' objective's design matrix (rescaled with `covMinMax`, and centred with `covCentre` when the fit has an
+#' intercept, so then it is 0 up to rounding). It is found once, from the data the objective uses, stored in
+#' the ledger row (`spreadFitClimateRefTxt`), and `fireSense_spreadPredict` uses the same value, so the fit
+#' and the prediction cannot drift apart.
+#'
+#' @inheritParams spreadCovCentre
+#' @param covCentre The fit's covariate centres ([spreadCovCentre()]); `NULL` without an intercept.
+#' @return A named list, one mean per climate covariate, to give as `climateRef`; `NULL` when the formula has
+#'   no climate covariate.
+#' @export
+spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMinMax = NULL,
+                             mutuallyExclusive = list("youngAge" = c("class", "nf")), covCentre = NULL) {
+  climCols <- spreadClimateCols(formulaToFit, annualDTx1000)
+  if (!length(climCols)) return(NULL)
+  spreadCovMeans(annualDTx1000, nonAnnualDTx1000, climCols, covMinMax, mutuallyExclusive, covCentre = covCentre)
+}
+
+#' The spread probability of each pixel from its covariates: the one place the spread link is computed
+#'
+#' Every spread probability the model gives -- in the objective ([.objfunSpreadFit()]), its gates
+#' ([spreadProbGates()]), the validation ([spreadFitValidationData()], [plotSpreadFitResponse()]) and
+#' the prediction (`fireSense_spreadPredict`) -- comes from this function, so the fit and the prediction
+#' use one formula.
+#'
+#' Two links, chosen by `climateRef`:
+#'
+#' * `climateRef = NULL` (the default; `spreadLink = "ceiling"` in `fireSense_spreadFit`): the logistic of
+#'   the whole linear predictor, `p = f + (maxAsymptote - f) * plogis(x)` with `x = mat %*% covPars`
+#'   ([logisticAll()]; `f` is `lowerSpreadProb`). Climate is one of the covariates in `x`, so it acts under
+#'   the `maxAsymptote` ceiling: where fuel alone puts a pixel near the ceiling a dry year adds almost
+#'   nothing (in the 2026-10 hindcasts of three ELFs, 59-77% of pixels sat within 0.01 of the ceiling every
+#'   year, and spread barely changed between years).
+#' * `climateRef` a named numeric (`spreadLink = "climateOutside"`): the climate covariates (its names,
+#'   columns of `mat`) are taken out of the ceiling. `p0 = f + (maxAsymptote - f) * plogis(x_fuel)`, with
+#'   `x_fuel` the linear predictor of every other column (intercept, fuels, youngAge, non-forest, ...), is
+#'   the spread probability at the reference climate; then
+#'   `p = plogis(qlogis(p0) + sum(beta_clim * (climate - climateRef)))`, uncapped. The year effect
+#'   `eps_Y` (`yearSpreadSD` in the objective, `fireSense_SpreadSD` in `fireSense_burn`) is added on the
+#'   same logit afterwards, so climate and the year effect act together after the fuel ceiling. At
+#'   `climate = climateRef` the two links give the same `p` for the same `p0`. The sign constraint on the
+#'   climate coefficient (`>= 0`, from `fireSense_spreadFit`'s bounds) is unchanged.
+#'
+#' @param mat Numeric matrix, one row per pixel, one column per design column (with `colnames` when
+#'   `climateRef` is given), as `spreadProbCovsOfYear()` gives them: `as.matrix(covs[, ..colsToUse])`.
+#' @param logisticPars,covPars,lowerSpreadProb,link As for [logisticAll()]; `covPars` in the order of the
+#'   columns of `mat`.
+#' @param climateRef `NULL`, or a named numeric or list: the reference value of each climate column, on the
+#'   scale of `mat` ([spreadClimateRef()]). Every name must be a column of `mat`.
+#' @param climateAtRef Logical. With `climateRef`, `TRUE` returns `p0`, the spread probability with climate
+#'   held at its reference: what the ceiling applies to. The objective's gates and its saturation summary
+#'   look at `p0`, because under this link a dry year legitimately takes the landscape past `maxFireSpread`
+#'   and a gate on `p` would refuse the years that carry the climate signal. Ignored without `climateRef`.
+#' @return A one-column numeric matrix, one value per row of `mat` (as [logisticAll()]).
+#' @export
+spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link = NULL, climateRef = NULL,
+                               climateAtRef = FALSE) {
+  if (is.null(climateRef) || !length(climateRef))
+    return(logisticAll(logisticPars, mat = mat, covPars, lowerSpreadProb, link = link))
+  climCols <- names(climateRef)
+  if (is.null(climCols) || !all(climCols %in% colnames(mat)))
+    stop("spreadProbFromCovs(): every name of `climateRef` must be a column of `mat`; climateRef: ",
+         paste(climCols, collapse = ", "), "; columns: ", paste(colnames(mat), collapse = ", "))
+  isClim <- colnames(mat) %in% climCols
+  p0 <- logisticAll(logisticPars, mat = mat[, !isClim, drop = FALSE], covPars[!isClim], lowerSpreadProb,
+                    link = link)
+  if (isTRUE(climateAtRef)) return(p0)
+  ref <- unlist(climateRef)[colnames(mat)[isClim]]
+  shift <- (mat[, isClim, drop = FALSE] - rep(ref, each = nrow(mat))) %*% covPars[isClim]
+  stats::plogis(stats::qlogis(p0) + shift)
 }
 
 #' Split `par` as the objective does: drop the trailing `yearSpreadSD` and insert the fixed `hillSlope1` and `inflectionPoint1`
@@ -149,8 +245,9 @@ effectiveMinFireSize <- function(minFireSize, escapeMinPx) {
 #'
 #' @param par a named numeric vector as `.objfunSpreadFit()` takes (logistic parameters, then the
 #'   covariate coefficients, then `yearSpreadSD` if fitted), or a list of them.
-#' @param annualDTx1000,nonAnnualDTx1000,historicalFires,covMinMax,mutuallyExclusive,covCentre,link,maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape
-#'   As in [.objfunSpreadFit()] (`landscape` is needed only with `escapeSizeHa`).
+#' @param annualDTx1000,nonAnnualDTx1000,historicalFires,covMinMax,mutuallyExclusive,covCentre,link,climateRef,maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape
+#'   As in [.objfunSpreadFit()] (`landscape` is needed only with `escapeSizeHa`). With `climateRef` the gates
+#'   test the spread probability at the reference climate, as the objective does ([spreadProbFromCovs()]).
 #' @param formulaToFit character; the spread formula, as in the objective.
 #' @param years character; the years to test. Default: the objective's first block.
 #' @param doAssertions logical; as in the objective.
@@ -162,7 +259,7 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
                             covMinMax = NULL, mutuallyExclusive = list("youngAge" = c("class", "nf")),
                             covCentre = NULL, link = NULL, maxFireSpread = spreadProbCeiling, lowerSpreadProb = spreadProbFloor,
                             lanscape1stQuantileThresh = 0.265, minFireSize = 2, escapeSizeHa = NULL,
-                            landscape = NULL, years = NULL, doAssertions = FALSE) {
+                            landscape = NULL, years = NULL, doAssertions = FALSE, climateRef = NULL) {
   data.table::setDTthreads(1)
   formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
   colsToUse <- spreadDesignCols(formulaToFit)
@@ -187,7 +284,8 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
   res <- lapply(pars, function(p) {
     ps <- paramsSeparate(p, parsModel)
     g <- lapply(covs, function(cv)
-      spreadProbGateTest(spreadProbFromCovs(cv, ps$logisticPars, ps$covPars, lowerSpreadProb, link),
+      spreadProbGateTest(spreadProbFromCovs(cv, ps$logisticPars, ps$covPars, lowerSpreadProb, link,
+                                            climateRef = climateRef, climateAtRef = TRUE),
                          ps$logisticPars[1], lowerSpreadProb, maxFireSpread, lanscape1stQuantileThresh))
     list(pass = all(vapply(g, `[[`, logical(1), "pass")),
          burny = any(vapply(g, `[[`, logical(1), "burny")),
