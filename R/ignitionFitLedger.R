@@ -11,18 +11,23 @@
 #' `count:poisson`). The date is the model version. A fit made under a new model needs a new tag,
 #' so the old files drop out of `"latest"`; files with an older tag, e.g. `"_xgboost"` (Tweedie
 #' fits), are never read.
+#' The tag names the objective ([ignitionObjectiveTxt]); a test fails if the objective changes and the tag does not.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
+#' @param suffix Text put after the model tag in the file name, e.g. `"_boundfix_rep81"`; `""` (the
+#'   default) is the production file. A test run with its own suffix writes, and `"latest"` reads, only
+#'   files with that suffix, so test and production fits never mix. The same `fitFileSuffix` parameter
+#'   of `fireSense_spreadFit` and `fireSense_ignitionFit` sets it for both ledgers.
 #'
 #' @return `ignitionFitFilenameFor()`: the file name a fit over `fireYears` is written to,
-#'   e.g. `"fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds"`.
+#'   e.g. `"fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds"` (then `suffix`).
 #' @export
 #' @rdname ignitionFitLedger
-ignitionFitFilenameFor <- function(fireYears) {
+ignitionFitFilenameFor <- function(fireYears, suffix = "") {
   fireYears <- as.integer(fireYears[is.finite(fireYears)])
   if (!length(fireYears))
     stop("ignitionFitFilenameFor(): `fireYears` has no years")
-  paste0(ignitionFitFilePrefix, min(fireYears), "-", max(fireYears), ignitionFitFileTag, ".rds")
+  paste0(ignitionFitFilePrefix, min(fireYears), "-", max(fireYears), ignitionFitFileTag, suffix, ".rds")
 }
 
 ignitionFitFilePrefix <- "fireSenseIgnitionParams_"
@@ -40,13 +45,15 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [ignitionFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
+#' @param suffix Only files named with this suffix are read; see `ignitionFitFilenameFor()`.
 #'
 #' @return `latestIgnitionFits()`: the ledger rows, in the form fireSense_IgnitionFit writes them
 #'   (a `data.frame` with a `geometry` column), or `NULL` when no file matches. Attribute
 #'   `"ignitionFitFiles"` names the file each polygon came from.
 #' @export
 #' @rdname ignitionFitLedger
-latestIgnitionFits <- function(cloudFolderID = ignitionFitLedgerFolder(), destinationPath, polygonIDs = NULL) {
+latestIgnitionFits <- function(cloudFolderID = ignitionFitLedgerFolder(), destinationPath, polygonIDs = NULL,
+                              suffix = "") {
   .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = ignitionFitFilePrefix,
-                    fileTag = ignitionFitFileTag, caller = "latestIgnitionFits", attrName = "ignitionFitFiles")
+                    fileTag = ignitionFitFileTag, suffix = suffix, caller = "latestIgnitionFits", attrName = "ignitionFitFiles")
 }

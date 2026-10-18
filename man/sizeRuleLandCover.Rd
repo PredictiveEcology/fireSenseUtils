@@ -15,6 +15,6 @@ Character path of the \code{.tif}.
 \description{
 SCANFI v2 land cover for 2020 in Canada LCC class codes, the same map and source as
 \code{\link[LandR:prepInputs_SCANFI_LCC_FAO]{LandR::prepInputs_SCANFI_LCC_FAO()}} starts from. The file's name carries its release, so a copy in
-\code{destinationPath} or \code{getOption("reproducible.inputPaths")} is used as it is, with no call to Google
-Drive; otherwise it is downloaded.
+\code{destinationPath} or \code{getOption("reproducible.inputPaths")} is used as it is; otherwise it is downloaded
+from LandR's SCANFI mirror, which needs no Google login.
 }
