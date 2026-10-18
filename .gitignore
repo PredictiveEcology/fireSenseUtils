@@ -6,3 +6,4 @@
 .Rprofile
 .vscode/
 .claude/
+.aider*
