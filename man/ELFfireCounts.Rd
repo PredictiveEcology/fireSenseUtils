@@ -12,7 +12,8 @@ ELFfireCounts(
   pixelAreaHa,
   naturalCauses = c("L", "N"),
   escapeSizeHa = 50,
-  overlay = NULL
+  overlay = NULL,
+  returnPoints = FALSE
 )
 }
 \arguments{
@@ -38,10 +39,14 @@ area inside the ELF exceeds this.}
 
 \item{overlay}{the table from \code{\link[=ELFfireOverlay]{ELFfireOverlay()}} for \code{rasWhole}, \code{firePolys} and \code{fireYears}, or \code{NULL}
 (default) to compute it. Passing it lets the clipping be done once and cached.}
+
+\item{returnPoints}{if \code{TRUE}, also return the counted points (see Value).}
 }
 \value{
 A \code{data.table} with one row per ELF and year: \code{ELF}, \code{year},
-\code{naturalIgnitions}, \code{escapes}, \code{firePolygons}.
+\code{naturalIgnitions}, \code{escapes}, \code{firePolygons}. With \code{returnPoints = TRUE}, a list instead: \code{counts} (that
+table) and \code{points}, the \code{SpatVector} of the natural points that were counted (in \code{fireYears} and inside at least one
+ELF), in the CRS of \code{rasWhole}, with a logical column \code{escaped}.
 }
 \description{
 Counts natural-cause ignitions, escaped natural ignitions and fire polygons falling in

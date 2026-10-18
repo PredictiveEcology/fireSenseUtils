@@ -31,7 +31,9 @@
 #'   (natural-cause polygons in the core), `areaBurnedHaAllCause`, `nFires50` and `nFires50AllCause`
 #'   (clipped pieces of at least `escapeSizeHa`). `sizes` is a `data.table` of the clipped pieces, with
 #'   `cause` (`"natural"` or `"allCause"`) and `ha`. `polys` is the `SpatVector` of the year's natural-cause
-#'   polygons (not clipped; `NULL` without polygons or a cause column), to draw on a map.
+#'   polygons (not clipped; `NULL` without polygons or a cause column), to draw on a map. `points` is the
+#'   `SpatVector` of the natural ignition points that `counts$ignitions` counts (in the core's CRS, with
+#'   `escaped`), the ignition locations the simulation is compared with.
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist
@@ -62,17 +64,19 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
 
   ## the polygons are not counted here, so the all-cause overlay only satisfies the signature
   pts <- ELFfireCounts(core, firePoints, firePolys = NULL, fireYears = year, pixelAreaHa = pixelAreaHa,
-                       naturalCauses = naturalCauses, escapeSizeHa = escapeSizeHa, overlay = allCause)
+                       naturalCauses = naturalCauses, escapeSizeHa = escapeSizeHa, overlay = allCause,
+                       returnPoints = TRUE)
   sizesOf <- function(cause, o) data.table::data.table(cause = rep(cause, length(inCore(o))), ha = inCore(o))
   list(
     counts = data.table::data.table(
-      year = as.integer(year), ignitions = pts$naturalIgnitions, escapes = pts$escapes,
+      year = as.integer(year), ignitions = pts$counts$naturalIgnitions, escapes = pts$counts$escapes,
       areaBurnedHa = if (noCause) NA_real_ else sum(inCore(natural)),
       areaBurnedHaAllCause = sum(inCore(allCause)),
       nFires50 = if (noCause) NA_integer_ else big(natural),
       nFires50AllCause = big(allCause)),
     sizes = data.table::rbindlist(list(sizesOf("natural", natural), sizesOf("allCause", allCause))),
-    polys = naturalPolys
+    polys = naturalPolys,
+    points = pts$points
   )
 }
 

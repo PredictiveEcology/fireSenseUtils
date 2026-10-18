@@ -37,16 +37,19 @@
 #'   (default) to compute it. Passing it lets the clipping be done once and cached.
 #' @param escapeSizeHa size (ha) a fire must reach to count as escaped, as in [escapedFires()]
 #'   (`pixelAreaHa` is its pixel area).
+#' @param returnPoints if `TRUE`, also return the counted points (see Value).
 #'
 #' @return A `data.table` with one row per ELF and year: `ELF`, `year`,
-#'   `naturalIgnitions`, `escapes`, `firePolygons`.
+#'   `naturalIgnitions`, `escapes`, `firePolygons`. With `returnPoints = TRUE`, a list instead: `counts` (that
+#'   table) and `points`, the `SpatVector` of the natural points that were counted (in `fireYears` and inside at least one
+#'   ELF), in the CRS of `rasWhole`, with a logical column `escaped`.
 #'
 #' @export
 #' @importFrom data.table data.table rbindlist setkeyv
 #' @importFrom terra cellFromXY crds crs project
 ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
                           pixelAreaHa, naturalCauses = c("L", "N"), escapeSizeHa = 50,
-                          overlay = NULL) {
+                          overlay = NULL, returnPoints = FALSE) {
   stopifnot(
     inherits(rasWhole, "SpatRaster"),
     inherits(firePoints, "SpatVector"),
@@ -69,6 +72,9 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
   ptCell <- ptCell[keep]
   ptYear <- ptYear[keep]
   ptEscape <- isEscape[keep]
+  counted <- natural[keep, ]
+  counted$escaped <- ptEscape
+  inAny <- rep(FALSE, length(ptCell))
 
   ## Polygons: clipped area per ELF, so a fire straddling an edge is judged on the part inside.
   if (is.null(overlay)) overlay <- ELFfireOverlay(rasWhole, firePolys, fireYears)
@@ -77,6 +83,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
   counts <- lapply(ELFnames, function(elf) {
     inArea <- rasWhole[[elf]][ptCell][[1]] > 0
     inArea[is.na(inArea)] <- FALSE
+    inAny <<- inAny | inArea
     ign <- table(factor(ptYear[inArea], levels = fireYears))
     esc <- table(factor(ptYear[inArea & ptEscape], levels = fireYears))
 
@@ -91,7 +98,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
 
   counts <- data.table::rbindlist(counts)
   data.table::setkeyv(counts, c("ELF", "year"))
-  counts[]
+  if (returnPoints) list(counts = counts[], points = counted[inAny, ]) else counts[]
 }
 
 #' Clip fire polygons to each ELF, once
