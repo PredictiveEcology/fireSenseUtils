@@ -164,6 +164,10 @@ deoptimPopulationSize <- function(nParams) {
 #' @param runawayEdgeFrac,runawayEdgeMin Passed to [.objfunSpreadFit()] in the fit and the re-score: a
 #'   replicate is a runaway only if it burns at least `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))`
 #'   of the `n` edge-ring pixels of its fire (at most `n`). Defaults [fireSenseRunawayEdgeFrac] and [fireSenseRunawayEdgeMin].
+#' @param censoredRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` right-censors a
+#'   runaway replicate at the size it burned (no early stop; the size terms score what it burned) instead of
+#'   dropping it from the likelihood and scoring it as `runawayBufferMultiple` x its buffer. `FALSE` (default)
+#'   is omitted from the fit's cache key, so fits cached before it existed are found.
 #' @param runawayBufferMultiple Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL`
 #'   (default), or the multiple of its own fire's buffer size that a runaway counts as in the size-based terms.
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
@@ -247,6 +251,7 @@ runDEoptim <- function(landscape,
                        runawayEdgeFrac = fireSenseRunawayEdgeFrac,
                        runawayEdgeMin = fireSenseRunawayEdgeMin,
                        runawayBufferMultiple = NULL,
+                       censoredRunaways = FALSE,
                        profileReps = 0L,
                        simulateMembers = 0L,
                        penaliseCapHits = NULL,
@@ -367,6 +372,7 @@ runDEoptim <- function(landscape,
       runawayEdgeFrac = runawayEdgeFrac,
       runawayEdgeMin = runawayEdgeMin,
       runawayBufferMultiple = runawayBufferMultiple,
+      censoredRunaways = if (isTRUE(censoredRunaways)) TRUE, # NULL when FALSE: left out of the cache key below
       rep = rep,
       runName = runName,
       progressFile = progressFile,
@@ -375,7 +381,8 @@ runDEoptim <- function(landscape,
     ## how often progress figures are drawn, and where the progress file goes, do not change the fit
     omitArgs = c(".verbose", "plotEvery", "progressFile",
                  omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
-                              convergence = convergence)),
+                              convergence = convergence,
+                              censoredRunaways = if (isTRUE(censoredRunaways)) TRUE)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -406,6 +413,7 @@ runDEoptim <- function(landscape,
   ## NULL adds nothing, so the cached re-score keeps its key
   rescoreArgs$covCentre <- covCentre
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
+  if (isTRUE(censoredRunaways)) rescoreArgs$censoredRunaways <- TRUE
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(

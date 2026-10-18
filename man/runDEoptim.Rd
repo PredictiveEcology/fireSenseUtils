@@ -59,6 +59,7 @@ runDEoptim(
   runawayEdgeFrac = fireSenseRunawayEdgeFrac,
   runawayEdgeMin = fireSenseRunawayEdgeMin,
   runawayBufferMultiple = NULL,
+  censoredRunaways = FALSE,
   profileReps = 0L,
   simulateMembers = 0L,
   penaliseCapHits = NULL,
@@ -222,6 +223,11 @@ of the \code{n} edge-ring pixels of its fire (at most \code{n}). Defaults \link{
 
 \item{runawayBufferMultiple}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL}
 (default), or the multiple of its own fire's buffer size that a runaway counts as in the size-based terms.}
+
+\item{censoredRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} right-censors a
+runaway replicate at the size it burned (no early stop; the size terms score what it burned) instead of
+dropping it from the likelihood and scoring it as \code{runawayBufferMultiple} x its buffer. \code{FALSE} (default)
+is omitted from the fit's cache key, so fits cached before it existed are found.}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.

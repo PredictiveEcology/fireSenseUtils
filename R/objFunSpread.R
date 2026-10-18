@@ -201,6 +201,17 @@ utils::globalVariables(c(
 #'   typically had burned 1-3 times its observed fire's size, count as burning the whole landscape, and
 #'   the fit chose parameters that rarely reach a buffer edge, so it under-burned (held-out ELFs,
 #'   2026-10-01: simulated/observed area 1.33 -> 0.54).
+#' @param censoredRunaways If `TRUE`, a runaway replicate (see `penaliseRunaways`) is right-censored at the size it
+#'   burned instead of being dropped from the per-fire size likelihood and replaced in the size terms: the fire keeps
+#'   burning inside its buffer (no early stop), so its burned size is bounded by the buffer exactly as the observed fire
+#'   is; in the per-fire likelihood (`sizeLik = "t"` only) the location and scale of the fire's replicate sizes come
+#'   from a censored-normal maximum likelihood fit ([sizeLikTCensored()]), where a runaway replicate contributes
+#'   `P(size >= its burned size)`; and the `"adTest"`, `yearAreaWeight`, `areaDistWeight` and `"mad"` terms score
+#'   the burned size (`runawaySize` and `runawayBufferMultiple` are not used). Needs `penaliseRunaways = TRUE`, which
+#'   decides what a runaway is. `FALSE` (default) changes nothing. Why: scoring a runaway as 2 x its buffer made the
+#'   objective prefer `yearSpreadSD = 0` whatever the true year effect (known-sigma test on ELF 14.3, 2026-10-17:
+#'   a true sd of 0.25 was fitted as 0.03-0.11); dropping the penalty altogether (`penaliseRunaways = FALSE`) treats
+#'   a replicate that filled its buffer as an exact size, which it is not.
 #' @param runawayBufferMultiple `NULL` (default), or a number: with `penaliseRunaways = TRUE`, a runaway
 #'   replicate counts in the `"adTest"`, `yearAreaWeight`, `areaDistWeight` and `"mad"` terms as this
 #'   multiple of the size (pixels) of its own fire's buffer, i.e. all rows of that fire's `ids` in the
@@ -279,6 +290,7 @@ utils::globalVariables(c(
                              runawaySize = NULL,
                              runawayBufferMultiple = NULL,
                              fitYearSpreadSD = NULL,
+                             censoredRunaways = FALSE,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              ...) { # fireSense_SpreadFitRaster
@@ -333,6 +345,13 @@ utils::globalVariables(c(
     stop("Give `runawaySize` or `runawayBufferMultiple`, not both: each sets the size a runaway counts as.")
   censorRunaways <- isTRUE(penaliseRunaways)
   if (!censorRunaways) {
+    runawaySize <- NULL
+    runawayBufferMultiple <- NULL
+  }
+  if (isTRUE(censoredRunaways)) {
+    if (!censorRunaways) stop("censoredRunaways needs penaliseRunaways = TRUE, which decides what a runaway is")
+    if (!identical(sizeLik, "t")) stop("censoredRunaways is implemented for sizeLik = 't' only")
+    ## a runaway is scored at the size it burned: the substitutes are not used (the module passes its default multiple)
     runawaySize <- NULL
     runawayBufferMultiple <- NULL
   }
@@ -408,7 +427,7 @@ utils::globalVariables(c(
         runawaySize = runawaySize, runawayBufferMultiple = runawayBufferMultiple,
         runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin, yearSpreadSD = yearSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
-        doYearArea = doYearArea,
+        doYearArea = doYearArea, censoredRunaways = censoredRunaways,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -680,7 +699,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         runawaySize = NULL, runawayBufferMultiple = NULL, censorRunaways = !is.null(runawaySize), runawayEdgeFrac = fireSenseRunawayEdgeFrac, runawayEdgeMin = fireSenseRunawayEdgeMin, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
-                        doYearArea = FALSE) {
+                        doYearArea = FALSE, censoredRunaways = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -860,7 +879,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## when the simulated sizes are returned) a runaway's size is used, and it must keep burning.
       ## A ring pixel with no spreadProb row is outside the crop and never burns, so it is left out.
       stopArgs <- NULL
-      if (isTRUE(censorRunaways) && !isTRUE(returnSims)) {
+      ## censoredRunaways: a runaway keeps burning inside its buffer; its burned size is its censoring point
+      if (isTRUE(censorRunaways) && !isTRUE(returnSims) && !isTRUE(censoredRunaways)) {
         stopRing <- edgeRing[ids %in% annualFires$ids & pixelID %in% shortAnnDT$pixelID]
         stopArgs <- list(
           stopCells = crop$toCrop(stopRing$pixelID),
@@ -1040,17 +1060,19 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## A runaway replicate is censored, so it has no density at the observed size: the density is
         ## that of the other replicates, times their share. (Left in, a fire whose replicates all ran
         ## away would be identical points, and the kernel density of identical points is wide, not narrow.)
-        emp <- emp[N > 1, list(size = size[1],
-                               lik = if (sum(!censored) > 1) {
-                                 uncensored <- !censored
-                                 sum(uncensored) / .N * if (identical(sizeLik, "t")) {
-                                   sizeLikT(size[1], N[uncensored], sizeLikDf)
-                                 } else {
-                                   EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N[uncensored]))
-                                 }
-                               } else {
-                                 0
-                               }), by = "ids"]
+        ## censoredRunaways: the replicates' distribution is fitted with the runaways as right-censored values
+        ## (at least the size they burned) and the observed size is scored under that fit.
+        likOf <- function(size, N, censored) {
+          if (sum(!censored) <= 1) return(0)
+          if (isTRUE(censoredRunaways)) return(sizeLikTCensored(size[1], N, censored, sizeLikDf))
+          uncensored <- !censored
+          sum(uncensored) / length(N) * if (identical(sizeLik, "t")) {
+            sizeLikT(size[1], N[uncensored], sizeLikDf)
+          } else {
+            EnvStats::demp(x = sqrt(size[1]), obs = sqrt(N[uncensored]))
+          }
+        }
+        emp <- emp[N > 1, list(size = size[1], lik = likOf(size, N, censored)), by = "ids"]
         # emp <- emp[N > 1, list(size = size[1],
         #                            lik = ifelse(.N > 1,
         #                                         EnvStats::demp(x = size[1], obs = sqrt(N)),
@@ -1256,6 +1278,49 @@ adWeightAuto <- function(nFires, sizeLik = "kde", weighted = FALSE) {
 sizeLikT <- function(size, N, df) {
   sc <- max(sd(sqrt(N)), 0.5)
   dt((sqrt(size) - mean(sqrt(N))) / sc, df) / sc
+}
+
+#' Student-t likelihood of an observed fire size when some replicates are right-censored
+#'
+#' As [sizeLikT()], but the location and scale of the replicates' sqrt-size distribution come from a censored-normal
+#' maximum likelihood fit ([censoredNormalFit()]): a replicate that reached its buffer's edge ring is known only to be
+#' at least the size it burned, and contributes `P(X >= sqrt(N))` instead of a density. With no censored replicate this
+#' is exactly [sizeLikT()]. The scale keeps the lower bound of 0.5.
+#'
+#' @param size Observed fire size, in pixels.
+#' @param N Simulated sizes of that fire, in pixels (the burned size for a censored replicate); at least two uncensored.
+#' @param censored Logical, one per replicate: `TRUE` if it is a runaway.
+#' @param df Degrees of freedom.
+#'
+#' @return A single numeric: the likelihood.
+#' @keywords internal
+#' @importFrom stats dt
+sizeLikTCensored <- function(size, N, censored, df) {
+  fit <- censoredNormalFit(sqrt(N), censored)
+  sc <- max(fit$s, 0.5)
+  dt((sqrt(size) - fit$mu) / sc, df) / sc
+}
+
+#' Censored-normal maximum likelihood fit of location and scale
+#'
+#' `x[!censored]` are exact observations and `x[censored]` right-censoring points (the true value is at least `x`).
+#' With no censored value it returns the sample mean and `sd()`, so a caller that never censors is unchanged.
+#'
+#' @param x Numeric vector.
+#' @param censored Logical vector the length of `x`.
+#'
+#' @return A list with `mu` and `s`.
+#' @keywords internal
+#' @importFrom stats dnorm pnorm optim sd
+censoredNormalFit <- function(x, censored) {
+  if (!any(censored)) return(list(mu = mean(x), s = sd(x)))
+  nll <- function(th) {
+    mu <- th[1]
+    s <- exp(th[2])
+    -sum(dnorm(x[!censored], mu, s, log = TRUE)) - sum(pnorm(x[censored], mu, s, lower.tail = FALSE, log.p = TRUE))
+  }
+  o <- optim(c(mean(x), log(max(sd(x), 1e-3))), nll, method = "BFGS", control = list(maxit = 200))
+  list(mu = o$par[1], s = exp(o$par[2]))
 }
 
 #' Size weights for the fire-size likelihood

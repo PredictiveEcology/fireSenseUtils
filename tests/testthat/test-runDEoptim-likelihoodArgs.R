@@ -105,3 +105,29 @@ test_that("penaliseCapHits is deprecated: a warning, and it is not passed on", {
   expect_null(seen$dots$penaliseCapHits)
   expect_true(seen$dots$penaliseRunaways)
 })
+
+test_that("censoredRunaways reaches the fit and the re-score when TRUE, and is absent (not FALSE) by default", {
+  ## absent, not FALSE: the fit's Cache() key must not change for callers who leave it off
+  seen <- new.env()
+  finalPop <- matrix(c(0.26, 1, 1, 0.5), nrow = 1)
+  testthat::local_mocked_bindings(
+    clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
+    DEoptimIterative = function(fn, lower, upper, control, ...) {
+      seen$dots <- list(...)
+      list(list(member = list(pop = finalPop)))
+    },
+    .package = "clusters")
+  testthat::local_mocked_bindings(
+    termsInDEoptim = function(...) invisible(NULL),
+    rescorePopulation = function(pop, fn, reps, cl, seed = 1L, fnArgs = list()) {
+      seen$fnArgs <- fnArgs
+      data.table::data.table(member = 1L, rep = 1L, value = 1)
+    })
+  expect_identical(formals(runDEoptim)$censoredRunaways, formals(.objfunSpreadFit)$censoredRunaways)
+  callRunDEoptimLik()
+  expect_null(seen$dots$censoredRunaways)   # passed as NULL (omitNullArgs() keeps it out of the cache key)
+  expect_false("censoredRunaways" %in% names(seen$fnArgs))
+  callRunDEoptimLik(censoredRunaways = TRUE)
+  expect_true(isTRUE(seen$dots$censoredRunaways))
+  expect_true(isTRUE(seen$fnArgs$censoredRunaways))
+})

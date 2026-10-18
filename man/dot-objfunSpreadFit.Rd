@@ -45,6 +45,7 @@
   runawaySize = NULL,
   runawayBufferMultiple = NULL,
   fitYearSpreadSD = NULL,
+  censoredRunaways = FALSE,
   verbose = 2,
   ...
 )
@@ -264,6 +265,18 @@ year's fires are bigger or smaller together. Without it the simulated fire sizes
 medians too large and the largest fires too small at once (2026-09-23). \code{sd = 0} is the model
 without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{TRUE} when \code{par} is named and
 includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
+
+\item{censoredRunaways}{If \code{TRUE}, a runaway replicate (see \code{penaliseRunaways}) is right-censored at the size it
+burned instead of being dropped from the per-fire size likelihood and replaced in the size terms: the fire keeps
+burning inside its buffer (no early stop), so its burned size is bounded by the buffer exactly as the observed fire
+is; in the per-fire likelihood (\code{sizeLik = "t"} only) the location and scale of the fire's replicate sizes come
+from a censored-normal maximum likelihood fit (\code{\link[=sizeLikTCensored]{sizeLikTCensored()}}), where a runaway replicate contributes
+\verb{P(size >= its burned size)}; and the \code{"adTest"}, \code{yearAreaWeight}, \code{areaDistWeight} and \code{"mad"} terms score
+the burned size (\code{runawaySize} and \code{runawayBufferMultiple} are not used). Needs \code{penaliseRunaways = TRUE}, which
+decides what a runaway is. \code{FALSE} (default) changes nothing. Why: scoring a runaway as 2 x its buffer made the
+objective prefer \code{yearSpreadSD = 0} whatever the true year effect (known-sigma test on ELF 14.3, 2026-10-17:
+a true sd of 0.25 was fitted as 0.03-0.11); dropping the penalty altogether (\code{penaliseRunaways = FALSE}) treats
+a replicate that filled its buffer as an exact size, which it is not.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 
