@@ -11,6 +11,7 @@
 #' `count:poisson`). The date is the model version. A fit made under a new model needs a new tag,
 #' so the old files drop out of `"latest"`; files with an older tag, e.g. `"_xgboost"` (Tweedie
 #' fits), are never read.
+#' The tag names the objective ([ignitionObjectiveTxt]); a test fails if the objective changes and the tag does not.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
 #' @param suffix Text put after the model tag in the file name, e.g. `"_boundfix_rep81"`; `""` (the

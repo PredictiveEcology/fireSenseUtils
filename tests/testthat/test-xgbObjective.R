@@ -41,3 +41,8 @@ test_that("xgbObjective() falls back to attr(, 'params'), and gives NA when noth
 test_that("ignitionObjectiveTxt is the objective the ignition and escape fits use", {
   expect_identical(ignitionObjectiveTxt, "count:poisson")
 })
+
+test_that("the ignition ledger tag names the objective, so changing the objective needs a new tag", {
+  family <- c("count:poisson" = "Poisson", "reg:tweedie" = "Tweedie")[[ignitionObjectiveTxt]]
+  expect_match(ignitionFitFileTag, family, fixed = TRUE)
+})

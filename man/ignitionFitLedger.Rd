@@ -54,4 +54,5 @@ ignition and escape fits (\code{fireSense_IgnitionFit}'s \code{modelAlgorithm = 
 \code{count:poisson}). The date is the model version. A fit made under a new model needs a new tag,
 so the old files drop out of \code{"latest"}; files with an older tag, e.g. \code{"_xgboost"} (Tweedie
 fits), are never read.
+The tag names the objective (\link{ignitionObjectiveTxt}); a test fails if the objective changes and the tag does not.
 }
