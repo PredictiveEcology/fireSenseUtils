@@ -20,6 +20,9 @@
 #'     (currently `"ignitions"`).
 #'   - `escapesTxt`: `character(1)`. Name of the escapes column
 #'     (currently `"escapes"`).
+#'   - `ignitionObjectiveTxt`: `character(1)`. The xgboost objective the ignition and escape models
+#'     are fitted with (currently `"count:poisson"`); read it back from a fitted model with
+#'     [xgbObjective()].
 #'   - `spreadFitAdditionalColNamesTxt`: `character` vector of extra
 #'     simList-slot/column names attached to spread-fit outputs
 #'     (`"numIterations"`, `"objFunVal"`, `"params"`, `"sppEquiv"`,
@@ -39,7 +42,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt
 NULL
 
 #' @export
@@ -65,6 +68,9 @@ ignitionsTxt <- "ignitions"
 
 #' @export
 escapesTxt <- "escapes"
+
+#' @export
+ignitionObjectiveTxt <- "count:poisson"
 
 #' @export
 spreadFitAdditionalColNamesTxt <- c(

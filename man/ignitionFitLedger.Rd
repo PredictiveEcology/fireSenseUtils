@@ -6,18 +6,21 @@
 \alias{latestIgnitionFits}
 \title{The shared IgnitionFit ledger files}
 \usage{
-ignitionFitFilenameFor(fireYears)
+ignitionFitFilenameFor(fireYears, suffix = "")
 
 ignitionFitFileTag
 
 latestIgnitionFits(
   cloudFolderID = ignitionFitLedgerFolder(),
   destinationPath,
-  polygonIDs = NULL
+  polygonIDs = NULL,
+  suffix = ""
 )
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
+
+\item{suffix}{Only files named with this suffix are read; see \code{ignitionFitFilenameFor()}.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=ignitionFitLedgerFolder]{ignitionFitLedgerFolder()}}.}
 
@@ -27,7 +30,7 @@ latestIgnitionFits(
 }
 \value{
 \code{ignitionFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
-e.g. \code{"fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds"}.
+e.g. \code{"fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds"} (then \code{suffix}).
 
 \code{latestIgnitionFits()}: the ledger rows, in the form fireSense_IgnitionFit writes them
 (a \code{data.frame} with a \code{geometry} column), or \code{NULL} when no file matches. Attribute

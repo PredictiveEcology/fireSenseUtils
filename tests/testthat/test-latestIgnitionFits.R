@@ -102,3 +102,29 @@ test_that("rows of several ledger files are combined without touching the xgboos
     expect_equal(got, expected[c(3, 1, 2)])
   }
 })
+
+test_that("a suffix goes after the model tag; \"\" is the production name", {
+  expect_identical(ignitionFitFilenameFor(1986:2024, "_boundfix_rep81"),
+                   "fireSenseIgnitionParams_1986-2024_xgboostPoisson_20261013_boundfix_rep81.rds")
+  expect_identical(ignitionFitFilenameFor(1986:2024, ""), ignitionFitFilenameFor(1986:2024))
+})
+
+test_that("\"latest\" ignores suffixed files, and a suffixed run reads only its own file", {
+  d <- withr::local_tempdir()
+  prod <- ignitionFitFilenameFor(1986:2024)
+  test81 <- ignitionFitFilenameFor(1986:2024, "_boundfix_rep81")
+  test82 <- ignitionFitFilenameFor(1986:2024, "_boundfix_rep82")
+  drive <- fakeDrive(setNames(list(
+    list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.1", 1)),
+    list(modified = "2026-10-15T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1"), c(81, 81))),
+    list(modified = "2026-10-16T10:00:00Z", ledger = ledgerRows(c("4.1", "6.1"), c(82, 82)))),
+    c(prod, test81, test82)))
+  out <- latestIgnitionFits("folder", d)
+  expect_identical(out$polygonID, "4.1")
+  expect_identical(out$objFunVal, 1)
+  expect_identical(drive$downloads, prod)
+  out <- latestIgnitionFits("folder", d, suffix = "_boundfix_rep81")
+  expect_setequal(out$polygonID, c("4.1", "5.1"))
+  expect_identical(unique(out$objFunVal), 81)
+  expect_null(suppressMessages(latestIgnitionFits("folder", d, suffix = "_rep81")))
+})

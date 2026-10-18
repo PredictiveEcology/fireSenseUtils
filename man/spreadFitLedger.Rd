@@ -6,18 +6,21 @@
 \alias{latestSpreadFits}
 \title{The shared SpreadFit ledger files}
 \usage{
-spreadFitFilenameFor(fireYears)
+spreadFitFilenameFor(fireYears, suffix = "")
 
 spreadFitFileTag
 
 latestSpreadFits(
   cloudFolderID = spreadFitLedgerFolder(),
   destinationPath,
-  polygonIDs = NULL
+  polygonIDs = NULL,
+  suffix = ""
 )
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
+
+\item{suffix}{Only files named with this suffix are read; see \code{spreadFitFilenameFor()}.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=spreadFitLedgerFolder]{spreadFitLedgerFolder()}}.}
 
@@ -27,7 +30,7 @@ latestSpreadFits(
 }
 \value{
 \code{spreadFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
-e.g. \code{"fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds"}.
+e.g. \code{"fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds"} (then \code{suffix}).
 
 \code{latestSpreadFits()}: the ledger rows, in the form fireSense_spreadFit writes them
 (a \code{data.frame} with a \code{geometry} column), or \code{NULL} when no file matches. Attribute
