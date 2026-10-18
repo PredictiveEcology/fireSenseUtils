@@ -44,7 +44,9 @@ A list. \code{counts} is a one-row \code{data.table}: \code{year}, \code{ignitio
 (natural-cause polygons in the core), \code{areaBurnedHaAllCause}, \code{nFires50} and \code{nFires50AllCause}
 (clipped pieces of at least \code{escapeSizeHa}). \code{sizes} is a \code{data.table} of the clipped pieces, with
 \code{cause} (\code{"natural"} or \code{"allCause"}) and \code{ha}. \code{polys} is the \code{SpatVector} of the year's natural-cause
-polygons (not clipped; \code{NULL} without polygons or a cause column), to draw on a map.
+polygons (not clipped; \code{NULL} without polygons or a cause column), to draw on a map. \code{points} is the
+\code{SpatVector} of the natural ignition points that \code{counts$ignitions} counts (in the core's CRS, with
+\code{escaped}), the ignition locations the simulation is compared with.
 }
 \description{
 What the hindcast simulation is compared with: natural-cause ignitions, escapes, area burned and the fire

@@ -44,6 +44,16 @@ test_that("hindcastObserved counts ignitions, escapes and core-clipped area with
   expect_true(all(o$polys$YEAR == 2000L & o$polys$FIRECAUS == "Natural"))
 })
 
+test_that("hindcastObserved returns the year's natural ignition points in the core, with the counts' definition", {
+  o <- hindcastObserved(toyCore(), toyPoints(), toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
+  expect_s4_class(o$points, "SpatVector")
+  expect_equal(NROW(o$points), o$counts$ignitions)
+  expect_true(all(o$points$YEAR == 2000L & o$points$CAUSE %in% c("L", "N")))
+  expect_setequal(round(terra::crds(o$points)[, 1]), c(1000, 2000, 3000))
+  expect_identical(terra::crs(o$points), terra::crs(toyCore()))
+  expect_identical(sum(o$points$SIZE_HA >= 50), o$counts$escapes)
+})
+
 test_that("hindcastObserved takes the list of annual polygons the simulation holds", {
   p <- toyPolys()
   asList <- list(year2000 = p[p$YEAR == 2000L, ], year2001 = NULL, year2002 = p[p$YEAR == 2001L, ])
