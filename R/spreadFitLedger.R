@@ -13,16 +13,20 @@
 #' A fit made under a new model needs a new tag, so the old files drop out of `"latest"`.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
+#' @param suffix Text put after the model tag in the file name, e.g. `"_boundfix_rep81"`; `""` (the
+#'   default) is the production file. A test run with its own suffix writes, and `"latest"` reads, only
+#'   files with that suffix, so test and production fits never mix. The same `fitFileSuffix` parameter
+#'   of `fireSense_spreadFit` and `fireSense_ignitionFit` sets it for both ledgers.
 #'
 #' @return `spreadFitFilenameFor()`: the file name a fit over `fireYears` is written to,
-#'   e.g. `"fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds"`.
+#'   e.g. `"fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds"` (then `suffix`).
 #' @export
 #' @rdname spreadFitLedger
-spreadFitFilenameFor <- function(fireYears) {
+spreadFitFilenameFor <- function(fireYears, suffix = "") {
   fireYears <- as.integer(fireYears[is.finite(fireYears)])
   if (!length(fireYears))
     stop("spreadFitFilenameFor(): `fireYears` has no years")
-  paste0("fireSenseParams_", min(fireYears), "-", max(fireYears), spreadFitFileTag, ".rds")
+  paste0("fireSenseParams_", min(fireYears), "-", max(fireYears), spreadFitFileTag, suffix, ".rds")
 }
 
 #' @export
@@ -39,13 +43,15 @@ spreadFitFileTag <- "_linearFuel_esc50_20260925"
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [spreadFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
+#' @param suffix Only files named with this suffix are read; see `spreadFitFilenameFor()`.
 #'
 #' @return `latestSpreadFits()`: the ledger rows, in the form fireSense_spreadFit writes them
 #'   (a `data.frame` with a `geometry` column), or `NULL` when no file matches. Attribute
 #'   `"spreadFitFiles"` names the file each polygon came from.
 #' @export
 #' @rdname spreadFitLedger
-latestSpreadFits <- function(cloudFolderID = spreadFitLedgerFolder(), destinationPath, polygonIDs = NULL) {
+latestSpreadFits <- function(cloudFolderID = spreadFitLedgerFolder(), destinationPath, polygonIDs = NULL,
+                             suffix = "") {
   .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = "fireSenseParams_",
-                    fileTag = spreadFitFileTag, caller = "latestSpreadFits", attrName = "spreadFitFiles")
+                    fileTag = spreadFitFileTag, suffix = suffix, caller = "latestSpreadFits", attrName = "spreadFitFiles")
 }

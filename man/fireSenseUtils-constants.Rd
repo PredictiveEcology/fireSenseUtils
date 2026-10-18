@@ -10,6 +10,7 @@
 \alias{treedWetlandAgbTxt}
 \alias{ignitionsTxt}
 \alias{escapesTxt}
+\alias{ignitionObjectiveTxt}
 \alias{spreadFitAdditionalColNamesTxt}
 \alias{ignitionFitAdditionalColNamesTxt}
 \alias{spreadInterceptTxt}
@@ -32,6 +33,9 @@ prefix on year-suffixed layer/column names (currently \code{"year"}).
 (currently \code{"ignitions"}).
 \item \code{escapesTxt}: \code{character(1)}. Name of the escapes column
 (currently \code{"escapes"}).
+\item \code{ignitionObjectiveTxt}: \code{character(1)}. The xgboost objective the ignition and escape models
+are fitted with (currently \code{"count:poisson"}); read it back from a fitted model with
+\code{\link[=xgbObjective]{xgbObjective()}}.
 \item \code{spreadFitAdditionalColNamesTxt}: \code{character} vector of extra
 simList-slot/column names attached to spread-fit outputs
 (\code{"numIterations"}, \code{"objFunVal"}, \code{"params"}, \code{"sppEquiv"},

@@ -3,7 +3,7 @@
 #' The one implementation behind [latestSpreadFits()] and [latestIgnitionFits()].
 #'
 #' @param cloudFolderID,destinationPath,polygonIDs As in [latestSpreadFits()].
-#' @param filePrefix,fileTag The ledger files are those named `<filePrefix>*<fileTag>.rds`.
+#' @param filePrefix,fileTag,suffix The ledger files are those named `<filePrefix>*<fileTag><suffix>.rds`.
 #' @param caller Name of the calling function, for messages.
 #' @param attrName Name of the attribute that records the file each polygon came from.
 #' @return As [latestSpreadFits()].
@@ -12,11 +12,13 @@
 ## The link of a Google Drive file, as recorded in reproducible's download ledger and used to download it.
 .driveFileUrl <- function(id) paste0("https://drive.google.com/file/d/", id)
 
-.latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, caller, attrName) {
+.latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, suffix = "", caller, attrName) {
   files <- googledrive::drive_ls(cloudFolderID)
-  files <- files[grepl(paste0("^", filePrefix, ".*", fileTag, "\\.rds$"), files$name), ]
+  ## the tag is followed directly by the suffix, so "" matches only unsuffixed files
+  tagAndSuffix <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", paste0(fileTag, suffix))
+  files <- files[grepl(paste0("^", filePrefix, ".*", tagAndSuffix, "\\.rds$"), files$name), ]
   if (!NROW(files)) {
-    message(caller, "(): no ", filePrefix, "*", fileTag, ".rds file in ", cloudFolderID)
+    message(caller, "(): no ", filePrefix, "*", fileTag, suffix, ".rds file in ", cloudFolderID)
     return(NULL)
   }
   modified <- vapply(files$drive_resource, function(r) r$modifiedTime, character(1))

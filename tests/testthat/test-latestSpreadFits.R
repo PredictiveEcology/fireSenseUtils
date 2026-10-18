@@ -102,3 +102,26 @@ test_that("every Drive file latestSpreadFits() reads is in the download ledger, 
   expect_true("https://drive.google.com/file/d/id_1" %in% urls)
   expect_identical(reproducible::prepInputsLog()[[1]]$fn, "latestSpreadFits")
 })
+
+test_that("a suffix goes after the model tag; \"\" is the production name", {
+  expect_identical(spreadFitFilenameFor(1986:2024, "_boundfix_rep81"),
+                   "fireSenseParams_1986-2024_linearFuel_esc50_20260925_boundfix_rep81.rds")
+  expect_identical(spreadFitFilenameFor(1986:2024, ""), spreadFitFilenameFor(1986:2024))
+})
+
+test_that("\"latest\" ignores suffixed files, and a suffixed run reads only its own file", {
+  d <- withr::local_tempdir()
+  prod <- spreadFitFilenameFor(1986:2024)
+  test81 <- spreadFitFilenameFor(1986:2024, "_boundfix_rep81")
+  drive <- fakeDrive(setNames(list(
+    list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.1", 1)),
+    list(modified = "2026-10-15T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1"), c(81, 81)))),
+    c(prod, test81)))
+  out <- latestSpreadFits("folder", d)
+  expect_identical(out$polygonID, "4.1")
+  expect_identical(out$objFunVal, 1)
+  expect_identical(drive$downloads, prod)
+  out <- latestSpreadFits("folder", d, suffix = "_boundfix_rep81")
+  expect_setequal(out$polygonID, c("4.1", "5.1"))
+  expect_identical(unique(out$objFunVal), 81)
+})
