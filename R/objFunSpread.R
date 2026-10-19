@@ -153,7 +153,11 @@ utils::globalVariables(c(
 #'
 #' @param link Passed to [logisticAll()]: `NULL` for the form implied by the logistic parameters, or
 #'   `"logistic3pUpper"` for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
-#'   parameter is `upperTail1`. Pass it explicitly when fitting: `par` may arrive unnamed.
+#'   parameter is `upperTail1`, or `"powerLaw"` for [powerLawLink()]: `maxAsymptote` is then `p_c`, fitted, and
+#'   the year effect (`fitYearSpreadSD`) is added to the linear predictor `x`, not to the logit of `p`, so a year
+#'   cannot take `p` past `p_c`. Pass it explicitly when fitting: `par` may arrive unnamed.
+#' @param powerLawGamma The `"powerLaw"` link's `gamma` ([powerLawLink()]), fixed, not fitted; used only with
+#'   `link = "powerLaw"`.
 #' @param climateRef `NULL` (default): the climate covariates are inside the logistic, under the
 #'   `maxAsymptote` ceiling, as always. A named numeric or list ([spreadClimateRef()]): climate is taken
 #'   outside the ceiling, `p = plogis(qlogis(p0) + beta_clim * (climate - climateRef))` with `p0` the
@@ -279,6 +283,7 @@ utils::globalVariables(c(
                              adWeight = "auto",
                              link = NULL,
                              climateRef = NULL,
+                             powerLawGamma = spreadPowerLawGamma,
                              returnSims = FALSE,
                              returnBurned = FALSE,
                              penaliseRunaways = TRUE,
@@ -412,6 +417,7 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link, climateRef = climateRef,
+        powerLawGamma = powerLawGamma,
         returnSims = returnSims, returnBurned = returnBurned, censorRunaways = censorRunaways,
         runawaySize = runawaySize, runawayBufferMultiple = runawayBufferMultiple,
         runawayEdgeFrac = runawayEdgeFrac, runawayEdgeMin = runawayEdgeMin, yearSpreadSD = yearSpreadSD,
@@ -688,7 +694,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         runawaySize = NULL, runawayBufferMultiple = NULL, censorRunaways = !is.null(runawaySize), runawayEdgeFrac = fireSenseRunawayEdgeFrac, runawayEdgeMin = fireSenseRunawayEdgeMin, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
-                        doYearArea = FALSE, climateRef = NULL) {
+                        doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -705,7 +711,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   )
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
   set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
-                                                         climateRef = climateRef))
+                                                         climateRef = climateRef, powerLawGamma = powerLawGamma))
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
@@ -912,15 +918,19 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## pixel of this year shifts by the same eps on the logit scale, drawn anew in each replicate,
       ## so all of a year's fires are bigger or smaller together; ignition cells stay 1. Still one
       ## spreadCpp() call per replicate.
+      ## The year effect is added on the logit of p, except with the powerLaw link, where it is added to the
+      ## linear predictor x and p follows from it (p cannot pass p_c, so no year percolates).
       if (yearSpreadSD > 0) {
         pixCrop <- crop$toCrop(shortAnnDT$pixelID)
-        lp <- stats::qlogis(shortAnnDT$spreadProb)
+        powerLaw <- identical(link, "powerLaw")
+        lp <- if (powerLaw) as.vector(mat %*% covPars) else stats::qlogis(shortAnnDT$spreadProb)
+        toP <- if (powerLaw) function(z) powerLawLink(z, logisticPars[1L], powerLawGamma, lowerSpreadProb) else stats::plogis
         lociCrop <- crop$toCrop(loci)
       }
       spreadState <- lapply(seq_len(Nreps), function(i) {
         sp <- spreadProbCrop
         if (yearSpreadSD > 0) {
-          sp[pixCrop] <- stats::plogis(lp + stats::rnorm(1, 0, yearSpreadSD))
+          sp[pixCrop] <- toP(lp + stats::rnorm(1, 0, yearSpreadSD))
           sp[lociCrop] <- 1
         }
         if (is.null(escapeMinPx)) {

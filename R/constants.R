@@ -36,21 +36,25 @@
 #'   - `spreadFitCovCentreTxt`: `character(1)`. Name of the ledger column that holds the covariate
 #'     centres of a fit made with an intercept (currently `"covCentre_spread"`). It is not in
 #'     `spreadFitAdditionalColNamesTxt`: a fit without an intercept writes no such column.
-#'   - `spreadLinkTxt`, `spreadFitClimateRefTxt`: `character(1)` each. Names of the ledger columns a fit
-#'     made with climate outside the ceiling writes (`"spreadLink"`, holding `"climateOutside"`, and
-#'     `"climateRef_spread"`, the fit's climate reference from [spreadClimateRef()]), so prediction applies
-#'     the same link ([spreadProbFromCovs()]). A fit with climate under the ceiling writes neither; a row
-#'     without them, every row written before, predicts as it always did.
+#'   - `spreadLinkTxt`, `spreadFitClimateRefTxt`, `spreadFitPowerLawGammaTxt`: `character(1)` each. Names of the
+#'     ledger columns a fit made with a non-default `spreadLink` writes: `"spreadLink"` (holding
+#'     `"climateOutside"` or `"powerLaw"`), `"climateRef_spread"` (the fit's climate reference from
+#'     [spreadClimateRef()], with `"climateOutside"`) and `"powerLawGamma_spread"` (the fit's `gamma`, with
+#'     `"powerLaw"`), so prediction applies the same link ([spreadProbFromCovs()]). A fit with the default
+#'     `"ceiling"` link writes none of them; a row without them, every row written before, predicts as it
+#'     always did.
 #'   - `spreadLinkOptions`: `character` vector of the values `fireSense_spreadFit`'s `spreadLink` can
-#'     take: `"ceiling"` (the default: climate inside the logistic, under `maxAsymptote`) and
-#'     `"climateOutside"`.
+#'     take: `"ceiling"` (the default: climate inside the logistic, under `maxAsymptote`),
+#'     `"climateOutside"` and `"powerLaw"` ([powerLawLink()]).
+#'   - `spreadPowerLawGamma`: `numeric(1)`. The default `gamma` of the `"powerLaw"` link, 1.9, from a percolation
+#'     calibration.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadLinkOptions
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadLinkOptions spreadPowerLawGamma
 NULL
 
 #' @export
@@ -103,7 +107,13 @@ spreadLinkTxt <- "spreadLink"
 spreadFitClimateRefTxt <- "climateRef_spread"
 
 #' @export
-spreadLinkOptions <- c("ceiling", "climateOutside")
+spreadFitPowerLawGammaTxt <- "powerLawGamma_spread"
+
+#' @export
+spreadLinkOptions <- c("ceiling", "climateOutside", "powerLaw")
+
+#' @export
+spreadPowerLawGamma <- 1.9
 
 #' Memory (GB) assumed per DEoptim worker before a fit has a memory record
 #'

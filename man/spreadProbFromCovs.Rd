@@ -11,7 +11,8 @@ spreadProbFromCovs(
   lowerSpreadProb,
   link = NULL,
   climateRef = NULL,
-  climateAtRef = FALSE
+  climateAtRef = FALSE,
+  powerLawGamma = spreadPowerLawGamma
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ scale of \code{mat} (\code{\link[=spreadClimateRef]{spreadClimateRef()}}). Every
 held at its reference: what the ceiling applies to. The objective's gates and its saturation summary
 look at \code{p0}, because under this link a dry year legitimately takes the landscape past \code{maxFireSpread}
 and a gate on \code{p} would refuse the years that carry the climate signal. Ignored without \code{climateRef}.}
+
+\item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma}; used only with \code{link = "powerLaw"}.}
 }
 \value{
 A one-column numeric matrix, one value per row of \code{mat} (as \code{\link[=logisticAll]{logisticAll()}}).
@@ -39,7 +42,7 @@ the prediction (\code{fireSense_spreadPredict}) -- comes from this function, so 
 use one formula.
 }
 \details{
-Two links, chosen by \code{climateRef}:
+Three links, chosen by \code{link} and \code{climateRef}:
 \itemize{
 \item \code{climateRef = NULL} (the default; \code{spreadLink = "ceiling"} in \code{fireSense_spreadFit}): the logistic of
 the whole linear predictor, \code{p = f + (maxAsymptote - f) * plogis(x)} with \code{x = mat \%*\% covPars}
@@ -56,5 +59,8 @@ the spread probability at the reference climate; then
 same logit afterwards, so climate and the year effect act together after the fuel ceiling. At
 \code{climate = climateRef} the two links give the same \code{p} for the same \code{p0}. The sign constraint on the
 climate coefficient (\verb{>= 0}, from \code{fireSense_spreadFit}'s bounds) is unchanged.
+\item \code{link = "powerLaw"} (\code{spreadLink = "powerLaw"}): \code{p = pc - (pc - f) * exp(-x / powerLawGamma)}, with \code{pc}
+(\code{logisticPars[1]}) fitted (\code{\link[=powerLawLink]{powerLawLink()}}). The year effect \code{eps_Y} is added to \code{x}, not to the logit of \code{p}.
+Not combined with \code{climateRef}.
 }
 }

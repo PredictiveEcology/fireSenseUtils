@@ -4,6 +4,7 @@
 \alias{spreadProbBounds}
 \alias{spreadProbCeiling}
 \alias{spreadProbFloor}
+\alias{spreadPowerLawPcBounds}
 \title{The spread-probability ceiling and floor}
 \format{
 Numeric scalars.
@@ -12,6 +13,8 @@ Numeric scalars.
 spreadProbCeiling
 
 spreadProbFloor
+
+spreadPowerLawPcBounds
 }
 \description{
 One value each, used wherever the spread model needs them. \code{spreadProbCeiling} is the upper bound
@@ -19,5 +22,8 @@ One value each, used wherever the spread model needs them. \code{spreadProbCeili
 gates and the validation: a fitted \code{maxAsymptote} above it draws a warning. How a year's random
 effect can take a pixel past it is described at \code{maxFireSpread} in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.
 \code{spreadProbFloor} is the default \code{lowerSpreadProb}, the link's lower asymptote, in the objective, the
-gates, the validation and \code{fireSense_spreadPredict}.
+gates, the validation and \code{fireSense_spreadPredict}. \code{spreadPowerLawPcBounds} are the bounds
+\code{fireSense_spreadFit} gives \code{p_c}, the \code{maxAsymptote} slot, with the \code{"powerLaw"} link (\code{\link[=powerLawLink]{powerLawLink()}}):
+\code{p_c} must stay above the floor (0.01 above it), and its upper bound is \code{spreadProbCeiling}, above the
+percolation threshold of about 0.25 that the link is calibrated on.
 }

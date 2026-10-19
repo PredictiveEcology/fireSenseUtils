@@ -32,7 +32,7 @@
 #'   probability, without the per-year random effect), and one column per covariate of the formula
 #'   with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 #'   `attr(, "spreadFitValidation")` holds what the plots need: the parameters, `covMinMax`,
-#'   `covCentre`, `lowerSpreadProb`, `link`, `climateRef`, `Nreps`, the names of the covariates and of the
+#'   `covCentre`, `lowerSpreadProb`, `link`, `climateRef`, `powerLawGamma`, `Nreps`, the names of the covariates and of the
 #'   annual (climate) ones, and `yearsNotSimulated` -- years the objective declined to simulate,
 #'   which have no rows.
 #'
@@ -43,7 +43,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                     mutuallyExclusive = list("youngAge" = c("class", "nf")),
                                     covCentre = NULL, Nreps = 10, lowerSpreadProb = spreadProbFloor,
                                     maxFireSpread = spreadProbCeiling, link = NULL, fitYearSpreadSD = NULL,
-                                    climateRef = NULL, seed = NULL, ...) {
+                                    climateRef = NULL, powerLawGamma = spreadPowerLawGamma, seed = NULL, ...) {
   if (!is.null(seed)) withr::local_seed(seed)
   objArgs <- utils::modifyList(
     list(lanscape1stQuantileThresh = Inf, doAssertions = FALSE, verbose = 0),
@@ -54,7 +54,8 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
     historicalFires = historicalFires, fireBufferedListDT = fireBufferedListDT,
     covMinMax = covMinMax, mutuallyExclusive = mutuallyExclusive, covCentre = covCentre,
     Nreps = Nreps, lowerSpreadProb = lowerSpreadProb, maxFireSpread = maxFireSpread, link = link,
-    fitYearSpreadSD = fitYearSpreadSD, climateRef = climateRef, returnBurned = TRUE), objArgs))
+    fitYearSpreadSD = fitYearSpreadSD, climateRef = climateRef, powerLawGamma = powerLawGamma,
+    returnBurned = TRUE), objArgs))
   burned <- attr(sims, "burned")
 
   ## the parameters as the objective uses them
@@ -74,7 +75,8 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                       mutuallyExclusive, colsToUse, FALSE, pp$logisticPars,
                                       pp$covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre)
     p <- as.numeric(spreadProbFromCovs(as.matrix(used[, ..colsToUse]), pp$logisticPars, pp$covPars,
-                                       lowerSpreadProb, link = link, climateRef = climateRef))
+                                       lowerSpreadProb, link = link, climateRef = climateRef,
+                                       powerLawGamma = powerLawGamma))
     raw <- spreadProbFromIntegerCovs(NULL, ann, nonAnnualDTx1000, indexNonAnnual, y, NULL, NULL,
                                      colsToUse, FALSE, pp$logisticPars, pp$covPars, maxFireSpread,
                                      lowerSpreadProb)
@@ -96,7 +98,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
   data.table::setattr(out, "spreadFitValidation", list(
     logisticPars = pp$logisticPars, covPars = pp$covPars,
     covMinMax = if (!is.null(covMinMax)) as.list(covMinMax), covCentre = covCentre,
-    lowerSpreadProb = lowerSpreadProb, link = link, climateRef = climateRef, Nreps = Nreps, covariates = covCols,
+    lowerSpreadProb = lowerSpreadProb, link = link, climateRef = climateRef, powerLawGamma = powerLawGamma, Nreps = Nreps, covariates = covCols,
     intercept = spreadInterceptTxt %in% colsToUse,
     climateCols = intersect(covCols, names(annualDTx1000[[1]])),
     yearsNotSimulated = setdiff(names(burned), simYears)))
@@ -222,7 +224,8 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
     ## covPars has the intercept's coefficient first when the fit has one; it multiplies a column of 1s
     if (isTRUE(info$intercept)) mat <- cbind(1, mat)
     stats::qlogis(as.numeric(spreadProbFromCovs(mat, info$logisticPars, info$covPars, info$lowerSpreadProb,
-                                                link = info$link, climateRef = info$climateRef)))
+                                                link = info$link, climateRef = info$climateRef,
+                                                powerLawGamma = info$powerLawGamma)))
   }
   pts <- list()
   cur <- list()
