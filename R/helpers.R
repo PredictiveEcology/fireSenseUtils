@@ -418,8 +418,9 @@ fixLogisticPars <- function(par) {
 #' `spreadProbFloor` is the default `lowerSpreadProb`, the link's lower asymptote, in the objective, the
 #' gates, the validation and `fireSense_spreadPredict`. `spreadPowerLawPcBounds` are the bounds
 #' `fireSense_spreadFit` gives `p_c`, the `maxAsymptote` slot, with the `"powerLaw"` link ([powerLawLink()]):
-#' `p_c` must stay above the floor (0.01 above it), and its upper bound is `spreadProbCeiling`, above the
-#' percolation threshold of about 0.25 that the link is calibrated on.
+#' `p_c` must stay above the floor (0.01 above it), and its upper bound is 0.35. Runaway-curve simulations
+#' on real ELF landscapes put the threshold at 0.258-0.288 (0.248 on a uniform landscape), higher where
+#' less of the landscape can burn, so `spreadProbCeiling` (0.276) would bind.
 #'
 #' @format Numeric scalars.
 #' @name spreadProbBounds
@@ -433,7 +434,7 @@ spreadProbFloor <- 0.13
 
 #' @rdname spreadProbBounds
 #' @export
-spreadPowerLawPcBounds <- c(spreadProbFloor + 0.01, spreadProbCeiling)
+spreadPowerLawPcBounds <- c(spreadProbFloor + 0.01, 0.35)
 
 ## An integer seed from a digest of `x`: the same inputs always give the same seed, so a random step
 ## that is seeded with it (withr::with_seed()) is reproducible without fixing a seed by hand.
