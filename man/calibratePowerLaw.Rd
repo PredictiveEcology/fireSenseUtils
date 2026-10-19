@@ -25,7 +25,8 @@ thresholds of 0.22-0.32 with a fine step there.}
 
 \item{nFires}{Fires per value of \code{p}.}
 
-\item{cores}{Number of forked processes (\code{\link[parallel:mclapply]{parallel::mclapply()}}); \code{1} runs in this process.}
+\item{cores}{Number of forked processes (\code{\link[parallel:mclapply]{parallel::mclapply()}}); \code{1} runs in this process, as does any
+value where forking is unavailable (\code{\link[parallelly:supportsMulticore]{parallelly::supportsMulticore()}}, e.g. Windows).}
 
 \item{seed}{Integer seed.}
 

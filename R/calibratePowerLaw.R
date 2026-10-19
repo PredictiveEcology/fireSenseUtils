@@ -21,7 +21,8 @@
 #' @param pGrid Increasing spread probabilities to simulate. The default ([spreadPowerLawPGrid]) brackets
 #'   thresholds of 0.22-0.32 with a fine step there.
 #' @param nFires Fires per value of `p`.
-#' @param cores Number of forked processes ([parallel::mclapply()]); `1` runs in this process.
+#' @param cores Number of forked processes ([parallel::mclapply()]); `1` runs in this process, as does any
+#'   value where forking is unavailable ([parallelly::supportsMulticore()], e.g. Windows).
 #' @param seed Integer seed.
 #' @param escapeSizeHa,jumpTries,jumpMeanDist As in [.objfunSpreadFit()] and `fireSense_burn`.
 #'   `escapeSizeHa` `NULL` or `NA` spreads each fire from its start pixel only.
@@ -67,6 +68,7 @@ calibratePowerLaw <- function(flammable, pGrid = spreadPowerLawPGrid, nFires = 4
     c(px = length(ix), inBig = sum(ix %in% bigPix))
   }
   withr::local_preserve_seed() # oneFire() installs each fire's stream; the caller's state comes back on exit
+  if (!parallelly::supportsMulticore()) cores <- 1L # forking is unavailable on Windows (and in RStudio)
   res <- if (cores > 1L) {
     out <- parallel::mclapply(seq_len(nrow(jobs)), oneFire, mc.cores = cores, mc.preschedule = FALSE, mc.set.seed = FALSE)
     bad <- vapply(out, function(x) inherits(x, "try-error") || is.null(x), logical(1))
