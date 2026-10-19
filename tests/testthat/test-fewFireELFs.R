@@ -238,3 +238,14 @@ test_that("sizeRuleLandCover() downloads through LandR's SCANFI mirror, not Goog
   sizeRuleLandCover(withr::local_tempdir())
   expect_match(remapped, "^https://object-arbutus\\.")
 })
+
+test_that("sizeRuleLandCover() returns a local copy's path as a download returns it", {
+  ## Cache keys on this path: through a symlink it must not differ from the normalized download path
+  withr::local_options(reproducible.inputPaths = NULL)
+  real <- withr::local_tempdir()
+  link <- file.path(withr::local_tempdir(), "link")
+  skip_if_not(file.symlink(real, link))
+  file.create(file.path(real, LandR:::.scanfiLCCFAOSource(2020, "V2")$targetFile))
+  expect_identical(sizeRuleLandCover(link),
+                   normalizePath(file.path(real, LandR:::.scanfiLCCFAOSource(2020, "V2")$targetFile)))
+})

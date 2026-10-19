@@ -35,7 +35,8 @@ sizeRuleLandCover <- function(destinationPath) {
   source <- LandR:::.scanfiLCCFAOSource(2020, "V2")
   local <- file.path(c(destinationPath, getOption("reproducible.inputPaths")), source$targetFile)
   local <- local[file.exists(local)]
-  if (length(local)) return(local[1])
+  ## normalized, as preProcess() returns it: callers Cache on this path, so a local copy and a download must match
+  if (length(local)) return(normalizePath(local[1]))
   ## LandR's wrapper fetches the Drive id from its public SCANFI mirror, so no Google login is needed
   LandR:::.withSCANFIAccess(
     reproducible::preProcess(url = source$url, targetFile = source$targetFile,
