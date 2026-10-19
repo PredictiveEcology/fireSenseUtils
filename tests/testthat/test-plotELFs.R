@@ -376,3 +376,22 @@ test_that("elfGraticule() copes with a map smaller than one graticule step and w
   expect_null(elfGraticule(big))
   expect_identical(axes, 0L)
 })
+
+test_that("plotELFs(metrics, metric) fills the cores that have a value, with their values", {
+  m <- data.frame(ELF = c("11.1_2", "1.1"), areaBurnedHaPerYear = c(250, NA))
+  out <- drawn(plan = mergePlan(), metrics = m, metric = "areaBurnedHaPerYear")
+  valued <- Filter(function(p) "areaBurnedHaPerYear" %in% names(p$x), out$plots)
+  expect_length(valued, 1L)
+  expect_identical(valued[[1]]$x$ID, "11.1_2")                  # 1.1 has no value: it keeps its Arctic fill
+  expect_equal(valued[[1]]$x$areaBurnedHaPerYear, 250)
+  expect_true(valued[[1]]$add)
+})
+
+test_that("plotELFs(metrics) needs one row per ELF and a `metric` column, and warns of unknown ELFs", {
+  expect_error(drawn(plan = mergePlan(), metrics = data.frame(ELF = c("11.3", "11.3"), v = 1:2), metric = "v"),
+               "more than one row for ELF 11.3")
+  expect_error(drawn(plan = mergePlan(), metrics = data.frame(ELF = "11.3", v = 1)), "`metric` must name")
+  ## a pre-merge name is not on the map
+  expect_warning(drawn(plan = mergePlan(), metrics = data.frame(ELF = c("11.1", "11.3"), v = 1:2), metric = "v"),
+                 "ELFs in `metrics` not found: 11.1")
+})

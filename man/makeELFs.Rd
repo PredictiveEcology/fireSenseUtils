@@ -28,6 +28,8 @@ plotELFs(
   labelWhich = c("all", "highlighted"),
   buffers = TRUE,
   axes = c("m", "longlat", "none"),
+  metrics = NULL,
+  metric = NULL,
   ...
 )
 }
@@ -85,6 +87,12 @@ from \code{rasWhole}.}
 
 \item{axes}{\code{"m"} shows the map's own axes (metres); \code{"longlat"} keeps the map projection
 and draws a graticule labelled in degrees; \code{"none"} draws no axes and no box.}
+
+\item{metrics}{A table with one row per ELF: an \code{ELF} column (the post-merge names, e.g. \code{"11.1_2"}) and
+the values to map, e.g. from \code{\link[=readELFmetrics]{readELFmetrics()}}. \code{NULL} (default) maps none.}
+
+\item{metric}{The column of \code{metrics} whose values fill the cores, drawn over the other fills; ELFs
+without a value keep theirs.}
 
 \item{...}{Passed to \code{\link[=fewFireELFs]{fewFireELFs()}} when \code{plan} is \code{NULL}, e.g. \code{pixelAreaHa} (default 5.76) or
 \code{fireYears} (default \code{\link[=defaultFireYears]{defaultFireYears()}}).}

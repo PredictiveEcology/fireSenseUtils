@@ -99,6 +99,10 @@ fireSenseCloudParametersMap <-
 #' @param buffers If `FALSE`, `plotELFs()` draws only the ELF cores, without the buffer rings.
 #' @param axes `"m"` shows the map's own axes (metres); `"longlat"` keeps the map projection
 #'   and draws a graticule labelled in degrees; `"none"` draws no axes and no box.
+#' @param metrics A table with one row per ELF: an `ELF` column (the post-merge names, e.g. `"11.1_2"`) and
+#'   the values to map, e.g. from [readELFmetrics()]. `NULL` (default) maps none.
+#' @param metric The column of `metrics` whose values fill the cores, drawn over the other fills; ELFs
+#'   without a value keep theirs.
 #' @param ... Passed to [fewFireELFs()] when `plan` is `NULL`, e.g. `pixelAreaHa` (default 5.76) or
 #'   `fireYears` (default [defaultFireYears()]).
 #' @export
@@ -108,7 +112,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
                      fewFires = NULL, fewFiresFill = "grey80", mergedFill = "lightblue", arcticFill = "#fdf2d0",
                      ELFs = NULL,
                      labels = c("code", "name", "none"), labelWhich = c("all", "highlighted"),
-                     buffers = TRUE, axes = c("m", "longlat", "none"), ...) {
+                     buffers = TRUE, axes = c("m", "longlat", "none"), metrics = NULL, metric = NULL, ...) {
   labels <- match.arg(labels)
   labelWhich <- match.arg(labelWhich)
   axes <- match.arg(axes)
@@ -157,6 +161,31 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
   fillELFs(ELFsArctic(core$ID), arcticFill, "not fitted (Arctic)")
   fillELFs(plan$ELF[plan$action %in% "merge"], mergedFill, "merged")
   fillELFs(fewFires, fewFiresFill, "not enough fires")
+  if (!is.null(metrics)) {
+    metrics <- as.data.frame(metrics)
+    if (length(metric) != 1L || !metric %in% names(metrics))
+      stop("plotELFs(): `metric` must name one column of `metrics`")
+    dups <- unique(metrics$ELF[duplicated(metrics$ELF)])
+    if (length(dups))
+      stop("plotELFs(): `metrics` has more than one row for ELF ", paste(dups, collapse = ", "),
+           "; give one row per ELF, e.g. the mean of its runs")
+    missingELFs <- setdiff(metrics$ELF, core$ID)
+    if (length(missingELFs))
+      warning("ELFs in `metrics` not found: ", paste(missingELFs, collapse = ", "))
+    valued <- core[core$ID %in% metrics$ELF[!is.na(metrics[[metric]])], ]
+    if (NROW(valued)) {
+      values <- metrics[[metric]][match(valued$ID, metrics$ELF)]
+      valued[[metric]] <- values
+      ## the legend goes in the map's bottom-right corner (the Atlantic), not beside the valued ELFs only;
+      ## a number is a colour ramp even with few distinct values
+      u <- graphics::par("usr")
+      w <- u[2] - u[1]
+      h <- u[4] - u[3]
+      terra::plot(valued, metric, add = TRUE, type = if (is.numeric(values)) "continuous",
+                  plg = list(ext = c(u[2] - 0.10 * w, u[2] - 0.08 * w, u[3] + 0.05 * h, u[3] + 0.40 * h),
+                             title = metric))
+    }
+  }
   if (length(which)) {
     missingELFs <- setdiff(which, ELFsPoly$ID)
     if (length(missingELFs))
