@@ -19,7 +19,14 @@ logistic3pUpper(x, par, par1 = 0.1)
 
 logistic2p(x, par, par1 = 0.1, par4 = 0.5)
 
-logisticAll(logisticPars, mat, covPars, lowerSpreadProb, link = NULL)
+logisticAll(
+  logisticPars,
+  mat,
+  covPars,
+  lowerSpreadProb,
+  link = NULL,
+  gamma = spreadPowerLawGamma
+)
 }
 \arguments{
 \item{x}{Numeric vector. Linear predictor (e.g. \code{mat \%*\% covPars}) at which
@@ -47,9 +54,12 @@ named \code{upperTail1} is always \code{logistic3pUpper}, whatever its length.}
 \item{lowerSpreadProb}{Numeric scalar in \verb{[0, 1]}. The lower asymptote
 (\code{par1}) used for the 2- and 3-parameter forms.}
 
-\item{link}{\code{NULL} (the default) to choose the form from \code{logisticPars} as above, or
-\code{"logistic3pUpper"} to use the 3-parameter form with Stukel's upper tail. Pass it explicitly
+\item{link}{\code{NULL} (the default) to choose the form from \code{logisticPars} as above,
+\code{"logistic3pUpper"} to use the 3-parameter form with Stukel's upper tail, or \code{"powerLaw"} for
+\code{\link[=powerLawLink]{powerLawLink()}} (\code{logisticPars[1]} is then \code{p_c}). Pass it explicitly
 wherever \code{logisticPars} may arrive without names, as inside the objective function.}
+
+\item{gamma}{The \code{"powerLaw"} link's exponent (\code{\link[=powerLawLink]{powerLawLink()}}); not used by the other links.}
 }
 \value{
 Numeric vector of logistic values; same length as \code{x} (or

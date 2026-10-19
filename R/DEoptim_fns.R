@@ -111,6 +111,9 @@ deoptimPopulationSize <- function(nParams) {
 #'   diagnostics: `NULL` (default) keeps climate under the `maxAsymptote` ceiling, and the call and its cache
 #'   key are what they were; a named numeric ([spreadClimateRef()]) takes climate outside the ceiling
 #'   ([spreadProbFromCovs()]).
+#' @param powerLawGamma The `"powerLaw"` link's `gamma` ([powerLawLink()]), passed to [.objfunSpreadFit()] in the
+#'   fit and the re-score. Used only with `link = "powerLaw"`; with any other link it is left out of the cache
+#'   keys ([powerLawOmitArgs()]) and the re-score's arguments, so they are what they were.
 #'
 #' @param convergence `NULL` (default: `clusters`' options and defaults decide) or a list with any of
 #'   `window`, `minGenerations`, `se`, `sdChange`: when [clusters::DEoptimIterative()] stops a fit
@@ -256,7 +259,8 @@ runDEoptim <- function(landscape,
                        penaliseCapHits = NULL,
                        covCentre = NULL,
                        convergence = NULL,
-                       climateRef = NULL) {
+                       climateRef = NULL,
+                       powerLawGamma = spreadPowerLawGamma) {
   ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
@@ -343,6 +347,7 @@ runDEoptim <- function(landscape,
       covMinMax = covMinMax,
       covCentre = covCentre,
       climateRef = climateRef,
+      powerLawGamma = powerLawGamma,
       # tests = c("mad", "SNLL_FS"),
       tests = tests,
       figurePath = visualizeDEoptim,
@@ -379,7 +384,7 @@ runDEoptim <- function(landscape,
       convergence = convergence),
     cachePath = paths$cachePath,
     ## how often progress figures are drawn, and where the progress file goes, do not change the fit
-    omitArgs = c(".verbose", "plotEvery", "progressFile",
+    omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link),
                  omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
                               convergence = convergence, climateRef = climateRef)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
@@ -412,6 +417,7 @@ runDEoptim <- function(landscape,
   ## NULL adds nothing, so the cached re-score keeps its key
   rescoreArgs$covCentre <- covCentre
   rescoreArgs$climateRef <- climateRef
+  if (identical(link, "powerLaw")) rescoreArgs$powerLawGamma <- powerLawGamma
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)

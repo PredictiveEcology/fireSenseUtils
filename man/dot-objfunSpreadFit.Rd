@@ -38,6 +38,7 @@
   adWeight = "auto",
   link = NULL,
   climateRef = NULL,
+  powerLawGamma = spreadPowerLawGamma,
   returnSims = FALSE,
   returnBurned = FALSE,
   penaliseRunaways = TRUE,
@@ -204,7 +205,9 @@ balanced the two only for \code{sizeLik = "kde"} with \code{weighted = FALSE}.}
 
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
-parameter is \code{upperTail1}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
+parameter is \code{upperTail1}, or \code{"powerLaw"} for \code{\link[=powerLawLink]{powerLawLink()}}: \code{maxAsymptote} is then \code{p_c}, fitted, and
+the year effect (\code{fitYearSpreadSD}) is added to the linear predictor \code{x}, not to the logit of \code{p}, so a year
+cannot take \code{p} past \code{p_c}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
 
 \item{climateRef}{\code{NULL} (default): the climate covariates are inside the logistic, under the
 \code{maxAsymptote} ceiling, as always. A named numeric or list (\code{\link[=spreadClimateRef]{spreadClimateRef()}}): climate is taken
@@ -213,6 +216,9 @@ logistic of the other covariates; see \code{\link[=spreadProbFromCovs]{spreadPro
 effect (\code{fitYearSpreadSD}) is added on the same logit, after climate. The gates
 (\code{\link[=spreadProbGateTest]{spreadProbGateTest()}}) and the saturation summary are then applied to \code{p0}, the spread probability
 at the reference climate, not to \code{p}.}
+
+\item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
+\code{link = "powerLaw"}.}
 
 \item{returnSims}{If \code{TRUE}, return the simulated fires instead of the objective value: a
 \code{data.table} with one row per fire year x fire x replicate -- \code{yr}, \code{rep}, \code{initialLocus}, \code{ids},

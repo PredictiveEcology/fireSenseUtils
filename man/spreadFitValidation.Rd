@@ -23,6 +23,7 @@ spreadFitValidationData(
   link = NULL,
   fitYearSpreadSD = NULL,
   climateRef = NULL,
+  powerLawGamma = spreadPowerLawGamma,
   seed = NULL,
   ...
 )
@@ -93,7 +94,9 @@ spread probability, after the link, so in a given year p can exceed \code{maxAsy
 
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
-parameter is \code{upperTail1}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
+parameter is \code{upperTail1}, or \code{"powerLaw"} for \code{\link[=powerLawLink]{powerLawLink()}}: \code{maxAsymptote} is then \code{p_c}, fitted, and
+the year effect (\code{fitYearSpreadSD}) is added to the linear predictor \code{x}, not to the logit of \code{p}, so a year
+cannot take \code{p} past \code{p_c}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
 
 \item{fitYearSpreadSD}{If \code{TRUE}, the last element of \code{par} is the sd of a per-year random effect on
 the logit of spread probability, a seasonal departure: in each replicate the year draws one
@@ -110,6 +113,9 @@ logistic of the other covariates; see \code{\link[=spreadProbFromCovs]{spreadPro
 effect (\code{fitYearSpreadSD}) is added on the same logit, after climate. The gates
 (\code{\link[=spreadProbGateTest]{spreadProbGateTest()}}) and the saturation summary are then applied to \code{p0}, the spread probability
 at the reference climate, not to \code{p}.}
+
+\item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
+\code{link = "powerLaw"}.}
 
 \item{seed}{If not \code{NULL}, the simulations run with this seed and the session's random number
 stream is restored afterwards.}
@@ -136,7 +142,7 @@ of the fire year), \code{pixelID}, \code{observed} (1 if the pixel is inside an 
 probability, without the per-year random effect), and one column per covariate of the formula
 with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 \code{attr(, "spreadFitValidation")} holds what the plots need: the parameters, \code{covMinMax},
-\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{Nreps}, the names of the covariates and of the
+\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawGamma}, \code{Nreps}, the names of the covariates and of the
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 

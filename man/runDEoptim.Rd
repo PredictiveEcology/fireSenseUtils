@@ -64,7 +64,8 @@ runDEoptim(
   penaliseCapHits = NULL,
   covCentre = NULL,
   convergence = NULL,
-  climateRef = NULL
+  climateRef = NULL,
+  powerLawGamma = spreadPowerLawGamma
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -249,6 +250,10 @@ fit that stopped early resumes from its cached generations and continues under a
 diagnostics: \code{NULL} (default) keeps climate under the \code{maxAsymptote} ceiling, and the call and its cache
 key are what they were; a named numeric (\code{\link[=spreadClimateRef]{spreadClimateRef()}}) takes climate outside the ceiling
 (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}).}
+
+\item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the
+fit and the re-score. Used only with \code{link = "powerLaw"}; with any other link it is left out of the cache
+keys (\code{\link[=powerLawOmitArgs]{powerLawOmitArgs()}}) and the re-score's arguments, so they are what they were.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}

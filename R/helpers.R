@@ -22,9 +22,11 @@
 #'   `ncol(mat)`); `mat %*% covPars` forms the linear predictor.
 #' @param lowerSpreadProb Numeric scalar in `[0, 1]`. The lower asymptote
 #'   (`par1`) used for the 2- and 3-parameter forms.
-#' @param link `NULL` (the default) to choose the form from `logisticPars` as above, or
-#'   `"logistic3pUpper"` to use the 3-parameter form with Stukel's upper tail. Pass it explicitly
+#' @param link `NULL` (the default) to choose the form from `logisticPars` as above,
+#'   `"logistic3pUpper"` to use the 3-parameter form with Stukel's upper tail, or `"powerLaw"` for
+#'   [powerLawLink()] (`logisticPars[1]` is then `p_c`). Pass it explicitly
 #'   wherever `logisticPars` may arrive without names, as inside the objective function.
+#' @param gamma The `"powerLaw"` link's exponent ([powerLawLink()]); not used by the other links.
 #'
 #' @return Numeric vector of logistic values; same length as `x` (or
 #'   `nrow(mat)` for `logisticAll`).
@@ -92,10 +94,12 @@ logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
 
 #' @export
 #' @rdname logistic
-logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL) {
+logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL, gamma = spreadPowerLawGamma) {
   if (is.null(link) && "upperTail1" %in% names(logisticPars)) link <- "logistic3pUpper"
   if (!is.null(link)) {
-    link <- match.arg(link, c("logistic3pUpper"))
+    link <- match.arg(link, c("logistic3pUpper", "powerLaw"))
+    if (identical(link, "powerLaw"))
+      return(powerLawLink(mat %*% covPars, logisticPars[1L], gamma, lowerSpreadProb))
     return(logistic3pUpper(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
   }
   if (length(logisticPars) == 4) {
@@ -108,6 +112,36 @@ logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL
   }
 }
 
+
+#' The power-law spread link
+#'
+#' `p = pc - (pc - floor) * exp(-x / gamma)`, from a percolation calibration (log mean fire size is linear in
+#' `log(pc - p)` with slope `-gamma`, `pc` about 0.25 and `gamma` about 1.9). `log(pc - p)` falls linearly in
+#' the linear predictor `x`, so a year effect added to `x` multiplies a year's mean fire size by about
+#' `exp(eps)`; and `p` cannot pass `pc`, so no year percolates. `x = 0` gives `floor`; `x < 0` gives less than
+#' the floor, and a value below 0 is set to 0. `pc` takes the slot of `maxAsymptote` and is fitted; `gamma` is
+#' fixed, not fitted: it is exactly confounded with the scale of the coefficients. Used by [logisticAll()] with
+#' `link = "powerLaw"` (so by [spreadProbFromCovs()] and the objective) and by the objective's year effect.
+#'
+#' @param x Linear predictor (a vector or a one-column matrix).
+#' @param pc The percolation threshold, `p` as `x` goes to infinity.
+#' @param gamma The exponent; default [spreadPowerLawGamma].
+#' @param floor `lowerSpreadProb`: `p` at `x = 0`.
+#' @return A numeric vector, one value per `x`.
+#' @export
+powerLawLink <- function(x, pc, gamma = spreadPowerLawGamma, floor = spreadProbFloor) {
+  pmax(pc - (pc - floor) * exp(-as.vector(x) / gamma), 0)
+}
+
+#' Which arguments a `link`'s cache key leaves out
+#'
+#' `powerLawGamma` matters only with `link = "powerLaw"`; with any other link it is left out of the key so a
+#' fit made without it is found as before.
+#'
+#' @param link The spread link: `NULL`, `"logistic3pUpper"` or `"powerLaw"`.
+#' @return `"powerLawGamma"`, or `character()` with `link = "powerLaw"`. For `omitArgs` of `Cache()`.
+#' @export
+powerLawOmitArgs <- function(link) if (identical(link, "powerLaw")) character() else "powerLawGamma"
 
 #' Logistic parameter names
 #'
@@ -382,17 +416,25 @@ fixLogisticPars <- function(par) {
 #' gates and the validation: a fitted `maxAsymptote` above it draws a warning. How a year's random
 #' effect can take a pixel past it is described at `maxFireSpread` in [.objfunSpreadFit()].
 #' `spreadProbFloor` is the default `lowerSpreadProb`, the link's lower asymptote, in the objective, the
-#' gates, the validation and `fireSense_spreadPredict`.
+#' gates, the validation and `fireSense_spreadPredict`. `spreadPowerLawPcBounds` are the bounds
+#' `fireSense_spreadFit` gives `p_c`, the `maxAsymptote` slot, with the `"powerLaw"` link ([powerLawLink()]):
+#' `p_c` must stay above the floor (0.01 above it), and its upper bound is 0.35. Runaway-curve simulations
+#' on real ELF landscapes put the threshold at 0.258-0.288 (0.248 on a uniform landscape), higher where
+#' less of the landscape can burn, so `spreadProbCeiling` (0.276) would bind.
 #'
 #' @format Numeric scalars.
 #' @name spreadProbBounds
-#' @aliases spreadProbCeiling spreadProbFloor
+#' @aliases spreadProbCeiling spreadProbFloor spreadPowerLawPcBounds
 #' @export
 spreadProbCeiling <- 0.276
 
 #' @rdname spreadProbBounds
 #' @export
 spreadProbFloor <- 0.13
+
+#' @rdname spreadProbBounds
+#' @export
+spreadPowerLawPcBounds <- c(spreadProbFloor + 0.01, 0.35)
 
 ## An integer seed from a digest of `x`: the same inputs always give the same seed, so a random step
 ## that is seeded with it (withr::with_seed()) is reproducible without fixing a seed by hand.

@@ -17,7 +17,9 @@
 \alias{spreadFitCovCentreTxt}
 \alias{spreadLinkTxt}
 \alias{spreadFitClimateRefTxt}
+\alias{spreadFitPowerLawGammaTxt}
 \alias{spreadLinkOptions}
+\alias{spreadPowerLawGamma}
 \title{Hard-coded name/text constants}
 \format{
 \itemize{
@@ -52,14 +54,18 @@ design (\code{spreadDesignCols()}), in \code{lower}/\code{upper} and in a ledger
 \item \code{spreadFitCovCentreTxt}: \code{character(1)}. Name of the ledger column that holds the covariate
 centres of a fit made with an intercept (currently \code{"covCentre_spread"}). It is not in
 \code{spreadFitAdditionalColNamesTxt}: a fit without an intercept writes no such column.
-\item \code{spreadLinkTxt}, \code{spreadFitClimateRefTxt}: \code{character(1)} each. Names of the ledger columns a fit
-made with climate outside the ceiling writes (\code{"spreadLink"}, holding \code{"climateOutside"}, and
-\code{"climateRef_spread"}, the fit's climate reference from \code{\link[=spreadClimateRef]{spreadClimateRef()}}), so prediction applies
-the same link (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}). A fit with climate under the ceiling writes neither; a row
-without them, every row written before, predicts as it always did.
+\item \code{spreadLinkTxt}, \code{spreadFitClimateRefTxt}, \code{spreadFitPowerLawGammaTxt}: \code{character(1)} each. Names of the
+ledger columns a fit made with a non-default \code{spreadLink} writes: \code{"spreadLink"} (holding
+\code{"climateOutside"} or \code{"powerLaw"}), \code{"climateRef_spread"} (the fit's climate reference from
+\code{\link[=spreadClimateRef]{spreadClimateRef()}}, with \code{"climateOutside"}) and \code{"powerLawGamma_spread"} (the fit's \code{gamma}, with
+\code{"powerLaw"}), so prediction applies the same link (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}). A fit with the default
+\code{"ceiling"} link writes none of them; a row without them, every row written before, predicts as it
+always did.
 \item \code{spreadLinkOptions}: \code{character} vector of the values \code{fireSense_spreadFit}'s \code{spreadLink} can
-take: \code{"ceiling"} (the default: climate inside the logistic, under \code{maxAsymptote}) and
-\code{"climateOutside"}.
+take: \code{"ceiling"} (the default: climate inside the logistic, under \code{maxAsymptote}),
+\code{"climateOutside"} and \code{"powerLaw"} (\code{\link[=powerLawLink]{powerLawLink()}}).
+\item \code{spreadPowerLawGamma}: \code{numeric(1)}. The default \code{gamma} of the \code{"powerLaw"} link, 1.9, from a percolation
+calibration.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).
