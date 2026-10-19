@@ -418,9 +418,10 @@ fixLogisticPars <- function(par) {
 #' `spreadProbFloor` is the default `lowerSpreadProb`, the link's lower asymptote, in the objective, the
 #' gates, the validation and `fireSense_spreadPredict`. `spreadPowerLawPcBounds` are the bounds
 #' `fireSense_spreadFit` gives `p_c`, the `maxAsymptote` slot, with the `"powerLaw"` link ([powerLawLink()]):
-#' `p_c` must stay above the floor (0.01 above it), and its upper bound is 0.35. Runaway-curve simulations
-#' on real ELF landscapes put the threshold at 0.258-0.288 (0.248 on a uniform landscape), higher where
-#' less of the landscape can burn, so `spreadProbCeiling` (0.276) would bind.
+#' `p_c` must stay above the floor (0.01 above it), and its upper bound is 0.35. These are the outer limits:
+#' `fireSense_spreadFit` bounds `p_c` above by the ELF's own calibrated threshold ([powerLawPcBounds()]).
+#' Runaway-curve simulations on real ELF landscapes put the threshold at 0.258-0.288 (0.248 on a uniform
+#' landscape), higher where less of the landscape can burn, so `spreadProbCeiling` (0.276) would bind.
 #'
 #' @format Numeric scalars.
 #' @name spreadProbBounds

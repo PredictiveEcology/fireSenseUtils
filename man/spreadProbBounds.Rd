@@ -24,7 +24,8 @@ effect can take a pixel past it is described at \code{maxFireSpread} in \code{\l
 \code{spreadProbFloor} is the default \code{lowerSpreadProb}, the link's lower asymptote, in the objective, the
 gates, the validation and \code{fireSense_spreadPredict}. \code{spreadPowerLawPcBounds} are the bounds
 \code{fireSense_spreadFit} gives \code{p_c}, the \code{maxAsymptote} slot, with the \code{"powerLaw"} link (\code{\link[=powerLawLink]{powerLawLink()}}):
-\code{p_c} must stay above the floor (0.01 above it), and its upper bound is 0.35. Runaway-curve simulations
-on real ELF landscapes put the threshold at 0.258-0.288 (0.248 on a uniform landscape), higher where
-less of the landscape can burn, so \code{spreadProbCeiling} (0.276) would bind.
+\code{p_c} must stay above the floor (0.01 above it), and its upper bound is 0.35. These are the outer limits:
+\code{fireSense_spreadFit} bounds \code{p_c} above by the ELF's own calibrated threshold (\code{\link[=powerLawPcBounds]{powerLawPcBounds()}}).
+Runaway-curve simulations on real ELF landscapes put the threshold at 0.258-0.288 (0.248 on a uniform
+landscape), higher where less of the landscape can burn, so \code{spreadProbCeiling} (0.276) would bind.
 }

@@ -47,14 +47,23 @@
 #'     take: `"ceiling"` (the default: climate inside the logistic, under `maxAsymptote`),
 #'     `"climateOutside"` and `"powerLaw"` ([powerLawLink()]).
 #'   - `spreadPowerLawGamma`: `numeric(1)`. The default `gamma` of the `"powerLaw"` link, 1.9, from a percolation
-#'     calibration.
+#'     calibration on a uniform landscape. `fireSense_spreadFit` calibrates `gamma` on each ELF's own flammable map
+#'     instead ([calibratePowerLaw()]), unless a number is given.
+#'   - `spreadFitPowerLawPc50Txt`, `spreadFitPowerLawR2Txt`: `character(1)` each. Names of the ledger columns that
+#'     hold, with `"powerLaw"` and a calibrated `gamma`, the calibration's `p50` (the spread probability at which
+#'     half the fires run away, to compare with the fitted `p_c`) and the `R2` of its `gamma` regression
+#'     (`"powerLawPc50_spread"`, `"powerLawR2_spread"`).
+#'   - `spreadFitPowerLawPcMarginTxt`: `character(1)`. Name of the ledger column that holds the margin added to `p50`
+#'     for the upper bound of `p_c` ([powerLawPcBounds()]; `"powerLawPcMargin_spread"`), so the bounds a fit used can be
+#'     recovered.
+#'   - `spreadPowerLawPGrid`: `numeric`. The spread probabilities [calibratePowerLaw()] simulates by default.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadLinkOptions spreadPowerLawGamma
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadLinkOptions spreadPowerLawGamma spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -114,6 +123,18 @@ spreadLinkOptions <- c("ceiling", "climateOutside", "powerLaw")
 
 #' @export
 spreadPowerLawGamma <- 1.9
+
+#' @export
+spreadFitPowerLawPc50Txt <- "powerLawPc50_spread"
+
+#' @export
+spreadFitPowerLawR2Txt <- "powerLawR2_spread"
+
+#' @export
+spreadFitPowerLawPcMarginTxt <- "powerLawPcMargin_spread"
+
+#' @export
+spreadPowerLawPGrid <- sort(unique(round(c(seq(0.15, 0.21, by = 0.02), seq(0.22, 0.32, by = 0.005), seq(0.34, 0.38, by = 0.02)), 4)))
 
 #' Memory (GB) assumed per DEoptim worker before a fit has a memory record
 #'

@@ -20,6 +20,10 @@
 \alias{spreadFitPowerLawGammaTxt}
 \alias{spreadLinkOptions}
 \alias{spreadPowerLawGamma}
+\alias{spreadFitPowerLawPc50Txt}
+\alias{spreadFitPowerLawR2Txt}
+\alias{spreadFitPowerLawPcMarginTxt}
+\alias{spreadPowerLawPGrid}
 \title{Hard-coded name/text constants}
 \format{
 \itemize{
@@ -65,7 +69,16 @@ always did.
 take: \code{"ceiling"} (the default: climate inside the logistic, under \code{maxAsymptote}),
 \code{"climateOutside"} and \code{"powerLaw"} (\code{\link[=powerLawLink]{powerLawLink()}}).
 \item \code{spreadPowerLawGamma}: \code{numeric(1)}. The default \code{gamma} of the \code{"powerLaw"} link, 1.9, from a percolation
-calibration.
+calibration on a uniform landscape. \code{fireSense_spreadFit} calibrates \code{gamma} on each ELF's own flammable map
+instead (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}), unless a number is given.
+\item \code{spreadFitPowerLawPc50Txt}, \code{spreadFitPowerLawR2Txt}: \code{character(1)} each. Names of the ledger columns that
+hold, with \code{"powerLaw"} and a calibrated \code{gamma}, the calibration's \code{p50} (the spread probability at which
+half the fires run away, to compare with the fitted \code{p_c}) and the \code{R2} of its \code{gamma} regression
+(\code{"powerLawPc50_spread"}, \code{"powerLawR2_spread"}).
+\item \code{spreadFitPowerLawPcMarginTxt}: \code{character(1)}. Name of the ledger column that holds the margin added to \code{p50}
+for the upper bound of \code{p_c} (\code{\link[=powerLawPcBounds]{powerLawPcBounds()}}; \code{"powerLawPcMargin_spread"}), so the bounds a fit used can be
+recovered.
+\item \code{spreadPowerLawPGrid}: \code{numeric}. The spread probabilities \code{\link[=calibratePowerLaw]{calibratePowerLaw()}} simulates by default.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).
