@@ -233,7 +233,9 @@ prepare_ignitionClimate <- function(ignitionClimateList, fact, digest = NULL, us
 #'   \item Converts the data frame to a raster aligned with `rasTemplate` via
 #'         `SpaDES.tools::rastFromDF()`.
 #'   \item Aggregates the raster to a coarser resolution using
-#'         `terra::aggregate(fact = fact, fun = mean)`.
+#'         `terra::aggregate(fact = fact, fun = mean)`. Pixels of `rasTemplate` without
+#'         covariates (not flammable) count as no cover, so a coarse cell that is partly
+#'         non-flammable is not `NA` (see `fuelCovsToCoarse()`).
 #' }
 #'
 #' The aggregation is applied across all raster layers (if present), computing
@@ -279,9 +281,41 @@ prepare_ignitionClimate <- function(ignitionClimateList, fact, digest = NULL, us
 #' @importFrom terra aggregate
 #' @export
 prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
-  fcn <- fireSenseCovariatesCreate(...)
-  fuelCovs <- SpaDES.tools::rastFromDF(fcn, rasTemplate = rasTemplate)
-  terra::aggregate(fuelCovs, fact = fact, fun = mean)
+  fuelCovsToCoarse(fireSenseCovariatesCreate(...), rasTemplate = rasTemplate, fact = fact)
+}
+
+#' Rasterize fuel covariates and aggregate them to the coarse ignition grid
+#'
+#' A pixel of `rasTemplate` without covariates (not flammable, e.g. water or rock) has no cover:
+#' 0 for the indicators ([spreadIndicatorCols()]) and `logMinB(0)` for fuel biomass, as a young
+#' pixel is cleared. A coarse cell's value is then the mean over all its pixels, so a cell that is
+#' part lake keeps a row, with less cover. Without this, `terra::aggregate(fun = mean)` gave `NA` to
+#' every coarse cell holding one such pixel, and [stackAndExtract()] dropped it with its ignitions.
+#' A coarse cell with no pixel with covariates stays `NA`, and so do pixels that are `NA` in
+#' `rasTemplate` (outside the study area).
+#'
+#' @param covs `data.table` with `pixelID` and one column per covariate.
+#' @inheritParams prepare_FuelCovsCoarse
+#' @return a `SpatRaster`, one layer per covariate, aggregated by `fact`.
+#' @keywords internal
+#' @export
+#' @importFrom data.table data.table rbindlist set
+#' @importFrom terra aggregate mask rast values
+fuelCovsToCoarse <- function(covs, rasTemplate, fact) {
+  covNames <- setdiff(names(covs), "pixelID")
+  hasCovs <- terra::rast(rasTemplate, nlyrs = 1)
+  hasCovs[covs$pixelID] <- 1
+  hasCovs <- terra::aggregate(hasCovs, fact = fact, fun = "max", na.rm = TRUE)
+  noCovs <- setdiff(which(!is.na(terra::values(rasTemplate, mat = FALSE))), covs$pixelID)
+  if (length(noCovs)) {
+    noCover <- data.table(pixelID = noCovs)
+    indicators <- spreadIndicatorCols(covNames)
+    for (cn in covNames) set(noCover, NULL, cn, if (cn %in% indicators) 0 else logMinB(0))
+    covs <- rbindlist(list(covs, noCover), use.names = TRUE)
+  }
+  coarse <- terra::aggregate(SpaDES.tools::rastFromDF(covs, rasTemplate = rasTemplate),
+                             fact = fact, fun = mean)
+  terra::mask(coarse, hasCovs)
 }
 
 
@@ -296,7 +330,8 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
 #' wetland are cleared where it is 1, as `fireSenseCovariatesCreate(youngAge = TRUE)` does for a
 #' single year. Fuel is cleared to `logMinB(0)`, the value `fireSenseCovariatesCreate()` gives
 #' a pixel without that fuel. Each year is then aggregated with `mean`, so `youngAge` becomes the
-#' proportion of young pixels in a coarse cell.
+#' proportion of young pixels in a coarse cell; non-flammable pixels count as no cover, as in
+#' [prepare_FuelCovsCoarse()].
 #'
 #' @param ... Arguments for [fireSenseCovariatesCreate()].
 #' @param years character, fire years (`"year2001"`) to build, all described by the same data year.
@@ -330,7 +365,7 @@ prepare_FuelCovsCoarseByYear <- function(..., years, dataYear, nonForest_timeSin
     set(covsYr, NULL, youngAgeTxt, young)
     whYoung <- which(young == 1L)
     for (cn in exclusive) set(covsYr, whYoung, cn, if (cn %in% fuelCols) logMinB(0) else 0)
-    terra::aggregate(SpaDES.tools::rastFromDF(covsYr, rasTemplate = rasTemplate), fact = fact, fun = mean)
+    fuelCovsToCoarse(covsYr, rasTemplate = rasTemplate, fact = fact)
   })
   names(yearRasters) <- years
   yearRasters
