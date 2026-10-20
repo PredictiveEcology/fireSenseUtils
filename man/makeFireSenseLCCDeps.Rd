@@ -29,6 +29,10 @@ Ask for the list rather than writing one out: which functions are in the path de
 goes stale when the default moves. It already did -- \code{fireSense_dataPrepFit} pinned
 \code{LandR::prepInputs_NTEMS_LCC_FAO()} and kept it after the default became SCANFI, leaving every
 SCANFI and CWIM change invisible to the cache.
+
+The base land-cover step inside \code{\link[=makeFireSenseLCC]{makeFireSenseLCC()}} has its own \code{Cache()} call, keyed on the
+first part of this list (the land-cover functions only), so it is not redone when only the later
+steps change.
 }
 \examples{
 \dontrun{

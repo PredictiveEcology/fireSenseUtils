@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `makeFireSenseLCC()` caches its base land-cover step (LandR's SCANFI or NTEMS crop, mask and forest-land update, ~10 min per study area and year) on its own, keyed on that step's arguments and the code of the functions it reaches (new internal `.baseLCC()` and `.baseLCCDeps()`, the first part of `makeFireSenseLCCDeps()`, which returns the same list as before). Before, it was cached only as part of the whole function, so any change to the later dominant-flammable step, or to `nonflammableLCC` or `flammabilityThreshold`, redid it. The first run after this computes it once more.
+
 * `latestSpreadFits()` and `latestIgnitionFits()` work with no internet (a compute node). Each ledger file is read with `reproducible::CacheGeoRead()` (downloaded only if it changed; the local copy when Drive cannot be reached), replacing the package's own md5 check and download. The folder's file list is saved as `.ledgerListing_<folder id>.rds` in `destinationPath` and used when Drive cannot be reached (`reproducible::isConnectionError()`). Any other Drive error is raised as before. Needs reproducible >= 3.2.1.9075.
 
 * Fixed: `mergePreparedCovs()` left the fuel and land-cover rasters out of the `stackAndExtract` cache key, so a change to them alone (e.g. `fuelCovsToCoarse()`, #172) reused the old ignition-fit table. The key now includes their values. Ignition and escape fits made since 0.2.3.9111 still have the cells #172 meant to restore dropped, and must be redone.

@@ -81,6 +81,9 @@ This function performs several steps:
 \enumerate{
 \item Downloads and prepares NTEMS LCC data for the specified \code{neededYear} using
 \code{LandR::prepInputs_NTEMS_LCC_FAO}, cropping and masking to the target extent.
+This step is cached on its own with \code{reproducible::Cache()} (keyed on its arguments and the
+code of the functions it calls), so a change to the later steps or their inputs
+(\code{nonflammableLCC}, \code{flammabilityThreshold}, \code{writeTo}) does not redo it.
 \item Identifies the dominant \emph{flammable} land cover class within each pixel of
 \code{to}. This is done by temporarily masking non-flammable classes
 (defined in \code{nonflammableLCC}) to NA in the source raster and then
