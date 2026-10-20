@@ -282,3 +282,19 @@ test_that("a coarse cell that is partly non-flammable keeps its row and its igni
   expect_equal(out[pixelID == 1 & year == 2001, nfLCC_40], 3 / 4)
   expect_false(2 %in% out$pixelID)
 })
+
+test_that("mergePreparedCovs' cache key includes the fuel and land-cover values", {
+  withr::local_options(reproducible.cachePath = withr::local_tempdir(), reproducible.useMemoise = FALSE)
+  lightning <- list(lightningDensity = ignRas(1:16 / 10))
+  merge <- function(fuelVal) {
+    fuelCov <- c(ignRas(rep(fuelVal, 16), "class2"), ignRas(rep(0, 16), "nf1"))
+    suppressMessages(
+      mergePreparedCovs(years = list(c("year2001", "year2002")), fuelCovsCoarse = list(fuelCov),
+                        ignitionFirePoints = ignFires(), nonForestedLCCGroups = list(nf1 = 1),
+                        ignitionClimateCoarse = ignClimate(), lightningMap = lightning,
+                        digest = list("same"), useCache = TRUE))
+  }
+
+  expect_true(all(merge(1)$class2 == 1))
+  expect_true(all(merge(0.5)$class2 == 0.5))               # same digest, new fuel values: no stale hit
+})
