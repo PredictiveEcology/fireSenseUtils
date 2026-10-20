@@ -514,8 +514,7 @@ mergePreparedCovs <- function(years, fuelCovsCoarse, ignitionFirePoints, nonFore
     MoreArgs = list(climate = ignitionClimateCoarse,
                     fires = ignitionFirePoints)
   ) |>
-    Cache(omitArgs = c("fuel", "LCC"), 
-          .cacheExtra = digest, useCache = useCache,
+    Cache(.cacheExtra = digest, useCache = useCache,
           .functionName = "stackAndExtract",
           userTags = names(ignitionClimateCoarse)
     )
