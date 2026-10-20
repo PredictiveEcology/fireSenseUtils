@@ -48,5 +48,6 @@ year aged to that year, reset by all fires since) and fuel, non-forest land cove
 wetland are cleared where it is 1, as \code{fireSenseCovariatesCreate(youngAge = TRUE)} does for a
 single year. Fuel is cleared to \code{logMinB(0)}, the value \code{fireSenseCovariatesCreate()} gives
 a pixel without that fuel. Each year is then aggregated with \code{mean}, so \code{youngAge} becomes the
-proportion of young pixels in a coarse cell.
+proportion of young pixels in a coarse cell; non-flammable pixels count as no cover, as in
+\code{\link[=prepare_FuelCovsCoarse]{prepare_FuelCovsCoarse()}}.
 }

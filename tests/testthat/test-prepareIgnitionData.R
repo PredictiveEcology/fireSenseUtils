@@ -239,3 +239,46 @@ test_that("per-year ignition covariates run through fireSenseCovariatesCreate an
   expect_equal(out[pixelID == 1 & year == 2001, youngAge], 0)
   expect_equal(out[pixelID == 1 & year == 2001, nfLCC_40], 1)
 })
+
+test_that("a coarse cell that is partly non-flammable keeps its row and its ignitions, in fit and predict", {
+  withr::local_package("terra")
+  withr::local_package("data.table")
+  ## 4 x 4 pixels of 1 km, nfLCC_40 on every flammable pixel. Pixel 2 (in coarse cell 1, where both 2001
+  ## ignitions are) is water; coarse cell 2 (pixels 3, 4, 7, 8) is all water; pixel 16 is outside the
+  ## study area. Before, any non-flammable pixel made its coarse cell NA, and the ignitions were lost.
+  flam <- ignRas(c(1, 0, 0, 0, 1, 1, 0, 0, rep(1, 7), NA))
+  landcoverDT <- data.table(pixelID = which(values(flam, mat = FALSE) %in% 1), nfLCC_40 = 1)
+  args <- list(
+    cohortData = data.table(pixelGroup = integer(), speciesCode = character(), age = integer(), B = integer()),
+    pixelGroupMap = ignRas(0L), flammableRTM = flam,
+    sppEquiv = data.table(LandR = character(), FuelClass = character()),
+    landcoverDT = landcoverDT, fuelClassCol = "FuelClass", sppEquivCol = "LandR",
+    missingLCCgroup = "nfLCC_40", nonForestedLCCGroups = c(nfLCC_40 = 40),
+    nonForestCanBeYoungAge = TRUE, studyAreaName = "test", useCache = FALSE,
+    nonForest_timeSinceDisturbance = ignRas(100), cutoffForYoungAge = 15,
+    rasTemplate = flam, fact = 2)
+  fuel <- suppressWarnings(do.call(prepare_FuelCovsCoarseByYear,
+                                   c(args, list(years = c("year2001", "year2002"), dataYear = 2000,
+                                                firePixelsByYear = list()))))
+  v <- unname(values(fuel$year2001)[, "nfLCC_40"])
+  expect_equal(v[1], 3 / 4)            # 3 of 4 pixels have cover
+  expect_true(is.na(v[2]))             # no flammable pixel: no row
+  expect_equal(v[3], 1)
+  expect_true(is.na(v[4]))             # a pixel outside the study area
+
+  ## prediction aggregates the same way
+  predFuel <- suppressWarnings(do.call(prepare_FuelCovsCoarse, args))
+  expect_equal(unname(values(predFuel)[, "nfLCC_40"]), unname(values(fuel$year2001)[, "nfLCC_40"]))
+
+  out <- mergePreparedCovs(years = list(c("year2001", "year2002")), fuelCovsCoarse = list(fuel),
+                           ignitionFirePoints = ignFires(), nonForestedLCCGroups = list(nfLCC_40 = 1),
+                           ignitionClimateCoarse = prepare_ignitionClimate(
+                             list(MDC = ignRas(cbind(1:16, 11:26), c("year2001", "year2002"))), 2,
+                             useCache = FALSE),
+                           lightningMap = list(lightningDays = ignRas(1:16)),
+                           digest = NULL, useCache = FALSE)
+  out <- na.omit(out)
+  expect_identical(out[pixelID == 1 & year == 2001, ignitions], 2L)
+  expect_equal(out[pixelID == 1 & year == 2001, nfLCC_40], 3 / 4)
+  expect_false(2 %in% out$pixelID)
+})
