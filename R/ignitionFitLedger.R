@@ -39,10 +39,7 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #' @description
 #' `latestIgnitionFits()` returns, for every polygon, its rows from the most recently modified
 #' ledger file that has it. Files are read newest first; with `polygonIDs`, reading stops once
-#' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
-#' downloaded again; one that differs is downloaded again with [reproducible::preProcess()].
-#' With no internet, the listing saved in `destinationPath` and the local copies are used, as
-#' [latestSpreadFits()] does.
+#' all of them are found. Files are read, also with no internet, as [latestSpreadFits()] reads them.
 #'
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [ignitionFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.

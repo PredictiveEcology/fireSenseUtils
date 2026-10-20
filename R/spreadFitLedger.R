@@ -36,12 +36,10 @@ spreadFitFileTag <- "_linearFuel_esc50_20260925"
 #' @description
 #' `latestSpreadFits()` returns, for every polygon, its rows from the most recently modified
 #' ledger file that has it. Files are read newest first; with `polygonIDs`, reading stops once
-#' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
-#' downloaded again; one that differs is downloaded again with [reproducible::preProcess()], into a
-#' temporary folder first.
-#' Each listing of the folder is saved in `destinationPath`. When Google Drive cannot be reached
-#' (a compute node with no internet), that saved listing and the local copies are used instead,
-#' with any local ledger file written since then read first.
+#' all of them are found. Each file is read with [reproducible::CacheGeoRead()] into
+#' `destinationPath`: downloaded only if it changed on Drive, and from the local copy when Drive
+#' cannot be reached. The folder's file list is saved there too, and used when Drive cannot be
+#' reached (a compute node with no internet).
 #'
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [spreadFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.

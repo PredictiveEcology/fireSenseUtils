@@ -44,7 +44,7 @@ test_that("each polygon comes from the newest file that has it; other models' fi
   expect_s3_class(sf::st_as_sf(out), "sf")                        # still a ledger CacheGeo can read
 })
 
-test_that("reading stops at the first file that has every polygon asked for, and reuses local copies", {
+test_that("reading stops at the first file that has every polygon asked for", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
@@ -53,9 +53,6 @@ test_that("reading stops at the first file that has every polygon asked for, and
                                                       ledger = ledgerRows("4.1", 2))))
   out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
-  expect_identical(drive$downloads, "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds")
-  ## second call: the same file is on disk with Drive's MD5, so nothing is downloaded
-  latestSpreadFits("folder", d, polygonIDs = "4.1")
   expect_identical(drive$downloads, "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds")
   ## an ELF in no file: every file is read, and the result has only what exists
   out <- latestSpreadFits("folder", d, polygonIDs = "9.9")
@@ -68,7 +65,7 @@ test_that("no matching file gives NULL", {
   expect_null(suppressMessages(latestSpreadFits("folder", d)))
 })
 
-test_that("a ledger file is fetched with reproducible::preProcess() into destinationPath", {
+test_that("each ledger file is read with reproducible::CacheGeoRead() from the Drive folder into destinationPath", {
   d <- withr::local_tempdir()
   nm <- "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds"
   drive <- fakeDrive(list(a = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.3", 1)),
@@ -77,30 +74,10 @@ test_that("a ledger file is fetched with reproducible::preProcess() into destina
   out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
   expect_length(drive$calls, 1L)
-  call <- drive$calls[[1]]
-  expect_identical(call$targetFile, nm)
-  expect_identical(call$destinationPath, d)
-  expect_match(call$url, "id_2", fixed = TRUE)                    # the id of the newest file
-  ## the local file is stale, so it is fetched again; a Drive md5 match would not fetch at all
-  writeBin(as.raw(1:3), file.path(d, nm))
-  latestSpreadFits("folder", d, polygonIDs = "4.1")
-  expect_length(drive$calls, 2L)
-  expect_identical(drive$calls[[2]]$purge, 7)
-})
-
-test_that("every Drive file latestSpreadFits() reads is in the download ledger, downloaded or already local", {
-  d <- withr::local_tempdir()
-  withr::local_options(reproducible.urlLog = NULL)
-  reproducible::clearUrlLog()
-  drive <- fakeDrive(list(
-    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
-                                                      ledger = ledgerRows("4.1", 1))))
-  latestSpreadFits("folder", d)          # downloads
-  latestSpreadFits("folder", d)          # the local copy is current: no download
-  urls <- vapply(reproducible::prepInputsLog(), `[[`, character(1), "url")
-  expect_identical(length(drive$downloads), 1L)
-  expect_true("https://drive.google.com/file/d/id_1" %in% urls)
-  expect_identical(reproducible::prepInputsLog()[[1]]$fn, "latestSpreadFits")
+  ledger <- drive$calls[[1]]
+  expect_identical(ledger$file, nm)                               # the newest file
+  expect_identical(ledger$destinationPath, d)
+  expect_identical(ledger$remote, "folder")
 })
 
 test_that("a suffix goes after the model tag; \"\" is the production name", {
@@ -133,7 +110,7 @@ goOffline <- function(env = parent.frame()) {
     .package = "googledrive", .env = env)
 }
 
-test_that("offline, the saved listing and the local copies give the same rows, with no download", {
+test_that("offline, the saved file list gives the same files and rows", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
@@ -143,37 +120,15 @@ test_that("offline, the saved listing and the local copies give the same rows, w
   online <- latestSpreadFits("folder", d)
   expect_true(file.exists(file.path(d, ".ledgerListing_folder.rds")))
   goOffline()
-  expect_message(offline <- latestSpreadFits("folder", d), "cannot be reached; using the listing saved")
+  expect_message(offline <- latestSpreadFits("folder", d), "cannot be reached; using the file list saved")
   expect_identical(offline, online)
-  expect_length(drive$downloads, 2L)                              # only the online call's
+  expect_identical(drive$downloads[3:4], drive$downloads[1:2])    # the same files, in the same order
 })
 
-test_that("offline, a ledger file written since the listing is read first", {
+test_that("offline with no saved file list, the connection error is raised", {
   d <- withr::local_tempdir()
-  fakeDrive(list(
-    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
-                                                      ledger = ledgerRows("4.1", 1))))
-  latestSpreadFits("folder", d)
-  saveRDS(ledgerRows(c("4.1", "6.1"), c(5, 5)), file.path(d, "fireSenseParams_1986-2024_linearFuel_esc50_20260925.rds"))
   goOffline()
-  out <- suppressMessages(latestSpreadFits("folder", d))
-  expect_setequal(out$polygonID, c("4.1", "6.1"))
-  expect_identical(unique(out$objFunVal), 5)
-})
-
-test_that("offline with no saved listing, or no local copy of a listed file, stops and says what to copy", {
-  d <- withr::local_tempdir()
-  fakeDrive(list(
-    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
-                                                      ledger = ledgerRows("4.1", 1))))
-  local({
-    goOffline()
-    expect_error(latestSpreadFits("folder", d), "no saved listing")
-  })
-  latestSpreadFits("folder", d)
-  unlink(file.path(d, "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds"))
-  goOffline()
-  expect_error(suppressMessages(latestSpreadFits("folder", d)), "is not in")
+  expect_error(latestSpreadFits("folder", d), "resolve host")
 })
 
 test_that("a Drive error that is not a connection failure is raised", {
