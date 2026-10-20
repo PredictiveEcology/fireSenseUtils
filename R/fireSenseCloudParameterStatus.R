@@ -88,7 +88,7 @@ fireSenseCloudParametersMap <-
 #'   skips ([ELFsSkipped()]); `character(0)` fills none.
 #' @param fewFiresFill The colour used to fill the `fewFires` ELFs.
 #' @param mergedFill,arcticFill The colours used to fill the merged ELFs (those the plan merges) and the
-#'   Arctic ELFs ([ELFsArctic()], which are not fitted).
+#'   Arctic and Prairie grassland ELFs ([ELFsNotFitted()], which are not fitted; both use `arcticFill`).
 #' @param ELFs The list [makeELFs()] returns (before any merging), if the caller has it. `NULL`
 #'   (default) builds it with [makeELFs()] (Cached). Without a `poly` element the outlines are drawn
 #'   from `rasWhole`.
@@ -158,7 +158,9 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     terra::plot(core[core$ID %in% ids, ], col = colour, add = TRUE)
     fills[[label]] <<- colour
   }
-  fillELFs(ELFsArctic(core$ID), arcticFill, "not fitted (Arctic)")
+  notFitted <- ELFsNotFitted(core$ID)
+  for (reason in unique(names(notFitted)))
+    fillELFs(notFitted[names(notFitted) == reason], arcticFill, paste0("not fitted (", reason, ")"))
   fillELFs(plan$ELF[plan$action %in% "merge"], mergedFill, "merged")
   fillELFs(fewFires, fewFiresFill, "not enough fires")
   if (!is.null(metrics)) {

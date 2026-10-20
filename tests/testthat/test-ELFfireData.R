@@ -276,7 +276,7 @@ test_that("flammable area is reported in hectares of the land-cover grid", {
 test_that("the exclusion regex keeps no-tree ELFs and still drops Arctic and zero-fire ones", {
   ## Rebuilt exactly as runELFs() builds it (R/ELFs.R, excludeELFs).
   buildExclude <- function(zeroFireELFs = character(0)) {
-    paste(c("^1\\.|^2\\.",
+    paste(c(fireSenseUtils:::.ELFsNotFittedPattern(),
             if (length(zeroFireELFs))
               paste0("^", gsub(".", "\\.", zeroFireELFs, fixed = TRUE), "$")),
           collapse = "|")
@@ -287,7 +287,8 @@ test_that("the exclusion regex keeps no-tree ELFs and still drops Arctic and zer
   expect_false(any(grepl(buildExclude(), keep)))
 
   ## Arctic is still excluded, and zero-fire ELFs still are when named.
-  expect_true(all(grepl(buildExclude(), c("1.2.3", "2.5.4"))))
+  expect_true(all(grepl(buildExclude(), c("1.2.3", "2.5.4", "10.2", "10.2.1", "10.2.2"))))
+  expect_false(any(grepl(buildExclude(), c("10.20", "10.21.1", "10.1.1", "12.1", "11.2"))))
   expect_true(all(grepl(buildExclude(c("3.2.2", "3.3.1")), c("3.2.2", "3.3.1"))))
 
   ## Anchoring: 3.2.2 must not also catch 3.2.25.

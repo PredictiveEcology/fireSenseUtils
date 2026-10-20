@@ -41,3 +41,9 @@ test_that("runELFs() leaves out the Arctic but keeps the no-tree ELFs in the map
   expect_identical(names(maps$rasWhole), kept)
   expect_identical(names(maps$rasCentered), kept)
 })
+
+test_that("runELFs() leaves out the Prairie grassland ELFs 10.2.*, not 10.20 or 10.1.*", {
+  prj <- local_runELFs(c("10.1.1", "10.2.1", "10.2.2", "10.20", "10.3", "3.1.1"))
+  expect_identical(runELFs(prj, whatOut = "allNames"), c("10.1.1", "10.20", "10.3", "3.1.1"))
+  expect_identical(names(runELFs(prj, whatOut = "maps")$rasWhole), c("10.1.1", "10.20", "10.3", "3.1.1"))
+})

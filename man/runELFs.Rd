@@ -28,8 +28,8 @@ reads this Google Drive file or uploads to it.}
 \value{
 A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
 Currently, no high arctic
-ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor
-3.2.1 or 3.2.4, which have no SCANFI species.
+ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor the Prairie
+grassland ELFs (ecoprovince 10.2, i.e. 10.2 and 10.2.*); see \code{\link[=ELFsNotFitted]{ELFsNotFitted()}}.
 }
 \description{
 Extracting only the "ELF" module, runs it via \code{SpaDES.core::simInitAndSpades2()} and

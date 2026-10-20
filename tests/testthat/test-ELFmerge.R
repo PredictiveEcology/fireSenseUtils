@@ -118,6 +118,25 @@ test_that("ELFs of ecozones 1 and 2 are left out permanently: never merged, neve
   expect_identical(nrow(plan), 0L)
 })
 
+test_that("ELFsNotFitted() names the Arctic and the Prairie grassland (10.2) ELFs, and only them", {
+  ids <- c("1.1", "2.3.1", "10.1.2", "10.2", "10.2.1", "10.2.2", "10.20", "10.21.1", "10.3", "12.1", "3.1.1")
+  out <- ELFsNotFitted(ids)
+  expect_identical(unname(out), c("1.1", "2.3.1", "10.2", "10.2.1", "10.2.2"))
+  expect_identical(names(out), c("Arctic", "Arctic", rep("Prairie grassland", 3)))
+  expect_identical(ELFsArctic(ids), c("1.1", "2.3.1"))
+  expect_identical(ELFsNotFitted(c("10.1.1", "12.1")), character(0))
+})
+
+test_that("Prairie grassland ELFs are never merged and never partners", {
+  ## 10.1.1 is thin and borders only 10.2.1 (a different base anyway); 10.1 is thin and borders 10.2
+  plan <- ELFmergePlan(statusOf(c("10.2.1", "10.2.2"), c(10, 100), c(10, 100)),
+                       neighboursOf("10.2.1", "10.2.2", 4000))
+  expect_identical(nrow(plan), 0L)
+  plan <- ELFmergePlan(statusOf(c("10.1", "10.2"), c(10, 100), c(10, 100)),
+                       neighboursOf("10.1", "10.2", 4000))
+  expect_identical(ELFsSkipped(plan), "10.1")
+})
+
 test_that("merged names use the shared base and the members' last parts in numeric order", {
   expect_identical(ELFmergedName(c("3.2.4", "3.2.1")), "3.2.1_4")
   expect_identical(ELFmergedName(c("10.2", "10.1")), "10.1_2")
