@@ -37,7 +37,9 @@ The function performs the following steps:
 \item Converts the data frame to a raster aligned with \code{rasTemplate} via
 \code{SpaDES.tools::rastFromDF()}.
 \item Aggregates the raster to a coarser resolution using
-\code{terra::aggregate(fact = fact, fun = mean)}.
+\code{terra::aggregate(fact = fact, fun = mean)}. Pixels of \code{rasTemplate} without
+covariates (not flammable) count as no cover, so a coarse cell that is partly
+non-flammable is not \code{NA} (see \code{fuelCovsToCoarse()}).
 }
 
 The aggregation is applied across all raster layers (if present), computing
