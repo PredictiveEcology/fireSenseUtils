@@ -8,6 +8,9 @@
 #' This function performs several steps:
 #' 1. Downloads and prepares NTEMS LCC data for the specified `neededYear` using
 #'    `LandR::prepInputs_NTEMS_LCC_FAO`, cropping and masking to the target extent.
+#'    This step is cached on its own with `reproducible::Cache()` (keyed on its arguments and the
+#'    code of the functions it calls), so a change to the later steps or their inputs
+#'    (`nonflammableLCC`, `flammabilityThreshold`, `writeTo`) does not redo it.
 #' 2. Identifies the dominant *flammable* land cover class within each pixel of
 #'    `to`. This is done by temporarily masking non-flammable classes
 #'    (defined in `nonflammableLCC`) to NA in the source raster and then
@@ -111,20 +114,16 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
 
   maskToArg <- if (is.null(maskTo)) to else maskTo
 
-  ## No `writeTo` here: the builder would write its native-resolution raster to
-  ## file.path(destinationPath, writeTo), the path of the final result below, and this function reads
-  ## that raster block by block. Another job sharing `destinationPath` that restores or writes that
-  ## file mid-read breaks it ("[classify] too few values for writing: 0 < N"). Only the final results
-  ## are written to `writeTo`.
-  lccFun <- if (lccSource == "NTEMS") prepInputs_NTEMS_LCC_FAO else .scanfiLCC
-  lccArgs <- list(year = neededYear,
-                   disturbedCode = 240, # Optional: specify disturbed code if needed
-                   overwrite = overwrite,
-                   destinationPath = destinationPath,
-                   cropTo = to,
-                   maskTo = maskToArg)
-  if (identical(lccSource, "SCANFI")) lccArgs$scanfiVersion <- scanfiVersion
-  rstLCC <- do.call(lccFun, lccArgs)
+  ## This step (crop, mask, forest-land update; ~10 min per study area and year) is cached on its own,
+  ## so a change to the later steps or their inputs does not redo it. Cache digests only .baseLCC's
+  ## own code, so the functions it reaches are in the key via .cacheExtra; the cache keeps its own copy
+  ## of the raster, so the result does not depend on the builder's scratch file surviving.
+  rstLCC <- .baseLCC(lccSource = lccSource, neededYear = neededYear, overwrite = overwrite,
+                     destinationPath = destinationPath, cropTo = to, maskTo = maskToArg,
+                     scanfiVersion = scanfiVersion) |>
+    Cache(userTags = c("makeFireSenseLCC", "baseLCC", lccSource, neededYear),
+          .functionName = paste0("makeFireSenseLCCBase", neededYear),
+          .cacheExtra = .baseLCCDeps(lccSource))
   # 2. Determine the dominant *flammable* LCC code at the target resolution
   #    - Mask non-flammable codes to NA in the source resolution LCC
   #    - Project to the target resolution using 'mode' aggregation. This finds
@@ -231,6 +230,30 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   lccSource
 }
 
+## The base land cover for one year, cropped and masked, from LandR; makeFireSenseLCC() caches this
+## call. No `writeTo` here: the builder would write its native-resolution raster to
+## file.path(destinationPath, writeTo), the path of the final result, and makeFireSenseLCC() reads
+## that raster block by block. Another job sharing `destinationPath` that restores or writes that
+## file mid-read breaks it ("[classify] too few values for writing: 0 < N"). Only the final results
+## are written to `writeTo`.
+.baseLCC <- function(lccSource, neededYear, overwrite, destinationPath, cropTo, maskTo, scanfiVersion) {
+  lccFun <- if (lccSource == "NTEMS") prepInputs_NTEMS_LCC_FAO else .scanfiLCC
+  lccArgs <- list(year = neededYear,
+                  disturbedCode = 240, # Optional: specify disturbed code if needed
+                  overwrite = overwrite,
+                  destinationPath = destinationPath,
+                  cropTo = cropTo,
+                  maskTo = maskTo)
+  if (identical(lccSource, "SCANFI")) lccArgs$scanfiVersion <- scanfiVersion
+  do.call(lccFun, lccArgs)
+}
+
+## The functions .baseLCC() reaches, for its Cache()'s .cacheExtra; the first part of makeFireSenseLCCDeps()
+.baseLCCDeps <- function(lccSource) {
+  if (identical(lccSource, "NTEMS")) list(prepInputs_NTEMS_LCC_FAO)
+  else list(.scanfiLCC, LandR::prepInputs_SCANFI_LCC_FAO)
+}
+
 #' Functions whose code affects what [makeFireSenseLCC()] returns
 #'
 #' `reproducible::Cache()` digests only the called function's own code, so a cached
@@ -242,6 +265,10 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
 #' goes stale when the default moves. It already did -- `fireSense_dataPrepFit` pinned
 #' `LandR::prepInputs_NTEMS_LCC_FAO()` and kept it after the default became SCANFI, leaving every
 #' SCANFI and CWIM change invisible to the cache.
+#'
+#' The base land-cover step inside [makeFireSenseLCC()] has its own `Cache()` call, keyed on the
+#' first part of this list (the land-cover functions only), so it is not redone when only the later
+#' steps change.
 #'
 #' @inheritParams makeFireSenseLCC
 #'
@@ -256,13 +283,13 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
 #' }
 makeFireSenseLCCDeps <- function(lccSource = getOption("fireSense.lccSource", "SCANFI")) {
   lccSource <- .checkLccSource(lccSource)
+  base <- .baseLCCDeps(lccSource)
   if (identical(lccSource, "NTEMS"))
-    return(list(prepInputs_NTEMS_LCC_FAO))
+    return(base)
   ## SCANFI: the land cover itself, plus the wetland classes that are added to it. The wrappers are
   ## listed alongside the LandR functions they reach because Cache digests neither.
-  list(.scanfiLCC, LandR::prepInputs_SCANFI_LCC_FAO,
-       .cwimWetland, .wetlandToLCC,
-       .landrWetlandFun("prepInputs_CWIM"), .landrWetlandFun("wetlandToLCC"))
+  c(base, list(.cwimWetland, .wetlandToLCC,
+               .landrWetlandFun("prepInputs_CWIM"), .landrWetlandFun("wetlandToLCC")))
 }
 
 ## SCANFI land cover with FAO forest land (LandR); a seam for the tests
