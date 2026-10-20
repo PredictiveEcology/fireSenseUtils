@@ -125,3 +125,60 @@ test_that("\"latest\" ignores suffixed files, and a suffixed run reads only its 
   expect_setequal(out$polygonID, c("4.1", "5.1"))
   expect_identical(unique(out$objFunVal), 81)
 })
+
+## Drive unreachable, as on a compute node with no internet: drive_ls() fails to resolve the host
+goOffline <- function(env = parent.frame()) {
+  testthat::local_mocked_bindings(
+    drive_ls = function(path, ...) stop("Could not resolve host: www.googleapis.com", call. = FALSE),
+    .package = "googledrive", .env = env)
+}
+
+test_that("offline, the saved listing and the local copies give the same rows, with no download", {
+  d <- withr::local_tempdir()
+  drive <- fakeDrive(list(
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
+                                                      ledger = ledgerRows(c("4.1", "4.3"), c(1, 1))),
+    "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-24T10:00:00Z",
+                                                      ledger = ledgerRows("4.1", 2))))
+  online <- latestSpreadFits("folder", d)
+  expect_true(file.exists(file.path(d, ".ledgerListing_folder.rds")))
+  goOffline()
+  expect_message(offline <- latestSpreadFits("folder", d), "cannot be reached; using the listing saved")
+  expect_identical(offline, online)
+  expect_length(drive$downloads, 2L)                              # only the online call's
+})
+
+test_that("offline, a ledger file written since the listing is read first", {
+  d <- withr::local_tempdir()
+  fakeDrive(list(
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
+                                                      ledger = ledgerRows("4.1", 1))))
+  latestSpreadFits("folder", d)
+  saveRDS(ledgerRows(c("4.1", "6.1"), c(5, 5)), file.path(d, "fireSenseParams_1986-2024_linearFuel_esc50_20260925.rds"))
+  goOffline()
+  out <- suppressMessages(latestSpreadFits("folder", d))
+  expect_setequal(out$polygonID, c("4.1", "6.1"))
+  expect_identical(unique(out$objFunVal), 5)
+})
+
+test_that("offline with no saved listing, or no local copy of a listed file, stops and says what to copy", {
+  d <- withr::local_tempdir()
+  fakeDrive(list(
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
+                                                      ledger = ledgerRows("4.1", 1))))
+  local({
+    goOffline()
+    expect_error(latestSpreadFits("folder", d), "no saved listing")
+  })
+  latestSpreadFits("folder", d)
+  unlink(file.path(d, "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds"))
+  goOffline()
+  expect_error(suppressMessages(latestSpreadFits("folder", d)), "is not in")
+})
+
+test_that("a Drive error that is not a connection failure is raised", {
+  d <- withr::local_tempdir()
+  testthat::local_mocked_bindings(drive_ls = function(path, ...) stop("Client error: (404) Not Found"),
+                                  .package = "googledrive")
+  expect_error(latestSpreadFits("folder", d), "404")
+})

@@ -46,6 +46,9 @@ ledger file that has it. Files are read newest first; with \code{polygonIDs}, re
 all of them are found. A file already in \code{destinationPath} with the same MD5 as on Drive is not
 downloaded again; one that differs is downloaded again with \code{\link[reproducible:preProcess]{reproducible::preProcess()}}, into a
 temporary folder first.
+Each listing of the folder is saved in \code{destinationPath}. When Google Drive cannot be reached
+(a compute node with no internet), that saved listing and the local copies are used instead,
+with any local ledger file written since then read first.
 }
 \details{
 \code{spreadFitFileTag} marks the files whose fits use the current model: fuel biomass on the
