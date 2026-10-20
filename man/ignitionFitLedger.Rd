@@ -47,6 +47,8 @@ functions instead of one named file. Parallel to the spread-fit ledger helpers
 ledger file that has it. Files are read newest first; with \code{polygonIDs}, reading stops once
 all of them are found. A file already in \code{destinationPath} with the same MD5 as on Drive is not
 downloaded again; one that differs is downloaded again with \code{\link[reproducible:preProcess]{reproducible::preProcess()}}.
+With no internet, the listing saved in \code{destinationPath} and the local copies are used, as
+\code{\link[=latestSpreadFits]{latestSpreadFits()}} does.
 }
 \details{
 \code{ignitionFitFileTag} marks the files whose fits use the current model: xgboost Poisson

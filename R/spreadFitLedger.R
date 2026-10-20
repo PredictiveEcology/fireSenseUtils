@@ -39,6 +39,9 @@ spreadFitFileTag <- "_linearFuel_esc50_20260925"
 #' all of them are found. A file already in `destinationPath` with the same MD5 as on Drive is not
 #' downloaded again; one that differs is downloaded again with [reproducible::preProcess()], into a
 #' temporary folder first.
+#' Each listing of the folder is saved in `destinationPath`. When Google Drive cannot be reached
+#' (a compute node with no internet), that saved listing and the local copies are used instead,
+#' with any local ledger file written since then read first.
 #'
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [spreadFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
