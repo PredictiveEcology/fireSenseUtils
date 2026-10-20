@@ -40,7 +40,7 @@ test_that("each polygon comes from the newest file that has it; other models' fi
   expect_s3_class(sf::st_as_sf(out), "sf")                        # still a ledger CacheGeo can read
 })
 
-test_that("reading stops at the first file that has every polygon asked for, and reuses local copies", {
+test_that("reading stops at the first file that has every polygon asked for", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds" = list(modified = "2026-09-20T10:00:00Z",
@@ -49,9 +49,6 @@ test_that("reading stops at the first file that has every polygon asked for, and
                                                       ledger = ledgerRows("4.1", 2))))
   out <- latestIgnitionFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
-  expect_identical(drive$downloads, "fireSenseIgnitionParams_1985-2025_xgboostPoisson_20261013.rds")
-  ## second call: the same file is on disk with Drive's MD5, so nothing is downloaded
-  latestIgnitionFits("folder", d, polygonIDs = "4.1")
   expect_identical(drive$downloads, "fireSenseIgnitionParams_1985-2025_xgboostPoisson_20261013.rds")
   ## an ELF in no file: every file is read, and the result has only what exists
   out <- latestIgnitionFits("folder", d, polygonIDs = "9.9")

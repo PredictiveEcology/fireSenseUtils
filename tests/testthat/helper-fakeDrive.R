@@ -1,5 +1,5 @@
-## A fake Drive folder: `files` maps a file name to list(modified, ledger). The download is
-## reproducible::preProcess(): the mock writes the ledger to `destinationPath` and records the call.
+## A fake Drive folder: `files` maps a file name to list(modified, ledger). Each file is read with
+## reproducible::CacheGeoRead(): the mock writes the ledger to `destinationPath` and records the read.
 ## googledrive::drive_download() must never be called: it writes in place, so a job reading the same
 ## file at that moment can see it missing or half-written.
 fakeDrive <- function(files, env = parent.frame()) {
@@ -20,13 +20,13 @@ fakeDrive <- function(files, env = parent.frame()) {
     drive_ls = function(path, ...) ls,
     drive_download = function(...) stop("googledrive::drive_download() must not be called"),
     .package = "googledrive", .env = env)
+  ## CacheGeoRead() reads (and, online, fetches) each ledger file: record which, and give its rows
   testthat::local_mocked_bindings(
-    preProcess = function(targetFile = NULL, url = NULL, destinationPath = ".", purge = FALSE, ...) {
-      store$downloads <- c(store$downloads, targetFile)
-      store$calls[[length(store$calls) + 1L]] <- list(targetFile = targetFile, url = url,
-                                                     destinationPath = destinationPath, purge = purge)
-      writeBin(bytes[[targetFile]], file.path(destinationPath, targetFile))
-      list(targetFilePath = file.path(destinationPath, targetFile))
+    CacheGeoRead = function(ledger, area, ...) {
+      store$downloads <- c(store$downloads, ledger$file)
+      store$calls[[length(store$calls) + 1L]] <- ledger
+      writeBin(bytes[[ledger$file]], ledger$path)
+      readRDS(ledger$path)
     },
     .package = "reproducible", .env = env)
   store
