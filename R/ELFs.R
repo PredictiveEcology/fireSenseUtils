@@ -688,8 +688,8 @@ moveSliversToOtherELFs <- function(lostPixels, ca, i, r) {
 #' @return
 #' A vector corresponding to \code{sim$spreadFitPreRun[[fireSenseUtils::polygonIDTxt]]}.
 #' Currently, no high arctic
-#' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor
-#' 3.2.1 or 3.2.4, which have no SCANFI species.
+#' ELFs are returned (e.g., Ecoprovinces starting with either 1. or 2.), nor the Prairie
+#' grassland ELFs (ecoprovince 10.2, i.e. 10.2 and 10.2.*); see [ELFsNotFitted()].
 #'
 #' @examples
 #' \dontrun{
@@ -720,8 +720,8 @@ runELFs <- function(
     preRunSetupProject$modules, preRunSetupProject$paths$modulePath, pattern = "^fireSense_ELFs$")
   sim <- SpaDES.core::simInitAndSpades2(preRunSetupProject)
 
-  #remove Arctic that is far from treeline
-  arcticELFs <- .arcticELFsPattern # ecozones 1 and 2, out permanently (ELFsArctic())
+  # Arctic and Prairie grassland ELFs are out permanently (ELFsNotFitted())
+  arcticELFs <- .ELFsNotFittedPattern()
   # An ELF with no SCANFI tree species is NOT excluded: fireSense fits nonForest fuel
   # classes, and the dataPrep chain now carries speciesLayers = NULL and a zero-row
   # sppEquiv through (LandR loadSCANFISpeciesLayers/assertSpeciesLayers/sppHarmonize,

@@ -71,7 +71,7 @@ skips (\code{\link[=ELFsSkipped]{ELFsSkipped()}}); \code{character(0)} fills non
 \item{fewFiresFill}{The colour used to fill the \code{fewFires} ELFs.}
 
 \item{mergedFill, arcticFill}{The colours used to fill the merged ELFs (those the plan merges) and the
-Arctic ELFs (\code{\link[=ELFsArctic]{ELFsArctic()}}, which are not fitted).}
+Arctic and Prairie grassland ELFs (\code{\link[=ELFsNotFitted]{ELFsNotFitted()}}, which are not fitted; both use \code{arcticFill}).}
 
 \item{ELFs}{The list \code{\link[=makeELFs]{makeELFs()}} returns (before any merging), if the caller has it. \code{NULL}
 (default) builds it with \code{\link[=makeELFs]{makeELFs()}} (Cached). Without a \code{poly} element the outlines are drawn

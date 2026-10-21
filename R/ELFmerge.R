@@ -11,22 +11,47 @@
 .ELFdepth <- function(ids) lengths(strsplit(ids, ".", fixed = TRUE))
 .ELFlast <- function(ids) sub("^.*\\.", "", ids)
 
-## Ecozones 1 and 2 are out of fireSense permanently (Eliot, 2026-09-14: "Elf 1.xx and 2.xx are out.
-## Omit permanently"). runELFs() never queues them, and they are neither counted nor merged.
-.arcticELFsPattern <- "^1\\.|^2\\."
+## ELFs that are out of fireSense permanently, each group with the pattern that matches its ids and the
+## reason it is left out. runELFs() never queues them; they are neither counted nor merged, nor used as
+## merge partners; plotELFs() fills them "not fitted (<reason>)".
+##  - Arctic, ecozones 1 and 2 (Eliot, 2026-09-14: "Elf 1.xx and 2.xx are out. Omit permanently").
+##  - Prairie grassland, ecoprovince 10.2: `10.2` and `10.2.*`, not `10.20` or `10.1.*` (Eliot, 2026-10-20:
+##    "These are like the arctic. We can decide if we want to fit these at some future date").
+.ELFsNotFittedTable <- data.frame(
+  pattern = c("^1\\.", "^2\\.", "^10\\.2(\\.|$)"),
+  reason = c("Arctic", "Arctic", "Prairie grassland"),
+  stringsAsFactors = FALSE)
+
+## The patterns as one regular expression, for grep() on ids.
+.ELFsNotFittedPattern <- function() paste(.ELFsNotFittedTable$pattern, collapse = "|")
 
 #' ELFs permanently left out of fireSense
 #'
-#' ELFs of ecozones 1 and 2 (ids `1.*` and `2.*`) are never fitted: [runELFs()] leaves them out of
-#' every list and map, and [ELFmergePlan()] neither merges them nor uses them as partners.
+#' ELFs of the Arctic (ecozones 1 and 2, ids `1.*` and `2.*`) and of the Prairie grassland (ecoprovince
+#' 10.2, ids `10.2` and `10.2.*`) are never fitted: [runELFs()] leaves them out of every list and map,
+#' [fewFireELFs()] neither counts nor merges them, [ELFmergePlan()] neither merges them nor uses them as
+#' partners, and [plotELFs()] fills them as "not fitted" with the reason.
 #'
 #' @param ids ELF ids.
 #'
-#' @return The ids in `ids` that are left out.
+#' @return `ELFsNotFitted()`: the ids in `ids` that are left out, named by the reason (`"Arctic"` or
+#'   `"Prairie grassland"`). `ELFsArctic()`: only the Arctic ones, unnamed.
 #'
 #' @export
+ELFsNotFitted <- function(ids) {
+  reason <- rep(NA_character_, length(ids))
+  for (i in seq_len(nrow(.ELFsNotFittedTable)))
+    reason[grepl(.ELFsNotFittedTable$pattern[i], ids)] <- .ELFsNotFittedTable$reason[i]
+  out <- as.character(ids[!is.na(reason)])
+  if (length(out)) names(out) <- reason[!is.na(reason)]
+  out
+}
+
+#' @rdname ELFsNotFitted
+#' @export
 ELFsArctic <- function(ids) {
-  ids[grepl(.arcticELFsPattern, ids)]
+  out <- ELFsNotFitted(ids)
+  unname(out[names(out) %in% "Arctic"])
 }
 
 #' Shared core borders between ELFs
@@ -121,7 +146,8 @@ ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePo
   ign <- stats::setNames(status$naturalIgnitions, ids)
   esc <- stats::setNames(status$escapes, ids)
   polys <- stats::setNames(status$firePolygons, ids)
-  thin <- ids[status$status %in% c("zero", "few") & !ids %in% ELFsArctic(ids)]
+  fitted <- setdiff(ids, ELFsNotFitted(ids))
+  thin <- ids[status$status %in% c("zero", "few") & ids %in% fitted]
   thin <- thin[order(numeric_version(thin))]
 
   decision <- function(action, members, reason) {
@@ -143,7 +169,7 @@ ELFmergePlan <- function(status, neighbours, minNaturalIgnitions = 50, minFirePo
     touching <- neighbours[neighbours$ELF1 == elf | neighbours$ELF2 == elf, ]
     ## fifelse keeps the ids' type when no row touches elf; ifelse would give logical(0)
     other <- data.table::fifelse(touching$ELF1 == elf, touching$ELF2, touching$ELF1)
-    ok <- other %in% ids & !other %in% used &
+    ok <- other %in% fitted & !other %in% used &
       .ELFparent(other) == .ELFparent(elf) & .ELFdepth(other) == .ELFdepth(elf)
     if (!any(ok)) {
       out[[length(out) + 1L]] <- decision("skip", elf, "too few fires; no neighbour shares its base")

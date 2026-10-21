@@ -69,8 +69,8 @@ sizeRuleLandCover <- function(destinationPath) {
 #' Count fires per ELF and merge ELFs with too few
 #'
 #' Merges each ELF with too few fires with a neighbour that shares its base ([ELFmergePlan()]), then each
-#' region still smaller than `minRegionAreaKm2` with a similar neighbour ([ELFsizePlan()]). Arctic ELFs
-#' ([ELFsArctic()]) are neither counted nor merged.
+#' region still smaller than `minRegionAreaKm2` with a similar neighbour ([ELFsizePlan()]). Arctic and Prairie grassland ELFs
+#' ([ELFsNotFitted()]) are neither counted nor merged.
 #'
 #' The fire records are read with `reproducible::prepInputs()`, which caches them, and the clipped fire
 #' polygons of every ELF ([ELFfireOverlay()], the slow step) are cached on the ELF maps, the NBAC release
@@ -101,8 +101,8 @@ fewFireELFs <- function(ELFs, fireYears, pixelAreaHa, destinationPath,
                         minNaturalIgnitions = 50, minFirePolygons = 50,
                         escapeSizeHa = 50, minEscapes = 5, landCoverFile = NULL,
                         minRegionAreaKm2 = 35000, maxLandCoverDist = 0.35, maxBurnRatio = 6) {
-  ## ecozones 1 and 2 are out permanently: not counted, not merged (ELFsArctic())
-  ids <- setdiff(names(ELFs$rasWhole), ELFsArctic(names(ELFs$rasWhole)))
+  ## Arctic and Prairie grassland ELFs are out permanently: not counted, not merged (ELFsNotFitted())
+  ids <- setdiff(names(ELFs$rasWhole), ELFsNotFitted(names(ELFs$rasWhole)))
   rasWhole <- terra::rast(unname(ELFs$rasWhole[ids]))
   names(rasWhole) <- ids
   studyArea <- terra::as.polygons(terra::ext(rasWhole), crs = terra::crs(rasWhole))
@@ -123,7 +123,7 @@ fewFireELFs <- function(ELFs, fireYears, pixelAreaHa, destinationPath,
   if (!is.null(landCoverFile) && length(minRegionAreaKm2) == 1L && !is.na(minRegionAreaKm2)) {
     ## the size rule sees the regions that remain: fire-count merges applied, skipped ELFs left out
     remaining <- mergeELFs(ELFs, plan)$rasWhole
-    keep <- setdiff(names(remaining), c(ELFsSkipped(plan), ELFsArctic(names(remaining))))
+    keep <- setdiff(names(remaining), c(ELFsSkipped(plan), ELFsNotFitted(names(remaining))))
     remaining <- terra::rast(unname(remaining[keep]))
     names(remaining) <- keep
     merges <- plan[plan$action == "merge", ]

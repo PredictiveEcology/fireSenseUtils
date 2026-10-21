@@ -55,8 +55,8 @@ merges and the skips, in \code{\link[=ELFmergePlan]{ELFmergePlan()}}'s format) a
 }
 \description{
 Merges each ELF with too few fires with a neighbour that shares its base (\code{\link[=ELFmergePlan]{ELFmergePlan()}}), then each
-region still smaller than \code{minRegionAreaKm2} with a similar neighbour (\code{\link[=ELFsizePlan]{ELFsizePlan()}}). Arctic ELFs
-(\code{\link[=ELFsArctic]{ELFsArctic()}}) are neither counted nor merged.
+region still smaller than \code{minRegionAreaKm2} with a similar neighbour (\code{\link[=ELFsizePlan]{ELFsizePlan()}}). Arctic and Prairie grassland ELFs
+(\code{\link[=ELFsNotFitted]{ELFsNotFitted()}}) are neither counted nor merged.
 }
 \details{
 The fire records are read with \code{reproducible::prepInputs()}, which caches them, and the clipped fire
