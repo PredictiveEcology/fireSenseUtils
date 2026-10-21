@@ -204,7 +204,7 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
   if (lccSource == "SCANFI") {
     ## SCANFI has no wetland classes: add NTEMS' 80/81 from the wetland layer, at the target resolution.
     ## Non-flammable (0) and water are never recoded.
-    wet <- .cwimWetland(to = allFlam)
+    wet <- .cwimWetland(to = allFlam, destinationPath = destinationPath)
     allFlam <- .wetlandToLCC(allFlam, wet, keepClasses = c(0, nonflammableLCC))
   }
   flammableProp <- terra::ifel(is.na(allFlam), NA, flammableProp)
