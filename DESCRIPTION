@@ -27,7 +27,7 @@ Imports:
     fireregimetools,
     ggplot2,
     googledrive,
-    LandR (>= 1.2.0.9022),
+    LandR (>= 1.2.0.9060),
     magrittr,
     methods,
     parallel,
