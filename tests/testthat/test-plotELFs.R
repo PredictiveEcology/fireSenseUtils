@@ -423,7 +423,8 @@ test_that("plotELFs(plotFires) fills the cores with ELFfireRates() on a green-to
   seen <- NULL
   local_mocked_bindings(ELFfireRates = function(ELFs, plan, fireYears, pixelAreaHa, destinationPath) {
     seen <<- list(ELFs = names(ELFs$rasWhole), fireYears = fireYears, pixelAreaHa = pixelAreaHa)
-    data.table::data.table(ELF = c("11.1_2", "11.3"), naturalFiresPerYear = c(2, 1), haBurnedPerYear = c(100, 10))
+    data.table::data.table(ELF = c("11.1_2", "11.3"), naturalFiresPerYear = c(2, 1), haBurnedPerYear = c(100, 10),
+                           proportionBurnedPerYear = c(0.01, 0.002))
   })
   out <- drawn(plan = mergePlan(), plotFires = "area", fireYears = 2001:2003)
   expect_setequal(seen$ELFs, c("11.1", "11.2", "11.3", "1.1", "10.2.1"))   # before the merges
@@ -443,9 +444,11 @@ test_that("plotELFs(plotFires) fills the cores with ELFfireRates() on a green-to
 
   out <- drawn(plan = mergePlan(), plotFires = "number")
   expect_length(Filter(function(p) "naturalFiresPerYear" %in% names(p$x), out$plots), 1L)
+  out <- drawn(plan = mergePlan(), plotFires = "proportion")
+  expect_length(Filter(function(p) "proportionBurnedPerYear" %in% names(p$x), out$plots), 1L)
 })
 
-test_that("plotELFs(plotFires) takes 'number' or 'area', and not with `metrics`", {
+test_that("plotELFs(plotFires) takes 'number', 'area' or 'proportion', and not with `metrics`", {
   expect_error(drawn(plan = mergePlan(), plotFires = "count"), "should be one of")
   expect_error(drawn(plan = mergePlan(), plotFires = "area", metrics = data.frame(ELF = "11.3", v = 1), metric = "v"),
                "not both")

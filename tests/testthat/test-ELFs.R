@@ -76,6 +76,30 @@ test_that("makeELFs builds one buffered ELF per ecoprovince, splitting the overs
   expect_setequal(written, paste0(c("r_", "ca_"), rep(names(w), each = 2), ".tif"))
 })
 
+test_that("makeELFs works when its cached rasters come back from disk", {
+  skip_if_not_installed("dismo")
+  skip_if_not_installed("deldir")
+  ## a cache restore reads a raster back from a .tif, which names the first column of its categories
+  ## "value" instead of "ID"; the ecoprovince names must still be found
+  ecos <- makeTestEcos()
+  dp <- localELFsDir()
+  local_mocked_bindings(prepInputs = function(url, ...) ecos, .package = "reproducible")
+  fromDisk <- function(x) {
+    if (inherits(x, "SpatRaster")) {
+      f <- tempfile(tmpdir = dp, fileext = ".tif")
+      terra::writeRaster(x, f)
+      terra::rast(f)
+    } else if (is.list(x) && !is.data.frame(x)) {
+      structure(lapply(x, fromDisk), names = names(x))
+    } else x
+  }
+  local_mocked_bindings(Cache = function(x, ...) fromDisk(x), .package = "reproducible")
+  local_mocked_bindings(Cache = function(x, ...) fromDisk(x))
+  set.seed(1)
+  out <- suppressWarnings(makeELFs(makeTestFRU(ecos), destinationPath = dp, useCache = FALSE, maxArea = 1e11))
+  expect_identical(names(out$rasWhole), c("4.1", "4.2", "4.3.1", "4.3.2"))
+})
+
 test_that("makeELFs accepts fire regime polygons (sf) as well as a raster", {
   ecos <- makeTestEcos()[2:3, ]
   ecos$ECOPROVINC <- ecos$ECOREGION <- ecos$ECODISTRIC <- c("4.1", "4.2")

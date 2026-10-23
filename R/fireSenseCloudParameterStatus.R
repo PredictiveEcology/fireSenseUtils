@@ -103,8 +103,9 @@ fireSenseCloudParametersMap <-
 #'   the values to map, e.g. from [readELFmetrics()]. `NULL` (default) maps none.
 #' @param metric The column of `metrics` whose values fill the cores, drawn over the other fills; ELFs
 #'   without a value keep theirs.
-#' @param plotFires `NULL` (default), or `"number"` or `"area"`: fill the cores with the mean natural
-#'   ignitions per year or the mean area burned per year (ha) over `fireYears`, from [ELFfireRates()], on a
+#' @param plotFires `NULL` (default), `"number"`, `"area"` or `"proportion"`: fill the cores with the mean
+#'   natural ignitions per year, the mean area burned per year (ha), or the mean proportion of the core burned
+#'   per year, over `fireYears`, from [ELFfireRates()], on a
 #'   green (less) to red (more) ramp. Arctic and Prairie grassland ELFs, which are not counted, keep their
 #'   fill. Not with `metrics`.
 #' @param ... Passed to [fewFireELFs()] when `plan` is `NULL`, e.g. `pixelAreaHa` (default 5.76) or
@@ -135,14 +136,16 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
   metricCol <- NULL
   metricTitle <- NULL
   if (!is.null(plotFires)) {
-    plotFires <- match.arg(plotFires, c("number", "area"))
+    plotFires <- match.arg(plotFires, c("number", "area", "proportion"))
     if (!is.null(metrics)) stop("plotELFs(): give `metrics` or `plotFires`, not both")
     fireArgs <- utils::modifyList(list(fireYears = defaultFireYears(), pixelAreaHa = 5.76), list(...))
     metrics <- ELFfireRates(ELFs, plan, fireYears = fireArgs$fireYears, pixelAreaHa = fireArgs$pixelAreaHa,
                             destinationPath = destinationPath)
-    metric <- c(number = "naturalFiresPerYear", area = "haBurnedPerYear")[[plotFires]]
+    metric <- c(number = "naturalFiresPerYear", area = "haBurnedPerYear",
+                proportion = "proportionBurnedPerYear")[[plotFires]]
     metricCol <- grDevices::hcl.colors(100, "RdYlGn", rev = TRUE) # green = less, red = more
-    metricTitle <- c(number = "natural fires / yr", area = "ha burned / yr")[[plotFires]]
+    metricTitle <- c(number = "natural fires / yr", area = "ha burned / yr",
+                     proportion = "proportion burned / yr")[[plotFires]]
   }
   ## the map shows the merged ELFs, not the ones they were made from
   ELFs <- mergeELFs(ELFs, plan)

@@ -7,6 +7,13 @@
 ## nothing about ELFs except the default grouping (`.ELFparent()`): it takes a table of regions and a table of
 ## neighbours.
 
+## Geodesic area (km2) of an ELF core: its polygons, or its layer of 0 (outside), 1 (buffer) and 2 (core).
+.coreAreaKm2 <- function(core) {
+  if (inherits(core, "SpatRaster"))
+    core <- terra::as.polygons(terra::classify(core, cbind(c(0, 1), NA)), dissolve = TRUE)
+  sum(terra::expanse(core, unit = "km"))
+}
+
 #' Area, land cover and burn rate of each region
 #'
 #' Statistics for [ELFsizePlan()]. A region is the core (cells equal to 2) of one layer of `rasWhole`.
@@ -45,7 +52,7 @@ ELFregionStats <- function(rasWhole, landCover, firePolys = NULL, fireYears = NU
   if (!is.null(overlay)) overlay <- overlay[overlay$zone == "core", ]
   rows <- lapply(names(rasWhole), function(elf) {
     core <- terra::as.polygons(terra::classify(rasWhole[[elf]], cbind(c(0, 1), NA)), dissolve = TRUE)
-    areaKm2 <- sum(terra::expanse(core, unit = "km"))
+    areaKm2 <- .coreAreaKm2(core)
     pts <- terra::spatSample(core, maxSample, method = "regular")
     lcc <- terra::extract(landCover, terra::project(pts, terra::crs(landCover)), ID = FALSE)[[1]]
     shares <- tabulate(match(lcc, classes), length(classes))

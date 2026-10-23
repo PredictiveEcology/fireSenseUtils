@@ -269,4 +269,6 @@ test_that("ELFfireRates gives the yearly natural fires and area burned in each c
   expect_equal(out$naturalFiresPerYear, c(5, 1) / 3)
   ## 5000 ha in each of 3.1.1 and 3.1.2, 1250 ha in 5.1 (geodesic areas, so not exact)
   expect_equal(out$haBurnedPerYear, c(10000, 1250) / 3, tolerance = 0.01)
+  ## over the core: 3.1.1 + 3.1.2 have 24 core cells of 2500 ha, 5.1 has 12
+  expect_equal(out$proportionBurnedPerYear, c(10000 / (24 * 2500), 1250 / (12 * 2500)) / 3, tolerance = 0.01)
 })

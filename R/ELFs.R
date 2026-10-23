@@ -136,7 +136,9 @@ makeELFs <- function(x, desiredBuffer = 20000,
   ecopRseg <- terra::segregate(ecopR)
   if (terra::is.factor(ecopR)) {
     categories <- terra::cats(ecopR)[[1]]
-    names(ecopRseg) <- categories[match(names(ecopRseg), categories$ID), "ECOPROVINC"]
+    ## the first column holds the cell values, whatever its name: "ID" when made here, "value" when the
+    ## raster comes back from a .tif (a cache restore)
+    names(ecopRseg) <- categories[match(names(ecopRseg), categories[[1]]), "ECOPROVINC"]
   } else {
     stop("ecoprovince raster has no categories: segment names must be the '4.3'-style ecoprovince names, got: ",
          paste(head(names(ecopRseg), 5), collapse = ", "))
@@ -274,7 +276,7 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
     b41ToUse <- b41Extended
     b41 <- b41ToUse
     if (is.factor(b41)) {
-      cat <- cats(b41)[[1]]$ID
+      cat <- cats(b41)[[1]][[1]]
       b41[!b41[] %in% cat] <- NA
     } else {
       # b41[!b41[] > as.integer(i)] <- NA
@@ -312,7 +314,7 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
 
     names(b41ddd) <- i
     if (is.factor(b41Orig)) {
-      cat <- cats(b41Orig)[[1]]$ID
+      cat <- cats(b41Orig)[[1]][[1]]
       b41OrigNew <- terra::resample(b41Orig, b41ddd, method = "near")
       b41ddd[b41OrigNew[] %in% cat & !is.na(b41OrigNew[])] <- 2
     } else {
@@ -398,7 +400,7 @@ segregateKeepNames <- function(ecopR, omitClasses, classes = NULL) {
     origFilenames <- Filenames(ecopR)
     ecopRseg <- terra::segregate(ecopR, classes = classes)
     if (is.factor(ecopR)) {
-      names(ecopRseg) <- cats(ecopR)[[1]][match(as.numeric(names(ecopRseg)), cats(ecopR)[[1]]$ID), 2]
+      names(ecopRseg) <- cats(ecopR)[[1]][match(as.numeric(names(ecopRseg)), cats(ecopR)[[1]][[1]]), 2]
       dt <- data.table(nam = names(ecopRseg), num = as.numeric(names(ecopRseg)))
     } else {
       nam <- names(ecopR)
