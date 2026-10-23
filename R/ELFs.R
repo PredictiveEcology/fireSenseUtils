@@ -136,7 +136,9 @@ makeELFs <- function(x, desiredBuffer = 20000,
   ecopRseg <- terra::segregate(ecopR)
   if (terra::is.factor(ecopR)) {
     categories <- terra::cats(ecopR)[[1]]
-    names(ecopRseg) <- categories[match(names(ecopRseg), categories$ID), "ECOPROVINC"]
+    ## the first column holds the cell values, whatever its name: "ID" when made here, "value" when the
+    ## raster comes back from a .tif (a cache restore)
+    names(ecopRseg) <- categories[match(names(ecopRseg), categories[[1]]), "ECOPROVINC"]
   } else {
     stop("ecoprovince raster has no categories: segment names must be the '4.3'-style ecoprovince names, got: ",
          paste(head(names(ecopRseg), 5), collapse = ", "))
@@ -154,7 +156,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
   #                       useCache = useCache)
   out2 <- mergeAndSplitRas(ecopRseg, ecosLCC$province, maxArea = maxArea,
                            useCache = useCache, destinationPath = destinationPath) |>
-    reproducible::Cache(omitArgs = "ecopRseg", .cacheExtra = attr(ecosR, "tags"))
+    reproducible::Cache(omitArgs = "ecopRseg",
+                        .cacheExtra = list(attr(ecosR, "tags"), deparse(mergeAndSplitRas), deparse(split_poly)))
 
   out3 <- lapply(out2, function(x) as.list(segregateKeepNames(x, omitClasses = 0))) |>
     unlist(recursive = FALSE)
@@ -273,7 +276,7 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
     b41ToUse <- b41Extended
     b41 <- b41ToUse
     if (is.factor(b41)) {
-      cat <- cats(b41)[[1]]$ID
+      cat <- cats(b41)[[1]][[1]]
       b41[!b41[] %in% cat] <- NA
     } else {
       # b41[!b41[] > as.integer(i)] <- NA
@@ -311,7 +314,7 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
 
     names(b41ddd) <- i
     if (is.factor(b41Orig)) {
-      cat <- cats(b41Orig)[[1]]$ID
+      cat <- cats(b41Orig)[[1]][[1]]
       b41OrigNew <- terra::resample(b41Orig, b41ddd, method = "near")
       b41ddd[b41OrigNew[] %in% cat & !is.na(b41OrigNew[])] <- 2
     } else {
@@ -323,8 +326,11 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
     # Add it to the national map
     b41b <- terra::project(b41ddd, crsThis, method = "near")
     b41b <- terra::resample(b41b, spatRasSeg[[i]], method = "near")
+    ## the core is exactly the ELF's own cells, so the cores tile the map without overlaps or gaps;
+    ## the centred map projected back gives only the buffer ring ("near" shifts its edges a cell)
     ca[[i]] <- spatRasSeg[[i]]
-    ca[[i]][b41b > 0] <- b41b
+    ca[[i]][b41b > 0] <- 1L
+    ca[[i]][spatRasSeg[[i]] > 0] <- 2L
     if (missing(mask)) {
       mask <- spatRasSeg[[i]]
     }
@@ -394,7 +400,7 @@ segregateKeepNames <- function(ecopR, omitClasses, classes = NULL) {
     origFilenames <- Filenames(ecopR)
     ecopRseg <- terra::segregate(ecopR, classes = classes)
     if (is.factor(ecopR)) {
-      names(ecopRseg) <- cats(ecopR)[[1]][match(as.numeric(names(ecopRseg)), cats(ecopR)[[1]]$ID), 2]
+      names(ecopRseg) <- cats(ecopR)[[1]][match(as.numeric(names(ecopRseg)), cats(ecopR)[[1]][[1]]), 2]
       dt <- data.table(nam = names(ecopRseg), num = as.numeric(names(ecopRseg)))
     } else {
       nam <- names(ecopR)
@@ -503,7 +509,9 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
     }
     if (needUpdate) {
       tmpRas <- try(terra::rasterize(tmp, ecopRseg[[provChar]], field = field, touches = TRUE))
-      whChange <- tmpRas[] > 0
+      ## only this province's cells: the hull of a multi-polygon province (and a split piece's
+      ## touching edge) also covers its neighbours' cells
+      whChange <- tmpRas[] > 0 & ecopRseg[[provChar]][] > 0
       a <- ecopRseg[[provChar]]
       # Next line doesn't work --> it pulls it into memory
       # set.values(a, cells = which(whChange %in% 1), values(tmpRas, mat = FALSE)[whChange %in% 1])
