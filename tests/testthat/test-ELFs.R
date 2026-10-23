@@ -62,8 +62,42 @@ test_that("makeELFs builds one buffered ELF per ecoprovince, splitting the overs
   expect_identical(cellAt(w$`4.1`, 410000, 320000), 0)
   expect_identical(cellAt(w$`4.2`, 410000, 320000), 2)
 
+  ## the cores partition the land: every land cell is core in exactly one ELF. 4.1's convex hull
+  ## (with its island) reaches into 4.2, and must not take 4.2's cells; projecting each core back
+  ## from its centred map must not leave gaps or overlaps along shared borders.
+  cores <- sapply(w, function(r) terra::values(r, mat = FALSE) %in% 2)
+  ## land: the ecoprovinces' cells (makeELFs()'s focal() hole filling also grows the coast a little)
+  land <- !is.na(terra::values(terra::rasterize(ecos, w[[1]]), mat = FALSE))
+  expect_identical(sum(rowSums(cores) > 1), 0L)                     # no overlaps
+  expect_identical(sum(land & rowSums(cores) == 0), 0L)             # no gaps
+  expect_false(any(rowSums(cores)[!land] > 0))
+
   written <- basename(list.files(dp, recursive = TRUE, pattern = "^(r|ca)_.*tif$"))
   expect_setequal(written, paste0(c("r_", "ca_"), rep(names(w), each = 2), ".tif"))
+})
+
+test_that("makeELFs works when its cached rasters come back from disk", {
+  skip_if_not_installed("dismo")
+  skip_if_not_installed("deldir")
+  ## a cache restore reads a raster back from a .tif, which names the first column of its categories
+  ## "value" instead of "ID"; the ecoprovince names must still be found
+  ecos <- makeTestEcos()
+  dp <- localELFsDir()
+  local_mocked_bindings(prepInputs = function(url, ...) ecos, .package = "reproducible")
+  fromDisk <- function(x) {
+    if (inherits(x, "SpatRaster")) {
+      f <- tempfile(tmpdir = dp, fileext = ".tif")
+      terra::writeRaster(x, f)
+      terra::rast(f)
+    } else if (is.list(x) && !is.data.frame(x)) {
+      structure(lapply(x, fromDisk), names = names(x))
+    } else x
+  }
+  local_mocked_bindings(Cache = function(x, ...) fromDisk(x), .package = "reproducible")
+  local_mocked_bindings(Cache = function(x, ...) fromDisk(x))
+  set.seed(1)
+  out <- suppressWarnings(makeELFs(makeTestFRU(ecos), destinationPath = dp, useCache = FALSE, maxArea = 1e11))
+  expect_identical(names(out$rasWhole), c("4.1", "4.2", "4.3.1", "4.3.2"))
 })
 
 test_that("makeELFs accepts fire regime polygons (sf) as well as a raster", {
@@ -377,8 +411,9 @@ test_that("makeELFs on the real ecostratification gives the ELF maps of the SCAN
                    algo = "xxhash64")
   }, character(1))
   names(sums) <- sort(ids)
-  expect_length(sums, 82)
-  ## "ec1a815c01d736e6" was the 2026-10-05 campaign's maps (SCANFI v1.2 template); the SCANFI v2 mask
-  ## template changes about 0.3% of cells, so the hash below is the v2 one
-  expect_identical(digest::digest(sums, algo = "xxhash64"), "3dd5c361ed1acdda")
+  expect_length(sums, 79)
+  ## "ec1a815c01d736e6" was the 2026-10-05 campaign's maps (SCANFI v1.2 template); "3dd5c361ed1acdda" the
+  ## SCANFI v2 ones (82 ELFs) before the cores tiled the map: the convex hull of a multi-polygon province took
+  ## its neighbours' cells, and 1.2.1, 1.2.2 and 2.3.3 were made of hull cells outside the land template only
+  expect_identical(digest::digest(sums, algo = "xxhash64"), "f6bfdbfd1c6bf726")
 })

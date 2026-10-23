@@ -20,9 +20,8 @@ plotELFs(
   fill = "green",
   plan = NULL,
   fewFires = NULL,
-  fewFiresFill = "grey80",
-  mergedFill = "lightblue",
-  arcticFill = "#fdf2d0",
+  fewFiresFill = "grey60",
+  arcticFill = "grey85",
   ELFs = NULL,
   labels = c("code", "name", "none"),
   labelWhich = c("all", "highlighted"),
@@ -30,6 +29,7 @@ plotELFs(
   axes = c("m", "longlat", "none"),
   metrics = NULL,
   metric = NULL,
+  plotFires = NULL,
   ...
 )
 }
@@ -70,8 +70,8 @@ skips (\code{\link[=ELFsSkipped]{ELFsSkipped()}}); \code{character(0)} fills non
 
 \item{fewFiresFill}{The colour used to fill the \code{fewFires} ELFs.}
 
-\item{mergedFill, arcticFill}{The colours used to fill the merged ELFs (those the plan merges) and the
-Arctic and Prairie grassland ELFs (\code{\link[=ELFsNotFitted]{ELFsNotFitted()}}, which are not fitted; both use \code{arcticFill}).}
+\item{arcticFill}{The colour used to fill the Arctic and Prairie grassland ELFs (\code{\link[=ELFsNotFitted]{ELFsNotFitted()}},
+which are not fitted). Merged ELFs are not filled; their label is their merged name.}
 
 \item{ELFs}{The list \code{\link[=makeELFs]{makeELFs()}} returns (before any merging), if the caller has it. \code{NULL}
 (default) builds it with \code{\link[=makeELFs]{makeELFs()}} (Cached). Without a \code{poly} element the outlines are drawn
@@ -93,6 +93,13 @@ the values to map, e.g. from \code{\link[=readELFmetrics]{readELFmetrics()}}. \c
 
 \item{metric}{The column of \code{metrics} whose values fill the cores, drawn over the other fills; ELFs
 without a value keep theirs.}
+
+\item{plotFires}{\code{NULL} (default), \code{"number"}, \code{"density"}, \code{"area"} or \code{"proportion"}: fill the cores with
+the mean natural ignitions per year, the mean natural ignitions per 100 km^2 of core per year, the mean
+area burned per year (ha), or the mean proportion of the core burned per year, over \code{fireYears}, from
+\code{\link[=ELFfireRates]{ELFfireRates()}}, on a
+green (less) to red (more) ramp. Arctic and Prairie grassland ELFs, which are not counted, keep their
+fill. Not with \code{metrics}.}
 
 \item{...}{Passed to \code{\link[=fewFireELFs]{fewFireELFs()}} when \code{plan} is \code{NULL}, e.g. \code{pixelAreaHa} (default 5.76) or
 \code{fireYears} (default \code{\link[=defaultFireYears]{defaultFireYears()}}).}

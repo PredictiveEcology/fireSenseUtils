@@ -98,14 +98,37 @@ test_that("plotELFs(labels = 'name') names a merged ELF by its ecozone, keeping 
   expect_identical(elfLabels(c("3.1.1_2", "10.3.1_2"), "name"), c("Southern Arctic", "Prairie"))
 })
 
-test_that("merged and Arctic ELFs have their own fill and a legend entry", {
-  out <- drawn(plan = mergePlan(), mergedFill = "blue", arcticFill = "beige", fewFiresFill = "grey70")
+test_that("Arctic ELFs have their own fill and a legend entry; merged ELFs are not filled, only labelled", {
+  out <- drawn(plan = mergePlan(), arcticFill = "beige", fewFiresFill = "grey70")
   fillOf <- function(col) unique(unlist(lapply(Filter(function(p) identical(p$col, col), out$plots), function(p) p$x$ID)))
-  expect_identical(fillOf("blue"), "11.1_2")
   expect_identical(fillOf("beige"), c("1.1", "10.2.1"))
   expect_identical(fillOf("grey70"), "11.3")
-  expect_identical(out$legend$legend, c("not fitted (Arctic)", "not fitted (Prairie grassland)", "merged", "not enough fires"))
-  expect_identical(out$legend$fill, c("beige", "beige", "blue", "grey70"))
+  filled <- unlist(lapply(Filter(function(p) isTRUE(p$add) && !is.null(p$col), out$plots), function(p) p$x$ID))
+  expect_false("11.1_2" %in% filled)
+  expect_true("11.1_2" %in% out$labels)
+  expect_identical(out$legend$legend, c("not fitted (Arctic)", "not fitted (Prairie grassland)", "not enough fires"))
+  expect_identical(out$legend$fill, c("beige", "beige", "grey70"))
+})
+
+test_that("plotELFs puts each label inside its ELF, even when the centroid falls outside it", {
+  ## a U shape: its centroid lies in the notch, outside the ELF (as 10.2.1's does, in 10.3.1_2)
+  u <- terra::vect("POLYGON ((0 0, 3 0, 3 3, 2 3, 2 1, 1 1, 1 3, 0 3, 0 0))")
+  u$ID <- "10.2.1"
+  u$buffer <- 2
+  expect_false(terra::is.related(terra::centroids(u), u, "intersects"))
+  local_mocked_bindings(makeELFs = function(...) list(poly = u), Cache = function(x, ...) x)
+  pdf(NULL)
+  withr::defer(dev.off())
+  graphics::plot.new()
+  graphics::plot.window(c(-1, 4), c(-1, 4))
+  at <- NULL
+  local_mocked_bindings(
+    plot = function(...) NULL,
+    text = function(x, labels, ...) at <<- x,
+    .package = "terra"
+  )
+  plotELFs(plan = noPlan)
+  expect_true(terra::is.related(at, u, "intersects"))
 })
 
 test_that("the ELFs without enough fires are shaded: by default the plan's skips, or those given", {
@@ -394,4 +417,42 @@ test_that("plotELFs(metrics) needs one row per ELF and a `metric` column, and wa
   ## a pre-merge name is not on the map
   expect_warning(drawn(plan = mergePlan(), metrics = data.frame(ELF = c("11.1", "11.3"), v = 1:2), metric = "v"),
                  "ELFs in `metrics` not found: 11.1")
+})
+
+test_that("plotELFs(plotFires) fills the cores with ELFfireRates() on a green-to-red ramp", {
+  seen <- NULL
+  local_mocked_bindings(ELFfireRates = function(ELFs, plan, fireYears, pixelAreaHa, destinationPath) {
+    seen <<- list(ELFs = names(ELFs$rasWhole), fireYears = fireYears, pixelAreaHa = pixelAreaHa)
+    data.table::data.table(ELF = c("11.1_2", "11.3"), naturalFiresPerYear = c(2, 1),
+                           naturalFiresPer100km2PerYear = c(0.2, 0.1), haBurnedPerYear = c(100, 10),
+                           proportionBurnedPerYear = c(0.01, 0.002))
+  })
+  out <- drawn(plan = mergePlan(), plotFires = "area", fireYears = 2001:2003)
+  expect_setequal(seen$ELFs, c("11.1", "11.2", "11.3", "1.1", "10.2.1"))   # before the merges
+  expect_identical(seen$fireYears, 2001:2003)
+  expect_identical(seen$pixelAreaHa, 5.76)
+  valued <- Filter(function(p) "haBurnedPerYear" %in% names(p$x), out$plots)
+  expect_length(valued, 1L)
+  expect_equal(stats::setNames(valued[[1]]$x$haBurnedPerYear, valued[[1]]$x$ID)[c("11.1_2", "11.3")],
+               c(`11.1_2` = 100, `11.3` = 10))
+  ramp <- valued[[1]]$col
+  expect_identical(ramp, grDevices::hcl.colors(100, "RdYlGn", rev = TRUE))
+  rgbOf <- function(x) grDevices::col2rgb(x)[, 1]
+  expect_gt(rgbOf(ramp[1])[["green"]], rgbOf(ramp[1])[["red"]])        # less: green
+  expect_gt(rgbOf(ramp[100])[["red"]], rgbOf(ramp[100])[["green"]])    # more: red
+
+  expect_false("not enough fires" %in% out$legend$legend)            # the fire values fill those ELFs
+
+  out <- drawn(plan = mergePlan(), plotFires = "number")
+  expect_length(Filter(function(p) "naturalFiresPerYear" %in% names(p$x), out$plots), 1L)
+  out <- drawn(plan = mergePlan(), plotFires = "density")
+  expect_length(Filter(function(p) "naturalFiresPer100km2PerYear" %in% names(p$x), out$plots), 1L)
+  out <- drawn(plan = mergePlan(), plotFires = "proportion")
+  expect_length(Filter(function(p) "proportionBurnedPerYear" %in% names(p$x), out$plots), 1L)
+})
+
+test_that("plotELFs(plotFires) takes 'number', 'density', 'area' or 'proportion', and not with `metrics`", {
+  expect_error(drawn(plan = mergePlan(), plotFires = "count"), "should be one of")
+  expect_error(drawn(plan = mergePlan(), plotFires = "area", metrics = data.frame(ELF = "11.3", v = 1), metric = "v"),
+               "not both")
 })

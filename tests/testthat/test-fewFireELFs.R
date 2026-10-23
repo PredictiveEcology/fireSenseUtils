@@ -18,28 +18,34 @@
 ## So 3.1.1 merges with 3.1.2, its only neighbour with the same base "3.1" (1 + 3 = 4 >= 3
 ## ignitions, 1 + 1 = 2 >= 1 polygons), and 5.1 has no neighbour sharing base "5": skipped.
 
-runFewFire <- function(..., minEscapes = 0, loaderArgs = NULL, cache = FALSE) {
+## The fire records are the toy ones (`points` replaces the NFDB points), for the calling test.
+local_toyFireRecords <- function(loaderArgs = NULL, cache = FALSE, points = toyFirePoints(), env = parent.frame()) {
   local_mocked_bindings(
-    fireRecordShapefile = function(url, destinationPath, ...) file.path(destinationPath, sub("\\.zip$", ".shp", basename(url)))
+    fireRecordShapefile = function(url, destinationPath, ...) file.path(destinationPath, sub("\\.zip$", ".shp", basename(url))),
+    .env = env
   )
   local_mocked_bindings(
     prepInputs = function(url, targetFile, destinationPath, fun, ...) eval(fun, list(targetFile = targetFile)),
-    .package = "reproducible"
+    .package = "reproducible", .env = env
   )
-  if (!cache) local_mocked_bindings(Cache = function(x, ...) x, .package = "reproducible")
+  if (!cache) local_mocked_bindings(Cache = function(x, ...) x, .package = "reproducible", .env = env)
   local_mocked_bindings(
     load_nfdb_points = function(nfdb_shp, study_area, fire_years = NULL, min_size_ha = 1) {
       if (!is.null(loaderArgs)) loaderArgs$points <- list(nfdb_shp = nfdb_shp, study_area = study_area,
                                                           fire_years = fire_years, min_size_ha = min_size_ha)
-      toyFirePoints()
+      points
     },
     load_nbac_polys = function(nbac_shp, study_area, fire_years = NULL, min_size_ha = 1) {
       if (!is.null(loaderArgs)) loaderArgs$polys <- list(nbac_shp = nbac_shp, study_area = study_area,
                                                          fire_years = fire_years, min_size_ha = min_size_ha)
       toyFirePolys()
     },
-    .package = "fireregimetools"
+    .package = "fireregimetools", .env = env
   )
+}
+
+runFewFire <- function(..., minEscapes = 0, loaderArgs = NULL, cache = FALSE) {
+  local_toyFireRecords(loaderArgs = loaderArgs, cache = cache)
   fewFireELFs(toyELFs(), fireYears = 2001:2003, pixelAreaHa = 2500, destinationPath = tempdir(),
               nfdbUrl = "https://example.org/points.zip", nbacUrl = "https://example.org/polys.zip",
               minEscapes = minEscapes, ...)
@@ -248,4 +254,23 @@ test_that("sizeRuleLandCover() returns a local copy's path as a download returns
   file.create(file.path(real, LandR:::.scanfiLCCFAOSource(2020, "V2")$targetFile))
   expect_identical(sizeRuleLandCover(link),
                    normalizePath(file.path(real, LandR:::.scanfiLCCFAOSource(2020, "V2")$targetFile)))
+})
+
+test_that("ELFfireRates gives the yearly natural fires and area burned in each core, after the merges", {
+  ## an extra 2002 point in column 4: core of 3.1.2, buffer of 3.1.1; it counts for 3.1.2 only
+  local_toyFireRecords(points = rbind(toyFirePoints(), toyPoints(1, 4, 2002L, "L")))
+  plan <- data.table::data.table(action = "merge", ELF = "3.1.1_2", members = list(c("3.1.1", "3.1.2")),
+                                 reason = "too few fires")
+  out <- ELFfireRates(toyELFs(), plan, fireYears = 2001:2003, pixelAreaHa = 2500, destinationPath = tempdir(),
+                      nfdbUrl = "https://example.org/points.zip", nbacUrl = "https://example.org/polys.zip")
+  out <- as.data.frame(out)[order(out$ELF), ]
+  expect_identical(out$ELF, c("3.1.1_2", "5.1"))                 # merged; 1.1 is arctic: not counted
+  ## 3.1.1: 1 point; 3.1.2: 3 + the column-4 point; 5.1: 1 -- over 3 years
+  expect_equal(out$naturalFiresPerYear, c(5, 1) / 3)
+  ## per 100 km^2 (1e4 ha) of core: 24 and 12 core cells of 2500 ha
+  expect_equal(out$naturalFiresPer100km2PerYear, c(5 / (24 * 0.25), 1 / (12 * 0.25)) / 3, tolerance = 0.01)
+  ## 5000 ha in each of 3.1.1 and 3.1.2, 1250 ha in 5.1 (geodesic areas, so not exact)
+  expect_equal(out$haBurnedPerYear, c(10000, 1250) / 3, tolerance = 0.01)
+  ## over the core: 3.1.1 + 3.1.2 have 24 core cells of 2500 ha, 5.1 has 12
+  expect_equal(out$proportionBurnedPerYear, c(10000 / (24 * 2500), 1250 / (12 * 2500)) / 3, tolerance = 0.01)
 })
