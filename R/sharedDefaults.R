@@ -26,9 +26,6 @@
 #'   buffer's edge ring.
 #'
 #' @name fireSenseSharedDefaults
-#' @aliases fireSenseForestedLCC fireSenseYoungAgeCutoff fireSenseNonForestCanBeYoungAge
-#'   fireSenseFlammabilityThreshold fireSenseFuelClassCol fireSenseIgAggFactor
-#'   fireSenseSCANFIVersion fireSenseRunawayEdgeFrac fireSenseRunawayEdgeMin
 #' @format Vectors of length 1, except `fireSenseForestedLCC` (`numeric`, length 5).
 NULL
 
