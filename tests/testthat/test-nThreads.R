@@ -1,0 +1,31 @@
+test_that("nThreads() takes the option, else cores / R processes, and is at least 1", {
+  withr::local_options(fireSense.nThreads = 4)
+  expect_identical(nThreads(), 4L)
+  withr::local_options(fireSense.nThreads = 0)
+  expect_identical(nThreads(), 1L)
+  withr::local_options(fireSense.nThreads = NULL)
+  testthat::local_mocked_bindings(nRProcesses = function() 26L)
+  expect_identical(nThreads(cores = 80), 3L)
+  expect_identical(nThreads(cores = 8), 1L)
+  testthat::local_mocked_bindings(nRProcesses = function() 1L)
+  expect_identical(nThreads(cores = 80), 80L)
+})
+
+test_that("the global xgboost thread count is 1 after load, and setXgbThreads() follows the option", {
+  skip_if_not_installed("xgboost")
+  withr::defer(xgboost::xgb.set.config(nthread = 1L))
+  ## .onLoad ran when the package was loaded for this test
+  expect_identical(xgboost::xgb.get.config()$nthread, 1L)
+  withr::local_options(fireSense.nThreads = 2)
+  setXgbThreads()
+  expect_identical(xgboost::xgb.get.config()$nthread, 2L)
+  withr::local_options(fireSense.nThreads = NULL)
+  setXgbThreads()
+  expect_identical(xgboost::xgb.get.config()$nthread, 1L)
+
+  x <- matrix(rnorm(200), ncol = 2)
+  b <- xgboost::xgboost(x, rpois(100, 1), objective = "count:poisson", nrounds = 2, nthreads = 1)
+  f <- withr::local_tempfile(fileext = ".rds")
+  saveRDS(b, f)
+  expect_equal(unname(predict(readRDS(f), x)), unname(predict(b, x)), tolerance = 1e-6)
+})
