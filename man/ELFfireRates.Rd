@@ -29,12 +29,14 @@ ELFfireRates(
 }
 \value{
 A \code{data.table} with one row per counted ELF (post-merge names): \code{ELF}, \code{naturalFiresPerYear},
-\code{haBurnedPerYear} and \code{proportionBurnedPerYear} (area burned per year over the core's area).
+\code{naturalFiresPer100km2PerYear}, \code{haBurnedPerYear} and \code{proportionBurnedPerYear} (area burned per year over
+the core's area).
 }
 \description{
 The mean per year, over \code{fireYears}, of the natural-cause ignitions (NFDB points of causes \code{L} and \code{N},
 as \code{\link[=ELFfireCounts]{ELFfireCounts()}} counts them) and of the area burned (NBAC polygons, clipped by \code{\link[=ELFfireOverlay]{ELFfireOverlay()}})
-inside each ELF's core, after the merges in \code{plan}, and the area burned as a proportion of the core: a merged
+inside each ELF's core, after the merges in \code{plan}; the ignitions per 100 km^2 of core; and the area burned as a
+proportion of the core: a merged
 ELF sums its members. Only cores count, so
 a fire in a buffer belongs to the ELF whose core it is in. Arctic and Prairie grassland ELFs
 (\code{\link[=ELFsNotFitted]{ELFsNotFitted()}}) are not counted, as in \code{\link[=fewFireELFs]{fewFireELFs()}}, whose cached fire records this reads.

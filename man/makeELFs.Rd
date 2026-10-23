@@ -94,9 +94,10 @@ the values to map, e.g. from \code{\link[=readELFmetrics]{readELFmetrics()}}. \c
 \item{metric}{The column of \code{metrics} whose values fill the cores, drawn over the other fills; ELFs
 without a value keep theirs.}
 
-\item{plotFires}{\code{NULL} (default), \code{"number"}, \code{"area"} or \code{"proportion"}: fill the cores with the mean
-natural ignitions per year, the mean area burned per year (ha), or the mean proportion of the core burned
-per year, over \code{fireYears}, from \code{\link[=ELFfireRates]{ELFfireRates()}}, on a
+\item{plotFires}{\code{NULL} (default), \code{"number"}, \code{"density"}, \code{"area"} or \code{"proportion"}: fill the cores with
+the mean natural ignitions per year, the mean natural ignitions per 100 km^2 of core per year, the mean
+area burned per year (ha), or the mean proportion of the core burned per year, over \code{fireYears}, from
+\code{\link[=ELFfireRates]{ELFfireRates()}}, on a
 green (less) to red (more) ramp. Arctic and Prairie grassland ELFs, which are not counted, keep their
 fill. Not with \code{metrics}.}
 

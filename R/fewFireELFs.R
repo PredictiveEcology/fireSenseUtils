@@ -90,7 +90,8 @@ utils::globalVariables(c("coreHa", "ELF", "fires", "ha", "naturalIgnitions", "zo
 #'
 #' The mean per year, over `fireYears`, of the natural-cause ignitions (NFDB points of causes `L` and `N`,
 #' as [ELFfireCounts()] counts them) and of the area burned (NBAC polygons, clipped by [ELFfireOverlay()])
-#' inside each ELF's core, after the merges in `plan`, and the area burned as a proportion of the core: a merged
+#' inside each ELF's core, after the merges in `plan`; the ignitions per 100 km^2 of core; and the area burned as a
+#' proportion of the core: a merged
 #' ELF sums its members. Only cores count, so
 #' a fire in a buffer belongs to the ELF whose core it is in. Arctic and Prairie grassland ELFs
 #' ([ELFsNotFitted()]) are not counted, as in [fewFireELFs()], whose cached fire records this reads.
@@ -100,7 +101,8 @@ utils::globalVariables(c("coreHa", "ELF", "fires", "ha", "naturalIgnitions", "zo
 #' @param plan The merges and skips, from [fewFireELFs()] or [ELFmergePlan()].
 #'
 #' @return A `data.table` with one row per counted ELF (post-merge names): `ELF`, `naturalFiresPerYear`,
-#'   `haBurnedPerYear` and `proportionBurnedPerYear` (area burned per year over the core's area).
+#'   `naturalFiresPer100km2PerYear`, `haBurnedPerYear` and `proportionBurnedPerYear` (area burned per year over
+#'   the core's area).
 #'
 #' @export
 ELFfireRates <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
@@ -115,7 +117,9 @@ ELFfireRates <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
   out[, coreHa := 100 * vapply(ELF, function(elf) .coreAreaKm2(fire$rasWhole[[elf]]), numeric(1))]
   out[, ELF := vapply(ELF, ELFrunName, character(1), plan = plan, USE.NAMES = FALSE)]
   nYears <- length(unique(fireYears))
-  out[, list(naturalFiresPerYear = sum(fires) / nYears, haBurnedPerYear = sum(ha) / nYears,
+  out[, list(naturalFiresPerYear = sum(fires) / nYears,
+             naturalFiresPer100km2PerYear = sum(fires) / (sum(coreHa) / 1e4) / nYears,
+             haBurnedPerYear = sum(ha) / nYears,
              proportionBurnedPerYear = sum(ha) / sum(coreHa) / nYears), by = "ELF"]
 }
 
