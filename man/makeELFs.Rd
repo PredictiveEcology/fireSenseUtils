@@ -21,7 +21,6 @@ plotELFs(
   plan = NULL,
   fewFires = NULL,
   fewFiresFill = "grey80",
-  mergedFill = "lightblue",
   arcticFill = "#fdf2d0",
   ELFs = NULL,
   labels = c("code", "name", "none"),
@@ -70,8 +69,8 @@ skips (\code{\link[=ELFsSkipped]{ELFsSkipped()}}); \code{character(0)} fills non
 
 \item{fewFiresFill}{The colour used to fill the \code{fewFires} ELFs.}
 
-\item{mergedFill, arcticFill}{The colours used to fill the merged ELFs (those the plan merges) and the
-Arctic and Prairie grassland ELFs (\code{\link[=ELFsNotFitted]{ELFsNotFitted()}}, which are not fitted; both use \code{arcticFill}).}
+\item{arcticFill}{The colour used to fill the Arctic and Prairie grassland ELFs (\code{\link[=ELFsNotFitted]{ELFsNotFitted()}},
+which are not fitted). Merged ELFs are not filled; their label is their merged name.}
 
 \item{ELFs}{The list \code{\link[=makeELFs]{makeELFs()}} returns (before any merging), if the caller has it. \code{NULL}
 (default) builds it with \code{\link[=makeELFs]{makeELFs()}} (Cached). Without a \code{poly} element the outlines are drawn

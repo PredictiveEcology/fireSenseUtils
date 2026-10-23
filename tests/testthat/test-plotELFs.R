@@ -98,14 +98,37 @@ test_that("plotELFs(labels = 'name') names a merged ELF by its ecozone, keeping 
   expect_identical(elfLabels(c("3.1.1_2", "10.3.1_2"), "name"), c("Southern Arctic", "Prairie"))
 })
 
-test_that("merged and Arctic ELFs have their own fill and a legend entry", {
-  out <- drawn(plan = mergePlan(), mergedFill = "blue", arcticFill = "beige", fewFiresFill = "grey70")
+test_that("Arctic ELFs have their own fill and a legend entry; merged ELFs are not filled, only labelled", {
+  out <- drawn(plan = mergePlan(), arcticFill = "beige", fewFiresFill = "grey70")
   fillOf <- function(col) unique(unlist(lapply(Filter(function(p) identical(p$col, col), out$plots), function(p) p$x$ID)))
-  expect_identical(fillOf("blue"), "11.1_2")
   expect_identical(fillOf("beige"), c("1.1", "10.2.1"))
   expect_identical(fillOf("grey70"), "11.3")
-  expect_identical(out$legend$legend, c("not fitted (Arctic)", "not fitted (Prairie grassland)", "merged", "not enough fires"))
-  expect_identical(out$legend$fill, c("beige", "beige", "blue", "grey70"))
+  filled <- unlist(lapply(Filter(function(p) isTRUE(p$add) && !is.null(p$col), out$plots), function(p) p$x$ID))
+  expect_false("11.1_2" %in% filled)
+  expect_true("11.1_2" %in% out$labels)
+  expect_identical(out$legend$legend, c("not fitted (Arctic)", "not fitted (Prairie grassland)", "not enough fires"))
+  expect_identical(out$legend$fill, c("beige", "beige", "grey70"))
+})
+
+test_that("plotELFs puts each label inside its ELF, even when the centroid falls outside it", {
+  ## a U shape: its centroid lies in the notch, outside the ELF (as 10.2.1's does, in 10.3.1_2)
+  u <- terra::vect("POLYGON ((0 0, 3 0, 3 3, 2 3, 2 1, 1 1, 1 3, 0 3, 0 0))")
+  u$ID <- "10.2.1"
+  u$buffer <- 2
+  expect_false(terra::is.related(terra::centroids(u), u, "intersects"))
+  local_mocked_bindings(makeELFs = function(...) list(poly = u), Cache = function(x, ...) x)
+  pdf(NULL)
+  withr::defer(dev.off())
+  graphics::plot.new()
+  graphics::plot.window(c(-1, 4), c(-1, 4))
+  at <- NULL
+  local_mocked_bindings(
+    plot = function(...) NULL,
+    text = function(x, labels, ...) at <<- x,
+    .package = "terra"
+  )
+  plotELFs(plan = noPlan)
+  expect_true(terra::is.related(at, u, "intersects"))
 })
 
 test_that("the ELFs without enough fires are shaded: by default the plan's skips, or those given", {

@@ -87,8 +87,8 @@ fireSenseCloudParametersMap <-
 #' @param fewFires ELF ids to fill as "not enough fires". `NULL` (default) uses the ELFs the plan
 #'   skips ([ELFsSkipped()]); `character(0)` fills none.
 #' @param fewFiresFill The colour used to fill the `fewFires` ELFs.
-#' @param mergedFill,arcticFill The colours used to fill the merged ELFs (those the plan merges) and the
-#'   Arctic and Prairie grassland ELFs ([ELFsNotFitted()], which are not fitted; both use `arcticFill`).
+#' @param arcticFill The colour used to fill the Arctic and Prairie grassland ELFs ([ELFsNotFitted()],
+#'   which are not fitted). Merged ELFs are not filled; their label is their merged name.
 #' @param ELFs The list [makeELFs()] returns (before any merging), if the caller has it. `NULL`
 #'   (default) builds it with [makeELFs()] (Cached). Without a `poly` element the outlines are drawn
 #'   from `rasWhole`.
@@ -109,7 +109,7 @@ fireSenseCloudParametersMap <-
 #' @rdname makeELFs
 #' @seealso [fireSenseCloudParameters()]
 plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan = NULL,
-                     fewFires = NULL, fewFiresFill = "grey80", mergedFill = "lightblue", arcticFill = "#fdf2d0",
+                     fewFires = NULL, fewFiresFill = "grey80", arcticFill = "#fdf2d0",
                      ELFs = NULL,
                      labels = c("code", "name", "none"), labelWhich = c("all", "highlighted"),
                      buffers = TRUE, axes = c("m", "longlat", "none"), metrics = NULL, metric = NULL, ...) {
@@ -161,7 +161,6 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
   notFitted <- ELFsNotFitted(core$ID)
   for (reason in unique(names(notFitted)))
     fillELFs(notFitted[names(notFitted) == reason], arcticFill, paste0("not fitted (", reason, ")"))
-  fillELFs(plan$ELF[plan$action %in% "merge"], mergedFill, "merged")
   fillELFs(fewFires, fewFiresFill, "not enough fires")
   if (!is.null(metrics)) {
     metrics <- as.data.frame(metrics)
@@ -200,7 +199,8 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     if (any(keep)) {
       ## halo: a white outline keeps the text readable over the polygon lines
       cex <- if (identical(labelWhich, "highlighted")) 1 else 0.7 # few labels: print them larger
-      cen <- terra::centroids(ELFsPoly[ keep, ])
+      ## a point inside each ELF: the centroid of a crescent-shaped ELF can fall in its neighbour
+      cen <- terra::centroids(ELFsPoly[ keep, ], inside = TRUE)
       txt <- elfLabels(ELFsPoly$ID[keep], labels)
       xy <- terra::crds(cen)
       lab <- elfLabelXY(xy[, 1], xy[, 2], graphics::strwidth(txt, cex = cex),

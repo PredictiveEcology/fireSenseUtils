@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `plotELFs()` no longer fills merged ELFs; they are labelled with their merged name (e.g. `10.3.1_2`), as before. The blue fill painted over the ELFs it overlapped, so the Prairie grassland ELF 10.2.1 looked like part of 10.3.1_2. The `mergedFill` argument is removed. Each label now sits on a point inside its ELF (`terra::centroids(inside = TRUE)`): the centroid of a crescent-shaped ELF can fall in its neighbour.
+
 * Fixed: `makeFireSenseLCC()` with `lccSource = "SCANFI"` did not pass its `destinationPath` to `LandR::prepInputs_CWIM()`, so the 5.4 GB national wetland map was downloaded into the working directory instead of the run's input folder (the same defect as PredictiveEcology/Biomass_borealDataPrep#144). Needs LandR >= 1.2.0.9060 (`prepInputs_CWIM()` with `destinationPath`). The cached land-cover step recomputes once per study area and year, as the function's code is part of its cache key.
 
 * The Prairie grassland ELFs (ecoprovince 10.2: `10.2`, `10.2.1`, `10.2.2`) are left out of fitting permanently, like the Arctic ones (ecozones 1 and 2); they failed in `calibratePowerLaw()` (Eliot, 2026-10-20). New `ELFsNotFitted()` returns the ids left out, named by the reason, from one table of patterns that `runELFs()`, `fewFireELFs()`, `ELFmergePlan()` (neither merged nor partners) and `plotELFs()` ("not fitted (Prairie grassland)") all use. `ELFsArctic()` still returns only the Arctic ids.
