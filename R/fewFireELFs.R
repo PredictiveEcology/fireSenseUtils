@@ -66,6 +66,56 @@ sizeRuleLandCover <- function(destinationPath) {
   ELFfireOverlay(rasWhole, polys, fireYears)
 }
 
+utils::globalVariables(c("ELF", "fires", "ha", "naturalIgnitions", "zone"))
+
+## The fire records of the ELFs that are counted: the ELF layers on one grid, the NFDB points and the clipped
+## NBAC pieces (cached). Arctic and Prairie grassland ELFs are out permanently: not counted, not merged
+## (ELFsNotFitted()). Used by fewFireELFs() and ELFfireRates().
+.ELFfireData <- function(ELFs, fireYears, destinationPath, nfdbUrl, nbacUrl) {
+  ids <- setdiff(names(ELFs$rasWhole), ELFsNotFitted(names(ELFs$rasWhole)))
+  rasWhole <- terra::rast(unname(ELFs$rasWhole[ids]))
+  names(rasWhole) <- ids
+  studyArea <- terra::as.polygons(terra::ext(rasWhole), crs = terra::crs(rasWhole))
+
+  points <- .loadFireRecords(nfdbUrl, destinationPath, quote(fireregimetools::load_nfdb_points), fireYears, studyArea)
+  nbacShp <- fireRecordShapefile(nbacUrl, destinationPath)
+  overlay <- reproducible::Cache(
+    .nbacOverlay(rasWhole, nbacUrl, destinationPath, fireYears),
+    omitArgs = "destinationPath", .functionName = ".nbacOverlay", useCache = TRUE,
+    .cacheExtra = list(basename(nbacShp), ELFfireOverlay))
+  list(rasWhole = rasWhole, points = points, overlay = overlay)
+}
+
+#' Fires per year in each ELF's core
+#'
+#' The mean per year, over `fireYears`, of the natural-cause ignitions (NFDB points of causes `L` and `N`,
+#' as [ELFfireCounts()] counts them) and of the area burned (NBAC polygons, clipped by [ELFfireOverlay()])
+#' inside each ELF's core, after the merges in `plan`: a merged ELF sums its members. Only cores count, so
+#' a fire in a buffer belongs to the ELF whose core it is in. Arctic and Prairie grassland ELFs
+#' ([ELFsNotFitted()]) are not counted, as in [fewFireELFs()], whose cached fire records this reads.
+#'
+#' @inheritParams fewFireELFs
+#' @param ELFs List from [makeELFs()], before the merges.
+#' @param plan The merges and skips, from [fewFireELFs()] or [ELFmergePlan()].
+#'
+#' @return A `data.table` with one row per counted ELF (post-merge names): `ELF`, `naturalFiresPerYear`
+#'   and `haBurnedPerYear`.
+#'
+#' @export
+ELFfireRates <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
+                         nfdbUrl = nfdbPointUrl(), nbacUrl = latestNBACUrl()) {
+  fire <- .ELFfireData(ELFs, fireYears, destinationPath, nfdbUrl, nbacUrl)
+  core <- terra::classify(fire$rasWhole, cbind(1, 0))
+  counts <- ELFfireCounts(core, fire$points, NULL, fireYears, pixelAreaHa, overlay = fire$overlay)
+  fires <- counts[, list(fires = sum(naturalIgnitions)), by = "ELF"]
+  burned <- data.table::as.data.table(fire$overlay)[zone == "core", list(ha = sum(ha)), by = "ELF"]
+  out <- merge(fires, burned, by = "ELF", all.x = TRUE)
+  out[is.na(ha), ha := 0]
+  out[, ELF := vapply(ELF, ELFrunName, character(1), plan = plan, USE.NAMES = FALSE)]
+  nYears <- length(unique(fireYears))
+  out[, list(naturalFiresPerYear = sum(fires) / nYears, haBurnedPerYear = sum(ha) / nYears), by = "ELF"]
+}
+
 #' Count fires per ELF and merge ELFs with too few
 #'
 #' Merges each ELF with too few fires with a neighbour that shares its base ([ELFmergePlan()]), then each
@@ -101,19 +151,10 @@ fewFireELFs <- function(ELFs, fireYears, pixelAreaHa, destinationPath,
                         minNaturalIgnitions = 50, minFirePolygons = 50,
                         escapeSizeHa = 50, minEscapes = 5, landCoverFile = NULL,
                         minRegionAreaKm2 = 35000, maxLandCoverDist = 0.35, maxBurnRatio = 6) {
-  ## Arctic and Prairie grassland ELFs are out permanently: not counted, not merged (ELFsNotFitted())
-  ids <- setdiff(names(ELFs$rasWhole), ELFsNotFitted(names(ELFs$rasWhole)))
-  rasWhole <- terra::rast(unname(ELFs$rasWhole[ids]))
-  names(rasWhole) <- ids
-  studyArea <- terra::as.polygons(terra::ext(rasWhole), crs = terra::crs(rasWhole))
-
-  points <- .loadFireRecords(nfdbUrl, destinationPath, quote(fireregimetools::load_nfdb_points), fireYears, studyArea)
-  nbacShp <- fireRecordShapefile(nbacUrl, destinationPath)
-  overlay <- reproducible::Cache(
-    .nbacOverlay(rasWhole, nbacUrl, destinationPath, fireYears),
-    omitArgs = "destinationPath", .functionName = ".nbacOverlay", useCache = TRUE,
-    .cacheExtra = list(basename(nbacShp), ELFfireOverlay))
-  counts <- ELFfireCounts(rasWhole, points, NULL, fireYears, pixelAreaHa,
+  fire <- .ELFfireData(ELFs, fireYears, destinationPath, nfdbUrl, nbacUrl)
+  rasWhole <- fire$rasWhole
+  overlay <- fire$overlay
+  counts <- ELFfireCounts(rasWhole, fire$points, NULL, fireYears, pixelAreaHa,
                           escapeSizeHa = escapeSizeHa, overlay = overlay)
   status <- ELFfitStatus(counts, minNaturalIgnitions = minNaturalIgnitions,
                          minFirePolygons = minFirePolygons, minEscapes = minEscapes)

@@ -154,7 +154,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
   #                       useCache = useCache)
   out2 <- mergeAndSplitRas(ecopRseg, ecosLCC$province, maxArea = maxArea,
                            useCache = useCache, destinationPath = destinationPath) |>
-    reproducible::Cache(omitArgs = "ecopRseg", .cacheExtra = attr(ecosR, "tags"))
+    reproducible::Cache(omitArgs = "ecopRseg",
+                        .cacheExtra = list(attr(ecosR, "tags"), deparse(mergeAndSplitRas), deparse(split_poly)))
 
   out3 <- lapply(out2, function(x) as.list(segregateKeepNames(x, omitClasses = 0))) |>
     unlist(recursive = FALSE)
@@ -323,8 +324,11 @@ bufferOut <- function(v, spatRasSeg, spatRas, mask, field = "FRU", desiredBuffer
     # Add it to the national map
     b41b <- terra::project(b41ddd, crsThis, method = "near")
     b41b <- terra::resample(b41b, spatRasSeg[[i]], method = "near")
+    ## the core is exactly the ELF's own cells, so the cores tile the map without overlaps or gaps;
+    ## the centred map projected back gives only the buffer ring ("near" shifts its edges a cell)
     ca[[i]] <- spatRasSeg[[i]]
-    ca[[i]][b41b > 0] <- b41b
+    ca[[i]][b41b > 0] <- 1L
+    ca[[i]][spatRasSeg[[i]] > 0] <- 2L
     if (missing(mask)) {
       mask <- spatRasSeg[[i]]
     }
@@ -503,7 +507,9 @@ mergeAndSplitRas <- function(ecopRseg, ecopLCC, maxArea = 2.4e+11,
     }
     if (needUpdate) {
       tmpRas <- try(terra::rasterize(tmp, ecopRseg[[provChar]], field = field, touches = TRUE))
-      whChange <- tmpRas[] > 0
+      ## only this province's cells: the hull of a multi-polygon province (and a split piece's
+      ## touching edge) also covers its neighbours' cells
+      whChange <- tmpRas[] > 0 & ecopRseg[[provChar]][] > 0
       a <- ecopRseg[[provChar]]
       # Next line doesn't work --> it pulls it into memory
       # set.values(a, cells = which(whChange %in% 1), values(tmpRas, mat = FALSE)[whChange %in% 1])

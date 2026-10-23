@@ -103,16 +103,21 @@ fireSenseCloudParametersMap <-
 #'   the values to map, e.g. from [readELFmetrics()]. `NULL` (default) maps none.
 #' @param metric The column of `metrics` whose values fill the cores, drawn over the other fills; ELFs
 #'   without a value keep theirs.
+#' @param plotFires `NULL` (default), or `"number"` or `"area"`: fill the cores with the mean natural
+#'   ignitions per year or the mean area burned per year (ha) over `fireYears`, from [ELFfireRates()], on a
+#'   green (less) to red (more) ramp. Arctic and Prairie grassland ELFs, which are not counted, keep their
+#'   fill. Not with `metrics`.
 #' @param ... Passed to [fewFireELFs()] when `plan` is `NULL`, e.g. `pixelAreaHa` (default 5.76) or
 #'   `fireYears` (default [defaultFireYears()]).
 #' @export
 #' @rdname makeELFs
 #' @seealso [fireSenseCloudParameters()]
 plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan = NULL,
-                     fewFires = NULL, fewFiresFill = "grey80", arcticFill = "#fdf2d0",
+                     fewFires = NULL, fewFiresFill = "grey60", arcticFill = "grey85",
                      ELFs = NULL,
                      labels = c("code", "name", "none"), labelWhich = c("all", "highlighted"),
-                     buffers = TRUE, axes = c("m", "longlat", "none"), metrics = NULL, metric = NULL, ...) {
+                     buffers = TRUE, axes = c("m", "longlat", "none"), metrics = NULL, metric = NULL,
+                     plotFires = NULL, ...) {
   labels <- match.arg(labels)
   labelWhich <- match.arg(labelWhich)
   axes <- match.arg(axes)
@@ -127,9 +132,22 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       Cache(omitArgs = "destinationPath")
     plan <- plan$plan
   }
+  metricCol <- NULL
+  metricTitle <- NULL
+  if (!is.null(plotFires)) {
+    plotFires <- match.arg(plotFires, c("number", "area"))
+    if (!is.null(metrics)) stop("plotELFs(): give `metrics` or `plotFires`, not both")
+    fireArgs <- utils::modifyList(list(fireYears = defaultFireYears(), pixelAreaHa = 5.76), list(...))
+    metrics <- ELFfireRates(ELFs, plan, fireYears = fireArgs$fireYears, pixelAreaHa = fireArgs$pixelAreaHa,
+                            destinationPath = destinationPath)
+    metric <- c(number = "naturalFiresPerYear", area = "haBurnedPerYear")[[plotFires]]
+    metricCol <- grDevices::hcl.colors(100, "RdYlGn", rev = TRUE) # green = less, red = more
+    metricTitle <- c(number = "natural fires / yr", area = "ha burned / yr")[[plotFires]]
+  }
   ## the map shows the merged ELFs, not the ones they were made from
   ELFs <- mergeELFs(ELFs, plan)
-  if (is.null(fewFires)) fewFires <- ELFsSkipped(plan)
+  ## on a fire map the fire values fill those ELFs; "not enough fires" would only be a legend entry
+  if (is.null(fewFires)) fewFires <- if (is.null(plotFires)) ELFsSkipped(plan) else character(0)
 
   ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
   ## cf. ELFsInStudyArea(), which already does this. `singleSpatVector` no longer switches the
@@ -182,9 +200,9 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       u <- graphics::par("usr")
       w <- u[2] - u[1]
       h <- u[4] - u[3]
-      terra::plot(valued, metric, add = TRUE, type = if (is.numeric(values)) "continuous",
-                  plg = list(ext = c(u[2] - 0.10 * w, u[2] - 0.08 * w, u[3] + 0.05 * h, u[3] + 0.40 * h),
-                             title = metric))
+      terra::plot(valued, metric, add = TRUE, type = if (is.numeric(values)) "continuous", col = metricCol,
+                  plg = list(ext = c(u[2] - 0.13 * w, u[2] - 0.11 * w, u[3] + 0.05 * h, u[3] + 0.40 * h),
+                             title = if (is.null(metricTitle)) metric else metricTitle))
     }
   }
   if (length(which)) {
@@ -213,7 +231,9 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     }
   }
   if (length(fills))
-    graphics::legend("bottomleft", legend = names(fills), fill = unname(unlist(fills)), bty = "n", cex = 0.8)
+    ## xpd = NA: terra::plot() leaves a clipping region (e.g. its colour bar's) that can hide this corner
+    graphics::legend("bottomleft", legend = names(fills), fill = unname(unlist(fills)), bty = "n", cex = 0.8,
+                     xpd = NA)
   return(invisible(ELFs))
 }
 

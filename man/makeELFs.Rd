@@ -20,8 +20,8 @@ plotELFs(
   fill = "green",
   plan = NULL,
   fewFires = NULL,
-  fewFiresFill = "grey80",
-  arcticFill = "#fdf2d0",
+  fewFiresFill = "grey60",
+  arcticFill = "grey85",
   ELFs = NULL,
   labels = c("code", "name", "none"),
   labelWhich = c("all", "highlighted"),
@@ -29,6 +29,7 @@ plotELFs(
   axes = c("m", "longlat", "none"),
   metrics = NULL,
   metric = NULL,
+  plotFires = NULL,
   ...
 )
 }
@@ -92,6 +93,11 @@ the values to map, e.g. from \code{\link[=readELFmetrics]{readELFmetrics()}}. \c
 
 \item{metric}{The column of \code{metrics} whose values fill the cores, drawn over the other fills; ELFs
 without a value keep theirs.}
+
+\item{plotFires}{\code{NULL} (default), or \code{"number"} or \code{"area"}: fill the cores with the mean natural
+ignitions per year or the mean area burned per year (ha) over \code{fireYears}, from \code{\link[=ELFfireRates]{ELFfireRates()}}, on a
+green (less) to red (more) ramp. Arctic and Prairie grassland ELFs, which are not counted, keep their
+fill. Not with \code{metrics}.}
 
 \item{...}{Passed to \code{\link[=fewFireELFs]{fewFireELFs()}} when \code{plan} is \code{NULL}, e.g. \code{pixelAreaHa} (default 5.76) or
 \code{fireYears} (default \code{\link[=defaultFireYears]{defaultFireYears()}}).}

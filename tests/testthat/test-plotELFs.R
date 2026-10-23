@@ -418,3 +418,35 @@ test_that("plotELFs(metrics) needs one row per ELF and a `metric` column, and wa
   expect_warning(drawn(plan = mergePlan(), metrics = data.frame(ELF = c("11.1", "11.3"), v = 1:2), metric = "v"),
                  "ELFs in `metrics` not found: 11.1")
 })
+
+test_that("plotELFs(plotFires) fills the cores with ELFfireRates() on a green-to-red ramp", {
+  seen <- NULL
+  local_mocked_bindings(ELFfireRates = function(ELFs, plan, fireYears, pixelAreaHa, destinationPath) {
+    seen <<- list(ELFs = names(ELFs$rasWhole), fireYears = fireYears, pixelAreaHa = pixelAreaHa)
+    data.table::data.table(ELF = c("11.1_2", "11.3"), naturalFiresPerYear = c(2, 1), haBurnedPerYear = c(100, 10))
+  })
+  out <- drawn(plan = mergePlan(), plotFires = "area", fireYears = 2001:2003)
+  expect_setequal(seen$ELFs, c("11.1", "11.2", "11.3", "1.1", "10.2.1"))   # before the merges
+  expect_identical(seen$fireYears, 2001:2003)
+  expect_identical(seen$pixelAreaHa, 5.76)
+  valued <- Filter(function(p) "haBurnedPerYear" %in% names(p$x), out$plots)
+  expect_length(valued, 1L)
+  expect_equal(stats::setNames(valued[[1]]$x$haBurnedPerYear, valued[[1]]$x$ID)[c("11.1_2", "11.3")],
+               c(`11.1_2` = 100, `11.3` = 10))
+  ramp <- valued[[1]]$col
+  expect_identical(ramp, grDevices::hcl.colors(100, "RdYlGn", rev = TRUE))
+  rgbOf <- function(x) grDevices::col2rgb(x)[, 1]
+  expect_gt(rgbOf(ramp[1])[["green"]], rgbOf(ramp[1])[["red"]])        # less: green
+  expect_gt(rgbOf(ramp[100])[["red"]], rgbOf(ramp[100])[["green"]])    # more: red
+
+  expect_false("not enough fires" %in% out$legend$legend)            # the fire values fill those ELFs
+
+  out <- drawn(plan = mergePlan(), plotFires = "number")
+  expect_length(Filter(function(p) "naturalFiresPerYear" %in% names(p$x), out$plots), 1L)
+})
+
+test_that("plotELFs(plotFires) takes 'number' or 'area', and not with `metrics`", {
+  expect_error(drawn(plan = mergePlan(), plotFires = "count"), "should be one of")
+  expect_error(drawn(plan = mergePlan(), plotFires = "area", metrics = data.frame(ELF = "11.3", v = 1), metric = "v"),
+               "not both")
+})
