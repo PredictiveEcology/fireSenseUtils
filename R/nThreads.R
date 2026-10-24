@@ -1,4 +1,4 @@
-#' Threads this R session may use for multi-threaded libraries
+#' Threads for training multi-threaded libraries
 #'
 #' The thread budget for work that should be multi-threaded, i.e. training `xgboost` models.
 #' (`xgboost` otherwise uses every core: restoring one set of saved boosters took 110 s of CPU in
@@ -6,10 +6,9 @@
 #'
 #' The count is, in order:
 #' 1. `getOption("fireSense.nThreads")` if set (e.g. `options(fireSense.nThreads = 4)`);
-#' 2. otherwise `max(1, floor(cores / R processes on this host))`, where the processes are those
-#'    running R's `exec/R` binary (workers, cluster nodes, this session). A lone session gets
-#'    every core; one of 26 workers on 80 cores gets 3. Where the processes cannot be counted
-#'    (not Linux), the session is assumed to be alone.
+#' 2. otherwise `min(8, max(2, floor(cores - load)))`, where `load` is the host's 1-minute load
+#'    average (`/proc/loadavg`). Training therefore gets 2 to 8 threads, based on the free cores.
+#'    Where the load cannot be read (not Linux), it is taken as 0, i.e. `min(8, cores)`.
 #'
 #' @param cores Number of cores on the host.
 #' @return Integer, at least 1.
@@ -18,13 +17,16 @@ nThreads <- function(cores = parallel::detectCores()) {
   n <- getOption("fireSense.nThreads")
   if (!is.null(n)) return(max(1L, as.integer(n[1])))
   cores <- if (is.na(cores)) 1L else cores
-  max(1L, as.integer(floor(cores / nRProcesses())))
+  load <- .loadAvg1()
+  if (is.na(load)) load <- 0
+  as.integer(min(8, max(2, floor(cores - load))))
 }
 
-nRProcesses <- function() {
-  ps <- tryCatch(suppressWarnings(system2("ps", c("-eo", "args="), stdout = TRUE, stderr = FALSE)),
-                 error = function(e) character())
-  max(1L, sum(grepl("exec/R( |$)", ps)))
+## 1-minute load average of this host; NA where /proc/loadavg cannot be read
+.loadAvg1 <- function() {
+  x <- tryCatch(suppressWarnings(readLines("/proc/loadavg", n = 1L)), error = function(e) NA_character_)
+  if (length(x) != 1L) return(NA_real_)
+  suppressWarnings(as.numeric(strsplit(x, " ", fixed = TRUE)[[1]][1]))
 }
 
 #' Set the number of threads `xgboost` uses in this session
