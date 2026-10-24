@@ -1134,7 +1134,9 @@ kernelLogScore <- function(size, sim, cut, Nreps = length(sim), h = 0.25, minLik
   k <- dnorm((log(size) - log(sim[!cut])) / h) / h
   m <- sum(k) / Nreps
   logM <- log(max(m, minLik))
-  if (m > 0) logM <- logM + min(1, max(0, sum(k^2) / Nreps - m^2) / Nreps / (2 * m^2))
+  ## v / (2 m^2) computed on k / m: a fire far from all its replicates has kernel values below 1e-162,
+  ## whose squares underflow to 0, and the unscaled form was then 0 / 0 = NaN (ELF 4.1, 2026-10-24)
+  if (m > 0) logM <- logM + min(1, max(0, sum((k / m)^2) / Nreps - 1) / Nreps / 2)
   logMax <- log(dnorm(0) / h)
   logMax - min(logM, logMax)
 }

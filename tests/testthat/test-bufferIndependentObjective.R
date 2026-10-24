@@ -29,6 +29,19 @@ test_that("kernelLogScore() is 0 for a perfect prediction, grows with the miss, 
   expect_true(all(s >= 0))
 })
 
+test_that("kernelLogScore() is finite when the density is positive but its square underflows", {
+  ## ELF 4.1, 2026-10-24: a 61577-pixel fire whose replicates burned 9-54 pixels. Every kernel value is
+  ## below 1e-162, so k^2 and m^2 underflow to 0 and the Monte Carlo correction was 0 / 0: the score was
+  ## NaN, and the objective's early-stop `if (over)` stopped the first DEoptim generation.
+  sims <- c(11, 14, 14, 32, 10, 20, 9, 23, 9, 9, 12, 9, 12, 11, 54, 24, 10, 12, 18, 10, 34, 27, 31, 11, 10,
+            14, 17, 9, 11, 25, 12, 10, 50, 10, 24, 32, 23, 32, 11, 10, 9, 11, 9, 20, 9, 10, 14, 13, 34, 22)
+  s <- fireSenseUtils:::kernelLogScore(61577, sims, rep(FALSE, 50))
+  expect_true(is.finite(s))
+  ## m is far below minLik: the floor's score, less the correction (at most 1)
+  expect_lte(s, shift - log(1e-29))
+  expect_gte(s, shift - log(1e-29) - 1)
+})
+
 test_that("the objective's per-fire term equals the prototype's on its saved simulations", {
   ## objFunInner() with spreadCpp() replaced by the prototype's simulated fires: each fire gets its own run
   ## of cells, the first of which is its buffer's only open pixel; a replicate the prototype cut burns it.
