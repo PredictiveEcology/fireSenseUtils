@@ -33,7 +33,7 @@ snllFor <- function(annualFires, ...) {
     indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = 0.25,
-    r = r20, Nreps = 5L, doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
+    r = r20, Nreps = 5L, doSNLL_FSTest = TRUE, doMADTest = FALSE,
     plot.it = FALSE, verbose = 0, ...
   )$SNLL_FS
 }

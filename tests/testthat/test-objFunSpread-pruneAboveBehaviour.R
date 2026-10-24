@@ -2,7 +2,7 @@
 ##
 ## The other pruneAbove file asserts the argument and the bound by source inspection, which is this
 ## package's usual idiom -- but it never EXECUTES
-## `threshold <- min(thresh * numYrsDone, pruneAbove)`, so the semantics went untested (and patch
+## the bail comparison, so the semantics went untested (and patch
 ## coverage for the change was 0%).
 ##
 ## Reaching that line normally needs a full spread fit: landscape, covariates, buffered fires and
@@ -13,13 +13,12 @@
 ## a synthetic fixture and no spread() calls.
 ##
 ## The fixture gives three fire years. `lrgSmallFireYears` splits them into the two largest (batch 1,
-## the only batch with a checkpoint) and the rest (batch 2), so `numYrsDone` is 2 and the static
-## bound is `thresh * 2`. Choosing a mocked SNLL_FS that sits BELOW the static bound but ABOVE
+## the only batch with a checkpoint) and the rest (batch 2): 2 years of 2 fires, so the static bound is
+## `thresh` per fire, i.e. `thresh * 4` for the block. Choosing a mocked SNLL_FS that sits BELOW the static bound but ABOVE
 ## `pruneAbove` isolates the new behaviour: with the default `Inf` the evaluation continues, and only
 ## the caller-supplied bound stops it.
 ##
-## Note `.objfunSpreadFit()` reads `results$SNLL` while `objFunInner` returns `SNLL_FS`; that resolves
-## by `$` partial matching on a list. The mock therefore returns `SNLL_FS`, as the real function does.
+## The mock returns `SNLL_FS`, as the real function does.
 
 mkFixture <- function() {
   skip_if_not_installed("terra")
@@ -51,7 +50,7 @@ runObjFun <- function(fx, pruneAbove, snllPerYear, thresh = 550) {
 
 test_that("with the default Inf, a batch under the static threshold is NOT pruned", {
   fx <- mkFixture()
-  ## 2 years x 450 = 900, below the static bound of 550 * 2 = 1100, so the fit continues and the
+  ## 2 years x 450 = 900, 225 per fire, below the static bound of 550 per fire, so the fit continues and the
   ## objective is a real value rather than the 1e6 fail sentinel.
   local_mocked_bindings(objFunInner = function(...) list(SNLL_FS = 450))
   out <- runObjFun(fx, pruneAbove = Inf, snllPerYear = 450)
@@ -61,7 +60,7 @@ test_that("with the default Inf, a batch under the static threshold is NOT prune
 
 test_that("a caller-supplied pruneAbove below the batch's value DOES prune it", {
   fx <- mkFixture()
-  ## Same 900, still below the static 1100 -- so only pruneAbove can stop it. 800 < 900 does.
+  ## Same 900, still below the static bound -- so only pruneAbove can stop it. 800 < 900 does.
   local_mocked_bindings(objFunInner = function(...) list(SNLL_FS = 450))
   out <- runObjFun(fx, pruneAbove = 800, snllPerYear = 450)
   expect_equal(out, 1e6)
@@ -77,10 +76,10 @@ test_that("pruneAbove above the batch's value leaves it alone", {
 })
 
 test_that("the static threshold still prunes on its own, as it did before pruneAbove existed", {
-  ## Regression: 2 x 700 = 1400 exceeds 550 * 2 = 1100 with pruneAbove left at its Inf default,
-  ## so behaviour without a caller-supplied bound is unchanged.
+  ## Regression: 2 x 700 = 1400 over 4 fires is 350 per fire, above a threshold of 300 with pruneAbove
+  ## left at its Inf default, so behaviour without a caller-supplied bound is unchanged.
   fx <- mkFixture()
   local_mocked_bindings(objFunInner = function(...) list(SNLL_FS = 700))
-  out <- runObjFun(fx, pruneAbove = Inf, snllPerYear = 700)
+  out <- runObjFun(fx, pruneAbove = Inf, snllPerYear = 700, thresh = 300)
   expect_equal(out, 1e6)
 })

@@ -27,7 +27,7 @@ innerNoise <- function(seen, yearSpreadSD, Nreps = 2L) {
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = Inf,
     weighted = FALSE, r = r20, Nreps = Nreps,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
+    doSNLL_FSTest = TRUE, doMADTest = FALSE,
     plot.it = FALSE, verbose = 0, returnSims = TRUE, yearSpreadSD = yearSpreadSD)
 }
 

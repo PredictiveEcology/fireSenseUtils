@@ -175,6 +175,8 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
 #' [harmonizeFireData()] call keeps returning its old result when a function it *calls*
 #' changes. Pass this list as that call's `.cacheExtra` and those functions become part
 #' of the key.
+#' It includes [multiplier()], which `harmonizeFireData()` does not call itself but which
+#' `fireSense_dataPrepFit`'s default `areaMultiplier` does: a change of its defaults changes the buffers.
 #'
 #' @return A list of functions, to pass as `reproducible::Cache()`'s `.cacheExtra`.
 #'
@@ -183,5 +185,5 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
 harmonizeFireDataDeps <- function() {
   list(bufferToArea, bufferToArea.list, bufferToArea.sf, bufferToArea.SpatialPolygons,
        removeBufferedFiresOutsideRTM, harmonizeBufferAndPoints, cleanUpSpreadFirePoints,
-       .withSeed, .singleThreadedGDAL)
+       .withSeed, .singleThreadedGDAL, multiplier)
 }

@@ -40,7 +40,7 @@ spreadCppArgs <- function(...) {
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = 0.25,
     weighted = FALSE, r = r20, Nreps = 3L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
+    doSNLL_FSTest = TRUE, doMADTest = FALSE,
     plot.it = FALSE, verbose = 0, ...
   )
   seen

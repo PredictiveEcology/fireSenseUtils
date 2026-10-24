@@ -37,7 +37,7 @@ objectiveRefused <- function(par, yr) {
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28, lowerSpreadProb = 0.13,
     cells = numeric(nPix), lanscape1stQuantileThresh = 0.265, weighted = TRUE,
     r = terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20), Nreps = 1L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0,
+    doSNLL_FSTest = TRUE, doMADTest = FALSE, plot.it = FALSE, verbose = 0,
     returnSims = TRUE)
   !reached
 }

@@ -4,17 +4,26 @@
 \alias{multiplier}
 \title{Buffer-size multiplier for fire footprints}
 \usage{
-multiplier(size, minSize = 1000, baseMultiplier = 5)
+multiplier(
+  size,
+  minSize = 500,
+  baseMultiplier = 7.5,
+  logIntercept = 21,
+  logSlope = 2
+)
 }
 \arguments{
 \item{size}{Numeric vector. Fire sizes in pixels.}
 
 \item{minSize}{Numeric scalar. Absolute floor on the returned size; the
-buffer (plus burned pixels) is never smaller than this. Default \code{1000}.}
+buffer (plus burned pixels) is never smaller than this. Default \code{500}.}
 
 \item{baseMultiplier}{Numeric scalar. Asymptotic multiplier for large
 fires (as \code{size} grows, the effective multiplier tends to
-\code{baseMultiplier}). Default \code{5}.}
+\code{baseMultiplier}). Default \code{7.5}.}
+
+\item{logIntercept, logSlope}{Numeric scalars. The multiplier of smaller fires,
+\code{logIntercept - logSlope * log(size)}, until it falls to \code{baseMultiplier}. Defaults \code{21} and \code{2}.}
 }
 \value{
 Integer vector the same length as \code{size}, giving the target
@@ -23,7 +32,17 @@ buffered area in pixels for each fire.
 \description{
 Returns a per-fire buffer target (in pixels) by scaling \code{size} so that
 small fires get proportionally larger buffers and large fires plateau
-at \code{baseMultiplier * size}. The result is then clamped from below by
-\code{minSize}. Used when generating non-burned "control" pixels around
-historical fire perimeters.
+at \code{baseMultiplier * size}: \code{max(minSize, max(baseMultiplier, logIntercept - logSlope * log(size)) * size)}.
+Used when generating non-burned "control" pixels around
+historical fire perimeters; \code{fireSense_dataPrepFit} uses 10 times this (\code{areaMultiplier}).
+}
+\details{
+The defaults (with that factor 10) make a simulated fire that is cut at the buffers' open edge
+(\code{\link[=bufferOpen]{bufferOpen()}}) while still smaller than its observed fire rare, so the spread objective
+(\code{\link[=kernelLogScore]{kernelLogScore()}}) is the same as with no buffers. They are the smallest buffers (over the observed
+fires of three ELFs) that keep that rate at or below 1e-4 per fire and replicate in every size class
+of known-truth simulations (2026-10-23): a buffer of about 135 times the size at 9 pixels, 70 times
+from 100 to 10,000 pixels, 55 times at 18,000 pixels. They cost about what the previous defaults
+(\code{minSize = 1000}, \code{baseMultiplier = 5}, \code{logIntercept = 14}, \code{logSlope = 1}) did, with 1.13 times
+the buffer pixels; with them the fitted parameters on buffers matched those on the whole ELF.
 }

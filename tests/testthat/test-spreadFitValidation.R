@@ -38,7 +38,7 @@ callObjective <- function(inp, ...) {
     nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
     historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
     covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive,
-    tests = c("snll_fs", "adTest"), Nreps = 5L, doAssertions = FALSE, verbose = 0, weighted = FALSE, ...)
+    tests = "snll_fs", Nreps = 5L, doAssertions = FALSE, verbose = 0, weighted = FALSE, ...)
 }
 
 test_that("the objective's value is identical with recording off, and recording draws no random numbers", {

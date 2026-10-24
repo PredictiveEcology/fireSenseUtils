@@ -33,6 +33,7 @@ export(assertCovariateRange)
 export(assessFuelClasses)
 export(bestByReplicatedMean)
 export(bufferEdge)
+export(bufferOpen)
 export(bufferToArea)
 export(bufferToAreaRast)
 export(calcNonForestYoungAge)
@@ -357,6 +358,7 @@ importFrom(stats,
   binomial,
   coefficients,
   dbinom,
+  dnorm,
   dt,
   glm,
   is.empty.model,

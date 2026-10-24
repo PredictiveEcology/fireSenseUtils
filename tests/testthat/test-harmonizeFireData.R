@@ -56,6 +56,13 @@ test_that("harmonizeFireDataDeps() lists every package function harmonizeFireDat
   expect_true(all(inDeps), info = paste("missing:", paste(names(inDeps)[!inDeps], collapse = ", ")))
 })
 
+## fireSense_dataPrepFit's default areaMultiplier is `function(size) 10 * fireSenseUtils::multiplier(size)`:
+## Cache digests that closure's text, not multiplier()'s defaults, so a cached call kept the old buffers
+## when the defaults changed.
+test_that("harmonizeFireDataDeps() includes multiplier(), which the default areaMultiplier reaches", {
+  expect_true(any(vapply(harmonizeFireDataDeps(), identical, logical(1), multiplier)))
+})
+
 test_that("harmonizeFireData takes and returns SpatVectors", {
   rtm <- terra::rast(nrows = 100, ncols = 100, extent = c(0, 40000, 0, 40000),
                      crs = "EPSG:3978", vals = 1L)
