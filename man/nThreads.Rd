@@ -2,7 +2,7 @@
 % Please edit documentation in R/nThreads.R
 \name{nThreads}
 \alias{nThreads}
-\title{Threads this R session may use for multi-threaded libraries}
+\title{Threads for training multi-threaded libraries}
 \usage{
 nThreads(cores = parallel::detectCores())
 }
@@ -21,9 +21,8 @@ The thread budget for work that should be multi-threaded, i.e. training \code{xg
 The count is, in order:
 \enumerate{
 \item \code{getOption("fireSense.nThreads")} if set (e.g. \code{options(fireSense.nThreads = 4)});
-\item otherwise \verb{max(1, floor(cores / R processes on this host))}, where the processes are those
-running R's \code{exec/R} binary (workers, cluster nodes, this session). A lone session gets
-every core; one of 26 workers on 80 cores gets 3. Where the processes cannot be counted
-(not Linux), the session is assumed to be alone.
+\item otherwise \code{min(8, max(2, floor(cores - load)))}, where \code{load} is the host's 1-minute load
+average (\verb{/proc/loadavg}). Training therefore gets 2 to 8 threads, based on the free cores.
+Where the load cannot be read (not Linux), it is taken as 0, i.e. \code{min(8, cores)}.
 }
 }
