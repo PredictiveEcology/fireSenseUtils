@@ -25,7 +25,7 @@ test_that("runDEoptim() names the parameters from names(lower), grouped", {
   expect_match(msgs, paste0("Fitting 6 parameters: logistic: maxAsymptote, inflectionPoint1; ",
                             "covariates: CMD, youngAge, dom_agb_Pice_mar; year effect: yearSpreadSD"),
                fixed = TRUE)
-  expect_match(msgs, "objectiveFunction threshold SNLL to run all years after first 2 years: 512",
+  expect_match(msgs, "objectiveFunction threshold per fire to run all years after first 2 years: 512",
                fixed = TRUE)
   expect_false(grepl("logit", msgs))
 })

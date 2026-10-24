@@ -5,21 +5,21 @@
 ##
 ## .objfunSpreadFit() already has exactly one place where it can stop an evaluation early. Its
 ## work is two blocks -- `lrgSmallFireYears <- list(large = ..., small = ...)` -- and after the
-## first it compares the accumulated SNLL against `thresh * numYrsDone`. That bound is STATIC for
+## first it compares the block's value per fire against `thresh`. That bound is STATIC for
 ## the whole fit, so it cannot tighten as the population improves: by late generations every
 ## trial that DEoptim will reject anyway still passes it, and nothing is cut.
 ##
 ## `pruneAbove` makes that same bound adaptive. The caller passes the worst value the current
-## population would accept, and the check becomes min(static, pruneAbove).
+## population would accept, and the block also bails when its total is above `pruneAbove`.
 ##
-## This is EXACT, not a heuristic. Block 2 contributes a non-negative SNLL, so block 1's
+## This is EXACT, not a heuristic. Block 2 contributes a non-negative value, so block 1's
 ## accumulated value is a lower bound on the evaluation's final value. A trial pruned here would
 ## have finished at or above `pruneAbove`, which every parent already beats, so DEoptim's
 ## selection would have discarded it. The search trajectory is unchanged; only the time spent
 ## proving the trial is bad is saved.
 ##
 ## Two things below are therefore load-bearing for that argument and are asserted, not assumed:
-## the default must be Inf (min(static, Inf) is today's behaviour exactly), and the bail must stay
+## the default must be Inf (no bound beyond the static one), and the bail must stay
 ## gated on `ii == 1`, because block 2 is the last block -- a lower bound there prunes nothing and
 ## the "non-negative remainder" reasoning no longer applies.
 
@@ -32,7 +32,7 @@ test_that(".objfunSpreadFit takes pruneAbove, defaulting to Inf", {
 
 test_that("the early-bail bound respects pruneAbove as well as the static thresh", {
   src <- paste(deparse(fireSenseUtils:::.objfunSpreadFit), collapse = "\n")
-  expect_match(src, "min\\(thresh \\* numYrsDone, pruneAbove\\)")
+  expect_match(src, "firstBlockPerFire > thresh \\|\\| SNLL_FSTest >\\s+pruneAbove")
 })
 
 test_that("the early bail stays restricted to the first block", {

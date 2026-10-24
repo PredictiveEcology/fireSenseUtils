@@ -232,23 +232,34 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
 #'
 #' Returns a per-fire buffer target (in pixels) by scaling `size` so that
 #' small fires get proportionally larger buffers and large fires plateau
-#' at `baseMultiplier * size`. The result is then clamped from below by
-#' `minSize`. Used when generating non-burned "control" pixels around
-#' historical fire perimeters.
+#' at `baseMultiplier * size`: `max(minSize, max(baseMultiplier, logIntercept - logSlope * log(size)) * size)`.
+#' Used when generating non-burned "control" pixels around
+#' historical fire perimeters; `fireSense_dataPrepFit` uses 10 times this (`areaMultiplier`).
+#'
+#' The defaults (with that factor 10) make a simulated fire that is cut at the buffers' open edge
+#' ([bufferOpen()]) while still smaller than its observed fire rare, so the spread objective
+#' ([kernelLogScore()]) is the same as with no buffers. They are the smallest buffers (over the observed
+#' fires of three ELFs) that keep that rate at or below 1e-4 per fire and replicate in every size class
+#' of known-truth simulations (2026-10-23): a buffer of about 135 times the size at 9 pixels, 70 times
+#' from 100 to 10,000 pixels, 55 times at 18,000 pixels. They cost about what the previous defaults
+#' (`minSize = 1000`, `baseMultiplier = 5`, `logIntercept = 14`, `logSlope = 1`) did, with 1.13 times
+#' the buffer pixels; with them the fitted parameters on buffers matched those on the whole ELF.
 #'
 #' @param size Numeric vector. Fire sizes in pixels.
 #' @param minSize Numeric scalar. Absolute floor on the returned size; the
-#'   buffer (plus burned pixels) is never smaller than this. Default `1000`.
+#'   buffer (plus burned pixels) is never smaller than this. Default `500`.
 #' @param baseMultiplier Numeric scalar. Asymptotic multiplier for large
 #'   fires (as `size` grows, the effective multiplier tends to
-#'   `baseMultiplier`). Default `5`.
+#'   `baseMultiplier`). Default `7.5`.
+#' @param logIntercept,logSlope Numeric scalars. The multiplier of smaller fires,
+#'   `logIntercept - logSlope * log(size)`, until it falls to `baseMultiplier`. Defaults `21` and `2`.
 #'
 #' @return Integer vector the same length as `size`, giving the target
 #'   buffered area in pixels for each fire.
 #'
 #' @export
-multiplier <- function(size, minSize = 1000, baseMultiplier = 5) {
-  pmax(minSize, round(pmax(baseMultiplier, 14 - log(size)) * size, 0))
+multiplier <- function(size, minSize = 500, baseMultiplier = 7.5, logIntercept = 21, logSlope = 2) {
+  pmax(minSize, round(pmax(baseMultiplier, logIntercept - logSlope * log(size)) * size, 0))
 }
 
 #' Remove buffered fires in `fireBufferedListDT` that are outside `flammableRTM`

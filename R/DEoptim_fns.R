@@ -121,7 +121,8 @@ deoptimPopulationSize <- function(nParams) {
 #'   part of the fit's cache key when not `NULL`; `clusters` does not put it in any generation's key, so a
 #'   fit that stopped early resumes from its cached generations and continues under a stricter rule.
 #'
-#' @param thresh Threshold multiplier used in SNLL fire size (`"snll_fs"`) test. Default 550.
+#' @param thresh Passed to [.objfunSpreadFit()]: the early stop's threshold on the first block's per-fire
+#'   term per fire. Default 550, no early stop.
 #'
 #' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of [DEoptim::DEoptim] outputs.
 #'
@@ -163,22 +164,21 @@ deoptimPopulationSize <- function(nParams) {
 #'   for [scoreFireSizes()] and [linkSaturation()]. Needs `rescoreReps > 0`.
 #' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL` or
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
-#' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
-#'   and the final-population re-score. Off by default (`0`).
+#' @param jumpTries,jumpMeanDist Passed to [.objfunSpreadFit()], in the fit and the final-population
+#'   re-score. Off by default (`0`).
+#' @param yearAreaWeight,areaDistWeight,runawayEdgeFrac,runawayEdgeMin,runawayBufferMultiple Passed to
+#'   [.objfunSpreadFit()], which ignores them (see there); a non-default `yearAreaWeight`,
+#'   `areaDistWeight` or `runawayBufferMultiple` warns once.
 #' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
-#'   scores a simulated fire that reaches the edge of its own buffer as a runaway, not as a fire of
-#'   the size it reached. The edge ring of every buffer is computed here, once ([addBufferEdge()]).
-#' @param runawayEdgeFrac,runawayEdgeMin Passed to [.objfunSpreadFit()] in the fit and the re-score: a
-#'   replicate is a runaway only if it burns at least `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))`
-#'   of the `n` edge-ring pixels of its fire (at most `n`). Defaults [fireSenseRunawayEdgeFrac] and [fireSenseRunawayEdgeMin].
-#' @param runawayBufferMultiple Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL`
-#'   (default), or the multiple of its own fire's buffer size that a runaway counts as in the size-based terms.
+#'   stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge
+#'   and open pixels of every buffer are found here, once ([addBufferEdge()]).
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
 #'   final-population re-score, so both evaluate the same objective. The defaults are that function's.
-#'   Before these existed, every fit used those defaults whatever the caller wanted.
+#'   Before these existed, every fit used those defaults whatever the caller wanted. Only `weighted`
+#'   still does anything.
 #' @param .c Numeric in `(0, 1]`. DEoptim's `c`, the speed of crossover adaptation (used by
 #'   `strategy = 6`). Passed to [DEoptim::DEoptim.control()]; a `c` in `DEoptimControl` wins.
 #' @param DEoptimControl Named list of further [DEoptim::DEoptim.control()] settings (for example
@@ -224,7 +224,7 @@ runDEoptim <- function(landscape,
                        formulaToFit,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
-                       tests = c("SNLL", "adTest"),
+                       tests = "SNLL",
                        maxFireSpread,
                        Nreps,
                        thresh = 550,
@@ -265,7 +265,7 @@ runDEoptim <- function(landscape,
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
                          getOption("clusters.workerMemoryGB", spreadFitWorkerMemoryGB))
-  if (!is.null(penaliseCapHits)) deprecatedCapArgs("penaliseCapHits")
+  if (!is.null(penaliseCapHits)) deprecatedArgs("penaliseCapHits")
   ## the edge ring of each fire's buffer, once, before the tables go to the workers
   fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
   if (isTRUE(is.na(cores))) cores <- NULL
@@ -324,7 +324,7 @@ runDEoptim <- function(landscape,
   message("Fitting ", length(lower), " parameters: logistic: ", paste(logisticTerms, collapse = ", "),
           "; covariates: ", paste(covTerms, collapse = ", "),
           if (yearSpreadSDTxt %in% names(lower)) paste0("; year effect: ", yearSpreadSDTxt))
-  message("objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
+  message("objectiveFunction threshold per fire to run all years after first 2 years: ", thresh)
   ## the per-year random effect is fitted when the bounds include it (its sd is the LAST parameter);
   ## DEoptim passes `par` unnamed, so the objective is told explicitly
   fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)

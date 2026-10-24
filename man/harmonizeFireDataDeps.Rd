@@ -14,6 +14,8 @@ A list of functions, to pass as \code{reproducible::Cache()}'s \code{.cacheExtra
 \code{\link[=harmonizeFireData]{harmonizeFireData()}} call keeps returning its old result when a function it \emph{calls}
 changes. Pass this list as that call's \code{.cacheExtra} and those functions become part
 of the key.
+It includes \code{\link[=multiplier]{multiplier()}}, which \code{harmonizeFireData()} does not call itself but which
+\code{fireSense_dataPrepFit}'s default \code{areaMultiplier} does: a change of its defaults changes the buffers.
 }
 \seealso{
 \code{\link[=harmonizeFireData]{harmonizeFireData()}}, \code{\link[=makeFireSenseLCCDeps]{makeFireSenseLCCDeps()}}

@@ -40,7 +40,7 @@ spreadProbSeen <- function(par, formula, covCentre = NULL, yr = "2004") {
     mutuallyExclusive = NULL, doAssertions = TRUE, maxFireSpread = 0.28, lowerSpreadProb = 0.13,
     cells = numeric(nPixI), lanscape1stQuantileThresh = Inf, weighted = TRUE,
     r = terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20), Nreps = 1L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0,
+    doSNLL_FSTest = TRUE, doMADTest = FALSE, plot.it = FALSE, verbose = 0,
     returnSims = TRUE, covCentre = covCentre)
   seen$sp
 }

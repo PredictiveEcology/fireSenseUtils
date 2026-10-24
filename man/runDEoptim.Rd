@@ -29,7 +29,7 @@ runDEoptim(
   formulaToFit,
   objFunCoresInternal,
   covMinMax = covMinMax,
-  tests = c("SNLL", "adTest"),
+  tests = "SNLL",
   maxFireSpread,
   Nreps,
   thresh = 550,
@@ -203,7 +203,8 @@ object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean
 
 \item{sizeLik, sizeLikDf, weighted, adWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit AND in the
 final-population re-score, so both evaluate the same objective. The defaults are that function's.
-Before these existed, every fit used those defaults whatever the caller wanted.}
+Before these existed, every fit used those defaults whatever the caller wanted. Only \code{weighted}
+still does anything.}
 
 \item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL} or
 \code{"logistic3pUpper"}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
@@ -211,19 +212,16 @@ Before these existed, every fit used those defaults whatever the caller wanted.}
 \item{escapeSizeHa}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: the size (ha) a
 fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 
-\item{jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit
-and the final-population re-score. Off by default (\code{0}).}
+\item{jumpTries, jumpMeanDist}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the final-population
+re-score. Off by default (\code{0}).}
+
+\item{yearAreaWeight, areaDistWeight, runawayEdgeFrac, runawayEdgeMin, runawayBufferMultiple}{Passed to
+\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, which ignores them (see there); a non-default \code{yearAreaWeight},
+\code{areaDistWeight} or \code{runawayBufferMultiple} warns once.}
 
 \item{penaliseRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
-scores a simulated fire that reaches the edge of its own buffer as a runaway, not as a fire of
-the size it reached. The edge ring of every buffer is computed here, once (\code{\link[=addBufferEdge]{addBufferEdge()}}).}
-
-\item{runawayEdgeFrac, runawayEdgeMin}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: a
-replicate is a runaway only if it burns at least \code{max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))}
-of the \code{n} edge-ring pixels of its fire (at most \code{n}). Defaults \link{fireSenseRunawayEdgeFrac} and \link{fireSenseRunawayEdgeMin}.}
-
-\item{runawayBufferMultiple}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL}
-(default), or the multiple of its own fire's buffer size that a runaway counts as in the size-based terms.}
+stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge
+and open pixels of every buffer are found here, once (\code{\link[=addBufferEdge]{addBufferEdge()}}).}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.

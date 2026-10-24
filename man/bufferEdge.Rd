@@ -2,33 +2,47 @@
 % Please edit documentation in R/bufferEdge.R
 \name{bufferEdge}
 \alias{bufferEdge}
+\alias{bufferOpen}
 \alias{addBufferEdge}
-\title{The edge ring of each fire's buffer}
+\title{The edge ring of each fire's buffer, and its open part}
 \usage{
 bufferEdge(fireBufferedDT, r)
+
+bufferOpen(fireBufferedDT, r, flammable = cellsFlammable(r))
 
 addBufferEdge(fireBufferedListDT, landscape)
 }
 \arguments{
 \item{fireBufferedDT}{A table of one fire year with columns \code{ids} (the fire) and \code{pixelID}
-(cell number in \code{r}), as in \code{fireBufferedListDT}.}
+(cell number in \code{r}), as in \code{fireBufferedListDT}. \code{bufferOpen()} uses its \code{edge} column if it has
+one.}
 
-\item{r}{A raster with the grid \code{pixelID} refers to; only its size is used.}
+\item{r}{A raster with the grid \code{pixelID} refers to. \code{bufferEdge()} uses only its size;
+\code{bufferOpen()} also its values, \code{NA} being non-flammable. A raster without values is all flammable.}
+
+\item{flammable}{Internal: \code{!is.na()} of the values of \code{r}, when the caller has it already.}
 
 \item{fireBufferedListDT}{A list of tables as \code{fireBufferedDT}, one per fire year.}
 
 \item{landscape}{As \code{r}.}
 }
 \value{
-\code{bufferEdge()}: a logical vector, one element per row of \code{fireBufferedDT}.
-\code{addBufferEdge()}: \code{fireBufferedListDT} with that vector as a column \code{edge} in every table
-that does not have one already (the tables are copied, not modified).
+\code{bufferEdge()}, \code{bufferOpen()}: a logical vector, one element per row of \code{fireBufferedDT}.
+\code{addBufferEdge()}: \code{fireBufferedListDT} with these vectors as columns \code{edge} and \code{open} in every
+table that does not have both already (the tables are copied, not modified).
 }
 \description{
-A simulated fire that reaches the outer edge of its own buffer has run away: the spread
-objective (\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}) censors it. \code{bufferEdge()} marks the pixels that make that
-edge: a pixel of a fire's buffer (burned or not) with at least one of its eight (queen)
-neighbours outside that fire's own buffer. "Outside" is anything that is not a row of the same
-fire in the table: unburned land of another fire's buffer, pixels removed as non-flammable (see
+A simulated fire may spread only inside the year's buffers. \code{bufferEdge()} marks the pixels of
+each fire's buffer (burned or not) with at least one of its eight (queen) neighbours outside that
+fire's own buffer. "Outside" is anything that is not a row of the same fire in the table:
+unburned land of another fire's buffer, pixels removed as non-flammable (see
 \code{\link[=removeBufferedFiresOutsideRTM]{removeBufferedFiresOutsideRTM()}}), \code{NA} cells, and the raster's boundary.
+}
+\details{
+\code{bufferOpen()} marks the edge pixels where a fire is actually stopped by the buffer: those with at
+least one neighbour that is flammable (not \code{NA} in \code{r}) and outside every buffer of the year. An
+edge pixel next to non-flammable land or next to another fire's buffer is not open: a fire there
+could not have kept burning, or keeps burning in the neighbour's buffer. A simulated fire that burns
+an open pixel of any buffer of its year is cut ("at least this big") by the spread objective
+(\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}).
 }

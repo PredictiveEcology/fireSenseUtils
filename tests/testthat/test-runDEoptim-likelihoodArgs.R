@@ -100,7 +100,7 @@ test_that("penaliseCapHits is deprecated: a warning, and it is not passed on", {
     },
     .package = "clusters")
   testthat::local_mocked_bindings(termsInDEoptim = function(...) invisible(NULL))
-  rm(list = ls(fireSenseUtils:::.capArgsWarned), envir = fireSenseUtils:::.capArgsWarned)
+  rm(list = ls(fireSenseUtils:::.deprecatedArgsWarned), envir = fireSenseUtils:::.deprecatedArgsWarned)
   expect_warning(callRunDEoptimLik(penaliseCapHits = FALSE), "penaliseRunaways")
   expect_null(seen$dots$penaliseCapHits)
   expect_true(seen$dots$penaliseRunaways)

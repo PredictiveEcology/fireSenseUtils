@@ -1,15 +1,15 @@
-## The fire-size likelihood is the empirical density of the SIMULATED sizes, evaluated at the
-## OBSERVED size. Both are square-rooted first. From 2021-02-10 (48f75ba) until this test, only the
-## simulated sizes were: `demp(x = size, obs = sqrt(N))`. spread() caps a simulated fire at
-## `multiplier(size)`, so sqrt(N) could never reach `size` for a fire above ~12 pixels; every such
-## fire scored the `minLik` floor whatever the parameters, and simulations that matched a fire
-## scored the same as simulations that burned its whole buffer.
+## The fire-size score compares the SIMULATED sizes with the OBSERVED size on the same scale. From
+## 2021-02-10 (48f75ba) until this test, only the simulated sizes were square-rooted:
+## `demp(x = size, obs = sqrt(N))`. spread() capped a simulated fire at `multiplier(size)`, so sqrt(N)
+## could never reach `size` for a fire above ~12 pixels; every such fire scored the `minLik` floor
+## whatever the parameters, and simulations that matched a fire scored the same as simulations that
+## burned its whole buffer. The score is now kernelLogScore(), on the log scale.
 ##
 ## Same idiom as test-objFunInner-spreadProbVector.R: a fake spread() decides what burned.
 
 ## a 20 x 20 landscape, every cell is this year's; one fire of 100 pixels ignited at cell 210
 r20 <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20)
-floorSNLL <- -log(1e-29)
+floorSNLL <- fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE) # no density at the observed size
 
 ## SNLL_FS of that one fire when replicate i of spread() burns simSizes[i] cells
 snllFor <- function(simSizes) {
@@ -37,12 +37,12 @@ snllFor <- function(simSizes) {
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = 0.25,
     weighted = FALSE, r = r20, Nreps = length(simSizes),
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
+    doSNLL_FSTest = TRUE, doMADTest = FALSE,
     plot.it = FALSE, verbose = 0
   )$SNLL_FS
 }
 
-test_that("simulations that match a 100-pixel fire score above the minLik floor", {
+test_that("simulations that match a 100-pixel fire score below the ceiling", {
   skip_if_not_installed("SpaDES.tools")
   expect_lt(snllFor(c(90, 95, 98, 100, 102, 105, 110, 97, 103, 99)), floorSNLL)
 })
