@@ -14,8 +14,9 @@
 #' Count fires in each ELF
 #'
 #' Counts natural-cause ignitions, escaped natural ignitions and fire polygons falling in
-#' each ELF's fitting area (core plus buffer), per year. An escaped ignition is one that
-#' [escapedFires()] keeps: the escape and spread fits use only these.
+#' each ELF's fitting area (core plus buffer), per year. Here an escaped ignition is one whose
+#' reported size [escapedFires()] keeps, a proxy that needs no polygons: the escape fit and the hindcast
+#' use [escapedIgnitions()], the ignitions that became a fire polygon of at least `escapeSizeHa`.
 #'
 #' Points are counted on the grid of `rasWhole` with a single [terra::cellFromXY()]
 #' lookup. Polygons are intersected with each ELF's area and their clipped area is

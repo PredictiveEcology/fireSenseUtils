@@ -60,6 +60,7 @@ export(elfLabels)
 export(emptySpreadCovariates)
 export(escapeSizePixels)
 export(escapedFires)
+export(escapedIgnitions)
 export(escapesTxt)
 export(fewFireELFs)
 export(firePixelsByYear)
@@ -407,6 +408,7 @@ importFrom(terra,
   rasterize,
   relate,
   res,
+  same.crs,
   set.names,
   setValues,
   spatSample,
