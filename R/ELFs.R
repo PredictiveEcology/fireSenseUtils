@@ -913,13 +913,11 @@ ELFtemplateRaster <- function(inputPath,
         terra::aggregate(fact = 8, na.rm = TRUE) |>
         is.na() |>
         terra::ifel(NA, 1) |>
-        terra::toMemory()
+        ## the file is written inside the cached step, so once per file under Cache's lock. It used to be
+        ## rewritten after it on every call, and runs share their `inputPath`: a run reading the file while
+        ## another rewrote it got only NA cells (2026-10-25).
+        terra::writeRaster(filename = file.path(inputPath, "rastTemplate_Canada.tif"), overwrite = TRUE)
     } |> Cache(omitArgs = TRUE, .cacheExtra = list(url, hash$remoteHash))
   }
-
-  ## Written once per file, under Cache's lock. Every run used to rewrite it, and runs share their
-  ## `inputPath`: a run reading the file while another rewrote it got only NA cells (2026-10-25).
-  terra::writeRaster(rastTemplate, filename = file.path(inputPath, "rastTemplate_Canada.tif"),
-                     overwrite = TRUE) |>
-    Cache(omitArgs = "x", .cacheExtra = list(url, hash$remoteHash))
+  rastTemplate
 }
