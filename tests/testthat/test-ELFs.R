@@ -217,6 +217,28 @@ test_that("ELFtemplateRaster aggregates the downloaded raster by 8 and writes it
                    normalizePath(file.path(dp, "rastTemplate_Canada.tif")))
 })
 
+test_that("ELFtemplateRaster does not rewrite the template another run may be reading", {
+  ## runs share inputPath; a rewrite while another run read the file gave
+  ## "[trim] only cells with NA found" in fireSense_ELFs (6.6.1 hindcast, 2026-10-25)
+  dp <- localELFsDir()
+  src <- terra::rast(nrows = 16, ncols = 16, xmin = 0, xmax = 16, ymin = 0, ymax = 16,
+                     vals = 1, crs = "EPSG:3978")
+  local_mocked_bindings(getRemoteMetadata = function(...) list(remoteHash = "abc"),
+                        .package = "reproducible")
+  local_mocked_bindings(prepInputs = function(url, destinationPath, ...) src)
+  withr::local_options(reproducible.cachePath = withr::local_tempdir(), reproducible.useCache = TRUE)
+  f <- file.path(dp, "rastTemplate_Canada.tif")
+
+  first <- ELFtemplateRaster(dp)
+  old <- as.POSIXct("2020-01-01", tz = "UTC")
+  Sys.setFileTime(f, old)
+  second <- ELFtemplateRaster(dp)
+
+  expect_equal(as.numeric(file.mtime(f)), as.numeric(old))
+  expect_identical(normalizePath(terra::sources(second)), normalizePath(f))
+  expect_equal(terra::values(second, mat = FALSE), terra::values(first, mat = FALSE))
+})
+
 test_that("ELFtemplateRaster defaults to the SCANFI v2 Douglas-fir file on Arbutus", {
   expect_identical(formals(ELFtemplateRaster)$url,
                    "https://object-arbutus.alliancecan.ca/529feda02d404836b0e91b1d360b4df0:predictiveecology/SCANFI_v2/2020/SCANFI_spsCC_PSEU_MEN_2020_v2_20260119.tif")

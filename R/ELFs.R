@@ -917,9 +917,9 @@ ELFtemplateRaster <- function(inputPath,
     } |> Cache(omitArgs = TRUE, .cacheExtra = list(url, hash$remoteHash))
   }
 
-  rastTemplate <- terra::writeRaster(
-    rastTemplate, filename = file.path(inputPath, "rastTemplate_Canada.tif"), 
-    overwrite = TRUE) 
-  rastTemplate
-  
+  ## Written once per file, under Cache's lock. Every run used to rewrite it, and runs share their
+  ## `inputPath`: a run reading the file while another rewrote it got only NA cells (2026-10-25).
+  terra::writeRaster(rastTemplate, filename = file.path(inputPath, "rastTemplate_Canada.tif"),
+                     overwrite = TRUE) |>
+    Cache(omitArgs = "x", .cacheExtra = list(url, hash$remoteHash))
 }
