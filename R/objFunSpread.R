@@ -91,7 +91,7 @@ utils::globalVariables(c(
 #'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
 #'
-#' @param tests One or more of `"mad"`, `"adTest"`, `"SNLL"`, or `"snll_fs"`. Default: `"snll_fs"`.
+#' @param tests One or more of `"mad"`, `"adTest"`, `"pitAD"`, `"SNLL"`, or `"snll_fs"`. Default: `"snll_fs"`. `"pitAD"` is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates ([pitMidRank()]), scored against Uniform(0, 1) ([adUniform()]), weighted like `"adTest"` (`adWeight`).
 #'
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #'
@@ -307,6 +307,7 @@ utils::globalVariables(c(
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
   doSNLL_FSTest <- any(grepl("snll_fs", tolower(tests)))
   doADTest <- any(grepl("adtest", tolower(tests)))
+  doPitADTest <- any(tolower(tests) == "pitad")
   if (missing(landscape)) {
     landscape <- get("landscape", envir = .GlobalEnv)
   }
@@ -366,6 +367,7 @@ utils::globalVariables(c(
   objFunResList <- list() # will hold objective function values --> which is now >1 for large, then small fires
   fireSizesList <- list() # simulated fire sizes, pooled across batches for the adTest
   yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
+  pitList <- list() # each fitted fire's PIT (pitMidRank()), pooled across batches for the "pitAD" term
   yearAreaList <- list() # yearAreaWeight: each year's simulated annual totals, one per replicate
   bailedEarly <- FALSE
   firstBlockPerFire <- NA_real_ # the first block's per-fire term per fire, what `thresh` is compared with
@@ -403,7 +405,7 @@ utils::globalVariables(c(
         plot.it = plot.it,
         r = r, weighted = weighted, sizeWeightMean = sizeWeightMean,
         doSNLL_FSTest = doSNLL_FSTest,
-        doMADTest = doMADTest, doADTest = doADTest || doAreaDist,
+        doMADTest = doMADTest, doADTest = doADTest || doAreaDist, doPitADTest = doPitADTest,
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link, climateRef = climateRef,
@@ -432,6 +434,9 @@ utils::globalVariables(c(
       if (isTRUE(doADTest) || isTRUE(doAreaDist)) {
         fireSizesList[[ii]] <- unlist(results$allFireSizes)
         yrsDoneList[[ii]] <- yrs
+      }
+      if (isTRUE(doPitADTest)) {
+        pitList[[ii]] <- unlist(results$pit)
       }
       if (isTRUE(doYearArea)) {
         yearAreaList[yrs] <- results$annualAreaByRep # a year the objective refused to simulate stays absent
@@ -541,6 +546,23 @@ utils::globalVariables(c(
       print(paste0("  ", Sys.getpid(), " adTest:", adTest, "; "))
     }
   }
+  ## The rank-based AD term: each fitted fire's observed size ranked among its own replicates (pitMidRank()), and
+  ## those ranks scored against Uniform(0, 1) (adUniform()). A replicate cut at an open buffer edge after it passed
+  ## the observed size is larger whatever the buffer, so unlike the pooled adTest it does not depend on the buffer.
+  pitPart <- NA_real_
+  if (isTRUE(doPitADTest) && !isTRUE(bailedEarly)) {
+    u <- unlist(pitList)
+    pitPart <- if (length(u)) adUniform(u, Nreps) else 1e6L
+    pitPart <- pitPart * if (identical(adWeight, "auto")) {
+      adWeightAuto(sum(vapply(historicalFiresAboveMin, nrow, integer(1))), sizeLikOther, weighted)
+    } else {
+      adWeight
+    }
+    objFunRes <- objFunRes + pitPart
+    if (verbose > 1) {
+      print(paste0("  ", Sys.getpid(), " pitAD:", pitPart, "; "))
+    }
+  }
   snllPart <- if (isTRUE(doSNLL_FSTest)) sum(unlist(bb$objFunRes)) else NA_real_
   adPart <- if (isTRUE(doADTest) && !isTRUE(bailedEarly)) adTest else NA_real_
   nFitFires <- sum(vapply(historicalFiresAboveMin, nrow, integer(1)))
@@ -565,7 +587,7 @@ utils::globalVariables(c(
     print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; Objective Final: ", round(objFunRes, 0)))
   }
   if (isTRUE(returnTerms))
-    return(c(objective = objFunRes, SNLL_FS = snllPart, adTest = adPart, yearArea = yearAreaTerm,
+    return(c(objective = objFunRes, SNLL_FS = snllPart, adTest = adPart, pitAD = pitPart, yearArea = yearAreaTerm,
              areaDist = areaDistTerm, nFires = nFitFires, firstBlockPerFire = firstBlockPerFire,
              bailed = as.numeric(firstBlockBailed)))
   ## Figure out what we want from these.
@@ -655,6 +677,41 @@ adStatistic <- function(x, y) {
   }, numeric(1)))
 }
 
+#' Mid-rank probability integral transform of one fire's observed size among its replicates
+#'
+#' The share of the fire's `Nreps` replicates smaller than its observed size, ties counted half. A replicate
+#' with no row (it burned nothing) is smaller. A replicate cut at an open buffer edge has burned at least its
+#' reached size: if that is at least the observed size it is larger (exact, whatever the buffer); if it is
+#' smaller its order is unknown and it counts half.
+#'
+#' @param size Observed size of the fire (pixels).
+#' @param sim Simulated sizes of its replicates that have a row (pixels).
+#' @param cut Logical, as `sim`: was the replicate cut at an open buffer edge.
+#' @param Nreps Number of replicates.
+#' @return A number in `[0, 1]`.
+#' @keywords internal
+pitMidRank <- function(size, sim, cut, Nreps = length(sim)) {
+  smaller <- !cut & sim < size
+  tie <- !cut & sim == size
+  unknown <- cut & sim < size
+  (Nreps - length(sim) + sum(smaller) + 0.5 * (sum(tie) + sum(unknown))) / Nreps
+}
+
+#' Anderson-Darling statistic of PITs against Uniform(0, 1)
+#'
+#' @param u PITs ([pitMidRank()]), one per fire.
+#' @param Nreps Number of replicates: `u` is kept `1 / (2 * Nreps)` from 0 and 1, the resolution of a
+#'   mid-rank, so the statistic stays finite.
+#' @return A single non-negative number; about 1 on average when `u` is uniform.
+#' @keywords internal
+adUniform <- function(u, Nreps) {
+  eps <- 1 / (2 * Nreps)
+  u <- sort(pmin(pmax(u, eps), 1 - eps))
+  n <- length(u)
+  i <- seq_len(n)
+  -n - sum((2 * i - 1) * (log(u) + log(1 - rev(u)))) / n
+}
+
 #' @keywords internal
 #'
 #' @importFrom data.table set setDT
@@ -668,7 +725,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         indexNonAnnual, colsToUse, covMinMax, mutuallyExclusive,
                         doAssertions, maxFireSpread, lowerSpreadProb, cells, lanscape1stQuantileThresh,
                         weighted,
-                        r, Nreps, doSNLL_FSTest, doMADTest, doADTest,
+                        r, Nreps, doSNLL_FSTest, doMADTest, doADTest, doPitADTest = FALSE,
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         stopCutFires = FALSE, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
@@ -705,7 +762,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   ## Nothing appends to it before the branch, so this is the same list it always
   ## was; the only change is that it exists when no test asked for anything.
   ret <- list()
-  doFitting <- any(c(doSNLL_FSTest, doMADTest, doADTest)) || isTRUE(returnSims)
+  doFitting <- any(c(doSNLL_FSTest, doMADTest, doADTest, doPitADTest)) || isTRUE(returnSims)
   if (isTRUE(doFitting)) {
     
     # shortAnnDTx1000 <- rescaleAllCovsFromX1000(annDTx1000 = annDTx1000,
@@ -1057,6 +1114,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ret <- append(ret, list(SNLL_FS = SNLL_FS))
       }
       
+      if (isTRUE(doPitADTest)) {
+        ## one PIT per fitted fire, in annualFires order; a fire with no simulated replicate (no row) gets u = 1
+        pe <- simSizes[annualFires, on = c("initialLocus" = "cells")]
+        ret <- append(ret, list(pit = pe[, list(u = pitMidRank(size[1], N[!is.na(N)], cut[!is.na(N)], Nreps)),
+                                         by = "ids"][["u"]]))
+      }
       if (isTRUE(doMADTest) || isTRUE(doADTest)) {
         fireSizes <- round(simSizes[, list(N = sum(N)), by = "initialLocus"][["N"]] / Nreps, 0) # Here tabulate() is equivalent to table() but faster
         ret <- append(ret, list(fireSizes = fireSizes))
