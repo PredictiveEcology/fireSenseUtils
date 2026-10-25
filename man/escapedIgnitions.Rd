@@ -4,7 +4,14 @@
 \alias{escapedIgnitions}
 \title{Ignitions that escaped: those that became a burned-area polygon of at least \code{escapeSizeHa}}
 \usage{
-escapedIgnitions(points, polys, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA")
+escapedIgnitions(
+  points,
+  polys,
+  escapeSizeHa,
+  pixSizeHa,
+  sizeCol = "SIZE_HA",
+  maxDistM = 1000
+)
 }
 \arguments{
 \item{points}{Ignition points (\code{SpatVector} or \code{sf}) with columns \code{YEAR} and \code{sizeCol}.}
@@ -17,6 +24,8 @@ escapedIgnitions(points, polys, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA")
 \item{pixSizeHa}{Pixel area (ha). A polygon must also be larger than one pixel.}
 
 \item{sizeCol}{The column of \code{points} that picks one point per polygon.}
+
+\item{maxDistM}{Distance (m) from a polygon's edge within which a point outside it still matches it.}
 }
 \value{
 Logical, one per row of \code{points}: \code{TRUE} for an escape.
@@ -24,8 +33,11 @@ Logical, one per row of \code{points}: \code{TRUE} for an escape.
 \description{
 The escape model's response. An ignition point escaped if it lies in a fire polygon of the same year whose
 area is at least \code{escapeSizeHa} and larger than one pixel (the polygons \code{\link[=escapedFires]{escapedFires()}} keeps, the same
-fires the spread model is fitted to). A polygon holding several points is one escape: only its point with
-the largest \code{sizeCol} (the first of ties) is marked, and a point is marked at most once. A polygon with no
+fires the spread model is fitted to), or within \code{maxDistM} of its edge: NFDB locations are often rounded to
+0.01 degree (about 1 km), and on ELF 6.6.1 20 of the 31 natural points of 50 ha or more outside every
+polygon of their year were within 1 km of one. A polygon near several points is one escape: points inside
+it come before points only near it, then the largest \code{sizeCol} (the first of ties); a point is marked at
+most once. A polygon with no
 point is not an escape, as it has no ignition to count it against. The polygon's area is its area as given
 (\code{terra::expanse()}), so polygons clipped to a study area are judged on the part inside it.
 }

@@ -59,3 +59,18 @@ test_that("no polygons or no points give no escapes", {
   expect_identical(escapedIgnitions(toyEscPoints(), list(NULL), 50, 6.25), logical(5))
   expect_identical(escapedIgnitions(toyEscPoints()[0, ], toyEscPolys(), 50, 6.25), logical(0))
 })
+
+test_that("a point just outside a polygon matches it (NFDB rounding), but one inside comes first", {
+  poly <- terra::vect(sq(0, 0, 1000), crs = "EPSG:3978")       # 100 ha
+  poly$YEAR <- 2000L
+  near <- terra::vect(cbind(1300, 500), crs = "EPSG:3978")     # 300 m outside, 80 ha reported
+  near$YEAR <- 2000L
+  near$SIZE_HA <- 80
+  expect_true(escapedIgnitions(near, poly, 50, 6.25))
+  expect_false(escapedIgnitions(near, poly, 50, 6.25, maxDistM = 0))
+  expect_false(escapedIgnitions(near, poly, 50, 6.25, maxDistM = 200))
+  inside <- terra::vect(cbind(500, 500), crs = "EPSG:3978")    # inside, smaller
+  inside$YEAR <- 2000L
+  inside$SIZE_HA <- 5
+  expect_identical(escapedIgnitions(rbind(near, inside), poly, 50, 6.25), c(FALSE, TRUE))
+})

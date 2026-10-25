@@ -19,8 +19,11 @@ escapedFires <- function(fires, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA") {
 #'
 #' The escape model's response. An ignition point escaped if it lies in a fire polygon of the same year whose
 #' area is at least `escapeSizeHa` and larger than one pixel (the polygons [escapedFires()] keeps, the same
-#' fires the spread model is fitted to). A polygon holding several points is one escape: only its point with
-#' the largest `sizeCol` (the first of ties) is marked, and a point is marked at most once. A polygon with no
+#' fires the spread model is fitted to), or within `maxDistM` of its edge: NFDB locations are often rounded to
+#' 0.01 degree (about 1 km), and on ELF 6.6.1 20 of the 31 natural points of 50 ha or more outside every
+#' polygon of their year were within 1 km of one. A polygon near several points is one escape: points inside
+#' it come before points only near it, then the largest `sizeCol` (the first of ties); a point is marked at
+#' most once. A polygon with no
 #' point is not an escape, as it has no ignition to count it against. The polygon's area is its area as given
 #' (`terra::expanse()`), so polygons clipped to a study area are judged on the part inside it.
 #'
@@ -30,10 +33,11 @@ escapedFires <- function(fires, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA") {
 #' @param escapeSizeHa Size (ha) a polygon must reach.
 #' @param pixSizeHa Pixel area (ha). A polygon must also be larger than one pixel.
 #' @param sizeCol The column of `points` that picks one point per polygon.
+#' @param maxDistM Distance (m) from a polygon's edge within which a point outside it still matches it.
 #' @return Logical, one per row of `points`: `TRUE` for an escape.
 #' @export
-#' @importFrom terra crs expanse project relate same.crs vect
-escapedIgnitions <- function(points, polys, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA") {
+#' @importFrom terra buffer crs expanse project relate same.crs vect
+escapedIgnitions <- function(points, polys, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA", maxDistM = 1000) {
   asVect <- function(x) if (inherits(x, "SpatVector")) x else terra::vect(x)
   points <- asVect(points)
   if (is.list(polys) && !inherits(polys, "sf")) {
@@ -48,10 +52,15 @@ escapedIgnitions <- function(points, polys, escapeSizeHa, pixSizeHa, sizeCol = "
   polys <- escapedFires(polys, escapeSizeHa, pixSizeHa, sizeCol = ".ha")
   if (!NROW(polys)) return(out)
 
-  hits <- terra::relate(points, polys, "intersects", pairs = TRUE)
-  hits <- hits[as.integer(points$YEAR[hits[, 1]]) == as.integer(polys$YEAR[hits[, 2]]), , drop = FALSE]
-  ## per polygon, its largest point first; then each polygon takes its first point not already taken
-  hits <- hits[order(hits[, 2], -as.data.frame(points)[[sizeCol]][hits[, 1]], hits[, 1]), , drop = FALSE]
+  pairs <- function(y) {
+    h <- terra::relate(points, y, "intersects", pairs = TRUE)
+    h[as.integer(points$YEAR[h[, 1]]) == as.integer(polys$YEAR[h[, 2]]), , drop = FALSE]
+  }
+  inside <- pairs(polys)
+  hits <- if (maxDistM > 0) pairs(terra::buffer(polys, maxDistM)) else inside
+  isIn <- paste(hits[, 1], hits[, 2]) %in% paste(inside[, 1], inside[, 2])
+  ## per polygon: points inside first, then the largest; each polygon takes its first point not already taken
+  hits <- hits[order(hits[, 2], !isIn, -as.data.frame(points)[[sizeCol]][hits[, 1]], hits[, 1]), , drop = FALSE]
   for (p in unique(hits[, 2])) {
     free <- hits[hits[, 2] == p & !out[hits[, 1]], 1]
     if (length(free)) out[free[1]] <- TRUE
