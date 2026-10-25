@@ -29,7 +29,4 @@ fixed 50.
 \details{
 The constants were measured on populations fitted with an older objective, and a spread estimated
 from 14 members is coarse, so treat the result as the right order of magnitude rather than exact.
-
-The objective no longer has the \code{"adTest"} term (it depended on the buffers); this is kept for
-diagnostics.
 }
