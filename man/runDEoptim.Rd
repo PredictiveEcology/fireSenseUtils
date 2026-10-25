@@ -29,7 +29,7 @@ runDEoptim(
   formulaToFit,
   objFunCoresInternal,
   covMinMax = covMinMax,
-  tests = "SNLL",
+  tests = c("SNLL", "adTest"),
   maxFireSpread,
   Nreps,
   thresh = 550,
@@ -203,8 +203,7 @@ object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean
 
 \item{sizeLik, sizeLikDf, weighted, adWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit AND in the
 final-population re-score, so both evaluate the same objective. The defaults are that function's.
-Before these existed, every fit used those defaults whatever the caller wanted. Only \code{weighted}
-still does anything.}
+Before these existed, every fit used those defaults whatever the caller wanted.}
 
 \item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL} or
 \code{"logistic3pUpper"}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
@@ -212,16 +211,15 @@ still does anything.}
 \item{escapeSizeHa}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: the size (ha) a
 fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 
-\item{jumpTries, jumpMeanDist}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the final-population
-re-score. Off by default (\code{0}).}
-
-\item{yearAreaWeight, areaDistWeight, runawayEdgeFrac, runawayEdgeMin, runawayBufferMultiple}{Passed to
-\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, which ignores them (see there); a non-default \code{yearAreaWeight},
-\code{areaDistWeight} or \code{runawayBufferMultiple} warns once.}
+\item{jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit
+and the final-population re-score. Off by default (\code{0}).}
 
 \item{penaliseRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
 stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge
 and open pixels of every buffer are found here, once (\code{\link[=addBufferEdge]{addBufferEdge()}}).}
+
+\item{runawayEdgeFrac, runawayEdgeMin, runawayBufferMultiple}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, which
+ignores them (see there); a non-\code{NULL} \code{runawayBufferMultiple} warns once.}
 
 \item{profileReps}{Integer. If above 0, \code{\link[=profileCoefficients]{profileCoefficients()}} is run around the best member
 of the re-score, each point evaluated this many times, and attached as \code{attr(DE, "profile")}.

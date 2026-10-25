@@ -31,6 +31,8 @@ replicate is almost always far larger than the observed fire, where it would hav
 anyway; then the score is the same as with no buffers.
 }
 \details{
+It is one choice of the per-fire term of \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} (\code{sizeLik = "kernel"}), not the default.
+
 The score is \code{-log(m)}, with \code{m} the Gaussian kernel density, bandwidth \code{h} on the log scale, of the
 simulated sizes at the observed size: \verb{m = (1/R) sum_r [not cut_r] dnorm((log(size) - log(sim_r)) / h) / h},
 \code{R = Nreps}. \code{log(m)} is corrected for the bias of the log of a Monte Carlo mean (delta method):

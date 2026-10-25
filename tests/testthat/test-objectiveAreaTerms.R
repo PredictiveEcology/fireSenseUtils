@@ -57,7 +57,7 @@ spreadCppSeen <- function(...) {
     annualFireBufferedDT = data.table::data.table(ids = 1L, pixelID = 1:400, buffer = 1L),
     indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL, mutuallyExclusive = NULL, doAssertions = FALSE,
     maxFireSpread = 0.28, lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = 0.25,
-    weighted = FALSE, r = r20, Nreps = 3L, doSNLL_FSTest = TRUE, doMADTest = FALSE,
+    weighted = FALSE, r = r20, Nreps = 3L, doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
     plot.it = FALSE, verbose = 0, ...)
   seen
 }
