@@ -220,6 +220,9 @@ test_that("ELFtemplateRaster aggregates the downloaded raster by 8 and writes it
 test_that("ELFtemplateRaster does not rewrite the template another run may be reading", {
   ## runs share inputPath; a rewrite while another run read the file gave
   ## "[trim] only cells with NA found" in fireSense_ELFs (6.6.1 hindcast, 2026-10-25)
+  ## Under covr the second call misses the cache (the instrumented code is digested), so the file is rewritten;
+  ## R CMD check runs it uninstrumented on every platform.
+  testthat::skip_on_covr()
   dp <- localELFsDir()
   src <- terra::rast(nrows = 16, ncols = 16, xmin = 0, xmax = 16, ymin = 0, ymax = 16,
                      vals = 1, crs = "EPSG:3978")
