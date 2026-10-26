@@ -1,7 +1,7 @@
-## The spread objective scored a fire cut at its buffer at the size it had reached, which made the fit
-## depend on the buffers (a biased year effect and area). Now each fire's observed size is scored by a
-## kernel log score of its simulated sizes, a replicate that reached an open buffer edge (one next to
-## flammable land outside every buffer) contributing nothing: kernelLogScore(), bufferOpen().
+## A simulated fire that reaches an open edge pixel of the year's buffers (one next to flammable land outside
+## every buffer) is cut: bufferOpen(), addBufferEdge(). The per-fire term gives it no density at the observed
+## size; the size-based terms (adTest, annual area, area-weighted size distribution) score the size it reached.
+## kernelLogScore() is one choice of the per-fire term (`sizeLik = "kernel"`), not the default.
 ## The fixture is from the known-truth prototype (~/claudeSessions/2026-10-06-multiELF-predict/phase4/
 ## bufferCensor/tune, 2026-10-23): ELF 6.6.1, one dataset, its truth, production buffers, 50 replicates.
 
@@ -42,7 +42,7 @@ test_that("kernelLogScore() is finite when the density is positive but its squar
   expect_gte(s, shift - log(1e-29) - 1)
 })
 
-test_that("the objective's per-fire term equals the prototype's on its saved simulations", {
+test_that("with sizeLik = \"kernel\" the per-fire term equals the prototype's on its saved simulations", {
   ## objFunInner() with spreadCpp() replaced by the prototype's simulated fires: each fire gets its own run
   ## of cells, the first of which is its buffer's only open pixel; a replicate the prototype cut burns it.
   sc <- fixture$scores
@@ -80,8 +80,8 @@ test_that("the objective's per-fire term equals the prototype's on its saved sim
       annualFires = fires, nonAnnualDTx1000 = NULL, annualFireBufferedDT = buf,
       indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL, mutuallyExclusive = NULL, doAssertions = FALSE,
       maxFireSpread = 1, lowerSpreadProb = 0.05, cells = numeric(terra::ncell(r)), lanscape1stQuantileThresh = 1,
-      weighted = FALSE, r = r, Nreps = sc$Nreps, doSNLL_FSTest = TRUE, doMADTest = FALSE, plot.it = FALSE,
-      verbose = 0)
+      weighted = FALSE, r = r, Nreps = sc$Nreps, doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE,
+      verbose = 0, sizeLik = "kernel")
     expect_equal(out$runaways, sum(s$cut))
     total <- total + out$SNLL_FS
   }
@@ -123,14 +123,14 @@ test_that("open edge pixels: not next to NA, nor next to another buffer; next to
 })
 
 ## objFunInner() on the toy landscape with spreadCpp() replaced: `burn` lists, per fire, the cells it burns
-toyObjective <- function(burn, Nreps = 2L, ...) {
+toyObjective <- function(burn, Nreps = 2L, buffers = toy3, ...) {
   seen <- new.env()
   fires <- data.table::data.table(cells = cell3(3, c(3, 6, 10)), size = c(10L, 10L, 5L), ids = 1:3)
   local_mocked_bindings(
     cropToCells = function(r, cells, ...) list(r = r, ncell = terra::ncell(r), toCrop = identity, toFull = identity),
     paramsSeparate = function(...) list(logisticPars = c(0.27, 1, 1), covPars = 1),
-    spreadProbFromIntegerCovs = function(...) data.table::data.table(pixelID = toy3$pixelID, cov = 0),
-    logisticAll = function(...) seq(0.06, 0.08, length.out = nrow(toy3)),
+    spreadProbFromIntegerCovs = function(...) data.table::data.table(pixelID = buffers$pixelID, cov = 0),
+    logisticAll = function(...) seq(0.06, 0.08, length.out = nrow(buffers)),
     .package = "fireSenseUtils")
   local_mocked_bindings(
     spreadCpp = function(landscape, loci, ...) {
@@ -139,12 +139,14 @@ toyObjective <- function(burn, Nreps = 2L, ...) {
         data.table::data.table(initialLocus = loci[k], indices = unique(c(loci[k], burn[[k]])))))
     },
     .package = "SpaDES.tools")
-  out <- fireSenseUtils:::objFunInner(
-    yr = "2001", annDTx1000 = NULL, par = 1, parsModel = NULL, annualFires = fires, nonAnnualDTx1000 = NULL,
-    annualFireBufferedDT = addBufferEdge(list(toy3), r3)[[1]], indexNonAnnual = NULL, colsToUse = "cov",
-    covMinMax = NULL, mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 1, lowerSpreadProb = 0.05,
-    cells = numeric(50), lanscape1stQuantileThresh = 1, weighted = FALSE, r = r3, Nreps = Nreps,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, plot.it = FALSE, verbose = 0, ...)
+  args <- utils::modifyList(
+    list(yr = "2001", annDTx1000 = NULL, par = 1, parsModel = NULL, annualFires = fires, nonAnnualDTx1000 = NULL,
+         annualFireBufferedDT = addBufferEdge(list(buffers), r3)[[1]], indexNonAnnual = NULL, colsToUse = "cov",
+         covMinMax = NULL, mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 1, lowerSpreadProb = 0.05,
+         cells = numeric(50), lanscape1stQuantileThresh = 1, weighted = FALSE, r = r3, Nreps = Nreps,
+         doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0, sizeLik = "kernel"),
+    list(...))
+  out <- do.call(fireSenseUtils:::objFunInner, args)
   c(out, list(spreadArgs = seen$args))
 }
 
@@ -204,7 +206,47 @@ test_that("the first block's early stop is per fire, not per year", {
   expect_equal(mk(Inf, pruneAbove = 399)[["objective"]], 1e6) # pruneAbove keeps the total's unit
 })
 
-test_that("the removed terms' arguments warn once and change nothing", {
+test_that("a cut replicate is scored at the size it reached by the size-based terms", {
+  skip_if_not_installed("SpaDES.tools")
+  ## fire 1 burns 9 pixels inside its buffer; fire 2 burns 9 pixels including its open column 7: cut
+  burn <- list(cell3(2:4, 2:4), cell3(2:4, 5:7), cell3(3, 10))
+  out <- toyObjective(burn, doADTest = TRUE, doYearArea = TRUE, doMADTest = TRUE)
+  expect_equal(out$runaways, 2)                       # fire 2, in both replicates
+  expect_equal(out$allFireSizes, rep(9, 4))           # fire 3 burns 1 pixel and is left out; the cut ones count 9
+  expect_equal(out$annualAreaByRep, c(18, 18))
+  expect_equal(out$fireSizes, c(9, 9, 1))
+  ## the default per-fire likelihood still counts them as cut
+  expect_equal(toyObjective(burn, sizeLik = "kde")$runaways, 2)
+})
+
+test_that("the default objective has the Anderson-Darling, annual-area and area-weighted terms", {
+  expect_true("adTest" %in% eval(formals(runDEoptim)$tests))
+  local_mocked_bindings(
+    objFunInner = function(yr, ...) list(SNLL_FS = 5, runaways = 0L, nSims = 2L, gated = FALSE,
+                                         allFireSizes = c(20, 30, 40, 55), annualAreaByRep = c(145, 150)),
+    .package = "fireSenseUtils")
+  land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+  fit <- function(...) fireSenseUtils::.objfunSpreadFit(
+    par = c(0.27, 1, 1, 1), landscape = land,
+    annualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400, cov = 0L)),
+    nonAnnualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
+    historicalFires = list(`2004` = data.frame(size = c(25, 60), cells = 1:2, ids = 1:2)),
+    fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400)),
+    tests = c("snll_fs", "adTest"), doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
+  base <- fit()
+  expect_true(is.finite(base[["adTest"]]) && base[["adTest"]] > 0)
+  expect_equal(base[["objective"]], base[["SNLL_FS"]] + base[["adTest"]])
+  expect_true(is.na(base[["yearArea"]]) && is.na(base[["areaDist"]]))      # off by default (weight 0)
+  all <- fit(yearAreaWeight = "auto", areaDistWeight = "auto")
+  expect_true(is.finite(all[["yearArea"]]) && is.finite(all[["areaDist"]]))
+  expect_equal(all[["objective"]], all[["SNLL_FS"]] + all[["adTest"]] + all[["yearArea"]] + all[["areaDist"]])
+  ## "kernel" has no "auto" constants of its own: those terms use the "kde" ones
+  k <- fit(yearAreaWeight = "auto", areaDistWeight = "auto", sizeLik = "kernel")
+  expect_equal(k[["adTest"]], all[["adTest"]])
+  expect_equal(k[["areaDist"]], all[["areaDist"]])
+})
+
+test_that("runawayBufferMultiple and runawaySize warn once and change nothing", {
   local_mocked_bindings(objFunInner = function(...) list(SNLL_FS = 5, runaways = 0L, nSims = 0L, gated = FALSE),
                         .package = "fireSenseUtils")
   rm(list = ls(fireSenseUtils:::.deprecatedArgsWarned), envir = fireSenseUtils:::.deprecatedArgsWarned)
@@ -217,9 +259,94 @@ test_that("the removed terms' arguments warn once and change nothing", {
     fireBufferedListDT = list(year2004 = data.table::data.table(ids = 1L, pixelID = 1:400)),
     doAssertions = FALSE, verbose = 0, ...)
   plain <- call1()
-  expect_warning(withAD <- call1(tests = c("adTest", "SNLL_FS"), yearAreaWeight = "auto", areaDistWeight = "auto",
-                                 runawayBufferMultiple = 2), "deprecated and ignored")
-  expect_equal(withAD, plain)
-  expect_no_warning(call1(tests = c("adTest", "SNLL_FS"), yearAreaWeight = "auto"))  # once per session
-  expect_no_warning(call1(yearAreaWeight = 0, areaDistWeight = 0L))
+  expect_warning(withMult <- call1(runawayBufferMultiple = 2), "deprecated and ignored")
+  expect_equal(withMult, plain)
+  expect_no_warning(call1(runawayBufferMultiple = 2))  # once per session
+})
+
+## The rank-based Anderson-Darling term (tests = "pitAD"): each fitted fire's observed size is ranked among its
+## replicates (a mid-rank probability integral transform, u), and the u of all fires are scored by the
+## Anderson-Darling statistic against Uniform(0, 1). A rank does not change when a larger buffer would have let
+## a replicate that is already larger than the observed fire burn on, so the term does not depend on the buffer.
+
+test_that("pitMidRank(): all replicates smaller gives 1, all larger gives 0, ties count half", {
+  pit <- fireSenseUtils:::pitMidRank
+  no <- rep(FALSE, 4)
+  expect_equal(pit(10, c(1, 2, 3, 4), no, 4L), 1)
+  expect_equal(pit(10, c(11, 12, 13, 14), no, 4L), 0)
+  expect_equal(pit(10, c(10, 10, 10, 10), no, 4L), 0.5)
+  expect_equal(pit(10, c(5, 10, 20, 30), no, 4L), (1 + 0.5) / 4)
+  ## a replicate with no row (it burned nothing) is smaller than any observed fire
+  expect_equal(pit(10, c(20, 30), c(FALSE, FALSE), 4L), 2 / 4)
+  expect_equal(pit(10, c(5, 20), c(FALSE, FALSE), 4L), 3 / 4)
+})
+
+test_that("pitMidRank(): a cut replicate is larger if it reached the observed size, half a count if it did not", {
+  pit <- fireSenseUtils:::pitMidRank
+  ## reached >= observed: the true size is at least that, so it is larger (a tie included)
+  expect_equal(pit(10, c(10, 50, 5, 5), c(TRUE, TRUE, FALSE, FALSE), 4L), 2 / 4)
+  ## reached < observed: its order is unknown, counted 0.5 (not 0 or 1)
+  expect_equal(pit(10, c(3, 5, 5, 5), c(TRUE, FALSE, FALSE, FALSE), 4L), (3 + 0.5) / 4)
+  expect_equal(pit(10, c(3, 20), c(TRUE, FALSE), 2L), 0.5 / 2)
+})
+
+test_that("adUniform(): small for evenly spread u, large for u piled in the middle or at an end", {
+  n <- 100
+  even <- (seq_len(n) - 0.5) / n
+  expect_lt(fireSenseUtils:::adUniform(even, 50L), 0.1)
+  expect_gt(fireSenseUtils:::adUniform(rep(0.5, n), 50L), 30)  # exactly 2 * log(2) * n - n = 38.6
+  expect_gt(fireSenseUtils:::adUniform(rep(0, n), 50L), 50)       # finite: u is kept off 0 and 1
+  expect_true(is.finite(fireSenseUtils:::adUniform(rep(1, n), 50L)))
+  ## the mean of the statistic for u ~ Uniform is 1
+  set.seed(3)
+  expect_equal(mean(replicate(2000, fireSenseUtils:::adUniform(runif(50), 50L))), 1, tolerance = 0.1)
+})
+
+test_that("objFunInner() returns one PIT per fire, scoring a cut replicate as larger once it reached the observed size", {
+  skip_if_not_installed("SpaDES.tools")
+  ## fire 1 (observed 10): 9 pixels both replicates, inside its buffer: both smaller, u = 1
+  ## fire 2 (observed 10): 9 pixels, the open column 7 included: cut, reached < 10: 0.5 each, u = 0.5
+  ## fire 3 (observed 5): 1 pixel: smaller, u = 1
+  out <- toyObjective(list(cell3(2:4, 2:4), cell3(2:4, 5:7), cell3(3, 10)), doPitADTest = TRUE)
+  expect_equal(out$pit, c(1, 0.5, 1))
+  ## a fire of 20 pixels that burns the open column is cut at a size above the observed one: larger, u = 0
+  big <- toyObjective(list(cell3(2:4, 2:4), cell3(1:5, 5:7), cell3(3, 10)), doPitADTest = TRUE)
+  expect_equal(big$pit[2], 0) # 15 pixels >= 10
+})
+
+test_that("the PITs do not change when the buffers grow and no replicate was cut below the observed size", {
+  skip_if_not_installed("SpaDES.tools")
+  ## fire 2 burns columns 5-7 (15 pixels, observed 10): cut by the small buffers (column 7 is open), exact with
+  ## buffers that extend to column 8. Same simulations, same u.
+  burn <- list(cell3(2:4, 2:4), cell3(1:5, 5:7), cell3(3, 10))
+  small <- toyObjective(burn, doPitADTest = TRUE)
+  expect_equal(small$runaways, 2)
+  grown <- rbind(toy3, data.table::data.table(ids = 2L, pixelID = cell3(1:5, 8)))
+  withBig <- toyObjective(burn, doPitADTest = TRUE, buffers = grown)
+  expect_lt(withBig$runaways, small$runaways)
+  expect_equal(withBig$pit, small$pit)
+})
+
+test_that("tests = \"pitAD\" adds a finite, weighted term, beside or instead of the pooled adTest", {
+  local_mocked_bindings(
+    objFunInner = function(yr, ...) list(SNLL_FS = 5, runaways = 0L, nSims = 2L, gated = FALSE,
+                                         allFireSizes = c(20, 30, 40, 55), pit = c(0.2, 0.9)),
+    .package = "fireSenseUtils")
+  land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+  fit <- function(tests, ...) fireSenseUtils::.objfunSpreadFit(
+    par = c(0.27, 1, 1, 1), landscape = land,
+    annualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400, cov = 0L)),
+    nonAnnualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
+    historicalFires = list(`2004` = data.frame(size = c(25, 60), cells = 1:2, ids = 1:2)),
+    fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400)),
+    tests = tests, Nreps = 10L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
+  p <- fit(c("snll_fs", "pitAD"))
+  expect_true(is.finite(p[["pitAD"]]) && p[["pitAD"]] > 0)
+  expect_true(is.na(p[["adTest"]]))
+  expect_equal(p[["objective"]], p[["SNLL_FS"]] + p[["pitAD"]])
+  expect_equal(p[["pitAD"]], fireSenseUtils:::adUniform(c(0.2, 0.9), 10L) * fireSenseUtils::adWeightAuto(2, "kde", FALSE))
+  expect_equal(fit(c("snll_fs", "pitAD"), adWeight = 7)[["pitAD"]], fireSenseUtils:::adUniform(c(0.2, 0.9), 10L) * 7)
+  both <- fit(c("snll_fs", "adTest", "pitAD"))
+  expect_equal(both[["objective"]], both[["SNLL_FS"]] + both[["adTest"]] + both[["pitAD"]])
+  expect_true(is.na(fit("snll_fs")[["pitAD"]]))
 })

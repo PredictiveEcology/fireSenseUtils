@@ -36,7 +36,7 @@ runawayObjective <- function(sp, seed = 1, fx = runawayFixture(), Nreps = 6L, ..
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 1,
     lowerSpreadProb = 0.05, cells = numeric(3600), lanscape1stQuantileThresh = 1,
     weighted = FALSE, r = r60, Nreps = Nreps,
-    doSNLL_FSTest = TRUE, doMADTest = TRUE,
+    doSNLL_FSTest = TRUE, doMADTest = TRUE, doADTest = TRUE, doYearArea = TRUE,
     plot.it = FALSE, verbose = 0, ...
   )
 }
@@ -50,9 +50,14 @@ test_that("a saturated parameter set is cut in every replicate and scores the ce
   on <- runawayObjective(c(0.9, 0.99), fx = fx, stopCutFires = TRUE)
   expect_equal(on$runaways, on$nSims)             # every replicate reached an open edge
   expect_equal(off$runaways, off$nSims)           # cut whether or not it is stopped there
-  ceilingScore <- fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE)
-  expect_equal(on$SNLL_FS, 5 * ceilingScore)
-  expect_equal(off$SNLL_FS, 5 * ceilingScore)
+  expect_equal(on$SNLL_FS, 5 * -log(1e-29))       # the per-fire likelihood gives a cut replicate no density: the floor
+  expect_equal(off$SNLL_FS, 5 * -log(1e-29))
+  ## the size-based terms score what it burned, bounded by its 36-pixel buffer
+  expect_true(all(off$allFireSizes <= 36))
+  expect_lte(max(off$annualAreaByRep), 5 * 36)
+  ## the kernel log score: the same ceiling
+  kern <- runawayObjective(c(0.9, 0.99), fx = fx, sizeLik = "kernel")
+  expect_equal(kern$SNLL_FS, 5 * fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE))
 })
 
 test_that("with no fire reaching the edge of its buffer, the objective is identical with and without the stop", {

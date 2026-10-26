@@ -98,13 +98,8 @@ addBufferEdge <- function(fireBufferedListDT, landscape) {
 retiredObjectiveArgs <- local({
   cap <- paste("simulated fires are no longer capped at a size. A fire that reaches an open edge of the",
                "year's buffers is cut instead; see `penaliseRunaways`.")
-  noTerm <- function(what) paste0("the spread objective no longer has the ", what, " term; it is the per-fire ",
-                                  "kernel log score only, which fires cut at the buffers cannot bias.")
-  cut <- "a replicate cut at the edge of the buffers has no size in the per-fire kernel log score."
-  c(capSizes = cap, penaliseCapHits = cap,
-    yearAreaWeight = noTerm("annual-area"), areaDistWeight = noTerm("area-weighted size-distribution"),
-    adTest = noTerm("pooled Anderson-Darling (`tests = \"adTest\"`)"),
-    runawaySize = cut, runawayBufferMultiple = cut)
+  size <- "a cut replicate is scored at the size it reached in the size-based terms."
+  c(capSizes = cap, penaliseCapHits = cap, runawaySize = size, runawayBufferMultiple = size)
 })
 .deprecatedArgsWarned <- new.env(parent = emptyenv())
 ## `argNames`: the retired arguments a caller used (others are ignored here)

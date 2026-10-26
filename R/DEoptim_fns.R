@@ -164,21 +164,19 @@ deoptimPopulationSize <- function(nParams) {
 #'   for [scoreFireSizes()] and [linkSaturation()]. Needs `rescoreReps > 0`.
 #' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL` or
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
-#' @param jumpTries,jumpMeanDist Passed to [.objfunSpreadFit()], in the fit and the final-population
-#'   re-score. Off by default (`0`).
-#' @param yearAreaWeight,areaDistWeight,runawayEdgeFrac,runawayEdgeMin,runawayBufferMultiple Passed to
-#'   [.objfunSpreadFit()], which ignores them (see there); a non-default `yearAreaWeight`,
-#'   `areaDistWeight` or `runawayBufferMultiple` warns once.
+#' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
+#'   and the final-population re-score. Off by default (`0`).
 #' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
 #'   stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge
 #'   and open pixels of every buffer are found here, once ([addBufferEdge()]).
+#' @param runawayEdgeFrac,runawayEdgeMin,runawayBufferMultiple Passed to [.objfunSpreadFit()], which
+#'   ignores them (see there); a non-`NULL` `runawayBufferMultiple` warns once.
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
 #'   final-population re-score, so both evaluate the same objective. The defaults are that function's.
-#'   Before these existed, every fit used those defaults whatever the caller wanted. Only `weighted`
-#'   still does anything.
+#'   Before these existed, every fit used those defaults whatever the caller wanted.
 #' @param .c Numeric in `(0, 1]`. DEoptim's `c`, the speed of crossover adaptation (used by
 #'   `strategy = 6`). Passed to [DEoptim::DEoptim.control()]; a `c` in `DEoptimControl` wins.
 #' @param DEoptimControl Named list of further [DEoptim::DEoptim.control()] settings (for example
@@ -224,7 +222,7 @@ runDEoptim <- function(landscape,
                        formulaToFit,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
-                       tests = "SNLL",
+                       tests = c("SNLL", "adTest"),
                        maxFireSpread,
                        Nreps,
                        thresh = 550,

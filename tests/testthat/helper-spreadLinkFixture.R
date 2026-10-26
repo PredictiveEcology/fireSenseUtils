@@ -45,7 +45,7 @@ spreadProbSeenC <- function(par, yr, climateRef = NULL, yearSpreadSD = 0, lansca
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = maxFireSpread, lowerSpreadProb = f,
     cells = numeric(nPixC), lanscape1stQuantileThresh = lanscape1stQuantileThresh, weighted = TRUE,
     r = terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20), Nreps = 1L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, plot.it = FALSE, verbose = 0,
+    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0,
     returnSims = TRUE, climateRef = climateRef, yearSpreadSD = yearSpreadSD, ...)
   list(sp = seen$sp, reached = seen$reached, pSummary = out$pSummary)
 }
