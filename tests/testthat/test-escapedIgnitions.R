@@ -28,6 +28,7 @@ test_that("an ignition escaped if it is in a polygon of the same year of at leas
   ## the big polygon's larger point; not the point in the 20 ha polygon, nor the one in another year's
   ## polygon, nor the 200 ha point outside every polygon; the big polygon without a point adds nothing
   expect_identical(e, c(FALSE, TRUE, FALSE, FALSE, FALSE))
+  ## (the big polygon without a point becomes an ignition through polygonIgnitions(), tested below)
   ## the point-size rule it replaces called points 2, 3 and 5 escapes
   expect_identical(which(toyEscPoints()$SIZE_HA >= 50), c(2L, 3L, 5L))
 })
@@ -73,4 +74,38 @@ test_that("a point just outside a polygon matches it (NFDB rounding), but one in
   inside$YEAR <- 2000L
   inside$SIZE_HA <- 5
   expect_identical(escapedIgnitions(rbind(near, inside), poly, 50, 6.25), c(FALSE, TRUE))
+})
+
+## Eliot, 2026-10-25: a natural-cause polygon of at least escapeSizeHa with no natural ignition point is added as
+## an ignition that escaped, at the fire's start point (its centroid moved into the fire, as the spread fit has it).
+test_that("a natural polygon with no point adds one ignition at its start point, and that ignition escapes", {
+  polys <- toyEscPolys()
+  polys$FIRECAUS <- c("Natural", "Natural", "Natural", "Human")
+  polys$FIRE_ID <- 1:4
+  ## start points as the spread fit gives them: one per polygon, inside it
+  starts <- terra::vect(cbind(c(400, 2100, 4100, 6500), c(400, 2100, 4900, 500)), crs = "EPSG:3978")
+  starts$YEAR <- polys$YEAR
+  starts$FIRE_ID <- 1:4
+  pts <- toyEscPoints()
+  pts$CAUSE <- "N"
+  added <- polygonIgnitions(pts, polys, starts, idCol = "FIRE_ID", escapeSizeHa = 50, pixSizeHa = 6.25)
+  ## only polygon 3: polygon 1 has points, polygon 2 is 20 ha, polygon 4 (2001) is human-caused
+  expect_equal(NROW(added), 1)
+  expect_equal(terra::crds(added)[1, ], c(x = 4100, y = 4900))
+  expect_identical(added$YEAR, 2000L)
+  expect_identical(added$CAUSE, "N")
+  expect_equal(added$SIZE_HA, 100, tolerance = 0.01)
+  ## bound to the ignitions: one more ignition and one more escape
+  all <- rbind(pts, added)
+  expect_identical(escapedIgnitions(all, polys, 50, 6.25), c(FALSE, TRUE, FALSE, FALSE, FALSE, TRUE))
+  ## and adding again adds nothing: the polygon is now matched
+  expect_equal(NROW(polygonIgnitions(all, polys, list(year2000 = starts[1:3, ], year2001 = starts[4, ]),
+                                         "FIRE_ID", 50, 6.25)), 0)
+  ## a polygon without a start point (dropped by the spread fit) adds nothing
+  expect_equal(NROW(polygonIgnitions(pts, polys, starts[-3, ], "FIRE_ID", 50, 6.25)), 0)
+  ## no polygons: an empty result of the same shape
+  none <- polygonIgnitions(pts, NULL, starts, "FIRE_ID", 50, 6.25)
+  expect_s4_class(none, "SpatVector")
+  expect_equal(NROW(none), 0)
+  expect_true(all(c("YEAR", "CAUSE", "SIZE_HA") %in% names(none)))
 })

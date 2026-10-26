@@ -31,13 +31,9 @@ escapedIgnitions(
 Logical, one per row of \code{points}: \code{TRUE} for an escape.
 }
 \description{
-The escape model's response. An ignition point escaped if it lies in a fire polygon of the same year whose
-area is at least \code{escapeSizeHa} and larger than one pixel (the polygons \code{\link[=escapedFires]{escapedFires()}} keeps, the same
-fires the spread model is fitted to), or within \code{maxDistM} of its edge: NFDB locations are often rounded to
-0.01 degree (about 1 km), and on ELF 6.6.1 20 of the 31 natural points of 50 ha or more outside every
-polygon of their year were within 1 km of one. A polygon near several points is one escape: points inside
-it come before points only near it, then the largest \code{sizeCol} (the first of ties); a point is marked at
-most once. A polygon with no
-point is not an escape, as it has no ignition to count it against. The polygon's area is its area as given
-(\code{terra::expanse()}), so polygons clipped to a study area are judged on the part inside it.
+The escape model's response. An ignition point escaped if it matches a fire polygon of its year (see
+\code{\link[=ignitionPolygonPairs]{ignitionPolygonPairs()}}: at least \code{escapeSizeHa}, larger than one pixel, the point inside it or within
+\code{maxDistM}). A polygon matching several points is one escape: points inside it come before points only near
+it, then the largest \code{sizeCol} (the first of ties); a point is marked at most once. A natural-cause polygon
+that matches no point is added as an ignition by \code{\link[=polygonIgnitions]{polygonIgnitions()}}, and that point then escapes here.
 }
