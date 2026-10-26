@@ -133,7 +133,7 @@ its per-fire term divided by its number of fires, as \code{thresh} is compared w
 was refused as "too burny" or "not spread out enough" or the block was above \code{thresh} or
 \code{pruneAbove}, else 0.}
 
-\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"pitAD"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}. \code{"pitAD"} is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates (\code{\link[=pitMidRank]{pitMidRank()}}), scored against Uniform(0, 1) (\code{\link[=adUniform]{adUniform()}}), weighted like \code{"adTest"} (\code{adWeight}).}
+\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
