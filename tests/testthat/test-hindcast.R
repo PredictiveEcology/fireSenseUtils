@@ -33,7 +33,7 @@ test_that("hindcastObserved counts ignitions, escapes and core-clipped area with
   cn <- o$counts
   expect_identical(cn$year, 2000L)
   expect_identical(cn$ignitions, 3L)            # N, L, N in the core: not the outside one, the human one or 2001
-  expect_identical(cn$escapes, 1L)              # only the 60 ha point reaches 50 ha
+  expect_identical(cn$escapes, 0L)              # no natural point is in a polygon (the 60 ha one is not)
   expect_equal(cn$areaBurnedHa, 100 + 50, tolerance = 0.03)
   expect_equal(cn$areaBurnedHaAllCause, 100 + 50 + 200, tolerance = 0.03)
   expect_identical(cn$nFires50, 2L)             # 100 ha and the 50 ha half
@@ -51,7 +51,26 @@ test_that("hindcastObserved returns the year's natural ignition points in the co
   expect_true(all(o$points$YEAR == 2000L & o$points$CAUSE %in% c("L", "N")))
   expect_setequal(round(terra::crds(o$points)[, 1]), c(1000, 2000, 3000))
   expect_identical(terra::crs(o$points), terra::crs(toyCore()))
-  expect_identical(sum(o$points$SIZE_HA >= 50), o$counts$escapes)
+  expect_identical(sum(o$points$escaped), o$counts$escapes)
+})
+
+test_that("hindcastObserved's escapes are the natural ignitions that became a polygon of at least escapeSizeHa", {
+  ## toyPoints() moved: x and y of its six points
+  moved <- function(x, y) terra::vect(cbind(x, y), crs = "EPSG:3978", atts = as.data.frame(toyPoints()))
+  ## the 10 ha point into the 100 ha natural polygon, the 5 ha point into the human 200 ha one
+  p <- moved(c(1000, 2000, 1000, 8000, 1500, 1500), c(1000, 5500, 8000, 5500, 5500, 5500))
+  o <- hindcastObserved(toyCore(), p, toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
+  expect_identical(o$counts$escapes, 2L)        # a polygon of any cause; the 60 ha point is in none
+  expect_identical(o$points$escaped[order(o$points$SIZE_HA)], c(TRUE, TRUE, FALSE))
+  ## one escape per polygon: the 60 ha point joins the 10 ha one in the 100 ha polygon and is chosen
+  p <- moved(c(1000, 1200, 1000, 8000, 1500, 1500), c(1000, 1200, 8000, 5500, 5500, 5500))
+  o <- hindcastObserved(toyCore(), p, toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
+  expect_identical(o$counts$escapes, 2L)
+  expect_identical(o$points$escaped[order(o$points$SIZE_HA)], c(TRUE, FALSE, TRUE))
+  ## the 2001 natural point in the 2001 polygon escapes in 2001
+  p <- moved(c(1000, 2000, 3000, 8000, 1500, 1000), c(5500, 5500, 5500, 5500, 5500, 3500))
+  expect_identical(hindcastObserved(toyCore(), p, toyPolys(), year = 2001, pixelAreaHa = 5.76)$counts$escapes, 1L)
+  expect_identical(hindcastObserved(toyCore(), p, toyPolys(), year = 2000, pixelAreaHa = 5.76)$counts$escapes, 0L)
 })
 
 test_that("hindcastObserved takes the list of annual polygons the simulation holds", {

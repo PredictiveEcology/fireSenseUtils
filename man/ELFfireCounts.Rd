@@ -50,8 +50,9 @@ ELF), in the CRS of \code{rasWhole}, with a logical column \code{escaped}.
 }
 \description{
 Counts natural-cause ignitions, escaped natural ignitions and fire polygons falling in
-each ELF's fitting area (core plus buffer), per year. An escaped ignition is one that
-\code{\link[=escapedFires]{escapedFires()}} keeps: the escape and spread fits use only these.
+each ELF's fitting area (core plus buffer), per year. Here an escaped ignition is one whose
+reported size \code{\link[=escapedFires]{escapedFires()}} keeps, a proxy that needs no polygons: the escape fit and the hindcast
+use \code{\link[=escapedIgnitions]{escapedIgnitions()}}, the ignitions that became a fire polygon of at least \code{escapeSizeHa}.
 }
 \details{
 Points are counted on the grid of \code{rasWhole} with a single \code{\link[terra:cellFromXY]{terra::cellFromXY()}}

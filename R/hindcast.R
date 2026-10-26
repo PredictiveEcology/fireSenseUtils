@@ -1,15 +1,15 @@
 ## Hindcast validation: what happened in the ELF core in one year, and figures that set the simulated
 ## rep-years beside it. The simulated side comes from fireSense_summary (per-rep rows written by its
 ## `hindcast` event); the observed side is computed here with the fit's own definitions, by calling the
-## helpers the ELF gate uses (`ELFfireCounts()`, `ELFfireOverlay()`, `escapedFires()`).
+## helpers the ELF gate and the escape fit use (`ELFfireCounts()`, `ELFfireOverlay()`, `escapedIgnitions()`).
 
 #' Observed fire in an ELF core in one year
 #'
 #' What the hindcast simulation is compared with: natural-cause ignitions, escapes, area burned and the fire
 #' sizes of `year`, all inside the ELF core (the buffer is excluded). Ignitions and escapes are
-#' [ELFfireCounts()] on the core, so they use the fit's definitions: NFDB points with `CAUSE` in
-#' `naturalCauses` of any size are ignitions, and those that [escapedFires()] keeps (larger than a pixel and
-#' at least `escapeSizeHa`) are escapes. Area burned is the core-clipped area of the fire polygons
+#' counted on the core with the fit's definitions: NFDB points with `CAUSE` in `naturalCauses` of any size
+#' are ignitions ([ELFfireCounts()]), and those that [escapedIgnitions()] marks (one per fire polygon of the
+#' year of at least `escapeSizeHa` and larger than a pixel) are escapes. Area burned is the core-clipped area of the fire polygons
 #' ([ELFfireOverlay()]), given for the natural-cause polygons and for polygons of every cause, because the
 #' simulation ignites natural fires only but the spread model was fitted to polygons of every cause.
 #'
@@ -62,14 +62,20 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   inCore <- function(o) o$ha[o$zone == "core"]
   big <- function(o) as.integer(sum(inCore(o) >= escapeSizeHa))
 
+  ## escapes as the escape fit defines them: natural ignitions that became a polygon of the year
+  naturalPts <- firePoints[firePoints$CAUSE %in% naturalCauses, ]
+  yearPolys <- if (!is.null(firePolys)) firePolys[as.integer(firePolys$YEAR) == year, ]
+  naturalPts$.escaped <- escapedIgnitions(naturalPts, yearPolys, escapeSizeHa, pixelAreaHa)
   ## the polygons are not counted here, so the all-cause overlay only satisfies the signature
-  pts <- ELFfireCounts(core, firePoints, firePolys = NULL, fireYears = year, pixelAreaHa = pixelAreaHa,
+  pts <- ELFfireCounts(core, naturalPts, firePolys = NULL, fireYears = year, pixelAreaHa = pixelAreaHa,
                        naturalCauses = naturalCauses, escapeSizeHa = escapeSizeHa, overlay = allCause,
                        returnPoints = TRUE)
+  pts$points$escaped <- pts$points$.escaped
+  pts$points$.escaped <- NULL
   sizesOf <- function(cause, o) data.table::data.table(cause = rep(cause, length(inCore(o))), ha = inCore(o))
   list(
     counts = data.table::data.table(
-      year = as.integer(year), ignitions = pts$counts$naturalIgnitions, escapes = pts$counts$escapes,
+      year = as.integer(year), ignitions = pts$counts$naturalIgnitions, escapes = sum(pts$points$escaped),
       areaBurnedHa = if (noCause) NA_real_ else sum(inCore(natural)),
       areaBurnedHaAllCause = sum(inCore(allCause)),
       nFires50 = if (noCause) NA_integer_ else big(natural),

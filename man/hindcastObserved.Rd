@@ -51,9 +51,9 @@ polygons (not clipped; \code{NULL} without polygons or a cause column), to draw 
 \description{
 What the hindcast simulation is compared with: natural-cause ignitions, escapes, area burned and the fire
 sizes of \code{year}, all inside the ELF core (the buffer is excluded). Ignitions and escapes are
-\code{\link[=ELFfireCounts]{ELFfireCounts()}} on the core, so they use the fit's definitions: NFDB points with \code{CAUSE} in
-\code{naturalCauses} of any size are ignitions, and those that \code{\link[=escapedFires]{escapedFires()}} keeps (larger than a pixel and
-at least \code{escapeSizeHa}) are escapes. Area burned is the core-clipped area of the fire polygons
+counted on the core with the fit's definitions: NFDB points with \code{CAUSE} in \code{naturalCauses} of any size
+are ignitions (\code{\link[=ELFfireCounts]{ELFfireCounts()}}), and those that \code{\link[=escapedIgnitions]{escapedIgnitions()}} marks (one per fire polygon of the
+year of at least \code{escapeSizeHa} and larger than a pixel) are escapes. Area burned is the core-clipped area of the fire polygons
 (\code{\link[=ELFfireOverlay]{ELFfireOverlay()}}), given for the natural-cause polygons and for polygons of every cause, because the
 simulation ignites natural fires only but the spread model was fitted to polygons of every cause.
 }
