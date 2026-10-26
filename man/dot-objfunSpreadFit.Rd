@@ -117,22 +117,23 @@ then spreads with the fitted probabilities. So the spread model is fitted as "gi
 stuck below the escape size (no burnable neighbour left) can jump to nearby burnable land. \code{jumpTries}
 is how many times it may try, \code{jumpMeanDist} the mean jump distance in pixels. \code{0} (default) is off.}
 
-\item{yearAreaWeight, areaDistWeight}{Deprecated and ignored, with a warning unless \code{0}: the objective
-no longer has the annual-area (\code{yearAreaNLL()}) or area-weighted size-distribution
-(\code{areaWeightedCvM()}) terms. Both scored fires cut at the buffers at the size they had reached, so
-they depended on the buffers and biased the fit; the functions are kept for diagnostics.}
+\item{yearAreaWeight}{Weight of the annual-area term: each fit year's observed area burned scored against
+that year's simulated totals, one per replicate, with the per-fire size likelihood (\code{yearAreaNLL()}).
+\code{0} (default) leaves it out; \code{"auto"} is (number of fitted fires) / (number of fit years), so the year
+view and the per-fire view carry equal total weight.}
 
-\item{returnTerms}{Logical. \code{TRUE} returns the objective, the per-fire term (\code{SNLL_FS}) and the
-number of fitted fires (\code{nFires}), and two fields about the first block of years (the one \code{thresh}
-stops early): \code{firstBlockPerFire}, its per-fire term divided by its number of fires, as \code{thresh} is
-compared with it (so a trial with \code{thresh = Inf} reports what it would have been judged on), and
-\code{bailed}, 1 if a year of that block was refused as "too burny" or "not spread out enough" or the
-block was above \code{thresh} or \code{pruneAbove}, else 0.}
+\item{areaDistWeight}{Weight of the area-weighted size-distribution term (\code{areaWeightedCvM()}), which
+compares simulated and observed fires by the share of area burned they make up. \code{0} (default) leaves
+it out; \code{"auto"} uses the AD term's weight, \code{adWeightAuto()}.}
 
-\item{tests}{One or more of \code{"mad"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}, the per-fire
-kernel log score (\code{\link[=kernelLogScore]{kernelLogScore()}}) summed over the fitted fires. \code{"adTest"}, the pooled
-Anderson-Darling test of all simulated against all observed sizes, is deprecated and ignored, with a
-warning: it ranked fires cut at the buffers among the observed ones, so it depended on the buffers.}
+\item{returnTerms}{Logical. \code{TRUE} returns the objective with each term separately (diagnostics),
+and two fields about the first block of years (the one \code{thresh} stops early): \code{firstBlockPerFire},
+its per-fire term divided by its number of fires, as \code{thresh} is compared with it (so a trial with
+\code{thresh = Inf} reports what it would have been judged on), and \code{bailed}, 1 if a year of that block
+was refused as "too burny" or "not spread out enough" or the block was above \code{thresh} or
+\code{pruneAbove}, else 0.}
+
+\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"pitAD"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}. \code{"pitAD"} is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates (\code{\link[=pitMidRank]{pitMidRank()}}), scored against Uniform(0, 1) (\code{\link[=adUniform]{adUniform()}}), weighted like \code{"adTest"} (\code{adWeight}).}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
@@ -187,14 +188,26 @@ Too high a threshold, and more years will be run and it will take longer to find
 of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.
 \code{\link[=spreadCovCentre]{spreadCovCentre()}} gives the centres to use with an intercept.}
 
-\item{weighted}{Should each fire's score be multiplied by a weight that grows with its
-observed size, to give large fires more influence? \code{FALSE}: no. \code{TRUE} or \code{"log"}:
+\item{weighted}{Should each fire's log-likelihood be multiplied by a weight that grows with its
+observed size, to give large fires more influence on the SNLL? \code{FALSE}: no. \code{TRUE} or \code{"log"}:
 \code{log(size)}. \code{"sqrt"}: \code{sqrt(size)}. Weights are divided by their mean over the fitted fires, so
-the term keeps its scale.}
+the SNLL keeps its scale against the other tests.}
 
-\item{sizeLik, sizeLikDf, adWeight}{Ignored. They chose the per-fire likelihood (a kernel density or a
-Student-t on the square-root scale) and the weight of the \code{"adTest"} term; the per-fire term is now
-the kernel log score on the log scale (\code{\link[=kernelLogScore]{kernelLogScore()}}), and there is no \code{"adTest"} term.}
+\item{sizeLik}{How a fire's likelihood is taken from its \code{Nreps} simulated sizes, on the
+square-root scale. \code{"kde"} (default): their kernel density at the observed size
+(\code{\link[EnvStats:demp]{EnvStats::demp()}}); it is zero away from the simulated sizes, so a fire they never reach
+scores the \code{minLik} floor however far off it is. \code{"t"}: a Student-t centred on their mean with
+their standard deviation as scale; no floor, and a miss costs more the further it is.
+\code{"kernel"}: the kernel log score on the log scale (\code{\link[=kernelLogScore]{kernelLogScore()}}), non-negative, 0 for a
+perfect prediction; the \code{"auto"} weights and the annual-area term then use \code{"kde"}.}
+
+\item{sizeLikDf}{Degrees of freedom of the Student-t when \code{sizeLik = "t"}. Default 5. Lower
+values forgive a missed fire more.}
+
+\item{adWeight}{What the \code{"adTest"} statistic is multiplied by before it is added to the fire-size
+SNLL. \code{"auto"} (default) uses \code{\link[=adWeightAuto]{adWeightAuto()}}, which gives the two terms about equal influence
+for any \code{sizeLik} and \code{weighted}. A number is used as given; the former fixed default, \code{50},
+balanced the two only for \code{sizeLik = "kde"} with \code{weighted = FALSE}.}
 
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
@@ -230,21 +243,25 @@ cells included). A year the objective declines to simulate is \code{NULL}. For
 
 \item{penaliseRunaways}{A simulated fire that burns an open edge pixel of any of its year's buffers
 (a buffer pixel next to flammable land outside every buffer, see \code{\link[=bufferOpen]{bufferOpen()}}) is cut: it would
-have kept burning, so it is "at least this big", and contributes no density to its fire's score
-(\code{\link[=kernelLogScore]{kernelLogScore()}}). That is always so. \code{TRUE} (default) also stops such a fire at the first open
-pixel of its own buffer (\code{SpaDES.tools::spreadCpp(stopCells =)}), as nothing it burns after that is
-scored; \code{FALSE} lets it burn on. Not with \code{returnSims = TRUE}: the simulated sizes are returned as
-simulated. Fires are not capped at any size: spread is bounded only by the year's buffers. The open
-pixels are found once per fit (\code{runDEoptim()} adds \code{edge} and \code{open} columns to
-\code{fireBufferedListDT}, \code{\link[=addBufferEdge]{addBufferEdge()}}), or here, for a table without them.}
+have kept burning, so it is "at least this big". In the per-fire size likelihood a cut replicate has
+no density at the observed size (the likelihood is that of the other replicates times their share;
+0, i.e. \code{minLik}, if fewer than two remain). The other size-based terms (\code{"adTest"},
+\code{yearAreaWeight}, \code{areaDistWeight}, \code{"mad"}) score the size it burned. That is always so. \code{TRUE}
+(default) also stops such a fire at the first open pixel of its own buffer
+(\code{SpaDES.tools::spreadCpp(stopCells =)}), as nothing it burns after that is scored; \code{FALSE} lets it
+burn on. Not with \code{returnSims = TRUE}: the simulated sizes are returned as simulated. Fires are not
+capped at any size: spread is bounded only by the year's buffers. The per-fire likelihood is floored
+at \code{minLik} (1e-29), which bounds the penalty per fire. The open pixels are found once per fit
+(\code{runDEoptim()} adds \code{edge} and \code{open} columns to \code{fireBufferedListDT}, \code{\link[=addBufferEdge]{addBufferEdge()}}), or here,
+for a table without them.}
 
 \item{runawayEdgeFrac, runawayEdgeMin}{Ignored. A replicate was a runaway when it burned at least
 \code{max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))} of the \code{n} edge pixels of its own buffer, open or
 not; it is now cut at the first open pixel of any buffer of its year.}
 
-\item{runawaySize, runawayBufferMultiple}{Deprecated and ignored, with a warning unless \code{NULL}: they
-set the size a runaway counted as in the size-distribution and area terms, which are gone. A cut
-replicate has no size in the per-fire score.}
+\item{runawaySize, runawayBufferMultiple}{Ignored, with a warning unless \code{NULL}: they set the size a
+runaway counted as in the size-distribution and area terms. A cut replicate is scored at the size it
+reached.}
 
 \item{fitYearSpreadSD}{If \code{TRUE}, the last element of \code{par} is the sd of a per-year random effect on
 the logit of spread probability, a seasonal departure: in each replicate the year draws one
@@ -261,10 +278,9 @@ The removed arguments \code{capSizes} and \code{penaliseCapHits} arrive here: th
 deprecation warning (fires are no longer capped at a size; use \code{penaliseRunaways}).}
 }
 \value{
-With \code{tests = "snll_fs"}: the sum over the fitted fires of their kernel log scores
-(\code{\link[=kernelLogScore]{kernelLogScore()}}, times the \code{weighted} weights), non-negative, lower is better; \code{1e6} (plus
-nothing else) when the first block of years stops early. See \code{returnTerms} and \code{returnSims} for the
-other forms.
+Attempting a weighted likelihood,
+\url{https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation}.
+With \code{log(fireSize) * likelihood} for each fire.
 }
 \description{
 Objective function for \code{fireSense_spreadFit} module

@@ -1,6 +1,6 @@
 ## objFunInner() returns `ret` unconditionally, but only built it inside
-## `if (isTRUE(doFitting))`. doFitting is `any(c(doSNLL_FSTest, doMADTest))`
-## (and `doADTest`, then), so with no test selected -- which is exactly how
+## `if (isTRUE(doFitting))`. doFitting is `any(c(doSNLL_FSTest, doMADTest,
+## doADTest))`, so with no test selected -- which is exactly how
 ## fireSense_spreadFit's `debug` mode calls the chain, passing tests = "" -- the
 ## branch was skipped and the return failed with "object 'ret' not found". The
 ## comment at the far end of that branch ("Object ret doesn't exist") shows this
@@ -23,7 +23,7 @@ test_that("objFunInner returns a list when no test was asked for", {
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.1, cells = integer(4), lanscape1stQuantileThresh = 0.1,
     weighted = TRUE, r = NULL, Nreps = 1L,
-    doSNLL_FSTest = FALSE, doMADTest = FALSE,
+    doSNLL_FSTest = FALSE, doMADTest = FALSE, doADTest = FALSE,
     plot.it = FALSE, verbose = 0
   )
   expect_type(out, "list")

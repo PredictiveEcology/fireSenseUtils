@@ -10,7 +10,7 @@ r10 <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 10, ymin = 0, ymax =
 pix <- c(23L, 24L, 25L, 34L, 35L)
 
 callInner <- function(sp, cells = numeric(100), loci = 24L, lanscape1stQuantileThresh = 0.25,
-                      spreadReturns = NULL, size = 50) {
+                      spreadReturns = NULL) {
   captured <- NULL
   local_mocked_bindings(
     paramsSeparate = function(...) list(logisticPars = c(0.27, 1, 1), covPars = 1),
@@ -31,16 +31,15 @@ callInner <- function(sp, cells = numeric(100), loci = 24L, lanscape1stQuantileT
   out <- tryCatch(
     fireSenseUtils:::objFunInner(
       yr = "2004", annDTx1000 = NULL, par = 1, parsModel = NULL,
-      annualFires = data.table::data.table(cells = loci, size = size, ids = 1L),
+      annualFires = data.table::data.table(cells = loci, size = 50, ids = 1L),
       nonAnnualDTx1000 = NULL,
-      ## the whole landscape is the fire's buffer: no open edge, so no replicate is cut
-      annualFireBufferedDT = data.table::data.table(ids = 1L, pixelID = 1:100, buffer = 1L),
+      annualFireBufferedDT = data.table::data.table(ids = 1L, pixelID = 24L, buffer = 1L),
       indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL,
       mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
       lowerSpreadProb = 0.13, cells = cells,
       lanscape1stQuantileThresh = lanscape1stQuantileThresh,
       weighted = TRUE, r = r10, Nreps = 2L,
-      doSNLL_FSTest = TRUE, doMADTest = FALSE,
+      doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
       plot.it = FALSE, verbose = 0
     ),
     reachedSpread = function(e) "reachedSpread"
@@ -80,17 +79,14 @@ test_that("what spread() burned comes back as landscape cell indices", {
   ## a fake spread() that burns the ignition and the crop cell to its right, every replicate
   burnTwo <- function(args) data.table::data.table(
     initialLocus = args$loci, indices = c(args$loci, args$loci + 1L), id = 1L, active = FALSE)
-  out <- callInner(sp, spreadReturns = burnTwo, size = 2)$out
-  ## observed size 2 against two replicates that each burned 2 cells: what matters here is that
+  out <- callInner(sp, spreadReturns = burnTwo)$out
+  ## observed size 50 against two replicates that each burned 2 cells: what matters here is that
   ## the join on the ignition's LANDSCAPE cell (24) found the simulated fires at all
   expect_type(out, "list")
   expect_true(is.finite(out$SNLL_FS))
-  missed <- callInner(sp, size = 2, spreadReturns = function(args) data.table::data.table(
+  missed <- callInner(sp, spreadReturns = function(args) data.table::data.table(
     initialLocus = 99L, indices = c(99L, 100L), id = 1L, active = FALSE))$out
-  expect_equal(out$SNLL_FS, 0)                     # every replicate burned the observed 2 cells
-  ## a fire with no simulated replicate has no density at its observed size: the ceiling, times the
-  ## fire's weight (weighted = TRUE: log(size))
-  expect_equal(missed$SNLL_FS, log(2) * fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE))
+  expect_false(isTRUE(all.equal(out$SNLL_FS, missed$SNLL_FS)))
 })
 
 test_that("a year that bails never reaches spread()", {
