@@ -31,10 +31,8 @@ jobs:
       ## devel. The CRAN metadata that caused it has moved on. If a pak
       ## resolve error naming Matrix ever returns, that workaround is the fix.
       dependencies: '"all"'
-      ## Legs beyond the org default 8. These still work and are
-      ## deliberate back-compat coverage, so they are preserved.
-      extra-config: |
-        [{"config": {"os": "ubuntu-latest", "nosuggests": false, "r": "oldrel-2"}}, {"config": {"os": "windows-latest", "nosuggests": false, "r": "oldrel-2"}}]
+      ## No oldrel-2 legs: LandR and clusters need R >= 4.5, so oldrel-1
+      ## (in the org default 8) is the oldest R tested and sets the floor.
       ## A PR with a `Depends-on: owner/repo#N` line: install that unmerged PR with its
       ## version raised by one (the post-merge bump), wait until its checks are green,
       ## and run release on ubuntu/windows/macOS only while it is still open.
