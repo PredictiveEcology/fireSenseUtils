@@ -15,7 +15,7 @@ Authors@R: c(
            role = c("aut"), comment = c(ORCID = "0000-0001-7397-2116"))
     )
 Depends:
-    R (>= 4.3)
+    R (>= 4.5)
 Imports:
     climateData,
     clusters (>= 0.0.80),
