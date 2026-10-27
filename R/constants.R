@@ -16,6 +16,9 @@
 #'     prefix on year-suffixed layer/column names (currently `"year"`).
 #'   - `youngAgeTxt`: `character(1)`. Name of the "young-age" cohort class
 #'     (currently `"youngAge"`).
+#'   - `burnableHaTxt`: `character(1)`. Name of the column of `spreadFirePoints`
+#'     holding each fire's burned area (ha) on the pixels the spread fit can burn,
+#'     the fit's target size (currently `"BURNABLE_HA"`).
 #'   - `ignitionsTxt`: `character(1)`. Name of the ignitions column
 #'     (currently `"ignitions"`).
 #'   - `escapesTxt`: `character(1)`. Name of the escapes column
@@ -63,7 +66,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadLinkOptions spreadPowerLawGamma spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadLinkOptions spreadPowerLawGamma spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -77,6 +80,9 @@ yearTxt <- "year"
 
 #' @export
 youngAgeTxt <- "youngAge"
+
+#' @export
+burnableHaTxt <- "BURNABLE_HA"
 
 #' @export
 treedWetlandTxt <- "treedWetland"

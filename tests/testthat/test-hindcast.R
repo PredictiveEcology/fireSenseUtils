@@ -28,8 +28,13 @@ toyPolys <- function() {
   v
 }
 
+## hindcastObserved() on toyCore() with every pixel flammable: burnable area is the polygon area.
+observedAllFlammable <- function(...) {
+  hindcastObserved(toyCore(), ..., flammableRTM = terra::setValues(terra::rast(toyCore()), 1))
+}
+
 test_that("hindcastObserved counts ignitions, escapes and core-clipped area with the fit's definitions", {
-  o <- hindcastObserved(toyCore(), toyPoints(), toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
+  o <- observedAllFlammable(toyPoints(), toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
   cn <- o$counts
   expect_identical(cn$year, 2000L)
   expect_identical(cn$ignitions, 3L)            # N, L, N in the core: not the outside one, the human one or 2001
@@ -44,8 +49,43 @@ test_that("hindcastObserved counts ignitions, escapes and core-clipped area with
   expect_true(all(o$polys$YEAR == 2000L & o$polys$FIRECAUS == "Natural"))
 })
 
+## Flammable everywhere except the first column (x 0-1000 m), which is in the core.
+toyFlammable <- function() {
+  r <- toyCore()
+  terra::setValues(r, ifelse(terra::colFromCell(r, seq_len(terra::ncell(r))) == 1, 0, 1))
+}
+
+## The simulation burns flammable pixels only, so a hindcast scored on whole polygons asked it for area it
+## cannot burn (ELF 10.3.1_2: 46% of observed area on burnable pixels, hindcast area ratio 0.06).
+test_that("hindcastObserved counts observed area and sizes on burnable pixels, and keeps the polygon area", {
+  o <- hindcastObserved(toyCore(), toyPoints(), toyPolys(), year = 2000, escapeSizeHa = 60, pixelAreaHa = 5.76,
+                        flammableRTM = toyFlammable())
+  cn <- o$counts
+  ## natural: the 100 ha polygon is half on the non-flammable column; the 50 ha core half of the other is flammable
+  expect_equal(cn$areaBurnedHa, 50 + 50, tolerance = 0.03)
+  expect_equal(cn$areaBurnedHaPolygon, 100 + 50, tolerance = 0.03)
+  ## all causes: the 200 ha human polygon is half on the non-flammable column too
+  expect_equal(cn$areaBurnedHaAllCause, 50 + 50 + 100, tolerance = 0.03)
+  expect_equal(cn$areaBurnedHaAllCausePolygon, 100 + 50 + 200, tolerance = 0.03)
+  ## fires of at least escapeSizeHa: on burnable pixels, and by polygon area
+  expect_identical(cn$nFires50, 0L)
+  expect_identical(cn$nFires50Polygon, 1L)
+  expect_identical(cn$nFires50AllCause, 1L)
+  expect_identical(cn$nFires50AllCausePolygon, 2L)
+  expect_equal(sort(o$sizes$ha[o$sizes$cause == "allCause"]), c(50, 50, 100), tolerance = 0.03)
+  expect_equal(sort(o$sizesPolygon$ha[o$sizesPolygon$cause == "allCause"]), c(50, 100, 200), tolerance = 0.03)
+  ## escapes stay the escape model's: ignitions that became a polygon of at least escapeSizeHa
+  expect_identical(cn$escapes, 0L)
+})
+
+test_that("hindcastObserved without flammableRTM counts every core pixel as burnable, with a warning", {
+  expect_warning(o <- hindcastObserved(toyCore(), toyPoints(), toyPolys(), year = 2000, pixelAreaHa = 5.76),
+                 "flammableRTM")
+  expect_equal(o$counts$areaBurnedHa, o$counts$areaBurnedHaPolygon)
+})
+
 test_that("hindcastObserved returns the year's natural ignition points in the core, with the counts' definition", {
-  o <- hindcastObserved(toyCore(), toyPoints(), toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
+  o <- observedAllFlammable(toyPoints(), toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
   expect_s4_class(o$points, "SpatVector")
   expect_equal(NROW(o$points), o$counts$ignitions)
   expect_true(all(o$points$YEAR == 2000L & o$points$CAUSE %in% c("L", "N")))
@@ -59,37 +99,37 @@ test_that("hindcastObserved's escapes are the natural ignitions that became a po
   moved <- function(x, y) terra::vect(cbind(x, y), crs = "EPSG:3978", atts = as.data.frame(toyPoints()))
   ## the 10 ha point into the 100 ha natural polygon, the 5 ha point into the human 200 ha one
   p <- moved(c(1000, 2000, 1000, 8000, 1500, 1500), c(1000, 5500, 8000, 5500, 5500, 5500))
-  o <- hindcastObserved(toyCore(), p, toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
+  o <- observedAllFlammable(p, toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
   expect_identical(o$counts$escapes, 2L)        # a polygon of any cause; the 60 ha point is in none
   expect_identical(o$points$escaped[order(o$points$SIZE_HA)], c(TRUE, TRUE, FALSE))
   ## one escape per polygon: the 60 ha point joins the 10 ha one in the 100 ha polygon and is chosen
   p <- moved(c(1000, 1200, 1000, 8000, 1500, 1500), c(1000, 1200, 8000, 5500, 5500, 5500))
-  o <- hindcastObserved(toyCore(), p, toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
+  o <- observedAllFlammable(p, toyPolys(), year = 2000, escapeSizeHa = 50, pixelAreaHa = 5.76)
   expect_identical(o$counts$escapes, 2L)
   expect_identical(o$points$escaped[order(o$points$SIZE_HA)], c(TRUE, FALSE, TRUE))
   ## the 2001 natural point in the 2001 polygon escapes in 2001
   p <- moved(c(1000, 2000, 3000, 8000, 1500, 1000), c(5500, 5500, 5500, 5500, 5500, 3500))
-  expect_identical(hindcastObserved(toyCore(), p, toyPolys(), year = 2001, pixelAreaHa = 5.76)$counts$escapes, 1L)
-  expect_identical(hindcastObserved(toyCore(), p, toyPolys(), year = 2000, pixelAreaHa = 5.76)$counts$escapes, 0L)
+  expect_identical(observedAllFlammable(p, toyPolys(), year = 2001, pixelAreaHa = 5.76)$counts$escapes, 1L)
+  expect_identical(observedAllFlammable(p, toyPolys(), year = 2000, pixelAreaHa = 5.76)$counts$escapes, 0L)
 })
 
 test_that("hindcastObserved takes the list of annual polygons the simulation holds", {
   p <- toyPolys()
   asList <- list(year2000 = p[p$YEAR == 2000L, ], year2001 = NULL, year2002 = p[p$YEAR == 2001L, ])
-  a <- hindcastObserved(toyCore(), toyPoints(), asList, year = 2000, pixelAreaHa = 5.76)
-  b <- hindcastObserved(toyCore(), toyPoints(), p, year = 2000, pixelAreaHa = 5.76)
+  a <- observedAllFlammable(toyPoints(), asList, year = 2000, pixelAreaHa = 5.76)
+  b <- observedAllFlammable(toyPoints(), p, year = 2000, pixelAreaHa = 5.76)
   expect_equal(a$counts, b$counts)
 })
 
 test_that("hindcastObserved reports a year without polygons as zero area, and a missing cause column as NA", {
-  o <- hindcastObserved(toyCore(), toyPoints(), toyPolys(), year = 1999, pixelAreaHa = 5.76)
+  o <- observedAllFlammable(toyPoints(), toyPolys(), year = 1999, pixelAreaHa = 5.76)
   expect_identical(o$counts$ignitions, 0L)
   expect_identical(o$counts$areaBurnedHa, 0)
   expect_identical(NROW(o$sizes), 0L)
 
   p <- toyPolys()
   p$FIRECAUS <- NULL
-  expect_warning(o2 <- hindcastObserved(toyCore(), toyPoints(), p, year = 2000, pixelAreaHa = 5.76), "FIRECAUS")
+  expect_warning(o2 <- observedAllFlammable(toyPoints(), p, year = 2000, pixelAreaHa = 5.76), "FIRECAUS")
   expect_true(is.na(o2$counts$areaBurnedHa))
   expect_equal(o2$counts$areaBurnedHaAllCause, 350, tolerance = 0.03)
 })
@@ -127,7 +167,7 @@ test_that("hindcastSimulated places pixels by their centres when the core is on 
 
 test_that("the hindcast figures are built from the simulated reps and the observed year", {
   skip_if_not_installed("ggplot2")
-  o <- hindcastObserved(toyCore(), toyPoints(), toyPolys(), year = 2000, pixelAreaHa = 5.76)
+  o <- observedAllFlammable(toyPoints(), toyPolys(), year = 2000, pixelAreaHa = 5.76)
   set.seed(1)
   reps <- data.table::data.table(ignitions = rpois(50, 3), escapes = rpois(50, 1),
                                  areaBurnedHa = rexp(50, 1 / 150), nFires50 = rpois(50, 1))

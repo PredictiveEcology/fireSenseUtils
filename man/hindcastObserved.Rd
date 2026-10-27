@@ -13,7 +13,8 @@ hindcastObserved(
   pixelAreaHa = prod(terra::res(coreRaster))/10000,
   naturalCauses = c("L", "N"),
   polyCauseCol = "FIRECAUS",
-  naturalPolyCauses = "Natural"
+  naturalPolyCauses = "Natural",
+  flammableRTM = NULL
 )
 }
 \arguments{
@@ -38,12 +39,19 @@ or 0 (\code{rasterToMatchELF} in the fireSense simulation).}
 of the result are \code{NA}, with a warning.}
 
 \item{naturalPolyCauses}{Values of \code{polyCauseCol} that are natural.}
+
+\item{flammableRTM}{\code{SpatRaster} of the pixels the simulation can burn (1; 0 or \code{NA} cannot burn), e.g.
+\code{flammableRTM} of the fireSense simulation. Projected to \code{coreRaster} (nearest) if on another grid.
+\code{NULL} counts every core pixel as burnable, with a warning.}
 }
 \value{
 A list. \code{counts} is a one-row \code{data.table}: \code{year}, \code{ignitions}, \code{escapes}, \code{areaBurnedHa}
-(natural-cause polygons in the core), \code{areaBurnedHaAllCause}, \code{nFires50} and \code{nFires50AllCause}
-(clipped pieces of at least \code{escapeSizeHa}). \code{sizes} is a \code{data.table} of the clipped pieces, with
-\code{cause} (\code{"natural"} or \code{"allCause"}) and \code{ha}. \code{polys} is the \code{SpatVector} of the year's natural-cause
+(natural-cause polygons on burnable core pixels), \code{areaBurnedHaAllCause}, \code{nFires50} and \code{nFires50AllCause}
+(fires with at least \code{escapeSizeHa} on burnable core pixels), and the same four measured on the polygons in
+the core: \code{areaBurnedHaPolygon}, \code{areaBurnedHaAllCausePolygon}, \code{nFires50Polygon}, \code{nFires50AllCausePolygon}.
+\code{sizes} is a \code{data.table} of each fire's area on burnable core pixels, with \code{cause} (\code{"natural"} or
+\code{"allCause"}) and \code{ha}; \code{sizesPolygon} is the same for the polygons clipped to the core.
+\code{polys} is the \code{SpatVector} of the year's natural-cause
 polygons (not clipped; \code{NULL} without polygons or a cause column), to draw on a map. \code{points} is the
 \code{SpatVector} of the natural ignition points that \code{counts$ignitions} counts (in the core's CRS, with
 \code{escaped}), the ignition locations the simulation is compared with.
@@ -53,7 +61,9 @@ What the hindcast simulation is compared with: natural-cause ignitions, escapes,
 sizes of \code{year}, all inside the ELF core (the buffer is excluded). Ignitions and escapes are
 counted on the core with the fit's definitions: NFDB points with \code{CAUSE} in \code{naturalCauses} of any size
 are ignitions (\code{\link[=ELFfireCounts]{ELFfireCounts()}}), and those that \code{\link[=escapedIgnitions]{escapedIgnitions()}} marks (one per fire polygon of the
-year of at least \code{escapeSizeHa} and larger than a pixel) are escapes. Area burned is the core-clipped area of the fire polygons
-(\code{\link[=ELFfireOverlay]{ELFfireOverlay()}}), given for the natural-cause polygons and for polygons of every cause, because the
+year of at least \code{escapeSizeHa} and larger than a pixel) are escapes. Area burned and fire sizes are the
+area of the fire polygons on the burnable pixels of the core (\code{flammableRTM}; \code{\link[=ELFfireOverlay]{ELFfireOverlay()}}), because
+the simulation burns only those; the polygon area in the core is kept in the \verb{*Polygon} columns and
+\code{sizesPolygon}. Both are given for the natural-cause polygons and for polygons of every cause, because the
 simulation ignites natural fires only but the spread model was fitted to polygons of every cause.
 }
