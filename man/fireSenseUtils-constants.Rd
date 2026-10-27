@@ -6,6 +6,7 @@
 \alias{nonNFColNamesTxt}
 \alias{yearTxt}
 \alias{youngAgeTxt}
+\alias{burnableHaTxt}
 \alias{treedWetlandTxt}
 \alias{treedWetlandAgbTxt}
 \alias{ignitionsTxt}
@@ -38,6 +39,9 @@ non-forest landcover columns when summing/aggregating across rows
 prefix on year-suffixed layer/column names (currently \code{"year"}).
 \item \code{youngAgeTxt}: \code{character(1)}. Name of the "young-age" cohort class
 (currently \code{"youngAge"}).
+\item \code{burnableHaTxt}: \code{character(1)}. Name of the column of \code{spreadFirePoints}
+holding each fire's burned area (ha) on the pixels the spread fit can burn,
+the fit's target size (currently \code{"BURNABLE_HA"}).
 \item \code{ignitionsTxt}: \code{character(1)}. Name of the ignitions column
 (currently \code{"ignitions"}).
 \item \code{escapesTxt}: \code{character(1)}. Name of the escapes column

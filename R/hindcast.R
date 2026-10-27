@@ -9,12 +9,17 @@
 #' sizes of `year`, all inside the ELF core (the buffer is excluded). Ignitions and escapes are
 #' counted on the core with the fit's definitions: NFDB points with `CAUSE` in `naturalCauses` of any size
 #' are ignitions ([ELFfireCounts()]), and those that [escapedIgnitions()] marks (one per fire polygon of the
-#' year of at least `escapeSizeHa` and larger than a pixel) are escapes. Area burned is the core-clipped area of the fire polygons
-#' ([ELFfireOverlay()]), given for the natural-cause polygons and for polygons of every cause, because the
+#' year of at least `escapeSizeHa` and larger than a pixel) are escapes. Area burned and fire sizes are the
+#' area of the fire polygons on the burnable pixels of the core (`flammableRTM`; [ELFfireOverlay()]), because
+#' the simulation burns only those; the polygon area in the core is kept in the `*Polygon` columns and
+#' `sizesPolygon`. Both are given for the natural-cause polygons and for polygons of every cause, because the
 #' simulation ignites natural fires only but the spread model was fitted to polygons of every cause.
 #'
 #' @param coreRaster `SpatRaster` of the ELF core on the simulation grid: cells outside the core are `NA`
 #'   or 0 (`rasterToMatchELF` in the fireSense simulation).
+#' @param flammableRTM `SpatRaster` of the pixels the simulation can burn (1; 0 or `NA` cannot burn), e.g.
+#'   `flammableRTM` of the fireSense simulation. Projected to `coreRaster` (nearest) if on another grid.
+#'   `NULL` counts every core pixel as burnable, with a warning.
 #' @param firePoints `SpatVector` of fire points with columns `YEAR`, `CAUSE` and `SIZE_HA`
 #'   (`ignitionFirePoints`).
 #' @param firePolys `SpatVector` of fire perimeters with column `YEAR`, or a list of them as
@@ -28,9 +33,12 @@
 #' @param naturalPolyCauses Values of `polyCauseCol` that are natural.
 #'
 #' @return A list. `counts` is a one-row `data.table`: `year`, `ignitions`, `escapes`, `areaBurnedHa`
-#'   (natural-cause polygons in the core), `areaBurnedHaAllCause`, `nFires50` and `nFires50AllCause`
-#'   (clipped pieces of at least `escapeSizeHa`). `sizes` is a `data.table` of the clipped pieces, with
-#'   `cause` (`"natural"` or `"allCause"`) and `ha`. `polys` is the `SpatVector` of the year's natural-cause
+#'   (natural-cause polygons on burnable core pixels), `areaBurnedHaAllCause`, `nFires50` and `nFires50AllCause`
+#'   (fires with at least `escapeSizeHa` on burnable core pixels), and the same four measured on the polygons in
+#'   the core: `areaBurnedHaPolygon`, `areaBurnedHaAllCausePolygon`, `nFires50Polygon`, `nFires50AllCausePolygon`.
+#'   `sizes` is a `data.table` of each fire's area on burnable core pixels, with `cause` (`"natural"` or
+#'   `"allCause"`) and `ha`; `sizesPolygon` is the same for the polygons clipped to the core.
+#'   `polys` is the `SpatVector` of the year's natural-cause
 #'   polygons (not clipped; `NULL` without polygons or a cause column), to draw on a map. `points` is the
 #'   `SpatVector` of the natural ignition points that `counts$ignitions` counts (in the core's CRS, with
 #'   `escaped`), the ignition locations the simulation is compared with.
@@ -41,26 +49,44 @@
 hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSizeHa = 50,
                              pixelAreaHa = prod(terra::res(coreRaster)) / 1e4,
                              naturalCauses = c("L", "N"), polyCauseCol = "FIRECAUS",
-                             naturalPolyCauses = "Natural") {
+                             naturalPolyCauses = "Natural", flammableRTM = NULL) {
   stopifnot(inherits(coreRaster, "SpatRaster"), inherits(firePoints, "SpatVector"),
             length(year) == 1L)
   if (is.list(firePolys)) {
     firePolys <- Filter(Negate(is.null), firePolys)
     firePolys <- if (length(firePolys)) do.call(rbind, unname(firePolys))
   }
-  ## the core is zone "core" (value 2) of a one-layer ELF raster, as ELFfireOverlay() reads it
-  core <- terra::ifel(!is.na(coreRaster) & coreRaster > 0, 2, 0)
-  names(core) <- "core"
+  ## a zone is "core" (value 2) of a one-layer ELF raster, as ELFfireOverlay() reads it
+  coreZone <- function(inZone) {
+    z <- terra::ifel(inZone, 2, 0)
+    names(z) <- "core"
+    z
+  }
+  inCoreRaster <- !is.na(coreRaster) & coreRaster > 0
+  core <- coreZone(inCoreRaster)
+  ## the burnable core: the pixels the simulation can burn, the zone its area and sizes are counted on
+  if (is.null(flammableRTM)) {
+    warning("flammableRTM not supplied: observed area counts every core pixel as burnable")
+    burnable <- core
+  } else {
+    if (!terra::compareGeom(flammableRTM, coreRaster, stopOnError = FALSE))
+      flammableRTM <- terra::project(flammableRTM, coreRaster, method = "near")
+    burnable <- coreZone(inCoreRaster & !is.na(flammableRTM) & flammableRTM > 0)
+  }
 
-  coreOverlay <- function(polys) if (is.null(polys)) .emptyOverlay() else ELFfireOverlay(core, polys, year)
-  allCause <- coreOverlay(firePolys)
+  overlay <- function(polys, zone) if (is.null(polys)) .emptyOverlay() else ELFfireOverlay(zone, polys, year)
   noCause <- !is.null(firePolys) && !polyCauseCol %in% names(firePolys)
   if (noCause) warning("firePolys has no column '", polyCauseCol, "': the natural-cause area is NA")
   naturalPolys <- if (is.null(firePolys) || noCause) NULL else
     firePolys[firePolys[[polyCauseCol]][, 1] %in% naturalPolyCauses & as.integer(firePolys$YEAR) == year, ]
-  natural <- coreOverlay(naturalPolys)
+  allCause <- overlay(firePolys, burnable)
+  natural <- overlay(naturalPolys, burnable)
+  allCausePolygon <- overlay(firePolys, core)
+  naturalPolygon <- overlay(naturalPolys, core)
   inCore <- function(o) o$ha[o$zone == "core"]
   big <- function(o) as.integer(sum(inCore(o) >= escapeSizeHa))
+  area <- function(o) if (noCause) NA_real_ else sum(inCore(o))
+  nBig <- function(o) if (noCause) NA_integer_ else big(o)
 
   ## escapes as the escape fit defines them: natural ignitions that became a polygon of the year
   naturalPts <- firePoints[firePoints$CAUSE %in% naturalCauses, ]
@@ -68,19 +94,21 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   naturalPts$.escaped <- escapedIgnitions(naturalPts, yearPolys, escapeSizeHa, pixelAreaHa)
   ## the polygons are not counted here, so the all-cause overlay only satisfies the signature
   pts <- ELFfireCounts(core, naturalPts, firePolys = NULL, fireYears = year, pixelAreaHa = pixelAreaHa,
-                       naturalCauses = naturalCauses, escapeSizeHa = escapeSizeHa, overlay = allCause,
+                       naturalCauses = naturalCauses, escapeSizeHa = escapeSizeHa, overlay = allCausePolygon,
                        returnPoints = TRUE)
   pts$points$escaped <- pts$points$.escaped
   pts$points$.escaped <- NULL
   sizesOf <- function(cause, o) data.table::data.table(cause = rep(cause, length(inCore(o))), ha = inCore(o))
+  sizes <- function(nat, all) data.table::rbindlist(list(sizesOf("natural", nat), sizesOf("allCause", all)))
   list(
     counts = data.table::data.table(
       year = as.integer(year), ignitions = pts$counts$naturalIgnitions, escapes = sum(pts$points$escaped),
-      areaBurnedHa = if (noCause) NA_real_ else sum(inCore(natural)),
-      areaBurnedHaAllCause = sum(inCore(allCause)),
-      nFires50 = if (noCause) NA_integer_ else big(natural),
-      nFires50AllCause = big(allCause)),
-    sizes = data.table::rbindlist(list(sizesOf("natural", natural), sizesOf("allCause", allCause))),
+      areaBurnedHa = area(natural), areaBurnedHaAllCause = sum(inCore(allCause)),
+      nFires50 = nBig(natural), nFires50AllCause = big(allCause),
+      areaBurnedHaPolygon = area(naturalPolygon), areaBurnedHaAllCausePolygon = sum(inCore(allCausePolygon)),
+      nFires50Polygon = nBig(naturalPolygon), nFires50AllCausePolygon = big(allCausePolygon)),
+    sizes = sizes(natural, allCause),
+    sizesPolygon = sizes(naturalPolygon, allCausePolygon),
     polys = naturalPolys,
     points = pts$points
   )
