@@ -18,8 +18,8 @@
 ##  - Prairie grassland, ecoprovince 10.2: `10.2` and `10.2.*`, not `10.20` or `10.1.*` (Eliot, 2026-10-20:
 ##    "These are like the arctic. We can decide if we want to fit these at some future date").
 .ELFsNotFittedTable <- data.frame(
-  pattern = c("^1\\.", "^2\\.", "^10\\.2(\\.|$)"),
-  reason = c("Arctic", "Arctic", "Prairie grassland"),
+  pattern = c("^1\\.", "^2\\.", "^10\\.2(\\.|$)", "^10\\.3\\.1_2$"),
+  reason = c("Arctic", "Arctic", "Prairie grassland", "Mostly farmland"),
   stringsAsFactors = FALSE)
 
 ## The patterns as one regular expression, for grep() on ids.
@@ -28,14 +28,15 @@
 #' ELFs permanently left out of fireSense
 #'
 #' ELFs of the Arctic (ecozones 1 and 2, ids `1.*` and `2.*`) and of the Prairie grassland (ecoprovince
-#' 10.2, ids `10.2` and `10.2.*`) are never fitted: [runELFs()] leaves them out of every list and map,
+#' 10.2, ids `10.2` and `10.2.*`) are never fitted, nor is `10.3.1_2`, which is mostly farmland that fireSense treats as
+#' non-flammable (82% of its core; 46% of its observed burned area is on burnable pixels): [runELFs()] leaves them out of every list and map,
 #' [fewFireELFs()] neither counts nor merges them, [ELFmergePlan()] neither merges them nor uses them as
 #' partners, and [plotELFs()] fills them as "not fitted" with the reason.
 #'
 #' @param ids ELF ids.
 #'
 #' @return `ELFsNotFitted()`: the ids in `ids` that are left out, named by the reason (`"Arctic"` or
-#'   `"Prairie grassland"`). `ELFsArctic()`: only the Arctic ones, unnamed.
+#'   `"Prairie grassland"` or `"Mostly farmland"`). `ELFsArctic()`: only the Arctic ones, unnamed.
 #'
 #' @export
 ELFsNotFitted <- function(ids) {
