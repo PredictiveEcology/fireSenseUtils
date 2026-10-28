@@ -349,7 +349,7 @@ test_that("fuelCovsToCoarse does not serve a static made for other pixels, templ
   check(staticCovs(c(2:9, 11:16), rep(1, 14)), terra::rast(terra::ext(0, 8000, 0, 2000), ncols = 16, nrows = 4,
                                                           crs = "EPSG:3978", vals = c(NA, rep(1, 63))), 2)
   check(staticCovs(c(2:9, 11:16), rep(1, 14)), tmpl, 4)
-  expect_false(fuelCovsStaticIsFor(st, c(2:5, 11:16), tmpl, which(!is.na(terra::values(tmpl, mat = FALSE))), 2))
+  expect_false(fuelCovsStaticIsFor(st, c(2:5, 11:16), tmpl, 2))
 })
 
 test_that("prepare_FuelCovsCoarse passes static on, and the result follows land cover that changed", {
@@ -363,4 +363,38 @@ test_that("prepare_FuelCovsCoarse passes static on, and the result follows land 
     pixelID = c(2:9, 11:16), rasTemplate = tmpl, fact = 2)))
   expect_equal(terra::values(changed), terra::values(coarseRef(staticCovs(2:6, rep(c(1, 0), length.out = 5)), tmpl, 2)))
   expect_false(isTRUE(all.equal(terra::values(same), terra::values(changed))))
+})
+
+## the call hands back the `static` it used, so a caller can keep it without checking it again
+test_that("the static handed back is the one passed in when it fits, and a rebuilt one when it does not", {
+  tmpl <- ignRas(c(NA, rep(1, 15)))
+  pix <- c(2:9, 11:16)
+  st <- fuelCovsStatic(pix, tmpl, fact = 2)
+  covs <- staticCovs(pix, rep(c(1, 0), 7))
+  r <- fuelCovsToCoarse(data.table::copy(covs), tmpl, 2, static = st)
+  expect_identical(attr(r, "static"), st)
+  expect_equal(terra::values(r), terra::values(coarseRef(data.table::copy(covs), tmpl, 2)))
+
+  ## land cover changed: the stale static is replaced by one made for this call's inputs
+  covs2 <- staticCovs(2:6, rep(c(1, 0), length.out = 5))
+  r2 <- fuelCovsToCoarse(data.table::copy(covs2), tmpl, 2, static = st)
+  expect_identical(attr(r2, "static"), fuelCovsStatic(2:6, tmpl, 2))
+  expect_true(fuelCovsStaticIsFor(attr(r2, "static"), 2:6, tmpl, 2))
+  expect_equal(terra::values(r2), terra::values(coarseRef(data.table::copy(covs2), tmpl, 2)))
+
+  ## without one it is made, and passing it back gives the same result
+  r3 <- fuelCovsToCoarse(data.table::copy(covs), tmpl, 2)
+  expect_identical(attr(r3, "static"), st)
+})
+
+test_that("prepare_FuelCovsCoarse hands back the static it used", {
+  tmpl <- ignRas(c(NA, rep(1, 15)))
+  st <- fuelCovsStatic(c(2:9, 11:16), tmpl, fact = 2)
+  local_mocked_bindings(fireSenseCovariatesCreate = function(pixelID, ...)
+    staticCovs(pixelID, rep(c(1, 0), length.out = length(pixelID))))
+  same <- prepare_FuelCovsCoarse(pixelID = c(2:9, 11:16), rasTemplate = tmpl, fact = 2, static = st)
+  expect_identical(attr(same, "static"), st)
+  changed <- prepare_FuelCovsCoarse(pixelID = 2:6, rasTemplate = tmpl, fact = 2, static = st)
+  expect_identical(attr(changed, "static"), fuelCovsStatic(2:6, tmpl, 2))
+  expect_true(inherits(changed, "SpatRaster"))
 })

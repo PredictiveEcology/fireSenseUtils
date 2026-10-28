@@ -19,7 +19,8 @@ fuel covariate data frame to a raster.}
 \item{static}{\code{NULL} (default: made here) or the result of \code{\link[=fuelCovsStatic]{fuelCovsStatic()}}.}
 }
 \value{
-a \code{SpatRaster}, one layer per covariate, aggregated by \code{fact}.
+a \code{SpatRaster}, one layer per covariate, aggregated by \code{fact}, with the \code{static} used as
+its attribute \code{"static"}.
 }
 \description{
 A pixel of \code{rasTemplate} without covariates (not flammable, e.g. water or rock) has no cover:
@@ -36,8 +37,10 @@ Which pixels have covariates, and which pixels of \code{rasTemplate} are not \co
 \code{covs$pixelID}, \code{rasTemplate} and \code{fact}. In a run these are the same every year (\code{covs} has a row
 for each row of \code{landcoverDT}), so \code{\link[=fuelCovsStatic]{fuelCovsStatic()}} makes them once and \code{static} passes them
 back. \code{static} is used only if it was made for these same \code{pixelID}s, template cells, template
-geometry and \code{fact};
+geometry and \code{fact} (\code{\link[=fuelCovsStaticIsFor]{fuelCovsStaticIsFor()}});
 otherwise it is ignored and rebuilt, so a changed template or \code{landcoverDT} is never served stale.
+The \code{static} used is returned as the attribute \code{"static"} of the result, so a caller keeps it
+with \code{static <- attr(result, "static")} and need not check it again.
 }
 
 \keyword{internal}

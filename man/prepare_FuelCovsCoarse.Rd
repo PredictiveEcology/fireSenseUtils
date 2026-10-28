@@ -24,7 +24,9 @@ year to skip rebuilding the parts that do not change; ignored if it was made for
 }
 \value{
 A \code{terra::SpatRaster} containing aggregated fuel covariate layers at the
-coarser spatial resolution defined by \code{fact}.
+coarser spatial resolution defined by \code{fact}. Its attribute \code{"static"} is the
+\code{\link[=fuelCovsStatic]{fuelCovsStatic()}} the call used: \code{static} itself if it fitted, otherwise the one made for this
+call. Keep it and pass it to the next call (see \code{\link[=fuelCovsToCoarse]{fuelCovsToCoarse()}}).
 }
 \description{
 Creates fuel covariate layers from tabular inputs using

@@ -246,7 +246,9 @@ prepare_ignitionClimate <- function(ignitionClimateList, fact, digest = NULL, us
 #'
 #' @return
 #' A `terra::SpatRaster` containing aggregated fuel covariate layers at the
-#' coarser spatial resolution defined by `fact`.
+#' coarser spatial resolution defined by `fact`. Its attribute `"static"` is the
+#' [fuelCovsStatic()] the call used: `static` itself if it fitted, otherwise the one made for this
+#' call. Keep it and pass it to the next call (see [fuelCovsToCoarse()]).
 #'
 #' @section Assumptions and required environment:
 #' The function assumes that the following are available:
@@ -302,21 +304,24 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact, static = NULL) {
 #' `covs$pixelID`, `rasTemplate` and `fact`. In a run these are the same every year (`covs` has a row
 #' for each row of `landcoverDT`), so [fuelCovsStatic()] makes them once and `static` passes them
 #' back. `static` is used only if it was made for these same `pixelID`s, template cells, template
-#' geometry and `fact`;
+#' geometry and `fact` ([fuelCovsStaticIsFor()]);
 #' otherwise it is ignored and rebuilt, so a changed template or `landcoverDT` is never served stale.
+#' The `static` used is returned as the attribute `"static"` of the result, so a caller keeps it
+#' with `static <- attr(result, "static")` and need not check it again.
 #'
 #' @param covs `data.table` with `pixelID` and one column per covariate.
 #' @param static `NULL` (default: made here) or the result of [fuelCovsStatic()].
 #' @inheritParams prepare_FuelCovsCoarse
-#' @return a `SpatRaster`, one layer per covariate, aggregated by `fact`.
+#' @return a `SpatRaster`, one layer per covariate, aggregated by `fact`, with the `static` used as
+#'   its attribute `"static"`.
 #' @keywords internal
 #' @export
 #' @importFrom data.table data.table rbindlist set
 #' @importFrom terra aggregate mask rast values
 fuelCovsToCoarse <- function(covs, rasTemplate, fact, static = NULL) {
   covNames <- setdiff(names(covs), "pixelID")
-  cells <- which(!is.na(terra::values(rasTemplate, mat = FALSE)))
-  if (!fuelCovsStaticIsFor(static, covs$pixelID, rasTemplate, cells, fact))
+  cells <- templateCells(rasTemplate)
+  if (!fuelCovsStaticIsFor(static, covs$pixelID, rasTemplate, fact, cells))
     static <- fuelCovsStatic(covs$pixelID, rasTemplate, fact, cells = cells)
   if (length(static$noCovs)) {
     noCover <- data.table(pixelID = static$noCovs)
@@ -327,7 +332,9 @@ fuelCovsToCoarse <- function(covs, rasTemplate, fact, static = NULL) {
   coarse <- terra::aggregate(SpaDES.tools::rastFromDF(covs, rasTemplate = rasTemplate),
                              fact = fact, fun = mean)
   hasCovs <- terra::aggregate(terra::rast(rasTemplate, nlyrs = 1), fact = fact)
-  terra::mask(coarse, terra::setValues(hasCovs, static$hasCovs))
+  coarse <- terra::mask(coarse, terra::setValues(hasCovs, static$hasCovs))
+  attr(coarse, "static") <- static
+  coarse
 }
 
 #' The part of [fuelCovsToCoarse()] that does not depend on the covariate values
@@ -341,8 +348,7 @@ fuelCovsToCoarse <- function(covs, rasTemplate, fact, static = NULL) {
 #'   `SpatRaster`, so it survives being saved with a `simList`.
 #' @export
 #' @importFrom terra aggregate rast values
-fuelCovsStatic <- function(pixelID, rasTemplate, fact,
-                           cells = which(!is.na(terra::values(rasTemplate, mat = FALSE)))) {
+fuelCovsStatic <- function(pixelID, rasTemplate, fact, cells = templateCells(rasTemplate)) {
   hasCovs <- terra::rast(rasTemplate, nlyrs = 1)
   hasCovs[pixelID] <- 1
   hasCovs <- terra::aggregate(hasCovs, fact = fact, fun = "max", na.rm = TRUE)
@@ -355,8 +361,28 @@ fuelCovsGeometry <- function(rasTemplate) {
   list(dim(rasTemplate), as.vector(terra::ext(rasTemplate)), terra::crs(rasTemplate))
 }
 
-## the guard: every input `static` was made from, compared with this call's
-fuelCovsStaticIsFor <- function(static, pixelID, rasTemplate, cells, fact) {
+## the cells of the template that are not NA
+templateCells <- function(rasTemplate) which(!is.na(terra::values(rasTemplate, mat = FALSE)))
+
+#' Was a `static` made for these inputs?
+#'
+#' The guard [fuelCovsToCoarse()] runs on the `static` it is given: `TRUE` only if `static` was made
+#' ([fuelCovsStatic()]) for the same `pixelID`s, the same non-`NA` cells of the template, the same
+#' template dimensions, extent and CRS, and the same `fact`. [fuelCovsToCoarse()] and
+#' [prepare_FuelCovsCoarse()] already run it and return the `static` they used, so a caller that keeps
+#' that one does not need this; it is for a caller that wants to know before the call.
+#'
+#' @param static `NULL` or the result of [fuelCovsStatic()].
+#' @param cells the non-`NA` cells of `rasTemplate`; found if not given.
+#' @inheritParams fuelCovsStatic
+#' @return `TRUE` or `FALSE`.
+#' @examples
+#' tmpl <- terra::rast(nrows = 4, ncols = 4, extent = c(0, 4000, 0, 4000), vals = 1)
+#' st <- fuelCovsStatic(1:12, tmpl, fact = 2)
+#' fuelCovsStaticIsFor(st, 1:12, tmpl, fact = 2)  # TRUE
+#' fuelCovsStaticIsFor(st, 1:8, tmpl, fact = 2)   # FALSE: other pixels have covariates
+#' @export
+fuelCovsStaticIsFor <- function(static, pixelID, rasTemplate, fact, cells = templateCells(rasTemplate)) {
   !is.null(static) && identical(static$fact, fact) && identical(static$pixelID, pixelID) &&
     identical(static$cells, cells) && identical(static$geometry, fuelCovsGeometry(rasTemplate))
 }

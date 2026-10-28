@@ -4,12 +4,7 @@
 \alias{fuelCovsStatic}
 \title{The part of \code{\link[=fuelCovsToCoarse]{fuelCovsToCoarse()}} that does not depend on the covariate values}
 \usage{
-fuelCovsStatic(
-  pixelID,
-  rasTemplate,
-  fact,
-  cells = which(!is.na(terra::values(rasTemplate, mat = FALSE)))
-)
+fuelCovsStatic(pixelID, rasTemplate, fact, cells = templateCells(rasTemplate))
 }
 \arguments{
 \item{pixelID}{the cells that have covariates (\code{covs$pixelID}).}
