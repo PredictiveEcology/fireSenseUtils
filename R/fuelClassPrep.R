@@ -796,51 +796,16 @@ fireSenseCovariatesCreate <- function(cohortData,
   set(spreadCovariates, NULL, "rowcheck", NULL)
   
   if (youngAge && nonForestCanBeYoungAge) {
-    dig1 <- .digestIfCaching(list(landcoverDT, flammableRTM), useCache) # only keys Cache()
-    
-    LCCras <- putBackIntoRaster(landcoverDT = landcoverDT, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-                                flammableMap = flammableRTM, # list(sim$flammableRTM2010, sim$flammableRTM2020),
-                                lcc = names(nonForestedLCCGroups))
-    # LCCras <- Map(
-    #   f = putBackIntoRaster,
-    #   landcoverDT = landcoverDT, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-    #   flammableMap = flammableRTM, # list(sim$flammableRTM2010, sim$flammableRTM2020),
-    #   MoreArgs = list(lcc = names(nonForestedLCCGroups))
-    # ) |>
-    #   reproducible::Cache(.functionName = "putBackIntoRaster",
-    #         .cacheExtra = dig1, omitArgs = c("landcoverDT", "flammableMap"),
-    #         userTags = c("putBackIntoRaster", studyAreaName))
-    # dig1b <- reproducible::.robustDigest(list(LCCras))
-    
-    # LCCras <- Map(
-    #   f = calcNonForestYoungAge,
-    #   landcoverDT = landcoverDT, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-    #   NFTSD = nonForest_timeSinceDisturbances, # list(sim$nonForest_timeSinceDisturbance2010,
-    #   # sim$nonForest_timeSinceDisturbance2020),
-    #   LCCras = LCCras, #  list(LCCras[[1]], LCCras[[2]]),
-    #   MoreArgs = list(cutoffForYoungAge = cutoffForYoungAge)
-    # ) |>
-    #   reproducible::Cache(.cacheExtra = append(dig1), omitArgs = c("landcoverDT", "LCCras"))#, "flammableMap"),)
-    
-    LCCras <- calcNonForestYoungAge(
-      landcoverDT = landcoverDT, # list(sim$landcoverDT2010, sim$landcoverDT2020),
-      NFTSD = nonForest_timeSinceDisturbance, # list(sim$nonForest_timeSinceDisturbance2010,
-      # sim$nonForest_timeSinceDisturbance2020),
-      LCCras = LCCras, #  list(LCCras[[1]], LCCras[[2]]),
-      cutoffForYoungAge = cutoffForYoungAge
-    ) |>
-      reproducible::Cache(.cacheExtra = dig1, useCache = useCache, 
-                          omitArgs = c("landcoverDT", "LCCras"))#, "flammableMap"),)
-    
-    #for (i in names(fuelClasses)) {
+    ## only the youngAge layer is used, so it is built as a vector, not as a raster layer per class
+    youngNF <- nonForestYoungAgeValues(
+      flammableMap = flammableRTM,
+      pixelIDs = youngNonForestPixelIDs(landcoverDT, NFTSD = nonForest_timeSinceDisturbance,
+                                        cutoffForYoungAge = cutoffForYoungAge)
+    )
     if (youngAgeTxt %in% names(fuelClasses)) {
-
-      YA1 <- fuelClasses[[youngAgeTxt]]
-      YA2 <- terra::values(LCCras[[youngAgeTxt]])[fuelClasses$pixelID]
-      bothYA <- YA1 + YA2
-      fuelClasses[[youngAgeTxt]] <- bothYA
-    }  else {
-      fuelClasses[[youngAgeTxt]] <- LCCras[[youngAgeTxt]]
+      fuelClasses[[youngAgeTxt]] <- fuelClasses[[youngAgeTxt]] + youngNF[fuelClasses$pixelID]
+    } else {
+      fuelClasses[[youngAgeTxt]] <- youngNF[fuelClasses$pixelID]
     }
     # toKeep <- setdiff(names(LCCras), youngAgeTxt)
     # LCCras <- terra::subset(LCCras, toKeep) ## to avoid double-counting
@@ -1031,9 +996,9 @@ putBackIntoRaster <- function(lcc, landcoverDT, flammableMap) {
 #' @details
 #' The function proceeds as follows:
 #' 1. Determines the set of non-forest columns as all columns in `landcoverDT`
-#'    except `pixelID`, and computes a per-row sum (`sumRows`).
+#'    except `pixelID`, and computes a per-row sum.
 #' 2. Retrieves pixel ages from `NFTSD` using `pixelID` as indices.
-#' 3. Selects pixels where `sumRows > 0` **and** `age <= cutoffForYoungAge`;
+#' 3. Selects pixels where the row sum is above 0 **and** `age <= cutoffForYoungAge`;
 #'    these pixels are considered "young non-forest".
 #' 4. Sets those pixels to 0 in **every layer** of `LCCras` using cell indexing.
 #' 5. Builds a new single-layer raster with 1 at those pixel locations and 0
@@ -1058,8 +1023,7 @@ putBackIntoRaster <- function(lcc, landcoverDT, flammableMap) {
 #' - The function modifies `LCCras` in place (by reference to the object passed
 #'   in) and returns the modified raster with an extra `youngAge` layer.
 #' - `NA` cells in `LCCras` remain `NA` in the created `youngAge` layer.
-#' - The `landcoverDT` temporary columns `sumRows` and `age` are removed prior
-#'   to return.
+#' - `landcoverDT` is not modified.
 #'
 #' @param landcoverDT data.table.
 #'   A `data.table` containing a `pixelID` column of integer cell indices
@@ -1134,26 +1098,45 @@ putBackIntoRaster <- function(lcc, landcoverDT, flammableMap) {
 #' @importFrom terra rast values setValues
 #' @export
 calcNonForestYoungAge <- function(landcoverDT, NFTSD, LCCras, cutoffForYoungAge) {
-  nfLCC <- setdiff(colnames(landcoverDT), "pixelID")
-  landcoverDT[, sumRows := rowSums(.SD), .SDcols = nfLCC]
-  landcoverDT[, age := NFTSD[pixelID]]
   # this need to be chagned in LCCras and also converted to a youngAge raster
   # as the rasters will be aggregated
-  pixToChange <- landcoverDT[sumRows > 0 & isYoungAge(age, cutoffForYoungAge)]$pixelID
-  
-  landcoverDT[, c("sumRows", "age") := NULL]
-  
+  pixToChange <- youngNonForestPixelIDs(landcoverDT, NFTSD, cutoffForYoungAge)
+
   # check how terra works - this should change all pixels if length 2+ spat raster
   LCCras[pixToChange] <- 0
-  youngAge <- rast(LCCras, nlyrs = 1)
-  
-  temp <- values(LCCras[[1]])
-  temp[!is.na(temp)] <- 0
-  temp[pixToChange] <- 1
-  
-  youngAge <- setValues(youngAge, temp)
-  
+  youngAge <- terra::setValues(rast(LCCras, nlyrs = 1),
+                               nonForestYoungAgeValues(LCCras[[1]], pixToChange))
+
   LCCras$youngAge <- youngAge
-  
+
   return(LCCras)
+}
+
+#' Pixels that are young non-forest
+#'
+#' The `pixelID`s of the rows of `landcoverDT` that have any non-forest presence (a row sum of all
+#' columns but `pixelID` above 0) and whose age in `NFTSD` is young, see [isYoungAge()]. Used by
+#' [fireSenseCovariatesCreate()] and [calcNonForestYoungAge()].
+#'
+#' @inheritParams calcNonForestYoungAge
+#' @return integer or numeric vector of `pixelID`s.
+#' @keywords internal
+youngNonForestPixelIDs <- function(landcoverDT, NFTSD, cutoffForYoungAge) {
+  nfLCC <- setdiff(colnames(landcoverDT), "pixelID")
+  age <- as.vector(NFTSD)[landcoverDT$pixelID]
+  landcoverDT$pixelID[rowSums(landcoverDT[, nfLCC, with = FALSE]) > 0 & isYoungAge(age, cutoffForYoungAge)]
+}
+
+#' Values of a `youngAge` layer: 1 at `pixelIDs`, 0 elsewhere, `NA` where `flammableMap` is `NA`
+#'
+#' @param flammableMap `SpatRaster` template.
+#' @param pixelIDs cells to set to 1.
+#' @return numeric vector with one value per cell of `flammableMap`.
+#' @keywords internal
+#' @importFrom terra values
+nonForestYoungAgeValues <- function(flammableMap, pixelIDs) {
+  vals <- terra::values(flammableMap, mat = FALSE)
+  vals[!is.na(vals)] <- 0
+  vals[pixelIDs] <- 1
+  vals
 }

@@ -84,3 +84,98 @@ test_that("isYoungAge is the only place cutoffForYoungAge is compared", {
   hits <- hits[!grepl("age <= cutoffForYoungAge & !is.na(age)", hits, fixed = TRUE)]
   expect_length(hits, 0L)
 })
+
+## The young non-forest layer is built as a vector. The raster-per-class path it replaced
+## (putBackIntoRaster() then the youngAge layer of calcNonForestYoungAge()) gave the same values.
+youngNFLandscape <- function(ages) {
+  tmpl <- terra::rast(nrows = 4, ncols = 4, vals = 1)
+  tmpl[c(1, 6, 16)] <- NA                                    # cells outside the study area
+  list(
+    flammableRTM = tmpl,
+    ## two non-forest classes in the cells that are not NA in the template
+    landcoverDT = data.table::data.table(
+      pixelID = c(2:5, 7:15),
+      nfLCC_40 = c(1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0),
+      nfLCC_50 = c(0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1)
+    ),
+    NFTSD = ages
+  )
+}
+oldYoungAgeValues <- function(x, cutoff) {
+  lcc <- putBackIntoRaster(setdiff(names(x$landcoverDT), "pixelID"), data.table::copy(x$landcoverDT),
+                           x$flammableRTM)
+  terra::values(calcNonForestYoungAge(data.table::copy(x$landcoverDT), x$NFTSD, lcc, cutoff)$youngAge,
+                mat = FALSE)
+}
+
+test_that("the vector youngAge equals the youngAge layer of the raster path, with and without young pixels", {
+  for (ages in list(c(3, 20, 5, 15, 16, 2, 99, 1, 40, 14, 15, 80, 7, 8, 9, 10),   # some young
+                    rep(200, 16),                                                   # none young
+                    rep(1, 16),                                                     # all young
+                    c(NA, 3, NA, 5, 15, NA, 2, 99, 4, 100, 3, 3, 3, 3, 3, NA))) {  # NA ages
+    x <- youngNFLandscape(ages)
+    pix <- youngNonForestPixelIDs(x$landcoverDT, x$NFTSD, cutoffForYoungAge = 15)
+    expect_identical(nonForestYoungAgeValues(x$flammableRTM, pix), oldYoungAgeValues(x, 15))
+    expect_identical(names(x$landcoverDT), c("pixelID", "nfLCC_40", "nfLCC_50"))  # not modified
+  }
+})
+
+test_that("fireSenseCovariatesCreate flags young non-forest without making a raster layer per class", {
+  withr::local_package("terra")
+  withr::local_package("data.table")
+  local_mocked_bindings(putBackIntoRaster = function(...) stop("a raster per class is not needed"))
+  create <- function(ages) {
+    x <- youngNFLandscape(ages)
+    pgm <- rast(x$flammableRTM, vals = 0L)
+    cD <- data.table(pixelGroup = integer(), speciesCode = character(), age = integer(), B = integer())
+    covs <- suppressWarnings(fireSenseCovariatesCreate(
+      cohortData = cD, pixelGroupMap = pgm, flammableRTM = x$flammableRTM,
+      sppEquiv = data.table(LandR = character(), FuelClass = character()),
+      landcoverDT = x$landcoverDT, fuelClassCol = "FuelClass", sppEquivCol = "LandR",
+      missingLCCgroup = "nfLCC_40", nonForestedLCCGroups = c(nfLCC_40 = 40, nfLCC_50 = 50),
+      nonForest_timeSinceDisturbance = ages, cutoffForYoungAge = 15, nonForestCanBeYoungAge = TRUE,
+      studyAreaName = "test", useCache = FALSE
+    ))
+    setkey(covs, pixelID)
+    list(covs = covs, x = x)
+  }
+  ages <- c(3, 20, 5, 15, 16, 2, 99, 1, 40, 14, 15, 80, 7, 8, 9, 10)
+  r <- create(ages)
+  expect_equal(r$covs$youngAge, as.integer(ages[r$covs$pixelID] <= 15))
+  expect_gt(sum(r$covs$youngAge), 0)
+  expect_equal(sum(create(rep(200, 16))$covs$youngAge), 0)
+})
+
+test_that("fireSenseCovariatesCreate follows land cover and burnable pixels that change between calls", {
+  withr::local_package("terra")
+  withr::local_package("data.table")
+  ages <- c(3, 20, 5, 15, 16, 2, 99, 1, 40, 14, 15, 80, 7, 8, 9, 10)
+  x <- youngNFLandscape(ages)
+  pgm <- rast(x$flammableRTM, vals = 0L)
+  cD <- data.table(pixelGroup = integer(), speciesCode = character(), age = integer(), B = integer())
+  create <- function(landcoverDT, flammableRTM) {
+    covs <- suppressWarnings(fireSenseCovariatesCreate(
+      cohortData = cD, pixelGroupMap = pgm, flammableRTM = flammableRTM,
+      sppEquiv = data.table(LandR = character(), FuelClass = character()),
+      landcoverDT = landcoverDT, fuelClassCol = "FuelClass", sppEquivCol = "LandR",
+      missingLCCgroup = "nfLCC_40", nonForestedLCCGroups = c(nfLCC_40 = 40, nfLCC_50 = 50),
+      nonForest_timeSinceDisturbance = ages, cutoffForYoungAge = 15, nonForestCanBeYoungAge = TRUE,
+      studyAreaName = "test", useCache = FALSE
+    ))
+    setkey(covs, pixelID)
+    covs
+  }
+  first <- create(x$landcoverDT, x$flammableRTM)
+  ## other modules change land cover: pixels 2-5 become burnable but no longer in landcoverDT, and
+  ## pixels 10-15 are no longer burnable
+  lc2 <- x$landcoverDT[pixelID > 5]
+  rtm2 <- x$flammableRTM
+  rtm2[10:15] <- NA
+  lc2 <- lc2[pixelID < 10]
+  second <- create(lc2, rtm2)
+  expect_identical(first$pixelID, x$landcoverDT$pixelID)
+  expect_identical(second$pixelID, lc2$pixelID)
+  expect_equal(second$youngAge, as.integer(ages[lc2$pixelID] <= 15))
+  expect_false(identical(first$youngAge, second$youngAge))
+})
+
