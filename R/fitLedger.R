@@ -15,6 +15,7 @@
 #'   call form (`bufferOK = TRUE`): every row that intersects the study area, only
 #'   if together they cover it, gaps closed by a 10 km buffer. A study area that spans several
 #'   ELFs returns all their rows.
+#' * `writeFitLedger()` writes one row, replacing the ledger's row with the same `polygonID`.
 #' * `ledgerRowIndex()` and `ledgerFitForPolygon()` take rows already selected by area and
 #'   find the polygon's own row by `polygonID`. The ID is never used to select rows.
 #'
@@ -28,6 +29,7 @@
 #' @param fitFileSuffix The `fitFileSuffix` parameter of the fit modules.
 #' @param use `"read"` or `"write"`; matters for a spread ledger named `"latest"` only.
 #' @param ledger A `CacheGeoLedger`.
+#' @param row One ledger row to write: an `sf` object with `polygonID` ([polygonIDTxt]) and the fit columns.
 #' @param area The study area (`sf`, `sfc` or `SpatVector`).
 #' @param rows Ledger rows already selected for the study area, as [readFitLedger()] returns.
 #' @param polygonID The polygon (ELF) whose fit is wanted, `sim$.ELFind`.
@@ -35,7 +37,7 @@
 #'
 #' @return `spreadFitLedger()`, `ignitionFitLedger()`: a `CacheGeoLedger`, or `NULL` when a
 #'   spread `"latest"` read finds no file. `readFitLedger()`: an `sf` object, or `NULL` when no
-#'   row is selected. `ledgerRowIndex()`: the index in `rows` of the polygon's row, or `NA`.
+#'   row is selected. `writeFitLedger()`: the whole ledger after the write. `ledgerRowIndex()`: the index in `rows` of the polygon's row, or `NA`.
 #'   `ledgerFitForPolygon()`: that row (one-row data frame), or `NULL`.
 #' @export
 #' @rdname fitLedger
@@ -92,6 +94,19 @@ readFitLedger <- function(ledger, area) {
                                  destinationPath = ledger$destinationPath, domain = area,
                                  action = "nothing", bufferOK = TRUE, useCache = FALSE)
   if (NROW(rows)) rows else NULL
+}
+
+#' @export
+#' @rdname fitLedger
+writeFitLedger <- function(ledger, row) {
+  if (inherits(row, "SpatVector")) row <- sf::st_as_sf(row)
+  domain <- sf::st_sf(geometry = sf::st_geometry(row))
+  le <- function(x) x
+  ## the old CacheGeo() call form with action = "update": the row replaces the ledger's row with the
+  ## same polygonID (the key CacheGeo() sets when the rows have a polygonID column), or is added
+  reproducible::CacheGeo(targetFile = ledger$file, cloudFolderID = ledger$remote,
+                         destinationPath = ledger$destinationPath, domain = domain,
+                         FUN = le(row), le = le, row = row, action = "update")
 }
 
 #' @export

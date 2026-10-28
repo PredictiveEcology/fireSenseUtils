@@ -4,6 +4,7 @@
 \alias{spreadFitLedger}
 \alias{ignitionFitLedger}
 \alias{readFitLedger}
+\alias{writeFitLedger}
 \alias{ledgerRowIndex}
 \alias{ledgerFitForPolygon}
 \title{The shared fit ledgers: one constructor per ledger, one read, one row rule}
@@ -27,6 +28,8 @@ ignitionFitLedger(
 )
 
 readFitLedger(ledger, area)
+
+writeFitLedger(ledger, row)
 
 ledgerRowIndex(rows, polygonID)
 
@@ -53,6 +56,8 @@ fire years when \code{fireYears} is \code{NULL} or has no year.}
 
 \item{area}{The study area (\code{sf}, \code{sfc} or \code{SpatVector}).}
 
+\item{row}{One ledger row to write: an \code{sf} object with \code{polygonID} (\link{polygonIDTxt}) and the fit columns.}
+
 \item{rows}{Ledger rows already selected for the study area, as \code{\link[=readFitLedger]{readFitLedger()}} returns.}
 
 \item{polygonID}{The polygon (ELF) whose fit is wanted, \code{sim$.ELFind}.}
@@ -62,7 +67,7 @@ fire years when \code{fireYears} is \code{NULL} or has no year.}
 \value{
 \code{spreadFitLedger()}, \code{ignitionFitLedger()}: a \code{CacheGeoLedger}, or \code{NULL} when a
 spread \code{"latest"} read finds no file. \code{readFitLedger()}: an \code{sf} object, or \code{NULL} when no
-row is selected. \code{ledgerRowIndex()}: the index in \code{rows} of the polygon's row, or \code{NA}.
+row is selected. \code{writeFitLedger()}: the whole ledger after the write. \code{ledgerRowIndex()}: the index in \code{rows} of the polygon's row, or \code{NA}.
 \code{ledgerFitForPolygon()}: that row (one-row data frame), or \code{NULL}.
 }
 \description{
@@ -83,6 +88,7 @@ a local file named by their content, so the ledger has no remote.
 call form (\code{bufferOK = TRUE}): every row that intersects the study area, only
 if together they cover it, gaps closed by a 10 km buffer. A study area that spans several
 ELFs returns all their rows.
+\item \code{writeFitLedger()} writes one row, replacing the ledger's row with the same \code{polygonID}.
 \item \code{ledgerRowIndex()} and \code{ledgerFitForPolygon()} take rows already selected by area and
 find the polygon's own row by \code{polygonID}. The ID is never used to select rows.
 }

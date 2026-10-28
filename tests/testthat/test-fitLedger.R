@@ -107,3 +107,19 @@ test_that("ignitionFeatureNames gives the features the covariate table can have"
   ## responses, pixelID, year and yearChar are not features
   expect_identical(xgbFeatureNames(c("pixelID", "year", "yearChar", "ignitions", "escapes", "CMD")), "CMD")
 })
+
+test_that("writeFitLedger replaces the row of the same polygonID and adds new ones", {
+  testthat::skip_if_not_installed("reproducible", "3.2.1.9075")
+  d <- withr::local_tempdir()
+  led <- ignitionFitLedger("w.rds", NULL, d, 1986)
+  suppressMessages({
+    writeFitLedger(led, sq("E1", 0, 10))
+    all <- writeFitLedger(led, sq("E2", 10, 20))
+    expect_identical(ids(all), c("E1", "E2"))
+    r1 <- sq("E1", 0, 10); r1$params <- I(list(list(p = "new")))
+    all <- writeFitLedger(led, r1)
+    expect_identical(NROW(all), 2L)
+    expect_identical(all$params[all$polygonID == "E1"][[1]], list(p = "new"))
+    expect_identical(ids(readFitLedger(led, area(2, 8))), "E1")
+  })
+})
