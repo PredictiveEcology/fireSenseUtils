@@ -4,7 +4,7 @@
 \alias{prepare_FuelCovsCoarse}
 \title{Create and aggregate fuel covariate rasters to a coarse resolution}
 \usage{
-prepare_FuelCovsCoarse(..., rasTemplate, fact)
+prepare_FuelCovsCoarse(..., rasTemplate, fact, static = NULL)
 }
 \arguments{
 \item{...}{Arguments forwarded directly to
@@ -17,6 +17,10 @@ fuel covariate data frame to a raster.}
 
 \item{fact}{\code{numeric(1)} aggregation factor passed to
 \code{terra::aggregate(fact = ...)}, controlling the spatial coarsening scale.}
+
+\item{static}{\code{NULL} (default) or the result of \code{\link[=fuelCovsStatic]{fuelCovsStatic()}}, made once and passed in every
+year to skip rebuilding the parts that do not change; ignored if it was made for other
+\code{pixelID}s, template or \code{fact} (see \code{\link[=fuelCovsToCoarse]{fuelCovsToCoarse()}}).}
 }
 \value{
 A \code{terra::SpatRaster} containing aggregated fuel covariate layers at the

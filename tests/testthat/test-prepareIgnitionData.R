@@ -298,3 +298,69 @@ test_that("mergePreparedCovs' cache key includes the fuel and land-cover values"
   expect_true(all(merge(1)$class2 == 1))
   expect_true(all(merge(0.5)$class2 == 0.5))               # same digest, new fuel values: no stale hit
 })
+
+## fuelCovsToCoarse(): the pieces that do not depend on the covariate values can be made once
+## (fuelCovsStatic()) and passed back, but only when the call's own inputs are the ones they were made for.
+coarseRef <- function(covs, rasTemplate, fact) {
+  ## the computation before `static` existed
+  covNames <- setdiff(names(covs), "pixelID")
+  hasCovs <- terra::rast(rasTemplate, nlyrs = 1)
+  hasCovs[covs$pixelID] <- 1
+  hasCovs <- terra::aggregate(hasCovs, fact = fact, fun = "max", na.rm = TRUE)
+  noCovs <- setdiff(which(!is.na(terra::values(rasTemplate, mat = FALSE))), covs$pixelID)
+  if (length(noCovs)) {
+    noCover <- data.table::data.table(pixelID = noCovs)
+    for (cn in covNames) data.table::set(noCover, NULL, cn, if (cn %in% spreadIndicatorCols(covNames)) 0 else logMinB(0))
+    covs <- data.table::rbindlist(list(covs, noCover), use.names = TRUE)
+  }
+  terra::mask(terra::aggregate(SpaDES.tools::rastFromDF(covs, rasTemplate = rasTemplate),
+                               fact = fact, fun = mean), hasCovs)
+}
+staticCovs <- function(pixelID, class2) data.table::data.table(pixelID = pixelID, class2 = class2)
+
+test_that("fuelCovsToCoarse with static gives what it gave without, in any year", {
+  tmpl <- ignRas(c(NA, rep(1, 15)))
+  pix <- c(2:9, 11:16)
+  st <- fuelCovsStatic(pix, tmpl, fact = 2)
+  for (cl in list(rep(c(1, 0), 7), rep(0.5, 14), (1:14) / 14)) {
+    covs <- staticCovs(pix, cl)
+    expected <- coarseRef(data.table::copy(covs), tmpl, 2)
+    expect_equal(terra::values(fuelCovsToCoarse(data.table::copy(covs), tmpl, 2, static = st)),
+                 terra::values(expected))
+    expect_equal(terra::values(fuelCovsToCoarse(data.table::copy(covs), tmpl, 2)), terra::values(expected))
+  }
+  expect_identical(names(st$hasCovs), NULL)
+  expect_false(any(vapply(st, inherits, NA, what = "SpatRaster")))
+})
+
+test_that("fuelCovsToCoarse does not serve a static made for other pixels, template or fact", {
+  tmpl <- ignRas(c(NA, rep(1, 15)))
+  st <- fuelCovsStatic(c(2:9, 11:16), tmpl, fact = 2)
+  check <- function(covs, tmpl, fact) {
+    expect_equal(terra::values(fuelCovsToCoarse(data.table::copy(covs), tmpl, fact, static = st)),
+                 terra::values(coarseRef(data.table::copy(covs), tmpl, fact)))
+  }
+  ## land cover changed: the pixels with covariates are not the same
+  check(staticCovs(c(2:5, 11:16), rep(1, 10)), tmpl, 2)
+  ## burnable pixels changed: the template has other NAs
+  check(staticCovs(c(2:9, 11:16), rep(1, 14)), ignRas(c(NA, NA, rep(1, 14))), 2)
+  check(staticCovs(c(2:9, 11:16), rep(1, 14)), ignRas(c(rep(1, 8), NA, rep(1, 7))), 2)
+  ## another grid, and another aggregation factor
+  check(staticCovs(c(2:9, 11:16), rep(1, 14)), terra::rast(terra::ext(0, 8000, 0, 2000), ncols = 16, nrows = 4,
+                                                          crs = "EPSG:3978", vals = c(NA, rep(1, 63))), 2)
+  check(staticCovs(c(2:9, 11:16), rep(1, 14)), tmpl, 4)
+  expect_false(fuelCovsStaticIsFor(st, c(2:5, 11:16), tmpl, which(!is.na(terra::values(tmpl, mat = FALSE))), 2))
+})
+
+test_that("prepare_FuelCovsCoarse passes static on, and the result follows land cover that changed", {
+  tmpl <- ignRas(c(NA, rep(1, 15)))
+  st <- fuelCovsStatic(c(2:9, 11:16), tmpl, fact = 2)
+  local_mocked_bindings(fireSenseCovariatesCreate = function(pixelID, ...)
+    staticCovs(pixelID, rep(c(1, 0), length.out = length(pixelID))))
+  same <- prepare_FuelCovsCoarse(pixelID = c(2:9, 11:16), rasTemplate = tmpl, fact = 2, static = st)
+  changed <- prepare_FuelCovsCoarse(pixelID = 2:6, rasTemplate = tmpl, fact = 2, static = st)
+  expect_equal(terra::values(same), terra::values(prepare_FuelCovsCoarse(
+    pixelID = c(2:9, 11:16), rasTemplate = tmpl, fact = 2)))
+  expect_equal(terra::values(changed), terra::values(coarseRef(staticCovs(2:6, rep(c(1, 0), length.out = 5)), tmpl, 2)))
+  expect_false(isTRUE(all.equal(terra::values(same), terra::values(changed))))
+})

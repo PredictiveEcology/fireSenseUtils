@@ -45,9 +45,9 @@ template).
 The function proceeds as follows:
 \enumerate{
 \item Determines the set of non-forest columns as all columns in \code{landcoverDT}
-except \code{pixelID}, and computes a per-row sum (\code{sumRows}).
+except \code{pixelID}, and computes a per-row sum.
 \item Retrieves pixel ages from \code{NFTSD} using \code{pixelID} as indices.
-\item Selects pixels where \code{sumRows > 0} \strong{and} \code{age <= cutoffForYoungAge};
+\item Selects pixels where the row sum is above 0 \strong{and} \code{age <= cutoffForYoungAge};
 these pixels are considered "young non-forest".
 \item Sets those pixels to 0 in \strong{every layer} of \code{LCCras} using cell indexing.
 \item Builds a new single-layer raster with 1 at those pixel locations and 0
@@ -77,8 +77,7 @@ the age (in the same units as \code{cutoffForYoungAge}) for each cell.
 \item The function modifies \code{LCCras} in place (by reference to the object passed
 in) and returns the modified raster with an extra \code{youngAge} layer.
 \item \code{NA} cells in \code{LCCras} remain \code{NA} in the created \code{youngAge} layer.
-\item The \code{landcoverDT} temporary columns \code{sumRows} and \code{age} are removed prior
-to return.
+\item \code{landcoverDT} is not modified.
 }
 }
 \examples{

@@ -224,6 +224,9 @@ prepare_ignitionClimate <- function(ignitionClimateList, fact, digest = NULL, us
 #'   fuel covariate data frame to a raster.
 #' @param fact `numeric(1)` aggregation factor passed to
 #'   `terra::aggregate(fact = ...)`, controlling the spatial coarsening scale.
+#' @param static `NULL` (default) or the result of [fuelCovsStatic()], made once and passed in every
+#'   year to skip rebuilding the parts that do not change; ignored if it was made for other
+#'   `pixelID`s, template or `fact` (see [fuelCovsToCoarse()]).
 #'
 #' @details
 #' The function performs the following steps:
@@ -280,8 +283,8 @@ prepare_ignitionClimate <- function(ignitionClimateList, fact, digest = NULL, us
 #' @keywords fuel covariates raster aggregation
 #' @importFrom terra aggregate
 #' @export
-prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
-  fuelCovsToCoarse(fireSenseCovariatesCreate(...), rasTemplate = rasTemplate, fact = fact)
+prepare_FuelCovsCoarse <- function(..., rasTemplate, fact, static = NULL) {
+  fuelCovsToCoarse(fireSenseCovariatesCreate(...), rasTemplate = rasTemplate, fact = fact, static = static)
 }
 
 #' Rasterize fuel covariates and aggregate them to the coarse ignition grid
@@ -294,30 +297,69 @@ prepare_FuelCovsCoarse <- function(..., rasTemplate, fact) {
 #' A coarse cell with no pixel with covariates stays `NA`, and so do pixels that are `NA` in
 #' `rasTemplate` (outside the study area).
 #'
+#' @section Reusing the part that does not change:
+#' Which pixels have covariates, and which pixels of `rasTemplate` are not `NA`, depend only on
+#' `covs$pixelID`, `rasTemplate` and `fact`. In a run these are the same every year (`covs` has a row
+#' for each row of `landcoverDT`), so [fuelCovsStatic()] makes them once and `static` passes them
+#' back. `static` is used only if it was made for these same `pixelID`s, template cells, template
+#' geometry and `fact`;
+#' otherwise it is ignored and rebuilt, so a changed template or `landcoverDT` is never served stale.
+#'
 #' @param covs `data.table` with `pixelID` and one column per covariate.
+#' @param static `NULL` (default: made here) or the result of [fuelCovsStatic()].
 #' @inheritParams prepare_FuelCovsCoarse
 #' @return a `SpatRaster`, one layer per covariate, aggregated by `fact`.
 #' @keywords internal
 #' @export
 #' @importFrom data.table data.table rbindlist set
 #' @importFrom terra aggregate mask rast values
-fuelCovsToCoarse <- function(covs, rasTemplate, fact) {
+fuelCovsToCoarse <- function(covs, rasTemplate, fact, static = NULL) {
   covNames <- setdiff(names(covs), "pixelID")
-  hasCovs <- terra::rast(rasTemplate, nlyrs = 1)
-  hasCovs[covs$pixelID] <- 1
-  hasCovs <- terra::aggregate(hasCovs, fact = fact, fun = "max", na.rm = TRUE)
-  noCovs <- setdiff(which(!is.na(terra::values(rasTemplate, mat = FALSE))), covs$pixelID)
-  if (length(noCovs)) {
-    noCover <- data.table(pixelID = noCovs)
+  cells <- which(!is.na(terra::values(rasTemplate, mat = FALSE)))
+  if (!fuelCovsStaticIsFor(static, covs$pixelID, rasTemplate, cells, fact))
+    static <- fuelCovsStatic(covs$pixelID, rasTemplate, fact, cells = cells)
+  if (length(static$noCovs)) {
+    noCover <- data.table(pixelID = static$noCovs)
     indicators <- spreadIndicatorCols(covNames)
     for (cn in covNames) set(noCover, NULL, cn, if (cn %in% indicators) 0 else logMinB(0))
     covs <- rbindlist(list(covs, noCover), use.names = TRUE)
   }
   coarse <- terra::aggregate(SpaDES.tools::rastFromDF(covs, rasTemplate = rasTemplate),
                              fact = fact, fun = mean)
-  terra::mask(coarse, hasCovs)
+  hasCovs <- terra::aggregate(terra::rast(rasTemplate, nlyrs = 1), fact = fact)
+  terra::mask(coarse, terra::setValues(hasCovs, static$hasCovs))
 }
 
+#' The part of [fuelCovsToCoarse()] that does not depend on the covariate values
+#'
+#' @param pixelID the cells that have covariates (`covs$pixelID`).
+#' @param cells the cells of `rasTemplate` that are not `NA`; found if not given.
+#' @inheritParams fuelCovsToCoarse
+#' @return a list with the inputs it was made for (`pixelID`, `cells`, `fact`, `geometry`) and
+#'   `hasCovs`, the values of the coarse mask (1 where a coarse cell has a pixel with covariates,
+#'   otherwise `NA`), and `noCovs`, the non-`NA` template cells without covariates. It holds no
+#'   `SpatRaster`, so it survives being saved with a `simList`.
+#' @export
+#' @importFrom terra aggregate rast values
+fuelCovsStatic <- function(pixelID, rasTemplate, fact,
+                           cells = which(!is.na(terra::values(rasTemplate, mat = FALSE)))) {
+  hasCovs <- terra::rast(rasTemplate, nlyrs = 1)
+  hasCovs[pixelID] <- 1
+  hasCovs <- terra::aggregate(hasCovs, fact = fact, fun = "max", na.rm = TRUE)
+  list(pixelID = pixelID, cells = cells, fact = fact, geometry = fuelCovsGeometry(rasTemplate),
+       hasCovs = terra::values(hasCovs, mat = FALSE), noCovs = setdiff(cells, pixelID))
+}
+
+## what of the template, besides its non-NA cells, the coarse grid depends on
+fuelCovsGeometry <- function(rasTemplate) {
+  list(dim(rasTemplate), as.vector(terra::ext(rasTemplate)), terra::crs(rasTemplate))
+}
+
+## the guard: every input `static` was made from, compared with this call's
+fuelCovsStaticIsFor <- function(static, pixelID, rasTemplate, cells, fact) {
+  !is.null(static) && identical(static$fact, fact) && identical(static$pixelID, pixelID) &&
+    identical(static$cells, cells) && identical(static$geometry, fuelCovsGeometry(rasTemplate))
+}
 
 
 
@@ -357,6 +399,7 @@ prepare_FuelCovsCoarseByYear <- function(..., years, dataYear, nonForest_timeSin
   covNames <- setdiff(names(covs), "pixelID")
   fuelCols <- setdiff(covNames, c(grep("^nfLCC_", covNames, value = TRUE), treedWetlandTxt))
   exclusive <- youngAgeExclusiveCols(covNames, fuelCols)[[youngAgeTxt]]
+  static <- fuelCovsStatic(covs$pixelID, rasTemplate, fact)
   yearRasters <- lapply(years, function(yr) {
     covsYr <- copy(covs)
     young <- youngAgeAtYear(tsd, dataYear = dataYear, year = as.integer(gsub("[^0-9]", "", yr)),
@@ -365,7 +408,7 @@ prepare_FuelCovsCoarseByYear <- function(..., years, dataYear, nonForest_timeSin
     set(covsYr, NULL, youngAgeTxt, young)
     whYoung <- which(young == 1L)
     for (cn in exclusive) set(covsYr, whYoung, cn, if (cn %in% fuelCols) logMinB(0) else 0)
-    fuelCovsToCoarse(covsYr, rasTemplate = rasTemplate, fact = fact)
+    fuelCovsToCoarse(covsYr, rasTemplate = rasTemplate, fact = fact, static = static)
   })
   names(yearRasters) <- years
   yearRasters
