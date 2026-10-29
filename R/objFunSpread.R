@@ -1009,6 +1009,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         lociCrop <- crop$toCrop(loci)
       }
       spreadState <- lapply(seq_len(Nreps), function(i) {
+        ## each replicate copies the year's spreadProb vector (~70 MB on a large ELF) and R's heap growth lets the dead
+        ## copies pile up (peak 5.5 GB on a 2.25 GB worker); a young-generation gc each replicate keeps that down at
+        ## no measurable time cost (a full gc here is >15 times slower)
+        gc(full = FALSE)
         sp <- spreadProbCrop
         if (yearSpreadSD > 0) {
           sp[pixCrop] <- toP(lp + stats::rnorm(1, 0, yearSpreadSD))
