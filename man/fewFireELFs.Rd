@@ -59,7 +59,7 @@ region still smaller than \code{minRegionAreaKm2} with a similar neighbour (\cod
 (\code{\link[=ELFsNotFitted]{ELFsNotFitted()}}) are neither counted nor merged.
 }
 \details{
-The fire records are read with \code{reproducible::prepInputs()}, which caches them, and the clipped fire
+The fire records are read by the fireregimetools loaders, cached on the release, the years and the study area, and the clipped fire
 polygons of every ELF (\code{\link[=ELFfireOverlay]{ELFfireOverlay()}}, the slow step) are cached on the ELF maps, the NBAC release
 and \code{fireYears}, so a change to the plan rules does not repeat either.
 }

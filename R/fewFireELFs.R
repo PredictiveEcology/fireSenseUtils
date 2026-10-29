@@ -44,24 +44,22 @@ sizeRuleLandCover <- function(destinationPath) {
     what = "the SCANFI land cover map", dataYear = 2020, dataVersion = "V2", urlArg = "url")
 }
 
-## A fire-record archive read with a fireregimetools loader through prepInputs(), which caches the loaded
-## object itself: the key holds the url, the release (the shapefile's name), and the loader call with the
-## years, the size limit and the study area. `loader` is the quoted fireregimetools function.
-.loadFireRecords <- function(url, destinationPath, loader, fireYears, studyArea) {
-  shp <- fireRecordShapefile(url, destinationPath)
+## A fire-record shapefile (from fireRecordShapefile(), resolved once by the caller) read with a fireregimetools
+## loader, and cached: the key holds the release (the shapefile's name), the loader and its call with the
+## years, the size limit and the study area, not the path. `loader` is the fireregimetools function.
+.loadFireRecords <- function(shp, loader, fireYears, studyArea) {
   e <- as.vector(terra::ext(studyArea))
-  call <- bquote(.(loader)(
-    targetFile, study_area = terra::as.polygons(terra::ext(.(e[["xmin"]]), .(e[["xmax"]]), .(e[["ymin"]]), .(e[["ymax"]])),
-                                                crs = .(terra::crs(studyArea))),
-    fire_years = .(as.integer(fireYears)), min_size_ha = 0))
-  reproducible::prepInputs(url = url, targetFile = basename(shp), destinationPath = destinationPath,
-                           fun = call, useCache = TRUE)
+  loader(shp, study_area = terra::as.polygons(terra::ext(e[["xmin"]], e[["xmax"]], e[["ymin"]], e[["ymax"]]),
+                                              crs = terra::crs(studyArea)),
+         fire_years = as.integer(fireYears), min_size_ha = 0) |>
+    reproducible::Cache(omitArgs = "shp", .functionName = ".loadFireRecords", useCache = TRUE,
+                        .cacheExtra = basename(shp))
 }
 
-## The clipped NBAC pieces of every ELF, from the archive: loads the polygons only when the table is not
+## The clipped NBAC pieces of every ELF, from the archive `nbacShp`: loads the polygons only when the table is not
 ## cached. Cache keys on the ELF maps, the release and the years (and this code), not on the polygons.
-.nbacOverlay <- function(rasWhole, nbacUrl, destinationPath, fireYears) {
-  polys <- .loadFireRecords(nbacUrl, destinationPath, quote(fireregimetools::load_nbac_polys), fireYears,
+.nbacOverlay <- function(rasWhole, nbacShp, fireYears) {
+  polys <- .loadFireRecords(nbacShp, fireregimetools::load_nbac_polys, fireYears,
                             terra::as.polygons(terra::ext(rasWhole), crs = terra::crs(rasWhole)))
   ELFfireOverlay(rasWhole, polys, fireYears)
 }
@@ -77,11 +75,13 @@ utils::globalVariables(c("coreHa", "ELF", "fires", "ha", "naturalIgnitions", "zo
   names(rasWhole) <- ids
   studyArea <- terra::as.polygons(terra::ext(rasWhole), crs = terra::crs(rasWhole))
 
-  points <- .loadFireRecords(nfdbUrl, destinationPath, quote(fireregimetools::load_nfdb_points), fireYears, studyArea)
+  ## each archive is resolved (downloaded and unzipped) once, here
+  nfdbShp <- fireRecordShapefile(nfdbUrl, destinationPath)
   nbacShp <- fireRecordShapefile(nbacUrl, destinationPath)
+  points <- .loadFireRecords(nfdbShp, fireregimetools::load_nfdb_points, fireYears, studyArea)
   overlay <- reproducible::Cache(
-    .nbacOverlay(rasWhole, nbacUrl, destinationPath, fireYears),
-    omitArgs = "destinationPath", .functionName = ".nbacOverlay", useCache = TRUE,
+    .nbacOverlay(rasWhole, nbacShp, fireYears),
+    omitArgs = "nbacShp", .functionName = ".nbacOverlay", useCache = TRUE,
     .cacheExtra = list(basename(nbacShp), ELFfireOverlay))
   list(rasWhole = rasWhole, points = points, overlay = overlay)
 }
@@ -129,7 +129,7 @@ ELFfireRates <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
 #' region still smaller than `minRegionAreaKm2` with a similar neighbour ([ELFsizePlan()]). Arctic and Prairie grassland ELFs
 #' ([ELFsNotFitted()]) are neither counted nor merged.
 #'
-#' The fire records are read with `reproducible::prepInputs()`, which caches them, and the clipped fire
+#' The fire records are read by the fireregimetools loaders, cached on the release, the years and the study area, and the clipped fire
 #' polygons of every ELF ([ELFfireOverlay()], the slow step) are cached on the ELF maps, the NBAC release
 #' and `fireYears`, so a change to the plan rules does not repeat either.
 #'

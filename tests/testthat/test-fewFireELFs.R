@@ -1,7 +1,6 @@
 ## fewFireELFs() on the toy ELF maps of helper-toyELFs.R. The two fireregimetools loaders read
 ## national shapefiles, so they are replaced by toy fire records; everything else is the real
-## code (fewFireELFs() and the counting, status, plan and merge). prepInputs() is replaced by a function
-## that evaluates the loader call it is given, and Cache() by a pass-through.
+## code (fewFireELFs() and the counting, status, plan and merge). Cache() is replaced by a pass-through.
 ##
 ## Fire records, 2001-2003, thresholds minNaturalIgnitions = 3 and minFirePolygons = 1 (minEscapes 0
 ## unless a test sets it):
@@ -23,10 +22,6 @@ local_toyFireRecords <- function(loaderArgs = NULL, cache = FALSE, points = toyF
   local_mocked_bindings(
     fireRecordShapefile = function(url, destinationPath, ...) file.path(destinationPath, sub("\\.zip$", ".shp", basename(url))),
     .env = env
-  )
-  local_mocked_bindings(
-    prepInputs = function(url, targetFile, destinationPath, fun, ...) eval(fun, list(targetFile = targetFile)),
-    .package = "reproducible", .env = env
   )
   if (!cache) local_mocked_bindings(Cache = function(x, ...) x, .package = "reproducible", .env = env)
   local_mocked_bindings(
@@ -148,10 +143,6 @@ test_that("the clipped fire polygons are cached: the second call reads no polygo
     fireRecordShapefile = function(url, destinationPath, ...) file.path(destinationPath, sub("\\.zip$", ".shp", basename(url)))
   )
   local_mocked_bindings(
-    prepInputs = function(url, targetFile, destinationPath, fun, ...) eval(fun, list(targetFile = targetFile)),
-    .package = "reproducible"
-  )
-  local_mocked_bindings(
     load_nfdb_points = function(...) toyFirePoints(),
     load_nbac_polys = function(...) { loads$n <- loads$n + 1L; toyFirePolys() },
     .package = "fireregimetools"
@@ -171,8 +162,8 @@ test_that("the clipped fire polygons are cached: the second call reads no polygo
 test_that("the fire records are asked for over the whole map, every size, the years given", {
   seen <- new.env()
   suppressMessages(runFewFire(minNaturalIgnitions = 3, minFirePolygons = 1, loaderArgs = seen))
-  expect_identical(seen$points$nfdb_shp, "points.shp")
-  expect_identical(seen$polys$nbac_shp, "polys.shp")
+  expect_identical(basename(seen$points$nfdb_shp), "points.shp")
+  expect_identical(basename(seen$polys$nbac_shp), "polys.shp")
   expect_identical(seen$points$fire_years, 2001:2003)
   expect_identical(seen$polys$fire_years, 2001:2003)
   expect_identical(seen$points$min_size_ha, 0)   # fires of every size, as the fit reads them
@@ -273,4 +264,35 @@ test_that("ELFfireRates gives the yearly natural fires and area burned in each c
   expect_equal(out$haBurnedPerYear, c(10000, 1250) / 3, tolerance = 0.01)
   ## over the core: 3.1.1 + 3.1.2 have 24 core cells of 2500 ha, 5.1 has 12
   expect_equal(out$proportionBurnedPerYear, c(10000 / (24 * 2500), 1250 / (12 * 2500)) / 3, tolerance = 0.01)
+})
+
+test_that("each fire-record archive goes through preProcess once per call, cached or not", {
+  withr::local_options(reproducible.cachePath = tempfile("cache"), reproducible.useCache = TRUE)
+  pre <- new.env()
+  pre$urls <- character()
+  local_mocked_bindings(
+    preProcess = function(url, destinationPath, ...) {
+      pre$urls <- c(pre$urls, url)
+      list(targetFilePath = file.path(destinationPath, sub("\\.zip$", ".shp", basename(url))))
+    },
+    ## the real prepInputs() runs preProcess() itself, then reads the file
+    prepInputs = function(url, targetFile, destinationPath, fun, ...) {
+      reproducible::preProcess(url = url, targetFile = targetFile, destinationPath = destinationPath)
+      eval(fun, list(targetFile = targetFile))
+    },
+    .package = "reproducible"
+  )
+  local_mocked_bindings(
+    load_nfdb_points = function(...) toyFirePoints(),
+    load_nbac_polys = function(...) toyFirePolys(),
+    .package = "fireregimetools"
+  )
+  run <- function(years) suppressMessages(.ELFfireData(
+    toyELFs(), fireYears = years, destinationPath = tempdir(),
+    nfdbUrl = "https://example.org/points.zip", nbacUrl = "https://example.org/polys.zip"))
+  run(2001:2003)                                   # nothing cached: both archives are read
+  expect_identical(sort(pre$urls), c("https://example.org/points.zip", "https://example.org/polys.zip"))
+  pre$urls <- character()
+  run(2001:2003)                                   # everything cached
+  expect_identical(sort(pre$urls), c("https://example.org/points.zip", "https://example.org/polys.zip"))
 })
