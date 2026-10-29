@@ -14,7 +14,8 @@ hindcastObserved(
   naturalCauses = c("L", "N"),
   polyCauseCol = "FIRECAUS",
   naturalPolyCauses = "Natural",
-  flammableRTM = NULL
+  flammableRTM = NULL,
+  fireCauses = NULL
 )
 }
 \arguments{
@@ -43,6 +44,10 @@ of the result are \code{NA}, with a warning.}
 \item{flammableRTM}{\code{SpatRaster} of the pixels the simulation can burn (1; 0 or \code{NA} cannot burn), e.g.
 \code{flammableRTM} of the fireSense simulation. Projected to \code{coreRaster} (nearest) if on another grid.
 \code{NULL} counts every core pixel as burnable, with a warning.}
+
+\item{fireCauses}{\code{NULL} (default) uses \code{naturalCauses} and \code{naturalPolyCauses} as given. Cause groups (see
+\code{\link[=fireCauseCodes]{fireCauseCodes()}}), e.g. \code{c("natural", "unknown")}, set both from the one table, as \code{fireSense_dataPrepFit}'s
+\code{fireCauses} does, so the observed fire has the fit's causes.}
 }
 \value{
 A list. \code{counts} is a one-row \code{data.table}: \code{year}, \code{ignitions}, \code{escapes}, \code{areaBurnedHa}

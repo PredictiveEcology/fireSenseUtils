@@ -34,6 +34,8 @@
 #' @param pixelAreaHa area of one fitting pixel, in hectares. A polygon counts when its
 #'   area inside the ELF exceeds this.
 #' @param naturalCauses causes treated as natural ignitions.
+#' @param fireCauses `NULL` (default) uses `naturalCauses`. Cause groups (see [fireCauseCodes()]), e.g.
+#'   `c("natural", "unknown")`, set `naturalCauses` from that table.
 #' @param overlay the table from [ELFfireOverlay()] for `rasWhole`, `firePolys` and `fireYears`, or `NULL`
 #'   (default) to compute it. Passing it lets the clipping be done once and cached.
 #' @param escapeSizeHa size (ha) a fire must reach to count as escaped, as in [escapedFires()]
@@ -50,7 +52,8 @@
 #' @importFrom terra cellFromXY crds crs project
 ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
                           pixelAreaHa, naturalCauses = c("L", "N"), escapeSizeHa = 50,
-                          overlay = NULL, returnPoints = FALSE) {
+                          overlay = NULL, returnPoints = FALSE, fireCauses = NULL) {
+  if (!is.null(fireCauses)) naturalCauses <- fireCauseCodes(fireCauses, "nfdb")
   stopifnot(
     inherits(rasWhole, "SpatRaster"),
     inherits(firePoints, "SpatVector"),
