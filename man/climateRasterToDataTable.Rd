@@ -9,8 +9,11 @@ climateRasterToDataTable(historicalClimateRasters, Index = NULL)
 \arguments{
 \item{historicalClimateRasters}{named list of \code{SpatRaster} objects}
 
-\item{Index}{optional list of \code{data.table} objects named by \code{fireYear} and
-containing fire buffer indices}
+\item{Index}{optional. Either a list of \code{data.table} objects named by \code{fireYear} (the raster layer
+names, e.g. \code{year1990}), each with a column \code{pixelID}: the fire buffer indices, so only those
+year-and-pixel pairs are returned; or a vector of \code{pixelID}s kept in every year. Only the cells
+of \code{Index} are read from the rasters, not every cell, so a large raster is never made into a table.
+\code{NULL} (the default) returns every cell.}
 }
 \value{
 a long-layout \code{data.table} of climate values in each pixel and year, at full precision: the
