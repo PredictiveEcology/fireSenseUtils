@@ -68,6 +68,7 @@ Suggests:
     remotes,
     rmarkdown,
     scfmutils,
+    scoringRules,
     spatstat,
     spelling,
     testthat,
