@@ -13,7 +13,8 @@ ELFfireCounts(
   naturalCauses = c("L", "N"),
   escapeSizeHa = 50,
   overlay = NULL,
-  returnPoints = FALSE
+  returnPoints = FALSE,
+  fireCauses = NULL
 )
 }
 \arguments{
@@ -41,6 +42,9 @@ area inside the ELF exceeds this.}
 (default) to compute it. Passing it lets the clipping be done once and cached.}
 
 \item{returnPoints}{if \code{TRUE}, also return the counted points (see Value).}
+
+\item{fireCauses}{\code{NULL} (default) uses \code{naturalCauses}. Cause groups (see \code{\link[=fireCauseCodes]{fireCauseCodes()}}), e.g.
+\code{c("natural", "unknown")}, set \code{naturalCauses} from that table.}
 }
 \value{
 A \code{data.table} with one row per ELF and year: \code{ELF}, \code{year},

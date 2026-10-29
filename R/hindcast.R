@@ -31,6 +31,9 @@
 #' @param polyCauseCol Column of `firePolys` holding the cause. If it is missing, the natural-cause values
 #'   of the result are `NA`, with a warning.
 #' @param naturalPolyCauses Values of `polyCauseCol` that are natural.
+#' @param fireCauses `NULL` (default) uses `naturalCauses` and `naturalPolyCauses` as given. Cause groups (see
+#'   [fireCauseCodes()]), e.g. `c("natural", "unknown")`, set both from the one table, as `fireSense_dataPrepFit`'s
+#'   `fireCauses` does, so the observed fire has the fit's causes.
 #'
 #' @return A list. `counts` is a one-row `data.table`: `year`, `ignitions`, `escapes`, `areaBurnedHa`
 #'   (natural-cause polygons on burnable core pixels), `areaBurnedHaAllCause`, `nFires50` and `nFires50AllCause`
@@ -49,7 +52,11 @@
 hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSizeHa = 50,
                              pixelAreaHa = prod(terra::res(coreRaster)) / 1e4,
                              naturalCauses = c("L", "N"), polyCauseCol = "FIRECAUS",
-                             naturalPolyCauses = "Natural", flammableRTM = NULL) {
+                             naturalPolyCauses = "Natural", flammableRTM = NULL, fireCauses = NULL) {
+  if (!is.null(fireCauses)) {
+    naturalCauses <- fireCauseCodes(fireCauses, "nfdb")
+    naturalPolyCauses <- fireCauseCodes(fireCauses, "nbac")
+  }
   stopifnot(inherits(coreRaster, "SpatRaster"), inherits(firePoints, "SpatVector"),
             length(year) == 1L)
   if (is.list(firePolys)) {
