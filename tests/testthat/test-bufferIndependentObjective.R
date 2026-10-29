@@ -350,3 +350,31 @@ test_that("tests = \"pitAD\" adds a finite, weighted term, beside or instead of 
   expect_equal(both[["objective"]], both[["SNLL_FS"]] + both[["adTest"]] + both[["pitAD"]])
   expect_true(is.na(fit("snll_fs")[["pitAD"]]))
 })
+
+test_that("tests = \"crps\": objFunInner() returns the per-fire CRPS and every simulated fire", {
+  skip_if_not_installed("SpaDES.tools")
+  ## fires burn 9, 6 and 1 pixels in both replicates; observed 10, 10 and 5
+  burn <- list(cell3(2:4, 2:4), cell3(2:4, 5:6), cell3(3, 10))
+  out <- toyObjective(burn, doCrps = TRUE, doSNLL_FSTest = FALSE)
+  expect_equal(out$crpsFire, log(10 / 9) + log(10 / 6) + log(5))
+  expect_equal(sort(out$crpsSizes$N), sort(rep(c(9, 6, 1), 2)))
+  expect_equal(sort(unique(out$crpsSizes$rep)), 1:2)
+  ## fire 2 burns its open column 7 (cut) and stops at 4 pixels of a 10-pixel observed fire: scored as 10
+  cutShort <- toyObjective(list(cell3(2:4, 2:4), cell3(3, 5:7), cell3(3, 10)), doCrps = TRUE, doSNLL_FSTest = FALSE)
+  expect_equal(cutShort$crpsFire, log(10 / 9) + 0 + log(5))
+})
+
+test_that("gateRefusal = \"simulate\" scores a year the gates would refuse", {
+  skip_if_not_installed("SpaDES.tools")
+  burn <- list(cell3(2:4, 2:4), cell3(2:4, 5:6), cell3(3, 10))
+  ## the first quartile of the spread probabilities (0.06-0.08) is above 0.01: "too burny", refused
+  refused <- toyObjective(burn, lanscape1stQuantileThresh = 0.01, doCrps = TRUE)
+  expect_true(refused$gated)
+  expect_true(all(refused$crpsSizes$N == 1L))
+  expect_equal(refused$crpsFire, sum(log(c(10, 10, 5))))                 # every fire left at one pixel
+  expect_equal(refused$SNLL_FS, 3 * fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE))
+  simulated <- toyObjective(burn, lanscape1stQuantileThresh = 0.01, gateRefusal = "simulate", doCrps = TRUE)
+  expect_false(simulated$gated)
+  expect_equal(simulated$crpsFire, log(10 / 9) + log(10 / 6) + log(5))
+  expect_lt(simulated$SNLL_FS, refused$SNLL_FS)
+})

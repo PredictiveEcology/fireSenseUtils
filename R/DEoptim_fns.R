@@ -166,6 +166,10 @@ deoptimPopulationSize <- function(nParams) {
 #'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
 #' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
 #'   and the final-population re-score. Off by default (`0`).
+#' @param crpsWeights,gateRefusal Passed to [.objfunSpreadFit()], in the fit and the final-population re-score:
+#'   the weights of its `tests = "crps"` objective (`NULL`, the default, is [crpsWeightsDefault()]), and whether
+#'   a year that fails the spread probability gates is scored as refused (`"minLik"`, default) or simulated
+#'   (`"simulate"`). With the defaults they add nothing to the fit's cache key.
 #' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
 #'   stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge
 #'   and open pixels of every buffer are found here, once ([addBufferEdge()]).
@@ -248,6 +252,8 @@ runDEoptim <- function(landscape,
                        jumpMeanDist = 0,
                        yearAreaWeight = 0,
                        areaDistWeight = 0,
+                       crpsWeights = NULL,
+                       gateRefusal = "minLik",
                        penaliseRunaways = TRUE,
                        runawayEdgeFrac = fireSenseRunawayEdgeFrac,
                        runawayEdgeMin = fireSenseRunawayEdgeMin,
@@ -372,6 +378,8 @@ runDEoptim <- function(landscape,
       jumpMeanDist = jumpMeanDist,
       yearAreaWeight = yearAreaWeight,
       areaDistWeight = areaDistWeight,
+      crpsWeights = crpsWeights,
+      gateRefusal = gateRefusal,
       penaliseRunaways = penaliseRunaways,
       runawayEdgeFrac = runawayEdgeFrac,
       runawayEdgeMin = runawayEdgeMin,
@@ -383,7 +391,8 @@ runDEoptim <- function(landscape,
     cachePath = paths$cachePath,
     ## how often progress figures are drawn, and where the progress file goes, do not change the fit
     omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link),
-                 omitNullArgs(covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
+                 if (identical(gateRefusal, "minLik")) "gateRefusal",
+                 omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
                               convergence = convergence, climateRef = climateRef)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
@@ -417,6 +426,8 @@ runDEoptim <- function(landscape,
   rescoreArgs$climateRef <- climateRef
   if (identical(link, "powerLaw")) rescoreArgs$powerLawGamma <- powerLawGamma
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
+  rescoreArgs$crpsWeights <- crpsWeights
+  if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(
