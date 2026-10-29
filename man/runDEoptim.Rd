@@ -55,6 +55,8 @@ runDEoptim(
   jumpMeanDist = 0,
   yearAreaWeight = 0,
   areaDistWeight = 0,
+  crpsWeights = NULL,
+  gateRefusal = "minLik",
   penaliseRunaways = TRUE,
   runawayEdgeFrac = fireSenseRunawayEdgeFrac,
   runawayEdgeMin = fireSenseRunawayEdgeMin,
@@ -213,6 +215,11 @@ fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 
 \item{jumpTries, jumpMeanDist, yearAreaWeight, areaDistWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit
 and the final-population re-score. Off by default (\code{0}).}
+
+\item{crpsWeights, gateRefusal}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the final-population re-score:
+the weights of its \code{tests = "crps"} objective (\code{NULL}, the default, is \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}}), and whether
+a year that fails the spread probability gates is scored as refused (\code{"minLik"}, default) or simulated
+(\code{"simulate"}). With the defaults they add nothing to the fit's cache key.}
 
 \item{penaliseRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
 stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge

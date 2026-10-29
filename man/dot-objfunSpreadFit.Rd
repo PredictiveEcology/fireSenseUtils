@@ -48,6 +48,8 @@
   runawayBufferMultiple = NULL,
   fitYearSpreadSD = NULL,
   verbose = 2,
+  crpsWeights = NULL,
+  gateRefusal = c("minLik", "simulate"),
   ...
 )
 }
@@ -133,7 +135,7 @@ its per-fire term divided by its number of fires, as \code{thresh} is compared w
 was refused as "too burny" or "not spread out enough" or the block was above \code{thresh} or
 \code{pruneAbove}, else 0.}
 
-\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"SNLL"}, or \code{"snll_fs"}. Default: \code{"snll_fs"}.}
+\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"pitAD"}, \code{"SNLL"}, \code{"snll_fs"} or \code{"crps"}. Default: \code{"snll_fs"}. \code{"crps"} is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size (\code{\link[=crpsFireSizes]{crpsFireSizes()}}, summed over fitted fires), plus the pooled \code{adTest}, plus \code{areaDist} (\code{\link[=areaWeightedCvM]{areaWeightedCvM()}}), plus the CRPS of the log total area burned over all fit years (\code{\link[=crpsTotalArea]{crpsTotalArea()}}), plus the CRPS of the 10 largest fires (\code{\link[=crpsTopFires]{crpsTopFires()}}), each times its weight in \code{crpsWeights}. It takes over the \code{adTest} and \code{areaDist} terms (their weights come from \code{crpsWeights}, not \code{adWeight} or \code{areaDistWeight}), has no annual-area term (\code{yearAreaWeight} is not used with it) and no early stop (\code{thresh} and \code{pruneAbove} do not apply). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. \code{"pitAD"} is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates (\code{\link[=pitMidRank]{pitMidRank()}}), scored against Uniform(0, 1) (\code{\link[=adUniform]{adUniform()}}), weighted like \code{"adTest"} (\code{adWeight}).}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
@@ -272,6 +274,16 @@ without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{
 includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
+
+\item{crpsWeights}{Named list of the multipliers of the \code{"crps"} test's terms, \code{fire}, \code{adTest}, \code{areaDist},
+\code{totalArea} and \code{top10}; names left out take the values of \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}} (set by the 2026-10-28
+profile on ELFs 6.6.2, 14.3 and 11.3, "W3": 1, 0.34, 2.6, 164 and 16.5). \code{NULL} is all defaults. Not used
+without \code{"crps"} in \code{tests}.}
+
+\item{gateRefusal}{What a year that fails \code{\link[=spreadProbGateTest]{spreadProbGateTest()}} gets. \code{"minLik"} (default): it is not
+simulated and scores the \code{minLik} floor (with \code{"crps"}, as if every fire stayed one pixel). \code{"simulate"}:
+the gates are not applied, the year is simulated and scored like any other, so a parameter set is never
+refused for its spread probabilities alone.}
 
 \item{...}{This is not used here, but allows for extraneous arguments to not break this function.
 The removed arguments \code{capSizes} and \code{penaliseCapHits} arrive here: they are ignored with a

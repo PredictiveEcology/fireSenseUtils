@@ -91,9 +91,19 @@ utils::globalVariables(c(
 #'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
 #'
-#' @param tests One or more of `"mad"`, `"adTest"`, `"pitAD"`, `"SNLL"`, or `"snll_fs"`. Default: `"snll_fs"`. `"pitAD"` is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates ([pitMidRank()]), scored against Uniform(0, 1) ([adUniform()]), weighted like `"adTest"` (`adWeight`).
+#' @param tests One or more of `"mad"`, `"adTest"`, `"pitAD"`, `"SNLL"`, `"snll_fs"` or `"crps"`. Default: `"snll_fs"`. `"crps"` is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size ([crpsFireSizes()], summed over fitted fires), plus the pooled `adTest`, plus `areaDist` ([areaWeightedCvM()]), plus the CRPS of the log total area burned over all fit years ([crpsTotalArea()]), plus the CRPS of the 10 largest fires ([crpsTopFires()]), each times its weight in `crpsWeights`. It takes over the `adTest` and `areaDist` terms (their weights come from `crpsWeights`, not `adWeight` or `areaDistWeight`), has no annual-area term (`yearAreaWeight` is not used with it) and no early stop (`thresh` and `pruneAbove` do not apply). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. `"pitAD"` is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates ([pitMidRank()]), scored against Uniform(0, 1) ([adUniform()]), weighted like `"adTest"` (`adWeight`).
 #'
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
+#'
+#' @param crpsWeights Named list of the multipliers of the `"crps"` test's terms, `fire`, `adTest`, `areaDist`,
+#'   `totalArea` and `top10`; names left out take the values of [crpsWeightsDefault()] (set by the 2026-10-28
+#'   profile on ELFs 6.6.2, 14.3 and 11.3, "W3": 1, 0.34, 2.6, 164 and 16.5). `NULL` is all defaults. Not used
+#'   without `"crps"` in `tests`.
+#'
+#' @param gateRefusal What a year that fails [spreadProbGateTest()] gets. `"minLik"` (default): it is not
+#'   simulated and scores the `minLik` floor (with `"crps"`, as if every fire stayed one pixel). `"simulate"`:
+#'   the gates are not applied, the year is simulated and scored like any other, so a parameter set is never
+#'   refused for its spread probabilities alone.
 #'
 #' @param plot.it Passed to [SpaDES.core::Plots()], so will show (TRUE or "screen") or save files
 #'   of several plots, using \pkg{ggplot2}.
@@ -286,6 +296,8 @@ utils::globalVariables(c(
                              fitYearSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
+                             crpsWeights = NULL,
+                             gateRefusal = c("minLik", "simulate"),
                              ...) { # fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
@@ -294,6 +306,7 @@ utils::globalVariables(c(
   deprecatedArgs(c(...names(), names(which(c(
     runawaySize = !is.null(runawaySize), runawayBufferMultiple = !is.null(runawayBufferMultiple))))))
   sizeLik <- match.arg(sizeLik, c("kde", "t", "kernel"))
+  gateRefusal <- match.arg(gateRefusal)
   ## the terms below that are not the per-fire one have no "kernel" form: they use the "kde" one
   sizeLikOther <- if (identical(sizeLik, "kernel")) "kde" else sizeLik
   if (isTRUE(returnBurned)) returnSims <- TRUE
@@ -306,7 +319,10 @@ utils::globalVariables(c(
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
   doSNLL_FSTest <- any(grepl("snll_fs", tolower(tests)))
-  doADTest <- any(grepl("adtest", tolower(tests)))
+  doCrps <- any(tolower(tests) == "crps")
+  crpsWeights <- utils::modifyList(crpsWeightsDefault(), as.list(crpsWeights))
+  ## "crps" takes over these two terms, with its own weights
+  doADTest <- any(grepl("adtest", tolower(tests))) || doCrps
   doPitADTest <- any(tolower(tests) == "pitad")
   if (missing(landscape)) {
     landscape <- get("landscape", envir = .GlobalEnv)
@@ -347,6 +363,11 @@ utils::globalVariables(c(
   if (!is.null(escapeMinPx) && isTRUE(jumpTries > 0) &&
       !all(c("jumpTries", "jumpMeanDist") %in% names(formals(SpaDES.tools::spreadCpp))))
     stop("jumpTries needs a SpaDES.tools whose spreadCpp() has `jumpTries` and `jumpMeanDist`")
+  if (doCrps) { # its own terms and weights: no annual-area term
+    yearAreaWeight <- 0
+    areaDistWeight <- crpsWeights$areaDist
+    adWeight <- crpsWeights$adTest
+  }
   doYearArea <- !identical(yearAreaWeight, 0) && !identical(yearAreaWeight, 0L)
   doAreaDist <- !identical(areaDistWeight, 0) && !identical(areaDistWeight, 0L)
   years <- as.character(names(annualDTx1000))
@@ -368,6 +389,8 @@ utils::globalVariables(c(
   fireSizesList <- list() # simulated fire sizes, pooled across batches for the adTest
   yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
   pitList <- list() # each fitted fire's PIT (pitMidRank()), pooled across batches for the "pitAD" term
+  crpsFireList <- list() # "crps": each batch's per-fire CRPS, summed over its fires
+  crpsSizesList <- list() #   ... and every simulated fire of its years (rep, N)
   yearAreaList <- list() # yearAreaWeight: each year's simulated annual totals, one per replicate
   bailedEarly <- FALSE
   firstBlockPerFire <- NA_real_ # the first block's per-fire term per fire, what `thresh` is compared with
@@ -413,7 +436,7 @@ utils::globalVariables(c(
         returnSims = returnSims, returnBurned = returnBurned, stopCutFires = isTRUE(penaliseRunaways),
         yearSpreadSD = yearSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
-        doYearArea = doYearArea,
+        doYearArea = doYearArea, doCrps = doCrps, gateRefusal = gateRefusal,
         covMinMax = covMinMax, # interactive debugging
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
@@ -437,6 +460,10 @@ utils::globalVariables(c(
       }
       if (isTRUE(doPitADTest)) {
         pitList[[ii]] <- unlist(results$pit)
+      }
+      if (isTRUE(doCrps)) {
+        crpsFireList[[ii]] <- sum(unlist(results$crpsFire))
+        crpsSizesList[[ii]] <- data.table::rbindlist(results$crpsSizes)
       }
       if (isTRUE(doYearArea)) {
         yearAreaList[yrs] <- results$annualAreaByRep # a year the objective refused to simulate stays absent
@@ -523,6 +550,23 @@ utils::globalVariables(c(
   if (isTRUE(doSNLL_FSTest)) {
     objFunRes <- sum(unlist(bb$objFunRes))
   }
+  if (isTRUE(doCrps)) {
+    ## Per-fire, total-area and largest-fire CRPS. All fit years are scored (a refused year counts as every
+    ## fire staying one pixel), so there is no early stop. The total and the largest fires are pooled over the
+    ## fit years, so they are found here, not per batch.
+    fitYrs <- unlist(lrgSmallFireYears)
+    obsSizes <- unlist(lapply(historicalFiresAboveMin[fitYrs], function(x) x$size))
+    crpsSizes <- data.table::rbindlist(crpsSizesList)
+    # the replicates of different years are one replicate: a rep's years add (total) or compete (largest)
+    crpsFire <- sum(unlist(crpsFireList))
+    crpsTotal <- crpsTotalArea(crpsSizes, obsSizes, Nreps)
+    crpsTop <- crpsTopFires(crpsSizes, obsSizes, Nreps)
+    objFunRes <- objFunRes + crpsWeights$fire * crpsFire + crpsWeights$totalArea * crpsTotal +
+      crpsWeights$top10 * crpsTop
+    if (verbose > 1)
+      print(paste0("  ", Sys.getpid(), " crpsFire:", round(crpsFire, 2), "; crpsTotalArea:", round(crpsTotal, 4),
+                   "; crpsTop10:", round(crpsTop, 3), "; "))
+  }
   ## The Anderson-Darling test compares whole distributions, so it runs once, after
   ## all batches, on the simulated fire sizes pooled across batches -- and against the
   ## observed sizes from *those same years*. Previously it ran inside the loop under
@@ -588,7 +632,9 @@ utils::globalVariables(c(
   }
   if (isTRUE(returnTerms))
     return(c(objective = objFunRes, SNLL_FS = snllPart, adTest = adPart, pitAD = pitPart, yearArea = yearAreaTerm,
-             areaDist = areaDistTerm, nFires = nFitFires, firstBlockPerFire = firstBlockPerFire,
+             areaDist = areaDistTerm, crpsFire = if (isTRUE(doCrps)) crpsFire else NA_real_,
+             crpsTotalArea = if (isTRUE(doCrps)) crpsTotal else NA_real_,
+             crpsTop10 = if (isTRUE(doCrps)) crpsTop else NA_real_, nFires = nFitFires, firstBlockPerFire = firstBlockPerFire,
              bailed = as.numeric(firstBlockBailed)))
   ## Figure out what we want from these.
   ## This is potentially correct (i.e. we want the smallest ad.test and the smallest SNLL)
@@ -729,7 +775,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         plot.it, verbose = 2, covCentre = NULL, sizeLik = "kde", sizeLikDf = 5,
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         stopCutFires = FALSE, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
-                        doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma) {
+                        doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
+                        doCrps = FALSE, gateRefusal = "minLik") {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -762,7 +809,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   ## Nothing appends to it before the branch, so this is the same list it always
   ## was; the only change is that it exists when no test asked for anything.
   ret <- list()
-  doFitting <- any(c(doSNLL_FSTest, doMADTest, doADTest, doPitADTest)) || isTRUE(returnSims)
+  doFitting <- any(c(doSNLL_FSTest, doMADTest, doADTest, doPitADTest, doCrps)) || isTRUE(returnSims)
   if (isTRUE(doFitting)) {
     
     # shortAnnDTx1000 <- rescaleAllCovsFromX1000(annDTx1000 = annDTx1000,
@@ -872,7 +919,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       }
     }
     
-    if (medSPRight && spreadOutEnough && lowSPLowEnough) {
+    if ((medSPRight && spreadOutEnough && lowSPLowEnough) || identical(gateRefusal, "simulate")) {
       if (verbose > 1) {
         ww <- if (isFALSE(weighted)) "unweighted" else "weighted"
         print(paste0(
@@ -1130,6 +1177,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## fires of 1 pixel never spread; the per-fire likelihood already leaves them out (N > 1 above)
         ret <- append(ret, list(allFireSizes = simSizes[N > 1][["N"]]))
       }
+      if (isTRUE(doCrps)) {
+        ## per fitted fire, its replicates' sizes against its observed size; a replicate with no row is left out
+        pe <- simSizes[annualFires, on = c("initialLocus" = "cells")]
+        ret <- append(ret, list(
+          crpsFire = pe[, list(s = crpsFireSizes(size[1], N[!is.na(N)], cut[!is.na(N)])), by = "ids"][, sum(s)],
+          crpsSizes = simSizes[, list(rep, N)]))
+      }
       if (isTRUE(doYearArea)) {
         ## this year's simulated total per replicate (fires of more than 1 pixel); a replicate with none burns 0
         a <- simSizes[N > 1][, list(A = sum(N)), by = "rep"]
@@ -1255,6 +1309,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       }
       SNLL_FS <- length(loci) * if (identical(sizeLik, "kernel")) kernelLogScore(1, 1, cut = TRUE) else -log(minLik)
       ret <- append(ret, list(SNLL_FS = SNLL_FS, runaways = 0L, nSims = 0L, gated = TRUE))
+      if (isTRUE(doCrps)) {
+        ## a refused year scores as if every replicate left every fire at one pixel
+        ret <- append(ret, list(crpsFire = sum(log(annualFires$size)),
+                                crpsSizes = data.table::data.table(rep = rep(seq_len(Nreps), each = NROW(annualFires)),
+                                                                   N = 1L)))
+      }
       # stop("encountered error with spreadProb - contact module developers")
       # Ian added this stop. Unclear what is supposed to happen. Object ret doesn't exist
       # SNLL <- 1e7
