@@ -118,11 +118,11 @@ test_that("ELFs of ecozones 1 and 2 are left out permanently: never merged, neve
   expect_identical(nrow(plan), 0L)
 })
 
-test_that("ELFsNotFitted() names the Arctic, the Prairie grassland (10.2) and the farmland (10.3.1_2) ELFs, and only them", {
-  ids <- c("1.1", "2.3.1", "10.1.2", "10.2", "10.2.1", "10.2.2", "10.20", "10.21.1", "10.3", "10.3.1", "10.3.1_2", "10.3.1_21", "12.1", "3.1.1")
+test_that("ELFsNotFitted() names the Arctic, the Prairie grassland (10.2) and the farmland (10.3.1_2, 8.1_2) ELFs, and only them", {
+  ids <- c("1.1", "2.3.1", "10.1.2", "10.2", "10.2.1", "10.2.2", "10.20", "10.21.1", "10.3", "10.3.1", "10.3.1_2", "10.3.1_21", "12.1", "3.1.1", "8.1", "8.1_2", "8.1_21", "18.1_2")
   out <- ELFsNotFitted(ids)
-  expect_identical(unname(out), c("1.1", "2.3.1", "10.2", "10.2.1", "10.2.2", "10.3.1_2"))
-  expect_identical(names(out), c("Arctic", "Arctic", rep("Prairie grassland", 3), "Mostly farmland"))
+  expect_identical(unname(out), c("1.1", "2.3.1", "10.2", "10.2.1", "10.2.2", "10.3.1_2", "8.1_2"))
+  expect_identical(names(out), c("Arctic", "Arctic", rep("Prairie grassland", 3), "Mostly farmland", "Mostly farmland"))
   expect_identical(ELFsArctic(ids), c("1.1", "2.3.1"))
   expect_identical(ELFsNotFitted(c("10.1.1", "12.1")), character(0))
 })

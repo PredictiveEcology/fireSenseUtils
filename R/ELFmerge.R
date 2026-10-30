@@ -18,8 +18,8 @@
 ##  - Prairie grassland, ecoprovince 10.2: `10.2` and `10.2.*`, not `10.20` or `10.1.*` (Eliot, 2026-10-20:
 ##    "These are like the arctic. We can decide if we want to fit these at some future date").
 .ELFsNotFittedTable <- data.frame(
-  pattern = c("^1\\.", "^2\\.", "^10\\.2(\\.|$)", "^10\\.3\\.1_2$"),
-  reason = c("Arctic", "Arctic", "Prairie grassland", "Mostly farmland"),
+  pattern = c("^1\\.", "^2\\.", "^10\\.2(\\.|$)", "^10\\.3\\.1_2$", "^8\\.1_2$"),
+  reason = c("Arctic", "Arctic", "Prairie grassland", "Mostly farmland", "Mostly farmland"),
   stringsAsFactors = FALSE)
 
 ## The patterns as one regular expression, for grep() on ids.
@@ -28,8 +28,9 @@
 #' ELFs permanently left out of fireSense
 #'
 #' ELFs of the Arctic (ecozones 1 and 2, ids `1.*` and `2.*`) and of the Prairie grassland (ecoprovince
-#' 10.2, ids `10.2` and `10.2.*`) are never fitted, nor is `10.3.1_2`, which is mostly farmland that fireSense treats as
-#' non-flammable (82% of its core; 46% of its observed burned area is on burnable pixels): [runELFs()] leaves them out of every list and map,
+#' 10.2, ids `10.2` and `10.2.*`) are never fitted, nor are `10.3.1_2` and `8.1_2`, which are mostly farmland that fireSense treats as
+#' non-flammable (`10.3.1_2`: 82% of its core, and 46% of its observed burned area is on burnable pixels;
+#' `8.1_2`: 55% of its cells, and its spread calibration could not be estimated reliably): [runELFs()] leaves them out of every list and map,
 #' [fewFireELFs()] neither counts nor merges them, [ELFmergePlan()] neither merges them nor uses them as
 #' partners, and [plotELFs()] fills them as "not fitted" with the reason.
 #'
