@@ -8,6 +8,9 @@ test_that("shared module defaults keep their values", {
   expect_identical(fireSenseFuelClassCol, "FuelClass")
   expect_identical(fireSenseIgAggFactor, 4)
   expect_identical(fireSenseSCANFIVersion, "V3")
+  expect_identical(fireSenseFireCauses, c("natural", "unknown"))
+  expect_true(all(fireSenseFireCauses %in% c("natural", "unknown", "human", "other")))
+  expect_no_error(fireCauseCodes(fireSenseFireCauses, "nbac"))
 })
 
 test_that("functions sharing an argument default to the shared constant", {
