@@ -18,8 +18,9 @@ ELFsArctic(ids)
 }
 \description{
 ELFs of the Arctic (ecozones 1 and 2, ids \verb{1.*} and \verb{2.*}) and of the Prairie grassland (ecoprovince
-10.2, ids \code{10.2} and \verb{10.2.*}) are never fitted, nor is \verb{10.3.1_2}, which is mostly farmland that fireSense treats as
-non-flammable (82\% of its core; 46\% of its observed burned area is on burnable pixels): \code{\link[=runELFs]{runELFs()}} leaves them out of every list and map,
+10.2, ids \code{10.2} and \verb{10.2.*}) are never fitted, nor are \verb{10.3.1_2} and \verb{8.1_2}, which are mostly farmland that fireSense treats as
+non-flammable (\verb{10.3.1_2}: 82\% of its core, and 46\% of its observed burned area is on burnable pixels;
+\verb{8.1_2}: 55\% of its cells, and its spread calibration could not be estimated reliably): \code{\link[=runELFs]{runELFs()}} leaves them out of every list and map,
 \code{\link[=fewFireELFs]{fewFireELFs()}} neither counts nor merges them, \code{\link[=ELFmergePlan]{ELFmergePlan()}} neither merges them nor uses them as
 partners, and \code{\link[=plotELFs]{plotELFs()}} fills them as "not fitted" with the reason.
 }
