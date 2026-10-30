@@ -24,9 +24,15 @@
 #'   `runawayEdgeMin` of [.objfunSpreadFit()] and [runDEoptim()]: a simulated fire is a runaway when
 #'   it burns at least `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))` of the `n` pixels of its
 #'   buffer's edge ring.
+#' - `fireSenseFireCauses`: the cause groups of the fires the ignition, escape and spread models are fitted to, and the
+#'   observed fire is counted from (`c("natural", "unknown")`; groups of [fireCauseCodes()]). It is the default of
+#'   `fireCauses` in `fireSense_dataPrepFit` and `fireSense_summary`, which check that they agree
+#'   (`SpaDES.core::paramCheckOtherMods()`), and of the readers in `fireSimulator_validation`. [hindcastObserved()] and
+#'   [ELFfireCounts()] keep `fireCauses = NULL` (the `naturalCauses` they are given), so they stay usable for other models.
 #'
 #' @name fireSenseSharedDefaults
-#' @format Vectors of length 1, except `fireSenseForestedLCC` (`numeric`, length 5).
+#' @format Vectors of length 1, except `fireSenseForestedLCC` (`numeric`, length 5) and `fireSenseFireCauses`
+#'   (`character`, length 2).
 NULL
 
 #' @rdname fireSenseSharedDefaults
@@ -64,3 +70,7 @@ fireSenseRunawayEdgeFrac <- 0.01
 #' @rdname fireSenseSharedDefaults
 #' @export
 fireSenseRunawayEdgeMin <- 3L
+
+#' @rdname fireSenseSharedDefaults
+#' @export
+fireSenseFireCauses <- c("natural", "unknown")

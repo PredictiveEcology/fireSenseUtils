@@ -11,9 +11,11 @@
 \alias{fireSenseSCANFIVersion}
 \alias{fireSenseRunawayEdgeFrac}
 \alias{fireSenseRunawayEdgeMin}
+\alias{fireSenseFireCauses}
 \title{Defaults shared by the fireSense modules and functions}
 \format{
-Vectors of length 1, except \code{fireSenseForestedLCC} (\code{numeric}, length 5).
+Vectors of length 1, except \code{fireSenseForestedLCC} (\code{numeric}, length 5) and \code{fireSenseFireCauses}
+(\code{character}, length 2).
 }
 \usage{
 fireSenseForestedLCC
@@ -33,6 +35,8 @@ fireSenseSCANFIVersion
 fireSenseRunawayEdgeFrac
 
 fireSenseRunawayEdgeMin
+
+fireSenseFireCauses
 }
 \description{
 The \code{fireSense_dataPrepFit} and \code{fireSense_dataPrepPredict} modules each have parameters
@@ -61,5 +65,10 @@ non-forest land cover (passed to \code{\link[LandR:prepInputs_SCANFI_LCC_FAO]{La
 \code{runawayEdgeMin} of \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} and \code{\link[=runDEoptim]{runDEoptim()}}: a simulated fire is a runaway when
 it burns at least \code{max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))} of the \code{n} pixels of its
 buffer's edge ring.
+\item \code{fireSenseFireCauses}: the cause groups of the fires the ignition, escape and spread models are fitted to, and the
+observed fire is counted from (\code{c("natural", "unknown")}; groups of \code{\link[=fireCauseCodes]{fireCauseCodes()}}). It is the default of
+\code{fireCauses} in \code{fireSense_dataPrepFit} and \code{fireSense_summary}, which check that they agree
+(\code{SpaDES.core::paramCheckOtherMods()}), and of the readers in \code{fireSimulator_validation}. \code{\link[=hindcastObserved]{hindcastObserved()}} and
+\code{\link[=ELFfireCounts]{ELFfireCounts()}} keep \code{fireCauses = NULL} (the \code{naturalCauses} they are given), so they stay usable for other models.
 }
 }
