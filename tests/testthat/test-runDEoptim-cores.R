@@ -109,6 +109,10 @@ test_that("clusterSetup() is told the runName the fit is run under", {
   expect_identical(seen$setupArgs$runName, "ELF7_phase1")
 })
 
+test_that("spreadFitWorkerMemoryGB lets a 450 GB node hold 40 workers", {
+  expect_gte(floor(450 / spreadFitWorkerMemoryGB), 40)
+})
+
 test_that("the fit's clusters assume spreadFitWorkerMemoryGB per worker unless the user set it", {
   ## 2026-10-09: placed by free cores alone, a fit's workers filled host core's memory and it hung
   withr::local_options(clusters.workerMemoryGB = NULL)
