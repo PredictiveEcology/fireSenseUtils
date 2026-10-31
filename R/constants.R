@@ -146,7 +146,9 @@ spreadPowerLawPGrid <- sort(unique(round(c(seq(0.15, 0.21, by = 0.02), seq(0.22,
 #'
 #' `runDEoptim()` sets `options(clusters.workerMemoryGB)` to this, unless the user has set it, so
 #' `clusters` (>= 0.0.75) caps workers per host by free memory from a fit's first cluster build.
-#' Measured 2026-10-09 over 457 spread-fit workers on 15 hosts: peak resident memory median 4.5 GB,
-#' 90th percentile about 6.5 GB, maximum 14.1 GB. Once a fit has run a chunk, its own record is used.
+#' At 9 GB a GPSC node of 450 GB holds 40 workers (at 14 GB it held 32).
+#' Measured peak resident memory per spread-fit worker: median 4.5 GB, 90th percentile about 6.5 GB.
+#' Once a fit has run its first chunk, the fit's own record replaces this number. A regression of
+#' worker memory on fire and ELF pixel counts was considered and put aside.
 #' @export
-spreadFitWorkerMemoryGB <- 14
+spreadFitWorkerMemoryGB <- 9
