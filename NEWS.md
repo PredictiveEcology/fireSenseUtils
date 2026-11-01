@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `scoreFireSizes()` also scores single simulated runs (a `member` x `rep`): the median, 2.5-97.5% range and observed rank of total area burned and of the 10 largest fires, as simulated over observed (`areaRun_*`, `top10Run_*`, `nRuns`), so an in-sample check no longer rests on mean sizes. The existing columns are unchanged.
+
 * `ELFsNotFitted()` also leaves out ELF `8.1_2`, reason "Mostly farmland" (Eliot, 2026-10-30): 55% of its cells are SCANFI no-data farmland, and its spread calibration gave a runaway threshold (p50 0.366, R² 0.59) above `spreadPowerLawPcBounds`, where the 45 other ELFs have 0.254-0.298, so its phase 1 stopped in `powerLawPcBounds()`.
 
 * New `fireSenseFireCauses` (`c("natural", "unknown")`) among the shared defaults: the one default of `fireCauses` for `fireSense_dataPrepFit`, `fireSense_summary` and `fireSimulator_validation`, so the ignition, escape and spread models and the observed record count the same fires. `hindcastObserved()` and `ELFfireCounts()` keep `fireCauses = NULL`.
