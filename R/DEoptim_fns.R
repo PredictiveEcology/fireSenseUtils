@@ -167,7 +167,7 @@ deoptimPopulationSize <- function(nParams) {
 #' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
 #'   and the final-population re-score. Off by default (`0`).
 #' @param crpsWeights,gateRefusal Passed to [.objfunSpreadFit()], in the fit and the final-population re-score:
-#'   the weights of its `tests = "crps"` objective (`NULL`, the default, is [crpsWeightsDefault()]), and whether
+#'   the weights of its `tests = "crps"` objective (`NULL`, the default, is [crpsWeightsDefault()]; its `annualArea` weight, 0 by default, adds each year's area burned), and whether
 #'   a year that fails the spread probability gates is scored as refused (`"minLik"`, default) or simulated
 #'   (`"simulate"`). With the defaults they add nothing to the fit's cache key.
 #' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)

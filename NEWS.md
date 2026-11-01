@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* The `tests = "crps"` spread objective has an annual-area term: new weight `crpsWeights$annualArea` (default 0, so existing fits and objective values are unchanged) times `crpsAnnualArea()`, the mean over fit years of the CRPS of each year's log area burned (one total per replicate) against the observed area of that year. `crpsTotalArea()` pools the years, so a fit that burned the mean every year scored well. `crpsSizes` from `objFunInner()` carries a `year` column; with `verbose > 1` the term prints as `crpsAnnualArea`.
+
 * `ELFsNotFitted()` also leaves out ELF `8.1_2`, reason "Mostly farmland" (Eliot, 2026-10-30): 55% of its cells are SCANFI no-data farmland, and its spread calibration gave a runaway threshold (p50 0.366, R² 0.59) above `spreadPowerLawPcBounds`, where the 45 other ELFs have 0.254-0.298, so its phase 1 stopped in `powerLawPcBounds()`.
 
 * New `fireSenseFireCauses` (`c("natural", "unknown")`) among the shared defaults: the one default of `fireCauses` for `fireSense_dataPrepFit`, `fireSense_summary` and `fireSimulator_validation`, so the ignition, escape and spread models and the observed record count the same fires. `hindcastObserved()` and `ELFfireCounts()` keep `fireCauses = NULL`.

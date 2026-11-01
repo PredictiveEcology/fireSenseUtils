@@ -26,6 +26,29 @@ test_that("crpsTotalArea() scores the log of the total over all years; a replica
   expect_equal(crpsTotalArea(rs, c(20, 10), Nreps = 3L), crpsEnsemble(log(c(30, 30, 1)), log(30)))
 })
 
+test_that("crpsAnnualArea() is the mean over years of the CRPS of each year's log area; a replicate with no fire is 1 pixel", {
+  ## 2 years x 3 reps: 2001 totals 30, 25, 0 (rep 3 has no fire); 2002 totals 10, 40, 8
+  rs <- data.table::data.table(year = c("2001", "2001", "2001", "2002", "2002", "2002", "2002"),
+                               rep = c(1, 1, 2, 1, 2, 2, 3), N = c(10, 20, 25, 10, 15, 25, 8))
+  obs <- c(`2001` = 20, `2002` = 35)
+  by1 <- crpsEnsemble(log(c(30, 25, 1)), log(20))
+  by2 <- crpsEnsemble(log(c(10, 40, 8)), log(35))
+  expect_equal(crpsAnnualArea(rs, obs, Nreps = 3L), (by1 + by2) / 2)
+  expect_equal(crpsAnnualArea(rs, obs[2], Nreps = 3L), by2)
+})
+
+test_that("a fit that burns the same area every year scores well on crpsTotalArea() but not on crpsAnnualArea()", {
+  obs <- c(`2001` = 10, `2002` = 1000)                 # a quiet year and a big year; 1010 in all
+  mk <- function(a, b) data.table::data.table(year = rep(c("2001", "2002"), each = 3), rep = rep(1:3, 2),
+                                              N = c(rep(a, 3), rep(b, 3)))
+  matched <- mk(10, 1000)
+  flat <- mk(505, 505)                                  # the right total, the same every year
+  expect_equal(crpsTotalArea(matched, 1010, 3L), crpsTotalArea(flat, 1010, 3L), tolerance = 1e-8)
+  expect_lt(crpsTotalArea(flat, 1010, 3L), 0.01)
+  expect_equal(crpsAnnualArea(matched, obs, 3L), 0)
+  expect_gt(crpsAnnualArea(flat, obs, 3L), 1)
+})
+
 test_that("crpsTopFires() sums the per-rank CRPS of the sorted largest fires, and copes with fewer than 10", {
   rs <- data.table::data.table(rep = c(1, 1, 1, 2, 2), N = c(50, 100, 3, 90, 40))
   obs <- c(60, 100)                       # 2 fitted fires: ranks 1 and 2 only
@@ -43,7 +66,8 @@ test_that("crpsTopFires() sums the per-rank CRPS of the sorted largest fires, an
 })
 
 test_that("the default weights are the 2026-10-28 profile's, and crpsWeights overrides by name", {
-  expect_identical(crpsWeightsDefault(), list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5))
+  expect_identical(crpsWeightsDefault(), list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0))
+  expect_identical(crpsWeightsDefault()$annualArea, 0)
 })
 
 ## .objfunSpreadFit() with the per-year work mocked: one year, 2 fitted fires (25, 60 pixels), Nreps = 2
@@ -80,6 +104,17 @@ test_that("tests = \"crps\" is the weighted sum of its five terms, with no annua
   ## weights by name; the rest stay default
   fit2 <- crpsFit(tests = "crps", crpsWeights = list(totalArea = 0, top10 = 1))
   expect_equal(fit2[["objective"]], 1.5 + w$adTest * ad + w$areaDist * aw + top)
+})
+
+test_that("crpsWeights$annualArea adds the annual-area term to the objective, and 0 leaves it as it was", {
+  sizes <- data.table::data.table(year = "2004", rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50))
+  base <- crpsFit(tests = "crps", sizes = sizes)
+  expect_equal(crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(annualArea = 0))[["objective"]],
+               base[["objective"]])
+  fit <- crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(annualArea = 3))
+  ann <- crpsAnnualArea(sizes, c(`2004` = 85), 2L)
+  expect_gt(ann, 0)
+  expect_equal(fit[["objective"]], base[["objective"]] + 3 * ann)
 })
 
 test_that("a refused year scores as every fire left at one pixel (gateRefusal = \"minLik\")", {
