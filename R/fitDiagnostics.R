@@ -95,6 +95,13 @@ simulateFireSizes <- function(pop, fn = .objfunSpreadFit, fnArgs = list(), cl = 
 #'   the 5-95% range of simulated years; `simsOver10xObs` and `simsUnderTenthObs` the share of
 #'   simulated fires more than 10 times too large or too small; `AD` the Anderson-Darling statistic
 #'   between simulated and observed sizes; `qObs_*`/`qSim_*` the quantiles in `probs`.
+#'
+#'   The remaining columns score single runs, a run being one `member` x `rep`: one simulated
+#'   history over the years it has. `areaRun_*` is each run's total simulated area burned over its
+#'   observed total and `top10Run_*` the same for the 10 largest fires (all fires if fewer than 10):
+#'   `_median`, `_lo` and `_hi` (the 2.5% and 97.5% quantiles) across runs, and `_obsRank` the share
+#'   of runs below the observed value (0.5: the observed value is typical; near 0 or 1: it is out of
+#'   reach of single runs). `nRuns` is the number of runs.
 #' @export
 #' @rdname fitDiagnostics
 scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0.99),
@@ -105,6 +112,11 @@ scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0
   sp <- function(x, y) stats::cor(x, y, method = "spearman")
   fire <- d[, list(obs = size[1], sim = mean(sim)), by = c("yr", "ids")]
   yrRep <- d[, list(area = sum(sim)), by = c("yr", "member", "rep")]
+  top10 <- function(x) sum(utils::head(sort(x, decreasing = TRUE), 10))
+  run <- d[, {
+    obs <- size[!duplicated(data.table::data.table(yr, ids))] # each fire once
+    list(area = sum(sim) / sum(obs), top10 = top10(sim) / top10(obs))
+  }, by = c("member", "rep")]
   yr <- merge(fire[, list(obs = sum(obs)), by = "yr"],
               yrRep[, list(sim = mean(area), lo = stats::quantile(area, 0.05),
                            hi = stats::quantile(area, 0.95)), by = "yr"], by = "yr")
@@ -118,6 +130,13 @@ scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0
     totalAreaRatio = sum(yr$sim) / sum(yr$obs), AD = adStatistic(d$sim, fire$obs),
     shareLarge_obs = mean(fire$obs >= largeFire), shareLarge_sim = mean(d$sim >= largeFire))
   qn <- sprintf("q%02d", round(100 * probs))
+  for (v in c("area", "top10")) {
+    x <- run[[v]]
+    q <- stats::quantile(x, c(0.025, 0.975), names = FALSE)
+    out[, (paste0(v, "Run_", c("median", "lo", "hi", "obsRank"))) :=
+          list(stats::median(x), q[1], q[2], mean(x < 1))]
+  }
+  data.table::set(out, j = "nRuns", value = nrow(run))
   out[, (paste0("qObs_", qn)) := as.list(stats::quantile(fire$obs, probs, names = FALSE))]
   out[, (paste0("qSim_", qn)) := as.list(stats::quantile(d$sim, probs, names = FALSE))]
   out[]
