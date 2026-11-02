@@ -85,4 +85,5 @@ test_that("addFitClimateVariablesForFire(): spread is the fits' variables, ignit
 test_that("no historical years requests no historical layers", {
   cl <- fireClimateLayers(list(spread = "CMD_sm"), historicalYears = NULL, projectedYears = 2030:2031)
   expect_setequal(names(cl), "projected_CMDsm")
+  expect_identical(fireClimateLayers(list(spread = "CMD_sm"), historicalYears = integer(0)), list())
 })

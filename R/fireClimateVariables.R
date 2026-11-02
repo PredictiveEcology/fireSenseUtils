@@ -39,7 +39,8 @@ climateNAnames <- function(x) {
 #'
 #' @param climateVariablesForFire List with `ignition` and `spread` character vectors.
 #' @param historicalYears Years of historical climate: the fire years for a fit, the simulated years
-#'   with historical climate for prediction. None (`NULL` or empty) requests no historical climate.
+#'   with historical climate for prediction. None (`NULL` or empty) requests no historical climate;
+#'   with no projected years either, the result is an empty list.
 #' @param projectedYears Projected years, from `canClimateProjectedYears()`. Projected climate is
 #'   requested for these years only; none (`NULL` or empty) requests no projected climate.
 #' @return A list for `sim$climateVariables`, as built by `climateData::climateLayers()`.
@@ -47,6 +48,7 @@ climateNAnames <- function(x) {
 fireClimateLayers <- function(climateVariablesForFire, historicalYears, projectedYears = NULL) {
   vars <- unlist(climateVariablesForFire[c("ignition", "spread")], use.names = FALSE)
   vars <- unique(climateNAnames(setdiff(vars, "auto")))    # "auto" chooses among the ignition variables
+  if (!length(historicalYears) && !length(projectedYears)) return(list())
   climateData::climateLayers(vars, fun = quote(calcAsIs), historical = length(historicalYears) > 0,
                              historicalYears = historicalYears,
                              projected = length(projectedYears) > 0, projectedYears = projectedYears)
