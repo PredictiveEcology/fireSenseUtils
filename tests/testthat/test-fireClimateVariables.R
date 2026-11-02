@@ -73,3 +73,16 @@ test_that("spreadFitClimateVariables() gives every ledger row's climate variable
   expect_identical(spreadFitClimateVariables(ins), c("CMD", "CMD_sm"))
   expect_null(spreadFitClimateVariables(list()))
 })
+
+test_that("addFitClimateVariablesForFire(): spread is the fits' variables, ignition gains them", {
+  out <- addFitClimateVariablesForFire(defaultClimateVariablesForFire, c("CMD", "CMD_sm", "cumMDC"))
+  expect_identical(out$spread, c("CMD", "CMDsm", "cumMDC"))
+  expect_identical(out$ignition, sort(c("CMD", "cumMDC", "CMDsm", "CMDsp")))
+  ## a fit variable that is not an ignition default is added to ignition
+  expect_true("CMI" %in% addFitClimateVariablesForFire(defaultClimateVariablesForFire, "CMI")$ignition)
+})
+
+test_that("no historical years requests no historical layers", {
+  cl <- fireClimateLayers(list(spread = "CMD_sm"), historicalYears = NULL, projectedYears = 2030:2031)
+  expect_setequal(names(cl), "projected_CMDsm")
+})

@@ -17,7 +17,7 @@ addFitClimateVariables(
 \item{fitClimVars}{Climate variables the fits use, ClimateNA names.}
 
 \item{historicalYears}{Years of historical climate: the fire years for a fit, the simulated years
-with historical climate for prediction.}
+with historical climate for prediction. None (\code{NULL} or empty) requests no historical climate.}
 
 \item{projectedYears}{Projected years, from \code{canClimateProjectedYears()}. Projected climate is
 requested for these years only; none (\code{NULL} or empty) requests no projected climate.}

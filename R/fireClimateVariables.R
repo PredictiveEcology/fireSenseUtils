@@ -39,7 +39,7 @@ climateNAnames <- function(x) {
 #'
 #' @param climateVariablesForFire List with `ignition` and `spread` character vectors.
 #' @param historicalYears Years of historical climate: the fire years for a fit, the simulated years
-#'   with historical climate for prediction.
+#'   with historical climate for prediction. None (`NULL` or empty) requests no historical climate.
 #' @param projectedYears Projected years, from `canClimateProjectedYears()`. Projected climate is
 #'   requested for these years only; none (`NULL` or empty) requests no projected climate.
 #' @return A list for `sim$climateVariables`, as built by `climateData::climateLayers()`.
@@ -47,7 +47,8 @@ climateNAnames <- function(x) {
 fireClimateLayers <- function(climateVariablesForFire, historicalYears, projectedYears = NULL) {
   vars <- unlist(climateVariablesForFire[c("ignition", "spread")], use.names = FALSE)
   vars <- unique(climateNAnames(setdiff(vars, "auto")))    # "auto" chooses among the ignition variables
-  climateData::climateLayers(vars, fun = quote(calcAsIs), historicalYears = historicalYears,
+  climateData::climateLayers(vars, fun = quote(calcAsIs), historical = length(historicalYears) > 0,
+                             historicalYears = historicalYears,
                              projected = length(projectedYears) > 0, projectedYears = projectedYears)
 }
 
@@ -81,6 +82,23 @@ addFitClimateVariables <- function(climateVariables, fitClimVars, historicalYear
 #' @export
 canClimateProjectedYears <- function(sim) {
   tryCatch(SpaDES.core::P(sim, module = "canClimateData")$projectedClimateYears, error = function(e) NULL)
+}
+
+#' The fire models' climate variables with those of stored fits
+#'
+#' `spread` becomes the fits' variables, all of them (prediction blends neighbour ELFs, which may have
+#' chosen different ones); `ignition` (xgboost) keeps its variables and gains the fits'. Names without
+#' underscores, as the fire modules use them (`"CMDsm"`).
+#'
+#' @param climateVariablesForFire List with `ignition` and `spread`.
+#' @param fitClimVars Climate variables the fits use, from [spreadFitClimateVariables()].
+#' @return `climateVariablesForFire`, updated.
+#' @export
+addFitClimateVariablesForFire <- function(climateVariablesForFire, fitClimVars) {
+  fitVars <- gsub("_", "", fitClimVars)
+  climateVariablesForFire[["spread"]] <- fitVars
+  climateVariablesForFire[["ignition"]] <- sort(unique(c(gsub("_", "", climateVariablesForFire[["ignition"]]), fitVars)))
+  climateVariablesForFire
 }
 
 #' The climate variables of stored spread fits
