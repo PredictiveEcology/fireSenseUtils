@@ -20,7 +20,8 @@ latestSpreadFits(
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
 
-\item{suffix}{Only files named with this suffix are read; see \code{spreadFitFilenameFor()}.}
+\item{suffix}{A suffix reads only the files named with it; \code{""} (default) reads every file of the
+model tag, whatever its suffix. See \code{spreadFitFilenameFor()}.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=spreadFitLedgerFolder]{spreadFitLedgerFolder()}}.}
 
@@ -41,8 +42,8 @@ fireSense_spreadFit writes each fit as a row of an \code{rds} file in a Google D
 (its \code{spreadFitGoogleDriveFolder}); fireSense_ELFs and fireSense_dataPrepFit read them.
 With \code{spreadFitFilename = "latest"} those modules use these functions instead of one named file.
 
-\code{latestSpreadFits()} returns, for every polygon, its rows from the most recently modified
-ledger file that has it. Files are read newest first; with \code{polygonIDs}, reading stops once
+\code{latestSpreadFits()} returns, for every polygon, its rows from the newest ledger file that has it:
+the one whose suffix has the latest date (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}). Files are read newest first; with \code{polygonIDs}, reading stops once
 all of them are found. Each file is read with \code{\link[reproducible:CacheGeoRead]{reproducible::CacheGeoRead()}} into
 \code{destinationPath}: downloaded only if it changed on Drive, and from the local copy when Drive
 cannot be reached. The folder's file list is saved there too, and used when Drive cannot be

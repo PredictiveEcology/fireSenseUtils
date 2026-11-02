@@ -20,7 +20,8 @@ latestIgnitionFits(
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
 
-\item{suffix}{Only files named with this suffix are read; see \code{ignitionFitFilenameFor()}.}
+\item{suffix}{A suffix reads only the files named with it; \code{""} (default) reads every file of the
+model tag, whatever its suffix. See \code{ignitionFitFilenameFor()}.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=ignitionFitLedgerFolder]{ignitionFitLedgerFolder()}}.}
 
@@ -43,8 +44,8 @@ for a multi-ELF study area. With \code{ignitionFitFilename = "latest"} those mod
 functions instead of one named file. Parallel to the spread-fit ledger helpers
 (\code{spreadFitFilenameFor()}, \code{latestSpreadFits()}).
 
-\code{latestIgnitionFits()} returns, for every polygon, its rows from the most recently modified
-ledger file that has it. Files are read newest first; with \code{polygonIDs}, reading stops once
+\code{latestIgnitionFits()} returns, for every polygon, its rows from the newest ledger file that has it:
+the one whose suffix has the latest date (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}). Files are read newest first; with \code{polygonIDs}, reading stops once
 all of them are found. Files are read, also with no internet, as \code{\link[=latestSpreadFits]{latestSpreadFits()}} reads them.
 }
 \details{

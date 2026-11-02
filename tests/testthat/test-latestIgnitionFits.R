@@ -106,22 +106,37 @@ test_that("a suffix goes after the model tag; \"\" is the production name", {
   expect_identical(ignitionFitFilenameFor(1986:2024, ""), ignitionFitFilenameFor(1986:2024))
 })
 
-test_that("\"latest\" ignores suffixed files, and a suffixed run reads only its own file", {
+test_that("\"latest\" reads every suffix, newest date in the suffix first; a suffix reads only its own files", {
   d <- withr::local_tempdir()
-  prod <- ignitionFitFilenameFor(1986:2024)
-  test81 <- ignitionFitFilenameFor(1986:2024, "_boundfix_rep81")
-  test82 <- ignitionFitFilenameFor(1986:2024, "_boundfix_rep82")
+  prod <- ignitionFitFilenameFor(1986:2024)                                  # no suffix: no date, oldest
+  test81 <- ignitionFitFilenameFor(1986:2024, "_boundfix_rep81")             # no date in the suffix either
+  gpsc <- ignitionFitFilenameFor(1986:2024, "_gpscCause_20261029")
+  bufI <- ignitionFitFilenameFor(1986:2024, "_bufIndep20261024")
   drive <- fakeDrive(setNames(list(
-    list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.1", 1)),
-    list(modified = "2026-10-15T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1"), c(81, 81))),
-    list(modified = "2026-10-16T10:00:00Z", ledger = ledgerRows(c("4.1", "6.1"), c(82, 82)))),
-    c(prod, test81, test82)))
+    list(modified = "2026-11-01T10:00:00Z", ledger = ledgerRows(c("4.1", "7.1"), c(1, 1))),
+    list(modified = "2026-10-15T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1", "7.1"), c(81, 81, 81))),
+    list(modified = "2026-10-29T10:00:00Z", ledger = ledgerRows("4.1", 29)),
+    ## modified after the gpsc file (a fit added later), but its suffix date is older
+    list(modified = "2026-11-02T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1"), c(24, 24)))),
+    c(prod, test81, gpsc, bufI)))
   out <- latestIgnitionFits("folder", d)
-  expect_identical(out$polygonID, "4.1")
-  expect_identical(out$objFunVal, 1)
-  expect_identical(drive$downloads, prod)
+  val <- function(id) out$objFunVal[out$polygonID == id]
+  expect_identical(val("4.1"), 29)      # 20261029 beats 20261024, whatever the modified times
+  expect_identical(val("5.1"), 24)
+  expect_identical(val("7.1"), 1)       # undated files: the later modified first
+  expect_identical(drive$downloads, c(gpsc, bufI, prod, test81))   # no polygonIDs: every file
+  ## reading stops once every ELF asked for is found
+  drive$downloads <- character()
+  out <- latestIgnitionFits("folder", d, polygonIDs = c("4.1", "5.1"))
+  expect_identical(drive$downloads, c(gpsc, bufI))
+  ## a suffix reads only its own files
   out <- latestIgnitionFits("folder", d, suffix = "_boundfix_rep81")
-  expect_setequal(out$polygonID, c("4.1", "5.1"))
+  expect_setequal(out$polygonID, c("4.1", "5.1", "7.1"))
   expect_identical(unique(out$objFunVal), 81)
-  expect_null(suppressMessages(latestIgnitionFits("folder", d, suffix = "_rep81")))
+})
+
+test_that("ledgerFileOrder(): the last 8-digit date of the suffix, undated last, then modified time", {
+  n <- paste0("fireSenseIgnitionParams_1986-2024_xgboostPoisson_20261013", c("", "_a_20261101", "_x20261024", "_rep3", "_D05_20261102"), ".rds")
+  m <- c("2026-11-03", "2026-11-01", "2026-11-04", "2026-11-05", "2026-11-02")
+  expect_identical(n[ledgerFileOrder(n, m, "_xgboostPoisson_20261013")], n[c(5, 2, 3, 4, 1)])
 })
