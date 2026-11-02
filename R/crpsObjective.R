@@ -7,10 +7,11 @@
 #' relative to the per-fire term = 1. Three ELFs and one seed: tune them with the `crpsWeights` argument.
 #'
 #' @return A named list: `fire` (per-fire CRPS on log size, [crpsFireSizes()]), `adTest` ([adStatistic()]),
-#'   `areaDist` ([areaWeightedCvM()]), `totalArea` ([crpsTotalArea()]) and `top10` ([crpsTopFires()]).
+#'   `areaDist` ([areaWeightedCvM()]), `totalArea` ([crpsTotalArea()]), `top10` ([crpsTopFires()]) and
+#'   `annualArea` ([crpsAnnualArea()]; 0, so the term is left out unless a weight is given).
 #' @export
 crpsWeightsDefault <- function() {
-  list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5)
+  list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0)
 }
 
 #' Ensemble CRPS of a sample against one observation
@@ -58,6 +59,30 @@ crpsTotalArea <- function(repSizes, obsSizes, Nreps) {
   a <- repSizes[, list(A = sum(N)), by = "rep"]
   tot[a$rep] <- a$A
   crpsEnsemble(log(pmax(tot, 1)), log(sum(obsSizes)))
+}
+
+#' CRPS of the area burned in each year
+#'
+#' For each fit year, the CRPS of the log of that year's total area (one per replicate; a replicate with no
+#' fire that year burned nothing, scored as 1 pixel) against the log of the year's observed area. Unlike
+#' [crpsTotalArea()], which pools the years, a fit that burns the mean every year does not score well.
+#'
+#' @param repSizes A `data.table` with columns `year`, `rep` and `N`: every simulated fire of every fit
+#'   year (pixels), one row each.
+#' @param obsYear Named numeric: observed area burned (sum of the fitted fire sizes, pixels) per fit year,
+#'   named by year.
+#' @inheritParams crpsTotalArea
+#' @return A single non-negative number: the mean over years (not the sum, so its weight is on the scale of
+#'   `totalArea`) of [crpsEnsemble()] of the log annual area (at least 1 pixel).
+#' @keywords internal
+crpsAnnualArea <- function(repSizes, obsYear, Nreps) {
+  yrs <- names(obsYear)
+  mean(vapply(yrs, function(y) {
+    tot <- numeric(Nreps)
+    a <- repSizes[repSizes$year == y, list(A = sum(N)), by = "rep"]
+    tot[a$rep] <- a$A
+    crpsEnsemble(log(pmax(tot, 1)), log(max(obsYear[[y]], 1)))
+  }, numeric(1)))
 }
 
 #' CRPS of the largest fires
