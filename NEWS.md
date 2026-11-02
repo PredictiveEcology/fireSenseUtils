@@ -1,5 +1,9 @@
 # fireSenseUtils (development version)
 
+* Moved from `fireSense_dataPrepFit`, so `fireSense_dataPrepPredict` can read stored fits in a run without it: `readSpreadFitLedger()` (the SpreadFit ledger rows whose polygons intersect a study area, chosen by `reproducible::CacheGeo()`), `defaultClimateVariablesForFire`, `climateNAnames()`, `fireClimateLayers()`, `addFitClimateVariables()` and `canClimateProjectedYears()`. New `spreadFitClimateVariables()`: every climate variable the ledger rows' fits use.
+
+* `makeFireSenseLCC()` returns its `lcc` as an integer raster (written as `INT2S`). It came back as doubles, which `LandR::defineFlammable()` refuses ("LandCoverClassifiedMap must be an integer"): `fireSense_dataPrepPredict` stopped in `.inputObjects()` in a run without `fireSense_dataPrepFit`, which converts the map itself. The cached result of `makeFireSenseLCC()` is rebuilt once.
+
 * `resolveDoFit()`: a `doFit` of `FALSE` now yields to a deprecated alias (`refitExisting`, `stopIfNoPreRunFit`), because `FALSE` becomes the default of `doFit` in `fireSense_spreadFit`, `fireSense_ignitionFit` and `fireSense_dataPrepFit` and so cannot be told apart from an unset `doFit`. `NA` and `TRUE` still win over an alias. `mustFit()`'s error says that `FALSE` is the default (predict only) and how to fit (`doFit = NA` or `TRUE`); its new argument `fitFileSuffix` puts the ledger searched in that error.
 
 * New `spreadFitLedgerInputs()` and `spreadFitLedgerInputLists()`: the per-ELF species, fuel and climate inputs (harmonized `sppEquiv`, colours, non-forest and missing land-cover groups, climate variables) of each SpreadFit ledger row, and the five per-ELF lists `fireSense_dataPrepPredict` reads. Moved from `fireSense_dataPrepFit`'s `Init()`, so `fireSense_spreadFit` can rebuild them after it writes its row; a fit followed by prediction in the same run stopped with "sppEquivs has no entry for ELF(s)" when the ELF had no earlier fit but its neighbours did.
