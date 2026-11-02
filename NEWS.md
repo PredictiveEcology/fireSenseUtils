@@ -1,6 +1,6 @@
 # fireSenseUtils (development version)
 
-* `plotELFs()` labels the ELFs given in `which` "selected" in its legend, not "ELFs" followed by their codes. The legend lists only what is drawn on the map: a category with no ELF in it (e.g. "not fitted") has no entry.
+* `plotELFs()` labels the ELFs given in `which` "selected" in its legend, not "ELFs" followed by their codes. The legend lists only what is drawn on the map: a category with no ELF in it, or filled with `NA` (e.g. `arcticFill = NA`), has no entry.
 
 * New `spreadFitLedgerInputs()` and `spreadFitLedgerInputLists()`: the per-ELF species, fuel and climate inputs (harmonized `sppEquiv`, colours, non-forest and missing land-cover groups, climate variables) of each SpreadFit ledger row, and the five per-ELF lists `fireSense_dataPrepPredict` reads. Moved from `fireSense_dataPrepFit`'s `Init()`, so `fireSense_spreadFit` can rebuild them after it writes its row; a fit followed by prediction in the same run stopped with "sppEquivs has no entry for ELF(s)" when the ELF had no earlier fit but its neighbours did.
 

@@ -166,6 +166,14 @@ test_that("the legend calls the `which` ELFs 'selected' and lists only categorie
   expect_false("not enough fires" %in% out$legend$legend)
 })
 
+test_that("a category filled with NA (nothing drawn) has no legend entry", {
+  out <- drawn(plan = mergePlan(), which = "11.3", fewFires = character(0), arcticFill = "beige")
+  expect_true(any(startsWith(out$legend$legend, "not fitted")))
+  out <- drawn(plan = mergePlan(), which = "11.3", fewFires = character(0), arcticFill = NA)
+  expect_false(any(startsWith(out$legend$legend, "not fitted")))
+  expect_identical(out$legend$legend, "selected")
+})
+
 test_that("without a plan, plotELFs computes one with fewFireELFs()", {
   seen <- NULL
   local_mocked_bindings(

@@ -176,7 +176,8 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
   fills <- list()
   fillELFs <- function(ids, colour, label) {
     ids <- intersect(ids, core$ID)
-    if (!length(ids)) return(invisible())
+    ## an NA colour (e.g. `arcticFill = NA`) fills nothing, so it gets no legend entry either
+    if (!length(ids) || is.na(colour)) return(invisible())
     terra::plot(core[core$ID %in% ids, ], col = colour, add = TRUE)
     fills[[label]] <<- colour
   }
