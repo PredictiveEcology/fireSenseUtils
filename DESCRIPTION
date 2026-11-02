@@ -57,6 +57,7 @@ Suggests:
     DEoptim,
     dismo,
     dplyr,
+    googlesheets4,
     hexbin,
     knitr,
     kSamples,
@@ -71,6 +72,7 @@ Suggests:
     scoringRules,
     spatstat,
     spelling,
+    SpaDES.project,
     testthat,
     xgboost
 Remotes:
@@ -83,6 +85,7 @@ Remotes:
     PredictiveEcology/Require@development,
     PredictiveEcology/scfmutils@development,
     PredictiveEcology/SpaDES.core@development,
+    PredictiveEcology/SpaDES.project@development,
     PredictiveEcology/SpaDES.tools@development
 VignetteBuilder:
     knitr,
