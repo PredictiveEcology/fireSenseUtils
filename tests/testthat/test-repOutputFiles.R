@@ -17,6 +17,15 @@ test_that(".repOutputFiles accepts both rep1 and rep01 styles", {
   expect_identical(names(r), c("1", "2"))
 })
 
+test_that(".repOutputFiles finds bare-number replicate folders, ordered numerically", {
+  ## as SpaDES.project::pathBuild() writes them with the field label off
+  sf <- c("/o/6.4/NRV/370/16/burn.csv", "/o/6.4/NRV/370/2/burn.csv", "/o/6.4/NRV/370/2/other.csv",
+          "/o/6.4/NRV/370/10/burn.csv")
+  r <- fireSenseUtils:::.repOutputFiles(sf, "burn.csv")
+  expect_identical(names(r), c("2", "10", "16"))
+  expect_identical(unname(r), sf[c(2, 4, 1)])
+})
+
 test_that(".repOutputFiles errors rather than returning nothing", {
   ## silently returning character(0) would surface much later as a confusing
   ## failure inside fread()/rbindlist()

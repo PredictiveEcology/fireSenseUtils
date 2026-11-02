@@ -2,6 +2,8 @@ utils::globalVariables(c(
   ".size", "areaBurnedHa", "Nfires", "stat", "sumAB", "sumBurn", "val", "var", "YEAR"
 ))
 
+.maxReps <- 0:99999 ## candidate replicate numbers, for SpaDES.core::dirnamesFromSet()
+
 #' Locate per-replicate simulation output files
 #'
 #' @param simFiles character vector of simulation output file paths (e.g. the `file`
@@ -23,7 +25,12 @@ utils::globalVariables(c(
   }
 
   f <- simFiles[basename(simFiles) == filename]
-  repNum <- suppressWarnings(as.integer(sub(".*[/\\\\]rep0*([0-9]+)[/\\\\].*", "\\1", f)))
+  ## the replicate folder of each file (`rep3`, `rep03` or a bare `3`), as SpaDES.core finds it
+  repDir <- vapply(f, function(x) {
+    d <- SpaDES.core::dirnamesFromSet(x, set = .maxReps, leafOnly = FALSE)
+    if (length(d)) d else NA_character_
+  }, character(1), USE.NAMES = FALSE)
+  repNum <- as.integer(sub("^.*?([0-9]+)$", "\\1", basename(repDir), perl = TRUE))
   f <- f[!is.na(repNum)]
   repNum <- repNum[!is.na(repNum)]
 
