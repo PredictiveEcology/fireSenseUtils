@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `ELFfireOverlay()` decides which fire polygons lie wholly inside a zone with the zone as the prepared (first) geometry of `terra::relate()`, using `"contains"` instead of `"within"`. The result is the same, but a very fragmented zone (hundreds of thousands of vertices) took minutes per year instead of a second.
+
 * New fixed curvature exponent `powerLawShape` (`shape` in `powerLawLink()` and `logisticAll()`; default `spreadPowerLawShape`, 1) for the `"powerLaw"` spread link: `p = pc - (pc - floor) * exp(-sign(x) * abs(x / gamma)^shape)`, then `pmax(., 0)`. With `shape > 1` a moderate `x` gives a lower `p` and a large `x` gets closer to `pc`, so extreme pixels and years can burn large without the medium ones burning too much. It is threaded wherever `powerLawGamma` is (`spreadProbFromCovs()`, `.objfunSpreadFit()`, `spreadProbGates()`, `spreadFitValidationData()`, `runDEoptim()`). At the default 1 the link is the old one, and `powerLawShape` is left out of `runDEoptim()`'s cache keys (and of the keys of other links, `powerLawOmitArgs()`), so existing cached fits are reused. New `spreadFitPowerLawShapeTxt` (ledger column `powerLawShape_spread`).
 
 * `scoreFireSizes()` also scores single simulated runs (a `member` x `rep`): the median, 2.5-97.5% range and observed rank of total area burned and of the 10 largest fires, as simulated over observed (`areaRun_*`, `top10Run_*`, `nRuns`), so an in-sample check no longer rests on mean sizes. The existing columns are unchanged.
