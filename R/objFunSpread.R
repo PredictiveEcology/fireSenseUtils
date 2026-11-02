@@ -91,12 +91,12 @@ utils::globalVariables(c(
 #'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
 #'
-#' @param tests One or more of `"mad"`, `"adTest"`, `"pitAD"`, `"SNLL"`, `"snll_fs"` or `"crps"`. Default: `"snll_fs"`. `"crps"` is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size ([crpsFireSizes()], summed over fitted fires), plus the pooled `adTest`, plus `areaDist` ([areaWeightedCvM()]), plus the CRPS of the log total area burned over all fit years ([crpsTotalArea()]), plus the CRPS of the 10 largest fires ([crpsTopFires()]), each times its weight in `crpsWeights`. It takes over the `adTest` and `areaDist` terms (their weights come from `crpsWeights`, not `adWeight` or `areaDistWeight`), has no annual-area term (`yearAreaWeight` is not used with it) and no early stop (`thresh` and `pruneAbove` do not apply). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. `"pitAD"` is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates ([pitMidRank()]), scored against Uniform(0, 1) ([adUniform()]), weighted like `"adTest"` (`adWeight`).
+#' @param tests One or more of `"mad"`, `"adTest"`, `"pitAD"`, `"SNLL"`, `"snll_fs"` or `"crps"`. Default: `"snll_fs"`. `"crps"` is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size ([crpsFireSizes()], summed over fitted fires), plus the pooled `adTest`, plus `areaDist` ([areaWeightedCvM()]), plus the CRPS of the log total area burned over all fit years ([crpsTotalArea()]), plus the CRPS of the 10 largest fires ([crpsTopFires()]), plus, if its weight is not 0, the mean over fit years of the CRPS of each year's log area burned ([crpsAnnualArea()]), each times its weight in `crpsWeights`. It takes over the `adTest` and `areaDist` terms (their weights come from `crpsWeights`, not `adWeight` or `areaDistWeight`), has its own annual-area term, off by default (`crpsWeights$annualArea`; `yearAreaWeight` is not used with it) and no early stop (`thresh` and `pruneAbove` do not apply). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. `"pitAD"` is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates ([pitMidRank()]), scored against Uniform(0, 1) ([adUniform()]), weighted like `"adTest"` (`adWeight`).
 #'
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #'
 #' @param crpsWeights Named list of the multipliers of the `"crps"` test's terms, `fire`, `adTest`, `areaDist`,
-#'   `totalArea` and `top10`; names left out take the values of [crpsWeightsDefault()] (set by the 2026-10-28
+#'   `totalArea`, `top10` and `annualArea` (0: left out); names left out take the values of [crpsWeightsDefault()] (set by the 2026-10-28
 #'   profile on ELFs 6.6.2, 14.3 and 11.3, "W3": 1, 0.34, 2.6, 164 and 16.5). `NULL` is all defaults. Not used
 #'   without `"crps"` in `tests`.
 #'
@@ -363,7 +363,7 @@ utils::globalVariables(c(
   if (!is.null(escapeMinPx) && isTRUE(jumpTries > 0) &&
       !all(c("jumpTries", "jumpMeanDist") %in% names(formals(SpaDES.tools::spreadCpp))))
     stop("jumpTries needs a SpaDES.tools whose spreadCpp() has `jumpTries` and `jumpMeanDist`")
-  if (doCrps) { # its own terms and weights: no annual-area term
+  if (doCrps) { # its own terms and weights: its annual-area term is `crpsWeights$annualArea`
     yearAreaWeight <- 0
     areaDistWeight <- crpsWeights$areaDist
     adWeight <- crpsWeights$adTest
@@ -390,7 +390,7 @@ utils::globalVariables(c(
   yrsDoneList <- list() # the years contributing to fireSizesList, kept in lockstep
   pitList <- list() # each fitted fire's PIT (pitMidRank()), pooled across batches for the "pitAD" term
   crpsFireList <- list() # "crps": each batch's per-fire CRPS, summed over its fires
-  crpsSizesList <- list() #   ... and every simulated fire of its years (rep, N)
+  crpsSizesList <- list() #   ... and every simulated fire of its years (year, rep, N)
   yearAreaList <- list() # yearAreaWeight: each year's simulated annual totals, one per replicate
   bailedEarly <- FALSE
   firstBlockPerFire <- NA_real_ # the first block's per-fire term per fire, what `thresh` is compared with
@@ -563,9 +563,15 @@ utils::globalVariables(c(
     crpsTop <- crpsTopFires(crpsSizes, obsSizes, Nreps)
     objFunRes <- objFunRes + crpsWeights$fire * crpsFire + crpsWeights$totalArea * crpsTotal +
       crpsWeights$top10 * crpsTop
+    crpsAnn <- NA_real_
+    if (!identical(as.numeric(crpsWeights$annualArea), 0)) { # each year's observed area, from the same fires
+      obsYear <- vapply(historicalFiresAboveMin[fitYrs], function(x) sum(x$size), numeric(1))
+      crpsAnn <- crpsAnnualArea(crpsSizes, obsYear, Nreps)
+      objFunRes <- objFunRes + crpsWeights$annualArea * crpsAnn
+    }
     if (verbose > 1)
       print(paste0("  ", Sys.getpid(), " crpsFire:", round(crpsFire, 2), "; crpsTotalArea:", round(crpsTotal, 4),
-                   "; crpsTop10:", round(crpsTop, 3), "; "))
+                   "; crpsTop10:", round(crpsTop, 3), "; crpsAnnualArea:", round(crpsAnn, 4), "; "))
   }
   ## The Anderson-Darling test compares whole distributions, so it runs once, after
   ## all batches, on the simulated fire sizes pooled across batches -- and against the
@@ -1186,7 +1192,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         pe <- simSizes[annualFires, on = c("initialLocus" = "cells")]
         ret <- append(ret, list(
           crpsFire = pe[, list(s = crpsFireSizes(size[1], N[!is.na(N)], cut[!is.na(N)])), by = "ids"][, sum(s)],
-          crpsSizes = simSizes[, list(rep, N)]))
+          crpsSizes = simSizes[, list(year = as.character(yr), rep, N)]))
       }
       if (isTRUE(doYearArea)) {
         ## this year's simulated total per replicate (fires of more than 1 pixel); a replicate with none burns 0
@@ -1316,7 +1322,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       if (isTRUE(doCrps)) {
         ## a refused year scores as if every replicate left every fire at one pixel
         ret <- append(ret, list(crpsFire = sum(log(annualFires$size)),
-                                crpsSizes = data.table::data.table(rep = rep(seq_len(Nreps), each = NROW(annualFires)),
+                                crpsSizes = data.table::data.table(year = as.character(yr),
+                                                                   rep = rep(seq_len(Nreps), each = NROW(annualFires)),
                                                                    N = 1L)))
       }
       # stop("encountered error with spreadProb - contact module developers")

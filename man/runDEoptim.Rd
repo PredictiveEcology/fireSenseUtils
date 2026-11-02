@@ -217,7 +217,7 @@ fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 and the final-population re-score. Off by default (\code{0}).}
 
 \item{crpsWeights, gateRefusal}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the final-population re-score:
-the weights of its \code{tests = "crps"} objective (\code{NULL}, the default, is \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}}), and whether
+the weights of its \code{tests = "crps"} objective (\code{NULL}, the default, is \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}}; its \code{annualArea} weight, 0 by default, adds each year's area burned), and whether
 a year that fails the spread probability gates is scored as refused (\code{"minLik"}, default) or simulated
 (\code{"simulate"}). With the defaults they add nothing to the fit's cache key.}
 
