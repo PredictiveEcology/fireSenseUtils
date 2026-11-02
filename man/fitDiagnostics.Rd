@@ -126,6 +126,13 @@ the 5-95\% range of simulated years; \code{simsOver10xObs} and \code{simsUnderTe
 simulated fires more than 10 times too large or too small; \code{AD} the Anderson-Darling statistic
 between simulated and observed sizes; \verb{qObs_*}/\verb{qSim_*} the quantiles in \code{probs}.
 
+The remaining columns score single runs, a run being one \code{member} x \code{rep}: one simulated
+history over the years it has. \verb{areaRun_*} is each run's total simulated area burned over its
+observed total and \verb{top10Run_*} the same for the 10 largest fires (all fires if fewer than 10):
+\verb{_median}, \verb{_lo} and \verb{_hi} (the 2.5\% and 97.5\% quantiles) across runs, and \verb{_obsRank} the share
+of runs below the observed value (0.5: the observed value is typical; near 0 or 1: it is out of
+reach of single runs). \code{nRuns} is the number of runs.
+
 \code{linkSaturation()}: a \code{data.table}, one row per member: \code{pixelYears}, \code{propAtCeiling}
 and the spread-probability quantiles \verb{p_*} (bin midpoints).
 
