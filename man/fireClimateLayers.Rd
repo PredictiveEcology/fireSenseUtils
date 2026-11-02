@@ -14,7 +14,8 @@ fireClimateLayers(
 \item{climateVariablesForFire}{List with \code{ignition} and \code{spread} character vectors.}
 
 \item{historicalYears}{Years of historical climate: the fire years for a fit, the simulated years
-with historical climate for prediction. None (\code{NULL} or empty) requests no historical climate.}
+with historical climate for prediction. None (\code{NULL} or empty) requests no historical climate;
+with no projected years either, the result is an empty list.}
 
 \item{projectedYears}{Projected years, from \code{canClimateProjectedYears()}. Projected climate is
 requested for these years only; none (\code{NULL} or empty) requests no projected climate.}
