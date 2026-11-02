@@ -213,7 +213,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     missingELFs <- setdiff(which, ELFsPoly$ID)
     if (length(missingELFs))
       warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
-    fillELFs(which, fill, paste("ELFs", paste(which, collapse = ", ")))
+    fillELFs(which, fill, "selected")
   }
   if (!identical(labels, "none")) {
     keep <- ELFsPoly$buffer %in% 2

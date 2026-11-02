@@ -155,6 +155,17 @@ test_that("`which` is in the legend when it is used", {
   expect_true("red" %in% out$legend$fill)
 })
 
+test_that("the legend calls the `which` ELFs 'selected' and lists only categories that are drawn", {
+  out <- drawn(plan = mergePlan(), which = c("11.3", "1.1"), fill = "red", fewFires = character(0))
+  expect_identical(out$legend$legend[out$legend$fill == "red"], "selected")
+  expect_false(any(grepl("^ELFs", out$legend$legend)))
+  ## no ELF is not fitted (Arctic) or short of fires here, and `which` names no ELF on the map: no entries
+  out <- drawn(plan = mergePlan(), which = "99.9", fewFires = character(0), arcticFill = "beige") |>
+    suppressWarnings()
+  expect_false("selected" %in% out$legend$legend)
+  expect_false("not enough fires" %in% out$legend$legend)
+})
+
 test_that("without a plan, plotELFs computes one with fewFireELFs()", {
   seen <- NULL
   local_mocked_bindings(
