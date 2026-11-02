@@ -26,9 +26,12 @@ resolveDoFit(
 }
 \description{
 \code{fireSense_spreadFit} and \code{fireSense_ignitionFit} decide whether to fit from one three-valued
-parameter, \code{doFit}: \code{NA} (default) fits only when the ledger has no usable fit for the polygon,
-\code{TRUE} always fits (replacing a ledger fit), \code{FALSE} never fits (use the ledger fit; stop when
-there is none). \code{refitExisting} and \code{stopIfNoPreRunFit} are deprecated aliases: \code{refitExisting = TRUE} is \code{doFit = TRUE}; \code{stopIfNoPreRunFit = TRUE} is \code{doFit = FALSE} (\code{stopIfNoPreRunFit = FALSE} only allowed a fit, which is what \code{NA} does); when both are set \code{refitExisting} wins. An
-explicit (non-\code{NA}) \code{doFit} is never overridden by an alias. A module that does not have an
-alias leaves it \code{NA}.
+parameter, \code{doFit}: \code{FALSE} (the modules' default) never fits (use the ledger fit; stop when
+there is none), \code{NA} fits only when the ledger has no usable fit for the polygon, \code{TRUE} always
+fits (replacing a ledger fit). \code{refitExisting} and \code{stopIfNoPreRunFit} are deprecated aliases:
+\code{refitExisting = TRUE} is \code{doFit = TRUE}; \code{stopIfNoPreRunFit = TRUE} is \code{doFit = FALSE}
+(\code{stopIfNoPreRunFit = FALSE} only allowed a fit, which is what \code{NA} does); when both are set
+\code{refitExisting} wins. A \code{doFit} of \code{NA} or \code{TRUE} is never overridden by an alias. A \code{doFit} of
+\code{FALSE} is, because it is the modules' default and so cannot be told apart from an unset \code{doFit}.
+A module that does not have an alias leaves it \code{NA}.
 }
