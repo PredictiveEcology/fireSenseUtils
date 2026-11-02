@@ -19,8 +19,10 @@
 \alias{spreadLinkTxt}
 \alias{spreadFitClimateRefTxt}
 \alias{spreadFitPowerLawGammaTxt}
+\alias{spreadFitPowerLawShapeTxt}
 \alias{spreadLinkOptions}
 \alias{spreadPowerLawGamma}
+\alias{spreadPowerLawShape}
 \alias{spreadFitPowerLawPc50Txt}
 \alias{spreadFitPowerLawR2Txt}
 \alias{spreadFitPowerLawPcMarginTxt}
@@ -62,11 +64,11 @@ design (\code{spreadDesignCols()}), in \code{lower}/\code{upper} and in a ledger
 \item \code{spreadFitCovCentreTxt}: \code{character(1)}. Name of the ledger column that holds the covariate
 centres of a fit made with an intercept (currently \code{"covCentre_spread"}). It is not in
 \code{spreadFitAdditionalColNamesTxt}: a fit without an intercept writes no such column.
-\item \code{spreadLinkTxt}, \code{spreadFitClimateRefTxt}, \code{spreadFitPowerLawGammaTxt}: \code{character(1)} each. Names of the
+\item \code{spreadLinkTxt}, \code{spreadFitClimateRefTxt}, \code{spreadFitPowerLawGammaTxt}, \code{spreadFitPowerLawShapeTxt}: \code{character(1)} each. Names of the
 ledger columns a fit made with a non-default \code{spreadLink} writes: \code{"spreadLink"} (holding
 \code{"climateOutside"} or \code{"powerLaw"}), \code{"climateRef_spread"} (the fit's climate reference from
 \code{\link[=spreadClimateRef]{spreadClimateRef()}}, with \code{"climateOutside"}) and \code{"powerLawGamma_spread"} (the fit's \code{gamma}, with
-\code{"powerLaw"}), so prediction applies the same link (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}). A fit with the default
+\code{"powerLaw"}) and \code{"powerLawShape_spread"} (its \code{shape}, written when not 1; a row without it has shape 1), so prediction applies the same link (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}). A fit with the default
 \code{"ceiling"} link writes none of them; a row without them, every row written before, predicts as it
 always did.
 \item \code{spreadLinkOptions}: \code{character} vector of the values \code{fireSense_spreadFit}'s \code{spreadLink} can
@@ -75,6 +77,8 @@ take: \code{"ceiling"} (the default: climate inside the logistic, under \code{ma
 \item \code{spreadPowerLawGamma}: \code{numeric(1)}. The default \code{gamma} of the \code{"powerLaw"} link, 1.9, from a percolation
 calibration on a uniform landscape. \code{fireSense_spreadFit} calibrates \code{gamma} on each ELF's own flammable map
 instead (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}), unless a number is given.
+\item \code{spreadPowerLawShape}: \code{numeric(1)}. The default \code{shape} of the \code{"powerLaw"} link, 1 (the exponential approach to
+\code{pc}); \code{fireSense_spreadFit}'s \code{powerLawShape}. Fixed, not fitted.
 \item \code{spreadFitPowerLawPc50Txt}, \code{spreadFitPowerLawR2Txt}: \code{character(1)} each. Names of the ledger columns that
 hold, with \code{"powerLaw"} and a calibrated \code{gamma}, the calibration's \code{p50} (the spread probability at which
 half the fires run away, to compare with the fitted \code{p_c}) and the \code{R2} of its \code{gamma} regression

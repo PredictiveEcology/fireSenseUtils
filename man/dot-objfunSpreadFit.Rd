@@ -39,6 +39,7 @@
   link = NULL,
   climateRef = NULL,
   powerLawGamma = spreadPowerLawGamma,
+  powerLawShape = spreadPowerLawShape,
   returnSims = FALSE,
   returnBurned = FALSE,
   penaliseRunaways = TRUE,
@@ -227,6 +228,9 @@ at the reference climate, not to \code{p}.}
 
 \item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
 \code{link = "powerLaw"}.}
+
+\item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted;
+used only with \code{link = "powerLaw"}. Default 1.}
 
 \item{returnSims}{If \code{TRUE}, return the simulated fires instead of the objective value: a
 \code{data.table} with one row per fire year x fire x replicate -- \code{yr}, \code{rep}, \code{initialLocus}, \code{ids},

@@ -39,11 +39,11 @@
 #'   - `spreadFitCovCentreTxt`: `character(1)`. Name of the ledger column that holds the covariate
 #'     centres of a fit made with an intercept (currently `"covCentre_spread"`). It is not in
 #'     `spreadFitAdditionalColNamesTxt`: a fit without an intercept writes no such column.
-#'   - `spreadLinkTxt`, `spreadFitClimateRefTxt`, `spreadFitPowerLawGammaTxt`: `character(1)` each. Names of the
+#'   - `spreadLinkTxt`, `spreadFitClimateRefTxt`, `spreadFitPowerLawGammaTxt`, `spreadFitPowerLawShapeTxt`: `character(1)` each. Names of the
 #'     ledger columns a fit made with a non-default `spreadLink` writes: `"spreadLink"` (holding
 #'     `"climateOutside"` or `"powerLaw"`), `"climateRef_spread"` (the fit's climate reference from
 #'     [spreadClimateRef()], with `"climateOutside"`) and `"powerLawGamma_spread"` (the fit's `gamma`, with
-#'     `"powerLaw"`), so prediction applies the same link ([spreadProbFromCovs()]). A fit with the default
+#'     `"powerLaw"`) and `"powerLawShape_spread"` (its `shape`, written when not 1; a row without it has shape 1), so prediction applies the same link ([spreadProbFromCovs()]). A fit with the default
 #'     `"ceiling"` link writes none of them; a row without them, every row written before, predicts as it
 #'     always did.
 #'   - `spreadLinkOptions`: `character` vector of the values `fireSense_spreadFit`'s `spreadLink` can
@@ -52,6 +52,8 @@
 #'   - `spreadPowerLawGamma`: `numeric(1)`. The default `gamma` of the `"powerLaw"` link, 1.9, from a percolation
 #'     calibration on a uniform landscape. `fireSense_spreadFit` calibrates `gamma` on each ELF's own flammable map
 #'     instead ([calibratePowerLaw()]), unless a number is given.
+#'   - `spreadPowerLawShape`: `numeric(1)`. The default `shape` of the `"powerLaw"` link, 1 (the exponential approach to
+#'     `pc`); `fireSense_spreadFit`'s `powerLawShape`. Fixed, not fitted.
 #'   - `spreadFitPowerLawPc50Txt`, `spreadFitPowerLawR2Txt`: `character(1)` each. Names of the ledger columns that
 #'     hold, with `"powerLaw"` and a calibrated `gamma`, the calibration's `p50` (the spread probability at which
 #'     half the fires run away, to compare with the fitted `p_c`) and the `R2` of its `gamma` regression
@@ -66,7 +68,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadLinkOptions spreadPowerLawGamma spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -125,10 +127,16 @@ spreadFitClimateRefTxt <- "climateRef_spread"
 spreadFitPowerLawGammaTxt <- "powerLawGamma_spread"
 
 #' @export
+spreadFitPowerLawShapeTxt <- "powerLawShape_spread"
+
+#' @export
 spreadLinkOptions <- c("ceiling", "climateOutside", "powerLaw")
 
 #' @export
 spreadPowerLawGamma <- 1.9
+
+#' @export
+spreadPowerLawShape <- 1
 
 #' @export
 spreadFitPowerLawPc50Txt <- "powerLawPc50_spread"

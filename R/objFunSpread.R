@@ -174,6 +174,8 @@ utils::globalVariables(c(
 #'   cannot take `p` past `p_c`. Pass it explicitly when fitting: `par` may arrive unnamed.
 #' @param powerLawGamma The `"powerLaw"` link's `gamma` ([powerLawLink()]), fixed, not fitted; used only with
 #'   `link = "powerLaw"`.
+#' @param powerLawShape The `"powerLaw"` link's curvature exponent `shape` ([powerLawLink()]), fixed, not fitted;
+#'   used only with `link = "powerLaw"`. Default 1.
 #' @param climateRef `NULL` (default): the climate covariates are inside the logistic, under the
 #'   `maxAsymptote` ceiling, as always. A named numeric or list ([spreadClimateRef()]): climate is taken
 #'   outside the ceiling, `p = plogis(qlogis(p0) + beta_clim * (climate - climateRef))` with `p0` the
@@ -286,6 +288,7 @@ utils::globalVariables(c(
                              link = NULL,
                              climateRef = NULL,
                              powerLawGamma = spreadPowerLawGamma,
+                             powerLawShape = spreadPowerLawShape,
                              returnSims = FALSE,
                              returnBurned = FALSE,
                              penaliseRunaways = TRUE,
@@ -432,7 +435,7 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         sizeLik = sizeLik, sizeLikDf = sizeLikDf, link = link, climateRef = climateRef,
-        powerLawGamma = powerLawGamma,
+        powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
         returnSims = returnSims, returnBurned = returnBurned, stopCutFires = isTRUE(penaliseRunaways),
         yearSpreadSD = yearSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
@@ -782,7 +785,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         sizeWeightMean = 1, link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         stopCutFires = FALSE, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
-                        doCrps = FALSE, gateRefusal = "minLik") {
+                        powerLawShape = spreadPowerLawShape, doCrps = FALSE, gateRefusal = "minLik") {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -799,7 +802,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   )
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
   set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
-                                                         climateRef = climateRef, powerLawGamma = powerLawGamma))
+                                                         climateRef = climateRef, powerLawGamma = powerLawGamma,
+                                                         powerLawShape = powerLawShape))
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
@@ -1011,7 +1015,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         pixCrop <- crop$toCrop(shortAnnDT$pixelID)
         powerLaw <- identical(link, "powerLaw")
         lp <- if (powerLaw) as.vector(mat %*% covPars) else stats::qlogis(shortAnnDT$spreadProb)
-        toP <- if (powerLaw) function(z) powerLawLink(z, logisticPars[1L], powerLawGamma, lowerSpreadProb) else stats::plogis
+        toP <- if (powerLaw) function(z) powerLawLink(z, logisticPars[1L], powerLawGamma, lowerSpreadProb, powerLawShape) else stats::plogis
         lociCrop <- crop$toCrop(loci)
       }
       spreadState <- lapply(seq_len(Nreps), function(i) {

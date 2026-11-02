@@ -25,7 +25,8 @@ logisticAll(
   covPars,
   lowerSpreadProb,
   link = NULL,
-  gamma = spreadPowerLawGamma
+  gamma = spreadPowerLawGamma,
+  shape = spreadPowerLawShape
 )
 }
 \arguments{
@@ -59,7 +60,9 @@ named \code{upperTail1} is always \code{logistic3pUpper}, whatever its length.}
 \code{\link[=powerLawLink]{powerLawLink()}} (\code{logisticPars[1]} is then \code{p_c}). Pass it explicitly
 wherever \code{logisticPars} may arrive without names, as inside the objective function.}
 
-\item{gamma}{The \code{"powerLaw"} link's exponent (\code{\link[=powerLawLink]{powerLawLink()}}); not used by the other links.}
+\item{gamma}{The \code{"powerLaw"} link's scale \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}); not used by the other links.}
+
+\item{shape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}); default 1; not used by the other links.}
 }
 \value{
 Numeric vector of logistic values; same length as \code{x} (or
