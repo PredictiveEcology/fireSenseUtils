@@ -150,7 +150,9 @@ ELFfireOverlay <- function(rasWhole, firePolys, fireYears) {
     candidates <- polys[near, ]
     hit <- candidates[as.vector(terra::relate(candidates, area, "intersects")), ]
     if (!nrow(hit)) return(NULL)
-    inside <- as.vector(terra::relate(hit, area, "within"))
+    ## the zone is the first argument because terra prepares that one: "contains" with the zone prepared
+    ## once is fast, while "within" prepares each small polygon and relates it to the whole zone outline
+    inside <- as.vector(terra::relate(area, hit, "contains")) # area is one row: 1 x n, in `hit` order
     ## the intersect warns when nothing overlaps
     crossing <- if (any(!inside)) suppressWarnings(terra::intersect(hit[!inside, ], area))
     list(YEAR = c(as.integer(hit$YEAR[inside]), if (!is.null(crossing)) as.integer(crossing$YEAR)),

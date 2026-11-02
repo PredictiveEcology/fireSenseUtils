@@ -120,6 +120,66 @@ test_that("ELFfireOverlay clips fire polygons to each ELF's fitting area and cor
   expect_named(none, names(ov))
 })
 
+test_that("ELFfireOverlay keeps whole polygons inside a zone with holes and clips the rest", {
+  r <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 10000, ymin = 0, ymax = 10000, crs = "EPSG:3978")
+  ## core is columns 1-5 (x 0-5000) except a hole (buffer) at rows 3-4 (y 6000-8000) of columns 2-3; buffer is
+  ## columns 6-8; columns 9-10 are outside the fit
+  v <- matrix(0, 10, 10)
+  v[, 1:5] <- 2
+  v[3:4, 2:3] <- 1
+  v[, 6:8] <- 1
+  z <- terra::setValues(r, as.vector(t(v)))
+  names(z) <- "holey"
+  sq <- function(x0, y0, w, h)
+    sprintf("POLYGON ((%f %f, %f %f, %f %f, %f %f, %f %f))", x0, y0, x0, y0 + h, x0 + w, y0 + h, x0 + w, y0, x0, y0)
+  polys <- terra::vect(c(
+    sq(3500, 1000, 1000, 1000),   # 100 ha, wholly in the core
+    sq(1200, 6200, 600, 600),     # 36 ha, wholly inside the hole: in the fit, not in the core
+    sq(4500, 1000, 1000, 1000),   # 100 ha across the core/buffer edge (x = 5000): half in the core
+    sq(8500, 1000, 400, 400),     # outside the fit zone
+    sq(1200, 5000, 1000, 2000)),  # 200 ha across the hole's edge: 100 ha of it is in the hole
+    crs = "EPSG:3978")
+  polys$YEAR <- c(1985L, 1986L, 1987L, 1988L, 1989L)
+  ov <- ELFfireOverlay(z, polys, fireYears = 1985:1989)
+  fit <- ov[ov$zone == "fit", ]
+  core <- ov[ov$zone == "core", ]
+  fit <- fit[order(fit$YEAR), ]
+  core <- core[order(core$YEAR), ]
+  expect_identical(fit$YEAR, c(1985L, 1986L, 1987L, 1989L))
+  expect_identical(core$YEAR, c(1985L, 1987L, 1989L))
+  expect_false(1988L %in% ov$YEAR)                                  # outside every zone
+  expect_equal(fit$ha, c(100, 36, 100, 200), tolerance = 1e-2)
+  expect_equal(core$ha, c(100, 50, 100), tolerance = 1e-2)
+})
+
+test_that("ELFfireOverlay is fast when the zone is a very fragmented polygon", {
+  n <- 400
+  r <- terra::rast(nrows = n, ncols = n, xmin = 0, xmax = n * 100, ymin = 0, ymax = n * 100, crs = "EPSG:3978")
+  ## columns 1-300 have 20% scattered holes (tens of thousands of vertices once dissolved); 301-400 are solid
+  set.seed(1)
+  m <- matrix(2, n, n)
+  frag <- m[, 1:300]
+  frag[sample(length(frag), length(frag) * 0.2)] <- 0
+  m[, 1:300] <- frag
+  z <- terra::setValues(r, as.vector(t(m)))
+  names(z) <- "fragmented"
+  x0 <- seq(31000, by = 250, length.out = 20)                       # 20 small fires in the solid part
+  polys <- terra::vect(sprintf("POLYGON ((%f 20000, %f 20200, %f 20200, %f 20000, %f 20000))",
+                               x0, x0, x0 + 200, x0 + 200, x0), crs = "EPSG:3978")
+  polys$YEAR <- rep(1985:1989, 4)
+  ## the zone as the function builds it: each fire must be classified against its whole outline
+  area <- terra::as.polygons(z == 2, dissolve = TRUE)
+  area <- area[as.logical(area[[1]][, 1]), ]
+  expect_gt(nrow(terra::geom(area)), 20000)
+  expect_equal(as.vector(terra::relate(area, polys, "contains")),
+               as.vector(terra::relate(polys, area, "within")))
+  elapsed <- system.time(ov <- ELFfireOverlay(z, polys, fireYears = 1985:1989))[["elapsed"]]
+  expect_identical(nrow(ov), 40L)                                    # 20 fires x (fit, core)
+  expect_equal(median(ov$ha), 4, tolerance = 1e-2)
+  ## about 1 s with the zone prepared once; about 30 s when each fire is related to the whole outline
+  expect_lt(elapsed, 10)
+})
+
 test_that("ELFfireCounts and ELFregionStats read a given overlay and give the same answer as without", {
   elfs <- makeTestELFs()
   years <- 1985:1989

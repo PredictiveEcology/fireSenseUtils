@@ -114,6 +114,9 @@ deoptimPopulationSize <- function(nParams) {
 #' @param powerLawGamma The `"powerLaw"` link's `gamma` ([powerLawLink()]), passed to [.objfunSpreadFit()] in the
 #'   fit and the re-score. Used only with `link = "powerLaw"`; with any other link it is left out of the cache
 #'   keys ([powerLawOmitArgs()]) and the re-score's arguments, so they are what they were.
+#' @param powerLawShape The `"powerLaw"` link's curvature exponent `shape` ([powerLawLink()]), fixed, passed like
+#'   `powerLawGamma`. At its default, 1, it is left out of the cache keys and the re-score's arguments, so fits made
+#'   before it existed are found.
 #'
 #' @param convergence `NULL` (default: `clusters`' options and defaults decide) or a list with any of
 #'   `window`, `minGenerations`, `se`, `sdChange`: when [clusters::DEoptimIterative()] stops a fit
@@ -167,7 +170,7 @@ deoptimPopulationSize <- function(nParams) {
 #' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
 #'   and the final-population re-score. Off by default (`0`).
 #' @param crpsWeights,gateRefusal Passed to [.objfunSpreadFit()], in the fit and the final-population re-score:
-#'   the weights of its `tests = "crps"` objective (`NULL`, the default, is [crpsWeightsDefault()]), and whether
+#'   the weights of its `tests = "crps"` objective (`NULL`, the default, is [crpsWeightsDefault()]; its `annualArea` weight, 0 by default, adds each year's area burned), and whether
 #'   a year that fails the spread probability gates is scored as refused (`"minLik"`, default) or simulated
 #'   (`"simulate"`). With the defaults they add nothing to the fit's cache key.
 #' @param penaliseRunaways Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` (default)
@@ -264,7 +267,8 @@ runDEoptim <- function(landscape,
                        covCentre = NULL,
                        convergence = NULL,
                        climateRef = NULL,
-                       powerLawGamma = spreadPowerLawGamma) {
+                       powerLawGamma = spreadPowerLawGamma,
+                       powerLawShape = spreadPowerLawShape) {
   ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
@@ -352,6 +356,7 @@ runDEoptim <- function(landscape,
       covCentre = covCentre,
       climateRef = climateRef,
       powerLawGamma = powerLawGamma,
+      powerLawShape = powerLawShape,
       # tests = c("mad", "SNLL_FS"),
       tests = tests,
       figurePath = visualizeDEoptim,
@@ -390,7 +395,7 @@ runDEoptim <- function(landscape,
       convergence = convergence),
     cachePath = paths$cachePath,
     ## how often progress figures are drawn, and where the progress file goes, do not change the fit
-    omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link),
+    omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link, powerLawShape),
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
                  omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
                               convergence = convergence, climateRef = climateRef)),
@@ -425,6 +430,7 @@ runDEoptim <- function(landscape,
   rescoreArgs$covCentre <- covCentre
   rescoreArgs$climateRef <- climateRef
   if (identical(link, "powerLaw")) rescoreArgs$powerLawGamma <- powerLawGamma
+  if (!"powerLawShape" %in% powerLawOmitArgs(link, powerLawShape)) rescoreArgs$powerLawShape <- powerLawShape
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   rescoreArgs$crpsWeights <- crpsWeights
   if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal

@@ -67,7 +67,8 @@ runDEoptim(
   covCentre = NULL,
   convergence = NULL,
   climateRef = NULL,
-  powerLawGamma = spreadPowerLawGamma
+  powerLawGamma = spreadPowerLawGamma,
+  powerLawShape = spreadPowerLawShape
 )
 
 termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
@@ -217,7 +218,7 @@ fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
 and the final-population re-score. Off by default (\code{0}).}
 
 \item{crpsWeights, gateRefusal}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the final-population re-score:
-the weights of its \code{tests = "crps"} objective (\code{NULL}, the default, is \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}}), and whether
+the weights of its \code{tests = "crps"} objective (\code{NULL}, the default, is \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}}; its \code{annualArea} weight, 0 by default, adds each year's area burned), and whether
 a year that fails the spread probability gates is scored as refused (\code{"minLik"}, default) or simulated
 (\code{"simulate"}). With the defaults they add nothing to the fit's cache key.}
 
@@ -257,6 +258,10 @@ key are what they were; a named numeric (\code{\link[=spreadClimateRef]{spreadCl
 \item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the
 fit and the re-score. Used only with \code{link = "powerLaw"}; with any other link it is left out of the cache
 keys (\code{\link[=powerLawOmitArgs]{powerLawOmitArgs()}}) and the re-score's arguments, so they are what they were.}
+
+\item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, passed like
+\code{powerLawGamma}. At its default, 1, it is left out of the cache keys and the re-score's arguments, so fits made
+before it existed are found.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}

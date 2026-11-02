@@ -4,15 +4,22 @@
 \alias{powerLawOmitArgs}
 \title{Which arguments a \code{link}'s cache key leaves out}
 \usage{
-powerLawOmitArgs(link)
+powerLawOmitArgs(link, shape = spreadPowerLawShape)
 }
 \arguments{
 \item{link}{The spread link: \code{NULL}, \code{"logistic3pUpper"} or \code{"powerLaw"}.}
+
+\item{shape}{The \code{powerLawShape} of the call; default \link{spreadPowerLawShape}.}
 }
 \value{
-\code{"powerLawGamma"}, or \code{character()} with \code{link = "powerLaw"}. For \code{omitArgs} of \code{Cache()}.
+\code{c("powerLawGamma", "powerLawShape")} unless \code{link = "powerLaw"}; with it, \code{"powerLawShape"} if \code{shape} is
+1, else \code{character()}. For \code{omitArgs} of \code{Cache()}.
 }
 \description{
-\code{powerLawGamma} matters only with \code{link = "powerLaw"}; with any other link it is left out of the key so a
-fit made without it is found as before.
+\code{powerLawGamma} and \code{powerLawShape} matter only with \code{link = "powerLaw"}; with any other link they are left out
+of the key so a fit made without them is found as before.
+}
+\details{
+With \code{link = "powerLaw"}, \code{powerLawShape} is also left out when it is the default, 1 (the original link), so a fit
+made before \code{powerLawShape} existed is found.
 }

@@ -24,6 +24,7 @@ spreadFitValidationData(
   fitYearSpreadSD = NULL,
   climateRef = NULL,
   powerLawGamma = spreadPowerLawGamma,
+  powerLawShape = spreadPowerLawShape,
   seed = NULL,
   ...
 )
@@ -117,6 +118,9 @@ at the reference climate, not to \code{p}.}
 \item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
 \code{link = "powerLaw"}.}
 
+\item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted;
+used only with \code{link = "powerLaw"}. Default 1.}
+
 \item{seed}{If not \code{NULL}, the simulations run with this seed and the session's random number
 stream is restored afterwards.}
 
@@ -142,7 +146,7 @@ of the fire year), \code{pixelID}, \code{observed} (1 if the pixel is inside an 
 probability, without the per-year random effect), and one column per covariate of the formula
 with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 \code{attr(, "spreadFitValidation")} holds what the plots need: the parameters, \code{covMinMax},
-\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawGamma}, \code{Nreps}, the names of the covariates and of the
+\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawGamma}, \code{powerLawShape}, \code{Nreps}, the names of the covariates and of the
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 

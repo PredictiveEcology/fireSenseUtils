@@ -108,6 +108,40 @@ test_that("scoreFireSizes(): a perfect simulation scores zero error; a 10x one s
   expect_equal(s$years, 1L)
 })
 
+test_that("scoreFireSizes() scores single runs: area and 10 largest fires, median, range, observed rank", {
+  d <- data.table::CJ(member = 1:2, rep = 1:3, yr = c("2001", "2002"), ids = 1:6)
+  d[, size := ifelse(yr == "2001", ids * 10, ids * 10 + 5)] # 12 fires, 450 pixels
+  f <- data.table::data.table(member = rep(1:2, each = 3), rep = rep(1:3, 2),
+                              f = c(0.5, 1, 2, 1, 1, 4))
+  d <- merge(d, f, by = c("member", "rep"))
+  d[, sim := size * f]
+  old <- scoreFireSizes(d[, !"f"][, sim := d$sim])
+  ## run (1, 1) misses the two smallest fires: its area falls, its 10 largest do not
+  d[member == 1 & rep == 1 & size %in% c(10, 15), sim := 0]
+  s <- scoreFireSizes(d[, !"f"])
+  expect_equal(s$nRuns, 6L)
+  area <- c(0.5 * (450 - 25) / 450, 1, 2, 1, 1, 4)
+  top <- c(0.5, 1, 2, 1, 1, 4)
+  expect_equal(s$areaRun_median, stats::median(area))
+  expect_equal(c(s$areaRun_lo, s$areaRun_hi), stats::quantile(area, c(0.025, 0.975), names = FALSE))
+  expect_equal(s$areaRun_obsRank, 1 / 6)
+  expect_equal(s$top10Run_median, 1)
+  expect_equal(c(s$top10Run_lo, s$top10Run_hi), stats::quantile(top, c(0.025, 0.975), names = FALSE))
+  expect_equal(c(s$top10Run_lo, s$top10Run_hi), c(0.5625, 3.75))
+  expect_equal(s$top10Run_obsRank, 1 / 6)
+  ## the columns that existed before keep their names and values
+  d2 <- data.table::copy(d)
+  d2[, sim := size * f]
+  new <- scoreFireSizes(d2[, !"f"])
+  expect_equal(new[, names(old), with = FALSE], old)
+  expect_identical(names(new)[seq_along(old)], names(old))
+  ## every run equal to the observed: median 1 and no run below it
+  d2[, sim := size]
+  p <- scoreFireSizes(d2[, !"f"])
+  expect_equal(c(p$areaRun_median, p$top10Run_median, p$areaRun_lo, p$top10Run_hi), rep(1, 4))
+  expect_equal(c(p$areaRun_obsRank, p$top10Run_obsRank), c(0, 0))
+})
+
 test_that("coefIdentifiability() scores only covariates, and zPop is the median in population sd", {
   set.seed(1)
   pop <- cbind(maxAsymptote = 0.26, hillSlope1 = runif(200, 0.5, 1), inflectionPoint1 = 1,
