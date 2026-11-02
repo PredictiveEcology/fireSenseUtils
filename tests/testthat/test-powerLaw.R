@@ -146,7 +146,50 @@ test_that(".objfunSpreadFit() and runDEoptim() carry powerLawGamma; the default 
   run()
   expect_true("powerLawGamma" %in% seen$omit[[1]])
   expect_false("powerLawGamma" %in% names(seen$rescore))
-  expect_identical(powerLawOmitArgs(NULL), "powerLawGamma")
-  expect_identical(powerLawOmitArgs("logistic3pUpper"), "powerLawGamma")
-  expect_identical(powerLawOmitArgs("powerLaw"), character())
+  ## the shape is in the key and the re-score only when it is not the default 1
+  seen$omit <- list(); seen$rescore <- NULL
+  run(link = "powerLaw", powerLawGamma = 2.2)
+  expect_true("powerLawShape" %in% seen$omit[[1]])
+  expect_false("powerLawShape" %in% names(seen$rescore))
+  seen$omit <- list()
+  run(link = "powerLaw", powerLawGamma = 2.2, powerLawShape = 2)
+  expect_identical(seen$fit$powerLawShape, 2)
+  expect_identical(seen$rescore$powerLawShape, 2)
+  expect_false("powerLawShape" %in% seen$omit[[1]])
+  expect_identical(powerLawOmitArgs(NULL), c("powerLawGamma", "powerLawShape"))
+  expect_identical(powerLawOmitArgs("logistic3pUpper"), c("powerLawGamma", "powerLawShape"))
+  expect_identical(powerLawOmitArgs("powerLaw", 2), character())
+  expect_identical(powerLawOmitArgs("powerLaw"), "powerLawShape")
+  expect_identical(powerLawOmitArgs("powerLaw", 1L), "powerLawShape")
+})
+
+## powerLawShape: p = pc - (pc - floor) * exp(-sign(x) * abs(x / gamma)^shape); 1 is the original link
+test_that("powerLawLink() shape = 1 is the original formula; shape bends the curve and keeps the limits", {
+  x <- c(-2, -0.5, 0, 0.3, 1, 1.9, 3, 8)
+  old <- pmax(pcT - (pcT - f) * exp(-x / 1.9), 0)
+  expect_identical(powerLawLink(x, pcT, 1.9, f), old)
+  expect_identical(powerLawLink(x, pcT, 1.9, f, shape = 1), old)
+  expect_identical(spreadPowerLawShape, 1)
+  expect_identical(spreadFitPowerLawShapeTxt, "powerLawShape_spread")
+  lo <- c(0.2, 0.9, 1.5)
+  hi <- c(2.5, 4, 8)
+  expect_true(all(powerLawLink(lo, pcT, 1.9, f, shape = 2) < powerLawLink(lo, pcT, 1.9, f, shape = 1)))
+  expect_true(all(powerLawLink(hi, pcT, 1.9, f, shape = 2) > powerLawLink(hi, pcT, 1.9, f, shape = 1)))
+  for (s in c(0.7, 1, 2, 3)) {
+    expect_equal(powerLawLink(0, pcT, 1.9, f, shape = s), f)
+    expect_equal(powerLawLink(1e3, pcT, 1.9, f, shape = s), pcT)
+    expect_false(is.unsorted(powerLawLink(seq(-1, 6, length.out = 50), pcT, 1.9, f, shape = s)))
+  }
+})
+
+test_that("shape goes through logisticAll(), spreadProbFromCovs() and powerLawOmitArgs() is unchanged", {
+  mat <- matOf("2004")
+  b <- c(clim = 2, fuel = 3, youngAge = -1)
+  x <- as.vector(mat %*% b)
+  pl <- spreadProbFromCovs(mat, lp3, b, f, link = "powerLaw", powerLawGamma = 1.5, powerLawShape = 2)
+  expect_equal(as.numeric(pl), powerLawLink(x, lp3[1], 1.5, f, shape = 2))
+  expect_equal(as.numeric(logisticAll(lp3, mat, b, f, link = "powerLaw", gamma = 1.5, shape = 2)), as.numeric(pl))
+  expect_identical(spreadProbFromCovs(mat, lp3, b, f, link = "powerLaw"),
+                   spreadProbFromCovs(mat, lp3, b, f, link = "powerLaw", powerLawShape = 1))
+  expect_identical(spreadProbFromCovs(mat, lp3, b, f, powerLawShape = 3), logisticAll(lp3, mat, b, f))
 })
