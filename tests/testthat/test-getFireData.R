@@ -89,10 +89,13 @@ test_that("getFirePolygons splits polygons by year, with their area in ha", {
   expect_identical(out$year2001$FIRE_ID, 1:2)
   ## sf gave m2: st_area() has no `unit` argument
   expect_equal(out$year2003$POLY_HA, rep(3.14, 2), tolerance = 0.01)
+  ## SIZE_HA is the canonical size column, the same value
+  expect_identical(out$year2003$SIZE_HA, out$year2003$POLY_HA)
 
   local_mocked_bindings(prepInputs = function(url, useCache, ...) terra::vect(polys))
   vout <- getFirePolygons(url = "https://x/NBAC.zip", years = 2003)
   expect_equal(vout$year2003$POLY_HA, rep(3.14, 2), tolerance = 0.01)
+  expect_identical(vout$year2003$SIZE_HA, vout$year2003$POLY_HA)
 })
 
 test_that("latestNBACUrl falls back to the known file when the listing cannot be read", {

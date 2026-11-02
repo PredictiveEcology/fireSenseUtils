@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  "areaBurnedHa", "Nfires", "POLY_HA", "SIZE_HA", "stat", "sumAB", "sumBurn", "val", "var", "YEAR"
+  ".size", "areaBurnedHa", "Nfires", "stat", "sumAB", "sumBurn", "val", "var", "YEAR"
 ))
 
 #' Locate per-replicate simulation output files
@@ -94,12 +94,15 @@ utils::globalVariables(c(
 #' @param ignitionPoints A `sf` spatial points of historic fire ignitions, from the Canadian
 #'    National Fire Database.
 #'
+#' @param sizeCol The column of `firePolys` with the fire size (ha), used both to keep escaped
+#'    fires (larger than `pixelSize`) and to sum the area burned.
+#'
 #' @template simFiles
 #'
 #' @export
 #' @importFrom data.table as.data.table setnames
 plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
-                              pixelSize, firePolys, ignitionPoints, simFiles) {
+                              pixelSize, firePolys, ignitionPoints, simFiles, sizeCol = "SIZE_HA") {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("SpaDES.core", quietly = TRUE)) {
     ## A historical run has no scenario, and carries NA for it -- usually R's
@@ -114,10 +117,11 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
 
     historicalBurns <- as.data.table(.attributes(firePolys))
 
-    ## restrict to escapes only, but sum poly_ha for burns
+    ## restrict to escapes only, and sum the same size column for burns
+    historicalBurns[, .size := as.numeric(get(sizeCol))]
     historicalBurns <- historicalBurns[
-      SIZE_HA > pixelSize,
-      .(sumBurn = sum(as.numeric(POLY_HA)), nFires = .N), .(YEAR)
+      .size > pixelSize,
+      .(sumBurn = sum(.size), nFires = .N), .(YEAR)
     ]
     setnames(historicalBurns, "YEAR", "year")
     historicalBurns[, stat := "observed"]

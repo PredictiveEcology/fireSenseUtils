@@ -21,7 +21,7 @@ specific release when reproducibility matters.}
 \item{...}{additional arguments passed to \code{\link[reproducible:prepInputs]{reproducible::prepInputs()}}}
 }
 \value{
-list of fire polygons by year
+list of fire polygons by year, each with its area in ha as \code{POLY_HA} and as \code{SIZE_HA}
 }
 \description{
 Download and prepare fire data from National Fire Database

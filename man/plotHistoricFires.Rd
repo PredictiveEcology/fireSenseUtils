@@ -11,7 +11,8 @@ plotHistoricFires(
   pixelSize,
   firePolys,
   ignitionPoints,
-  simFiles
+  simFiles,
+  sizeCol = "SIZE_HA"
 )
 }
 \arguments{
@@ -39,6 +40,9 @@ when summarizing runs restored from another machine, or when the replicate
 directories are unpadded (\code{rep1} rather than \code{rep01}).
 When supplied, the replicates present in \code{simFiles} are used, and \code{Nreps}
 is ignored.}
+
+\item{sizeCol}{The column of \code{firePolys} with the fire size (ha), used both to keep escaped
+fires (larger than \code{pixelSize}) and to sum the area burned.}
 }
 \value{
 list of file names corresponding to the figures and/or objects written to disk
