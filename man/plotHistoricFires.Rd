@@ -24,7 +24,7 @@ including SSP, formatted as in \code{ClimateNA}, using underscores as separator
 
 \item{outputDir}{Path specifying the directory to which outputs figures/objects should be saved.}
 
-\item{pixelSize}{raster pixel (Cell) size}
+\item{pixelSize}{raster pixel (cell) side length (m); a fire larger than one pixel (\code{pixelSize^2 / 1e4} ha) is an escape}
 
 \item{firePolys}{A \code{sf} spatial polygons of historic fire burn areas, from the Canadian
 National Fire Database.}
@@ -41,8 +41,8 @@ directories are unpadded (\code{rep1} rather than \code{rep01}).
 When supplied, the replicates present in \code{simFiles} are used, and \code{Nreps}
 is ignored.}
 
-\item{sizeCol}{The column of \code{firePolys} with the fire size (ha), used both to keep escaped
-fires (larger than \code{pixelSize}) and to sum the area burned.}
+\item{sizeCol}{The column of \code{firePolys} with the fire size (ha), used both to count escaped
+fires (larger than one pixel) and to sum the area burned of all fires.}
 }
 \value{
 list of file names corresponding to the figures and/or objects written to disk
