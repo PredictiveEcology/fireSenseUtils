@@ -13,6 +13,8 @@ runJob(
   diagFile = NA,
   rprofPrefix = NA,
   uploadDir = NULL,
+  ledger = NULL,
+  scenario = list(),
   hindcast = FALSE
 )
 }
@@ -35,6 +37,13 @@ or \code{"all"} if it has none.}
 
 \item{uploadDir}{The Google Drive folder that a finished \code{"all"} job saves its simList to with
 \code{SpaDES.project::outSaveTarUpload()}, or \code{NULL} for no upload. A failed upload only warns.}
+
+\item{ledger}{A \code{reproducible::CacheGeoLedger()} that records each upload, with the ELF itself
+(\code{studyAreaELF}, no buffer) as its polygon, so the run can be found by study area. \code{NULL}, the
+default, records nothing: pass it only for runs others should find, not for experiments.}
+
+\item{scenario}{A named list of what tells this run apart from others of the same ELF, e.g.
+\code{list(GCM = "NRV", SSP = 370, rep = 1)}; one ledger column each.}
 
 \item{hindcast}{Whether the job is a hindcast, which is not uploaded.}
 }

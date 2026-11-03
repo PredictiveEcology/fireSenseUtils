@@ -48,13 +48,19 @@ phaseEvents <- function(phase = fireSensePhases, validates = FALSE) {
 #'   `<rprofPrefix>_<elf>_<pid>.out`.
 #' @param uploadDir The Google Drive folder that a finished `"all"` job saves its simList to with
 #'   `SpaDES.project::outSaveTarUpload()`, or `NULL` for no upload. A failed upload only warns.
+#' @param ledger A `reproducible::CacheGeoLedger()` that records each upload, with the ELF itself
+#'   (`studyAreaELF`, no buffer) as its polygon, so the run can be found by study area. `NULL`, the
+#'   default, records nothing: pass it only for runs others should find, not for experiments.
+#' @param scenario A named list of what tells this run apart from others of the same ELF, e.g.
+#'   `list(GCM = "NRV", SSP = 370, rep = 1)`; one ledger column each.
 #' @param hindcast Whether the job is a hindcast, which is not uploaded.
 #'
 #' @return The simList, invisibly; `NULL` if the job was skipped.
 #'
 #' @export
 runJob <- function(sim, elf, phase = sim$params$fireSense_spreadFit$phase, fitQueue = NA,
-                   afterQueue = NA, diagFile = NA, rprofPrefix = NA, uploadDir = NULL, hindcast = FALSE) {
+                   afterQueue = NA, diagFile = NA, rprofPrefix = NA, uploadDir = NULL, ledger = NULL, scenario = list(),
+                   hindcast = FALSE) {
   phase <- match.arg(phase, fireSensePhases)
   if (!is.na(fitQueue) || !is.na(afterQueue) || !is.null(uploadDir))
     if (!requireNamespace("SpaDES.project", quietly = TRUE))
@@ -84,7 +90,9 @@ runJob <- function(sim, elf, phase = sim$params$fireSense_spreadFit$phase, fitQu
   simOut <- SpaDES.core::simInitAndSpades2(copy)
 
   if (phase == "all" && !hindcast && !is.null(uploadDir))
-    tryCatch(SpaDES.project::outSaveTarUpload(runName = sim$runName, sim = simOut, gFolder = uploadDir),
+    tryCatch(SpaDES.project::outSaveTarUpload(runName = sim$runName, sim = simOut, gFolder = uploadDir,
+                                              ledger = ledger, scenario = scenario,
+                                              area = if (!is.null(ledger)) simOut$studyAreaELF),
              error = function(e) warning("outSaveTarUpload failed: ", conditionMessage(e), call. = FALSE))
   invisible(simOut)
 }

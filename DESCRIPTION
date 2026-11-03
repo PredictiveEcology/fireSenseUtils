@@ -72,7 +72,7 @@ Suggests:
     scoringRules,
     spatstat,
     spelling,
-    SpaDES.project (>= 1.2.0.9028),
+    SpaDES.project (>= 1.2.0.9029),
     testthat,
     xgboost
 Remotes:

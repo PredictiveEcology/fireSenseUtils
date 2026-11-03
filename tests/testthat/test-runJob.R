@@ -28,8 +28,9 @@ mockJob <- function(skip = NULL, fail = FALSE, env = parent.frame()) {
       calls$wait <- c(calls$wait, list(list(queueFile, id)))
       invisible(NULL)
     },
-    outSaveTarUpload = function(runName, sim, gFolder) {
-      calls$upload <- c(calls$upload, list(list(runName = runName, sim = sim, gFolder = gFolder)))
+    outSaveTarUpload = function(runName, sim, gFolder, ledger = NULL, area = NULL, scenario = list()) {
+      calls$upload <- c(calls$upload, list(list(runName = runName, sim = sim, gFolder = gFolder,
+                                                ledger = ledger, area = area, scenario = scenario)))
       if (fail) stop("boom")
       invisible(NULL)
     },
@@ -101,12 +102,25 @@ test_that("only a phase 'all' job that is not a hindcast uploads, and only with 
   calls <- mockJob()
   expect_identical(runJob(fakeSim(), "6.6.1", phase = "all", uploadDir = "folderID"), "simOut")
   expect_identical(calls$upload,
-                   list(list(runName = "6.6.1/run1", sim = "simOut", gFolder = "folderID")))
+                   list(list(runName = "6.6.1/run1", sim = "simOut", gFolder = "folderID",
+                             ledger = NULL, area = NULL, scenario = list())))
   runJob(fakeSim(), "6.6.1", phase = "all", uploadDir = "folderID", hindcast = TRUE)
   runJob(fakeSim(), "6.6.1", phase = "inputs", uploadDir = "folderID")
   runJob(fakeSim(), "6.6.1", phase = "fit", uploadDir = "folderID")
   runJob(fakeSim(), "6.6.1", phase = "all")
   expect_length(calls$upload, 1L)
+})
+
+test_that("with a ledger, the upload records the unbuffered ELF and the scenario", {
+  calls <- mockJob()
+  testthat::local_mocked_bindings(simInitAndSpades2 = function(sim, ...)
+    list(studyAreaELF = "ELF polygon", studyArea = "buffered"), .package = "SpaDES.core")
+  runJob(fakeSim(), "6.6.1", phase = "all", uploadDir = "folderID", ledger = "theLedger",
+         scenario = list(GCM = "NRV", SSP = 370, rep = 2))
+  up <- calls$upload[[1]]
+  expect_identical(up$ledger, "theLedger")
+  expect_identical(up$area, "ELF polygon")
+  expect_identical(up$scenario, list(GCM = "NRV", SSP = 370, rep = 2))
 })
 
 test_that("an upload failure only warns", {
