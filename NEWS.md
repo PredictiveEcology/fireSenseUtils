@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `plotELFs()` takes `metricCol`, `metricTitle` and `metricRange`: the colours, legend title and fixed value range (e.g. `c(0, 100)`) of the `metrics` it maps. `plotFires` still sets its own colours and title, where these are `NULL`.
+
 * `runJob(ledger = , scenario = )` records each uploaded run in a `reproducible::CacheGeoLedger()`, with the unbuffered ELF (`studyAreaELF`) as its polygon, so the `simListArchive` module can find it by study area. The default `ledger = NULL` records nothing.
 
 * `phaseEvents("inputs")` stops before `fireSense_spreadFit`'s `run` event, not before `estimateThreshold`, which the threshold-calibration removal took out of the module: an inputs-only job would have gone on to fit.

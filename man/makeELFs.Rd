@@ -29,6 +29,9 @@ plotELFs(
   axes = c("m", "longlat", "none"),
   metrics = NULL,
   metric = NULL,
+  metricCol = NULL,
+  metricTitle = NULL,
+  metricRange = NULL,
   plotFires = NULL,
   ...
 )
@@ -93,6 +96,11 @@ the values to map, e.g. from \code{\link[=readELFmetrics]{readELFmetrics()}}. \c
 
 \item{metric}{The column of \code{metrics} whose values fill the cores, drawn over the other fills; ELFs
 without a value keep theirs.}
+
+\item{metricCol, metricTitle, metricRange}{The colours (a vector, as \code{col} of \code{\link[terra:plot]{terra::plot()}}), the legend title
+and the value range (two numbers, e.g. \code{c(0, 100)}, fixing the colour scale) of \code{metric}. \code{NULL} (default)
+takes terra's colours, \code{metric} as the title and the range of the values. With \code{plotFires}, the colours
+and title left \code{NULL} are the green-to-red ramp and the name of the rate.}
 
 \item{plotFires}{\code{NULL} (default), \code{"number"}, \code{"density"}, \code{"area"} or \code{"proportion"}: fill the cores with
 the mean natural ignitions per year, the mean natural ignitions per 100 km^2 of core per year, the mean

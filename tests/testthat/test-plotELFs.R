@@ -73,7 +73,8 @@ drawn <- function(...) {
     Cache = function(x, ...) x
   )
   local_mocked_bindings(
-    plot = function(x, ..., col = NULL, add = FALSE) calls$plots[[length(calls$plots) + 1L]] <<- list(x = x, col = col, add = add),
+    plot = function(x, ..., col = NULL, add = FALSE, range = NULL, plg = NULL)
+      calls$plots[[length(calls$plots) + 1L]] <<- list(x = x, col = col, add = add, range = range, plg = plg),
     text = function(x, labels, ...) calls$labels <<- c(calls$labels, labels),
     .package = "terra"
   )
@@ -427,6 +428,21 @@ test_that("plotELFs(metrics, metric) fills the cores that have a value, with the
   expect_identical(valued[[1]]$x$ID, "11.1_2")                  # 1.1 has no value: it keeps its Arctic fill
   expect_equal(valued[[1]]$x$areaBurnedHaPerYear, 250)
   expect_true(valued[[1]]$add)
+})
+
+test_that("plotELFs(metricCol, metricTitle, metricRange) reach the map of `metrics`", {
+  m <- data.frame(ELF = c("11.3", "1.1"), share = c(20, 80))
+  out <- drawn(plan = mergePlan(), metrics = m, metric = "share",
+               metricCol = c("blue", "red"), metricTitle = "% in range", metricRange = c(0, 100))
+  last <- out$plots[[length(out$plots)]]
+  expect_equal(last$col, c("blue", "red"))
+  expect_equal(last$range, c(0, 100))
+  expect_equal(last$plg$title, "% in range")
+  dflt <- drawn(plan = mergePlan(), metrics = m, metric = "share")
+  last <- dflt$plots[[length(dflt$plots)]]
+  expect_null(last$col)
+  expect_null(last$range)
+  expect_equal(last$plg$title, "share")
 })
 
 test_that("plotELFs(metrics) needs one row per ELF and a `metric` column, and warns of unknown ELFs", {
