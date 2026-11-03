@@ -101,8 +101,8 @@ utils::globalVariables(c(
 #' @param ignitionPoints A `sf` spatial points of historic fire ignitions, from the Canadian
 #'    National Fire Database.
 #'
-#' @param sizeCol The column of `firePolys` with the fire size (ha), used both to keep escaped
-#'    fires (larger than `pixelSize`) and to sum the area burned.
+#' @param sizeCol The column of `firePolys` with the fire size (ha), used both to count escaped
+#'    fires (larger than `pixelSize`) and to sum the area burned of all fires.
 #'
 #' @template simFiles
 #'
@@ -124,11 +124,11 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
 
     historicalBurns <- as.data.table(.attributes(firePolys))
 
-    ## restrict to escapes only, and sum the same size column for burns
+    ## area burned sums every fire, as the simulated series does (the burn summary has one row per
+    ## fire); escapes are the fires larger than pixelSize, on both sides
     historicalBurns[, .size := as.numeric(get(sizeCol))]
     historicalBurns <- historicalBurns[
-      .size > pixelSize,
-      .(sumBurn = sum(.size), nFires = .N), .(YEAR)
+      , .(sumBurn = sum(.size), nFires = sum(.size > pixelSize)), .(YEAR)
     ]
     setnames(historicalBurns, "YEAR", "year")
     historicalBurns[, stat := "observed"]

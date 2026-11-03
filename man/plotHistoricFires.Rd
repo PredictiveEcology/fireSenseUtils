@@ -41,8 +41,8 @@ directories are unpadded (\code{rep1} rather than \code{rep01}).
 When supplied, the replicates present in \code{simFiles} are used, and \code{Nreps}
 is ignored.}
 
-\item{sizeCol}{The column of \code{firePolys} with the fire size (ha), used both to keep escaped
-fires (larger than \code{pixelSize}) and to sum the area burned.}
+\item{sizeCol}{The column of \code{firePolys} with the fire size (ha), used both to count escaped
+fires (larger than \code{pixelSize}) and to sum the area burned of all fires.}
 }
 \value{
 list of file names corresponding to the figures and/or objects written to disk

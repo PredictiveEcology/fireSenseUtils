@@ -1,5 +1,6 @@
 # fireSenseUtils (development version)
 
+* `plotHistoricFires()` sums the observed annual area burned over all fires, as the simulated series does, not only over fires larger than `pixelSize`; escapes still count fires larger than `pixelSize` on both sides.
 * `plotHistoricFires()` draws every replicate (thin lines) and their median (bold) against the observed series, instead of the first replicate only, and no longer puts "rep 1" in the title. `plotBurnSummary()` plots the median, not the mean, fire size per year and titles its x axis "Simulation year".
 * `plotELFs()` takes `metricCol`, `metricTitle` and `metricRange`: the colours, legend title and fixed value range (e.g. `c(0, 100)`) of the `metrics` it maps. `plotFires` still sets its own colours and title, where these are `NULL`.
 
