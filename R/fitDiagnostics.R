@@ -69,8 +69,7 @@ combineSpreadProbSummaries <- function(x) {
 #' @rdname fitDiagnostics
 simulateFireSizes <- function(pop, fn = .objfunSpreadFit, fnArgs = list(), cl = NULL, seed = 1L) {
   pop <- as.matrix(pop)
-  fnArgs <- utils::modifyList(fnArgs, list(returnSims = TRUE, thresh = Inf,
-                                           lanscape1stQuantileThresh = Inf))
+  fnArgs <- utils::modifyList(fnArgs, list(returnSims = TRUE, lanscape1stQuantileThresh = Inf))
   jobList <- lapply(seq_len(NROW(pop)), function(i) list(par = pop[i, ], seed = as.integer(seed)))
   sims <- if (is.null(cl)) {
     lapply(jobList, .rescoreJob, fn = fn, fnArgs = fnArgs)

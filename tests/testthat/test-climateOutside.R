@@ -139,8 +139,8 @@ test_that(".objfunSpreadFit() with climateRef = NULL is the objective as it was,
     par = c(maxAsymptote = 0.27, clim = 2, fuel = 3, youngAge = -1), landscape = r,
     annualDTx1000 = climFix$annualDTx1000, nonAnnualDTx1000 = climFix$nonAnnualDTx1000,
     formulaToFit = formC, historicalFires = climFix$historicalFires, fireBufferedListDT = fb,
-    mutuallyExclusive = NULL, tests = "snll_fs", Nreps = 3L, doAssertions = FALSE, verbose = 0,
-    lanscape1stQuantileThresh = Inf, thresh = Inf, ...)
+    mutuallyExclusive = NULL, tests = "crps", Nreps = 3L, doAssertions = FALSE, verbose = 0,
+    lanscape1stQuantileThresh = Inf, ...)
   set.seed(7); v0 <- call()
   set.seed(7); v1 <- call(climateRef = NULL)
   expect_identical(v1, v0)

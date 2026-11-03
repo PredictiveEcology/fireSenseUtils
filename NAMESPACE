@@ -326,8 +326,6 @@ importFrom(grDevices,
   rgb
 )
 importFrom(graphics,
-  abline,
-  axis,
   hist,
   mtext,
   par
@@ -391,7 +389,6 @@ importFrom(stats,
   binomial,
   coefficients,
   dbinom,
-  dnorm,
   dt,
   glm,
   is.empty.model,

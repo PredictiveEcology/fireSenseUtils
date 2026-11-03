@@ -38,9 +38,9 @@ spreadProbSeen <- function(par, formula, covCentre = NULL, yr = "2004") {
     annualFireBufferedDT = dtI(ids = 1L, pixelID = 1:nPixI),
     indexNonAnnual = dtI(ind = 1L, date = "2000"), colsToUse = colsToUse, covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = TRUE, maxFireSpread = 0.28, lowerSpreadProb = 0.13,
-    cells = numeric(nPixI), lanscape1stQuantileThresh = Inf, weighted = TRUE,
+    cells = numeric(nPixI), lanscape1stQuantileThresh = Inf,
     r = terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20), Nreps = 1L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0,
+    doMADTest = FALSE, doADTest = FALSE, doCrps = TRUE, plot.it = FALSE, verbose = 0,
     returnSims = TRUE, covCentre = covCentre)
   seen$sp
 }

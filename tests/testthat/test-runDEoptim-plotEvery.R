@@ -21,7 +21,7 @@ test_that("changing plotEvery does not change the fit's cache key", {
   expect_identical(seen$calls, 1L)
   callRunDEoptimPlotEvery(cp, plotEvery = 1L)       # a cache hit: the fit is not run again
   expect_identical(seen$calls, 1L)
-  callRunDEoptimPlotEvery(cp, plotEvery = 1L, thresh = 551)  # control: a fit argument does refit
+  callRunDEoptimPlotEvery(cp, plotEvery = 1L, tests = "adTest")  # control: a fit argument does refit
   expect_identical(seen$calls, 2L)
 })
 

@@ -29,8 +29,8 @@ test_that("objFunInner returns every replicate's fire size for the adTest, not t
     indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = 0.25,
-    weighted = FALSE, r = r20, Nreps = 3L,
-    doSNLL_FSTest = FALSE, doMADTest = FALSE, doADTest = TRUE,
+    r = r20, Nreps = 3L,
+    doMADTest = FALSE, doADTest = TRUE,
     plot.it = FALSE, verbose = 0
   )
   expect_identical(sort(as.numeric(out$allFireSizes)), c(2, 10, 300))
@@ -43,7 +43,7 @@ test_that(".objfunSpreadFit hands the adTest the individual simulated fires", {
   seen <- NULL
   local_mocked_bindings(
     ## per-fire means of 104, but the individual fires are 2, 10 and 300
-    objFunInner = function(...) list(SNLL_FS = 1, fireSizes = c(104, 104), allFireSizes = c(2, 10, 300, 2, 10, 300)),
+    objFunInner = function(...) list(fireSizes = c(104, 104), allFireSizes = c(2, 10, 300, 2, 10, 300)),
     adStatistic = function(x, y) { seen <<- x; 1 }
   )
   fireSenseUtils:::.objfunSpreadFit(
@@ -56,7 +56,7 @@ test_that(".objfunSpreadFit hands the adTest the individual simulated fires", {
                            `2002` = data.frame(size = c(150, 250), cells = 3:4),
                            `2003` = data.frame(size = c(5, 6), cells = 5:6)),
     fireBufferedListDT = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, buffer = c(1L, 0L), ids = 1L)), yrs),
-    tests = c("adTest", "snll_fs"), Nreps = 3L, doAssertions = FALSE, plot.it = FALSE, verbose = 0, thresh = Inf
+    tests = "adTest", Nreps = 3L, doAssertions = FALSE, plot.it = FALSE, verbose = 0
   )
   expect_identical(sort(unique(seen)), c(2, 10, 300))
 })

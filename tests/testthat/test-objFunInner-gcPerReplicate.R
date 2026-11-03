@@ -13,9 +13,9 @@ toyYear <- function(yearSpreadSD = 0, returnSims = FALSE) {
     annualFireBufferedDT = dtC(ids = 1L, pixelID = 1:nPixC),
     indexNonAnnual = dtC(ind = 1L, date = "2000"), colsToUse = colsToUse, covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28, lowerSpreadProb = f,
-    cells = numeric(nPixC), lanscape1stQuantileThresh = Inf, weighted = TRUE,
+    cells = numeric(nPixC), lanscape1stQuantileThresh = Inf,
     r = terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20), Nreps = 5L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0,
+    doMADTest = FALSE, doADTest = FALSE, doCrps = TRUE, plot.it = FALSE, verbose = 0,
     returnSims = returnSims, yearSpreadSD = yearSpreadSD)
 }
 
@@ -25,6 +25,5 @@ test_that("objFunInner's simulated fires and objective are unchanged by the per-
   expect_equal(sum(sims$sim), 17)
   obj <- toyYear()
   expect_identical(obj$nSims, 5L)
-  expect_false(obj$gated)
-  expect_equal(obj$SNLL_FS, 261.22520981670976, tolerance = 1e-12)   # value from before the gc was added
+  expect_equal(obj$crpsFire, 2.5942303003615486, tolerance = 1e-12)   # value from before the gc was added
 })

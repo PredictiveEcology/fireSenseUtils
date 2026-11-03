@@ -22,15 +22,13 @@
   yearAreaWeight = 0,
   areaDistWeight = 0,
   returnTerms = FALSE,
-  tests = "snll_fs",
+  tests = "crps",
   Nreps = 10,
   mutuallyExclusive = list(youngAge = c("class", "nf")),
   doAssertions = TRUE,
   plot.it = FALSE,
   objFunCoresInternal = 1,
   lanscape1stQuantileThresh = 0.265,
-  thresh = 550,
-  pruneAbove = Inf,
   covCentre = NULL,
   weighted = TRUE,
   sizeLik = "kde",
@@ -129,14 +127,9 @@ view and the per-fire view carry equal total weight.}
 compares simulated and observed fires by the share of area burned they make up. \code{0} (default) leaves
 it out; \code{"auto"} uses the AD term's weight, \code{adWeightAuto()}.}
 
-\item{returnTerms}{Logical. \code{TRUE} returns the objective with each term separately (diagnostics),
-and two fields about the first block of years (the one \code{thresh} stops early): \code{firstBlockPerFire},
-its per-fire term divided by its number of fires, as \code{thresh} is compared with it (so a trial with
-\code{thresh = Inf} reports what it would have been judged on), and \code{bailed}, 1 if a year of that block
-was refused as "too burny" or "not spread out enough" or the block was above \code{thresh} or
-\code{pruneAbove}, else 0.}
+\item{returnTerms}{Logical. \code{TRUE} returns the objective with each term separately (diagnostics).}
 
-\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"pitAD"}, \code{"SNLL"}, \code{"snll_fs"} or \code{"crps"}. Default: \code{"snll_fs"}. \code{"crps"} is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size (\code{\link[=crpsFireSizes]{crpsFireSizes()}}, summed over fitted fires), plus the pooled \code{adTest}, plus \code{areaDist} (\code{\link[=areaWeightedCvM]{areaWeightedCvM()}}), plus the CRPS of the log total area burned over all fit years (\code{\link[=crpsTotalArea]{crpsTotalArea()}}), plus the CRPS of the 10 largest fires (\code{\link[=crpsTopFires]{crpsTopFires()}}), plus, if its weight is not 0, the mean over fit years of the CRPS of each year's log area burned (\code{\link[=crpsAnnualArea]{crpsAnnualArea()}}), each times its weight in \code{crpsWeights}. It takes over the \code{adTest} and \code{areaDist} terms (their weights come from \code{crpsWeights}, not \code{adWeight} or \code{areaDistWeight}), has its own annual-area term, off by default (\code{crpsWeights$annualArea}; \code{yearAreaWeight} is not used with it) and no early stop (\code{thresh} and \code{pruneAbove} do not apply). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. \code{"pitAD"} is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates (\code{\link[=pitMidRank]{pitMidRank()}}), scored against Uniform(0, 1) (\code{\link[=adUniform]{adUniform()}}), weighted like \code{"adTest"} (\code{adWeight}).}
+\item{tests}{One or more of \code{"mad"}, \code{"adTest"}, \code{"pitAD"} or \code{"crps"}. Default: \code{"crps"}. (\code{"snll_fs"} and \code{"SNLL"} were removed; \code{"snll_fs"} stops with an error.) \code{"crps"} is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size (\code{\link[=crpsFireSizes]{crpsFireSizes()}}, summed over fitted fires), plus the pooled \code{adTest}, plus \code{areaDist} (\code{\link[=areaWeightedCvM]{areaWeightedCvM()}}), plus the CRPS of the log total area burned over all fit years (\code{\link[=crpsTotalArea]{crpsTotalArea()}}), plus the CRPS of the 10 largest fires (\code{\link[=crpsTopFires]{crpsTopFires()}}), plus, if its weight is not 0, the mean over fit years of the CRPS of each year's log area burned (\code{\link[=crpsAnnualArea]{crpsAnnualArea()}}), each times its weight in \code{crpsWeights}. It takes over the \code{adTest} and \code{areaDist} terms (their weights come from \code{crpsWeights}, not \code{adWeight} or \code{areaDistWeight}), has its own annual-area term, off by default (\code{crpsWeights$annualArea}; \code{yearAreaWeight} is not used with it). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. \code{"pitAD"} is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates (\code{\link[=pitMidRank]{pitMidRank()}}), scored against Uniform(0, 1) (\code{\link[=adUniform]{adUniform()}}), weighted like \code{"adTest"} (\code{adWeight}).}
 
 \item{Nreps}{Integer. The number of replicates, per ignition, to run.}
 
@@ -166,51 +159,25 @@ number, then the \code{.objFunSpredFit} will bail because it is "too burny" a la
 Default 0.265, meaning if only 25\%\% of the pixels on the landscape are below
 this \code{spreadProb}, then it will bail.}
 
-\item{thresh}{Early stop of the \code{"snll_fs"} test: the evaluation stops after the first block of years
-(the two with the most area burned) and returns the fail value, \code{1e6}, when that block's per-fire term
-divided by its number of fires is above \code{thresh}. Per fire, so it does not grow with the number of
-fires. Default 550, which is above any fire's score, i.e. no early stop.}
-
-\item{pruneAbove}{Numeric. An upper bound on the accumulated per-fire term after the \emph{first} batch of
-fire years, past which the evaluation stops early and returns the fail value. Default \code{Inf},
-which leaves \code{thresh} as the only bound -- i.e. no change in behaviour.
-
-A caller that runs one DEoptim generation per call knows the current population, and can pass
-the worst objective value that population would accept. Doing so is \emph{exact}, not a heuristic:
-the second batch contributes a non-negative value, so the first batch's accumulated value is a
-lower bound on the evaluation's final value. A trial exceeding \code{pruneAbove} would therefore
-have finished at or above a value every parent already beats, and selection would have
-discarded it. Pruning cannot change which trials DEoptim keeps; it only avoids finishing an
-evaluation whose outcome is already decided. This matters because a generation is
-synchronous -- its wall time is the slowest of its \code{NP} evaluations, not the median one.
-Lowering the threshold value will be more restrictive, but being too restrictive will result
-in \link[DEoptim:DEoptim]{DEoptim::DEoptim} rejecting more tests and using the "fail value" of 10000.
-Too high a threshold, and more years will be run and it will take longer to find values.}
-
 \item{covCentre}{Optional named list or vector of values subtracted from the rescaled covariates
 of the same name. \code{NULL} (default) does no centring. Must be the same at fit and predict.
 \code{\link[=spreadCovCentre]{spreadCovCentre()}} gives the centres to use with an intercept.}
 
-\item{weighted}{Should each fire's log-likelihood be multiplied by a weight that grows with its
-observed size, to give large fires more influence on the SNLL? \code{FALSE}: no. \code{TRUE} or \code{"log"}:
-\code{log(size)}. \code{"sqrt"}: \code{sqrt(size)}. Weights are divided by their mean over the fitted fires, so
-the SNLL keeps its scale against the other tests.}
+\item{weighted}{Only picks the constant of \code{adWeight = "auto"} (\code{\link[=adWeightAuto]{adWeightAuto()}}): \code{"sqrt"} uses the
+one measured for size-weighted fits, anything else the unweighted one.}
 
-\item{sizeLik}{How a fire's likelihood is taken from its \code{Nreps} simulated sizes, on the
-square-root scale. \code{"kde"} (default): their kernel density at the observed size
-(\code{\link[EnvStats:demp]{EnvStats::demp()}}); it is zero away from the simulated sizes, so a fire they never reach
+\item{sizeLik}{How the annual-area term (\code{yearAreaWeight}) takes a year's likelihood from its \code{Nreps}
+simulated totals, on the square-root scale. \code{"kde"} (default): their kernel density at the observed
+total (\code{\link[EnvStats:demp]{EnvStats::demp()}}); it is zero away from the simulated totals, so a year they never reach
 scores the \code{minLik} floor however far off it is. \code{"t"}: a Student-t centred on their mean with
-their standard deviation as scale; no floor, and a miss costs more the further it is.
-\code{"kernel"}: the kernel log score on the log scale (\code{\link[=kernelLogScore]{kernelLogScore()}}), non-negative, 0 for a
-perfect prediction; the \code{"auto"} weights and the annual-area term then use \code{"kde"}.}
+their standard deviation as scale; no floor, and a miss costs more the further it is. It also
+picks the constant of \code{adWeight = "auto"}.}
 
 \item{sizeLikDf}{Degrees of freedom of the Student-t when \code{sizeLik = "t"}. Default 5. Lower
 values forgive a missed fire more.}
 
-\item{adWeight}{What the \code{"adTest"} statistic is multiplied by before it is added to the fire-size
-SNLL. \code{"auto"} (default) uses \code{\link[=adWeightAuto]{adWeightAuto()}}, which gives the two terms about equal influence
-for any \code{sizeLik} and \code{weighted}. A number is used as given; the former fixed default, \code{50},
-balanced the two only for \code{sizeLik = "kde"} with \code{weighted = FALSE}.}
+\item{adWeight}{What the \code{"adTest"} statistic is multiplied by. \code{"auto"} (default) uses
+\code{\link[=adWeightAuto]{adWeightAuto()}}. A number is used as given. Not used with \code{"crps"}, which has its own weight.}
 
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
@@ -236,8 +203,7 @@ used only with \code{link = "powerLaw"}. Default 1.}
 \code{data.table} with one row per fire year x fire x replicate -- \code{yr}, \code{rep}, \code{initialLocus}, \code{ids},
 the simulated size \code{sim} and the observed \code{size}, in pixels. A year the objective declines to
 simulate (its spread probabilities fail the sanity checks) keeps its fires with \code{rep} and \code{sim}
-\code{NA}, so the caller can count them. Every year is simulated: the early stop (\code{thresh}) is not
-applied. For diagnostics and validation; the value is not an objective.
+\code{NA}, so the caller can count them. Every year is simulated. For diagnostics and validation; the value is not an objective.
 The result carries \code{attr(, "spreadProb")}: the spread probabilities of every fitted pixel-year,
 summarised by \code{\link[=spreadProbSummary]{spreadProbSummary()}}, for \code{\link[=linkSaturation]{linkSaturation()}}.}
 
@@ -249,15 +215,13 @@ cells included). A year the objective declines to simulate is \code{NULL}. For
 
 \item{penaliseRunaways}{A simulated fire that burns an open edge pixel of any of its year's buffers
 (a buffer pixel next to flammable land outside every buffer, see \code{\link[=bufferOpen]{bufferOpen()}}) is cut: it would
-have kept burning, so it is "at least this big". In the per-fire size likelihood a cut replicate has
-no density at the observed size (the likelihood is that of the other replicates times their share;
-0, i.e. \code{minLik}, if fewer than two remain). The other size-based terms (\code{"adTest"},
-\code{yearAreaWeight}, \code{areaDistWeight}, \code{"mad"}) score the size it burned. That is always so. \code{TRUE}
+have kept burning, so it is "at least this big". The per-fire \code{"crps"} term scores it as at least the
+observed size; the other size-based terms (\code{"adTest"}, \code{yearAreaWeight}, \code{areaDistWeight}, \code{"mad"})
+score the size it burned. That is always so. \code{TRUE}
 (default) also stops such a fire at the first open pixel of its own buffer
 (\code{SpaDES.tools::spreadCpp(stopCells =)}), as nothing it burns after that is scored; \code{FALSE} lets it
 burn on. Not with \code{returnSims = TRUE}: the simulated sizes are returned as simulated. Fires are not
-capped at any size: spread is bounded only by the year's buffers. The per-fire likelihood is floored
-at \code{minLik} (1e-29), which bounds the penalty per fire. The open pixels are found once per fit
+capped at any size: spread is bounded only by the year's buffers. The open pixels are found once per fit
 (\code{runDEoptim()} adds \code{edge} and \code{open} columns to \code{fireBufferedListDT}, \code{\link[=addBufferEdge]{addBufferEdge()}}), or here,
 for a table without them.}
 
@@ -285,18 +249,18 @@ profile on ELFs 6.6.2, 14.3 and 11.3, "W3": 1, 0.34, 2.6, 164 and 16.5). \code{N
 without \code{"crps"} in \code{tests}.}
 
 \item{gateRefusal}{What a year that fails \code{\link[=spreadProbGateTest]{spreadProbGateTest()}} gets. \code{"minLik"} (default): it is not
-simulated and scores the \code{minLik} floor (with \code{"crps"}, as if every fire stayed one pixel). \code{"simulate"}:
+simulated and scores as if every fire stayed one pixel (\code{"crps"}), or the \code{minLik} floor (the
+annual-area term). \code{"simulate"}:
 the gates are not applied, the year is simulated and scored like any other, so a parameter set is never
 refused for its spread probabilities alone.}
 
 \item{...}{This is not used here, but allows for extraneous arguments to not break this function.
-The removed arguments \code{capSizes} and \code{penaliseCapHits} arrive here: they are ignored with a
+The removed arguments \code{capSizes}, \code{penaliseCapHits} and \code{thresh} arrive here: they are ignored with a
 deprecation warning (fires are no longer capped at a size; use \code{penaliseRunaways}).}
 }
 \value{
-Attempting a weighted likelihood,
-\url{https://stats.stackexchange.com/questions/267464/algorithms-for-weighted-maximum-likelihood-parameter-estimation}.
-With \code{log(fireSize) * likelihood} for each fire.
+The objective, to be minimised: the sum of the terms \code{tests} asks for. With \code{returnTerms = TRUE}, a
+named vector of the objective and each term.
 }
 \description{
 Objective function for \code{fireSense_spreadFit} module

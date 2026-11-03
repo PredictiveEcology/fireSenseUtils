@@ -29,10 +29,9 @@ runDEoptim(
   formulaToFit,
   objFunCoresInternal,
   covMinMax = covMinMax,
-  tests = c("SNLL", "adTest"),
+  tests = "crps",
   maxFireSpread,
   Nreps,
-  thresh = 550,
   .c = 0.5,
   DEoptimControl = list(),
   .verbose,
@@ -71,7 +70,7 @@ runDEoptim(
   powerLawShape = spreadPowerLawShape
 )
 
-termsInDEoptim(fireSense_spreadFormula, thresh, numParams)
+termsInDEoptim(fireSense_spreadFormula, numParams)
 }
 \arguments{
 \item{landscape}{A \code{SpatRaster} which has the correct metadata associated with
@@ -162,8 +161,6 @@ This is distinct from the parallelization managed by \link[DEoptim:DEoptim]{DEop
 
 \item{covMinMax, tests, maxFireSpread, Nreps, .verbose}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.}
 
-\item{thresh}{The threshold for accepting fits; e.g., from \code{mod$thresh}.}
-
 \item{.c}{Numeric in \verb{(0, 1]}. DEoptim's \code{c}, the speed of crossover adaptation (used by
 \code{strategy = 6}). Passed to \code{\link[DEoptim:DEoptim.control]{DEoptim::DEoptim.control()}}; a \code{c} in \code{DEoptimControl} wins.}
 
@@ -201,7 +198,7 @@ default) takes \code{\link[=deoptimPopulationSize]{deoptimPopulationSize()}} of 
 gets, so a smaller allocation means a smaller population.}
 
 \item{rescoreReps}{Integer. After the fit, each member of the final population is evaluated this
-many more times (full evaluations, no early stop) and the result is attached to the returned
+many more times and the result is attached to the returned
 object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean]{bestByReplicatedMean()}}. \code{0} skips it.}
 
 \item{sizeLik, sizeLikDf, weighted, adWeight}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit AND in the

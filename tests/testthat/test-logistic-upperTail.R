@@ -79,8 +79,8 @@ test_that("objFunInner() hands `link` to logisticAll()", {
     indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = 0.25,
-    weighted = FALSE, r = r20, Nreps = 2L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
+    r = r20, Nreps = 2L,
+    doMADTest = FALSE, doADTest = FALSE, doCrps = TRUE,
     plot.it = FALSE, verbose = 0, link = "logistic3pUpper")
   expect_identical(seen$link, "logistic3pUpper")
 })

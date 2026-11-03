@@ -124,9 +124,6 @@ deoptimPopulationSize <- function(nParams) {
 #'   part of the fit's cache key when not `NULL`; `clusters` does not put it in any generation's key, so a
 #'   fit that stopped early resumes from its cached generations and continues under a stricter rule.
 #'
-#' @param thresh Passed to [.objfunSpreadFit()]: the early stop's threshold on the first block's per-fire
-#'   term per fire. Default 550, no early stop.
-#'
 #' @param visualizeDEoptim Logical. If `TRUE`, then histograms will be made of [DEoptim::DEoptim] outputs.
 #'
 #' @param plotEvery Integer. Generations between DEoptim progress figures; the final figures are
@@ -157,7 +154,7 @@ deoptimPopulationSize <- function(nParams) {
 #'   gets, so a smaller allocation means a smaller population.
 #'
 #' @param rescoreReps Integer. After the fit, each member of the final population is evaluated this
-#'   many more times (full evaluations, no early stop) and the result is attached to the returned
+#'   many more times and the result is attached to the returned
 #'   object as `attr(DE, "finalRescore")`, for [bestByReplicatedMean()]. `0` skips it.
 #' @param profileReps Integer. If above 0, [profileCoefficients()] is run around the best member
 #'   of the re-score, each point evaluated this many times, and attached as `attr(DE, "profile")`.
@@ -229,10 +226,9 @@ runDEoptim <- function(landscape,
                        formulaToFit,
                        objFunCoresInternal,
                        covMinMax = covMinMax,
-                       tests = c("SNLL", "adTest"),
+                       tests = "crps",
                        maxFireSpread,
                        Nreps,
-                       thresh = 550,
                        .c = 0.5,
                        DEoptimControl = list(),
                        .verbose,
@@ -269,6 +265,7 @@ runDEoptim <- function(landscape,
                        climateRef = NULL,
                        powerLawGamma = spreadPowerLawGamma,
                        powerLawShape = spreadPowerLawShape) {
+  checkObjectiveTests(tests)
   ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
@@ -332,7 +329,6 @@ runDEoptim <- function(landscape,
   message("Fitting ", length(lower), " parameters: logistic: ", paste(logisticTerms, collapse = ", "),
           "; covariates: ", paste(covTerms, collapse = ", "),
           if (yearSpreadSDTxt %in% names(lower)) paste0("; year effect: ", yearSpreadSDTxt))
-  message("objectiveFunction threshold per fire to run all years after first 2 years: ", thresh)
   ## the per-year random effect is fitted when the bounds include it (its sd is the LAST parameter);
   ## DEoptim passes `par` unnamed, so the objective is told explicitly
   fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)
@@ -357,7 +353,6 @@ runDEoptim <- function(landscape,
       climateRef = climateRef,
       powerLawGamma = powerLawGamma,
       powerLawShape = powerLawShape,
-      # tests = c("mad", "SNLL_FS"),
       tests = tests,
       figurePath = visualizeDEoptim,
       maxFireSpread = maxFireSpread,
@@ -371,7 +366,6 @@ runDEoptim <- function(landscape,
       plotEvery = plotEvery,
       .plotSize = .plotSize,
       iterStep = iterStep,
-      thresh = thresh,
       sizeLik = sizeLik,
       sizeLikDf = sizeLikDf,
       weighted = weighted,
@@ -412,14 +406,13 @@ runDEoptim <- function(landscape,
   ## rescore (ELF 5.2.1 fold 2, 2026-10-03). Use the cluster the workers are on now.
   cl <- clusters::currentCluster(cl)
 
-  ## Re-score the final population `rescoreReps` times each, on the same workers, with the early stop
-  ## off (thresh = Inf) so every replicate is a full evaluation. DEoptim's own values are partly luck;
+  ## Re-score the final population `rescoreReps` times each, on the same workers. DEoptim's own values are partly luck;
   ## the caller picks its best members from these means (bestByReplicatedMean()).
   finalPop <- if (length(DE)) DE[[length(DE)]]$member$pop
   rescoreArgs <- list(formulaToFit = formulaToFit, covMinMax = covMinMax, tests = tests,
                       maxFireSpread = maxFireSpread, objFunCoresInternal = objFunCoresInternal,
                       Nreps = Nreps, mutuallyExclusive = mutuallyExclusive, doAssertions = FALSE,
-                      thresh = Inf, verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
+                      verbose = 0, sizeLik = sizeLik, sizeLikDf = sizeLikDf,
                       weighted = weighted, adWeight = adWeight, link = link,
                       fitYearSpreadSD = fitYearSpreadSD, escapeSizeHa = escapeSizeHa,
                       jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
@@ -514,13 +507,11 @@ visualizeDE <- function(DE, cachePath, titles, lower, upper) {
 #' @param fireSense_spreadFormula The formula to be submitted to [DEoptim::DEoptim()],
 #'                                from e.g., `sim$fireSense_spreadFormula`.
 #'
-#' @param thresh The threshold for accepting fits; e.g., from `mod$thresh`.
-#'
 #' @param numParams The number of parameters (TODO: improve description)
 #'
 #' @export
 #' @rdname runDEoptim
-termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
+termsInDEoptim <- function(fireSense_spreadFormula, numParams) {
   .Deprecated(msg = paste0("fireSenseUtils::termsInDEoptim() is deprecated; runDEoptim() names ",
                            "the parameters with names(lower)"))
   termsInForm <- attr(terms(as.formula(fireSense_spreadFormula, env = .GlobalEnv)), "term.labels")
@@ -528,6 +519,5 @@ termsInDEoptim <- function(fireSense_spreadFormula, thresh, numParams) {
   message("Using a ", logitNumParams, " parameter logistic equation")
   message("  There will be ", logitNumParams, " logit terms & ", numParams, " terms in all:")
   message("  ", paste(c(paste0("logit", seq(logitNumParams)), termsInForm), collapse = ", "))
-  message("  objectiveFunction threshold SNLL to run all years after first 2 years: ", thresh)
   c(paste0("logit", seq(logitNumParams)), termsInForm)
 }
