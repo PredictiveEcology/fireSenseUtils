@@ -4,7 +4,7 @@
 \alias{mustFit}
 \title{Must this run fit, given \code{doFit} and the ledger?}
 \usage{
-mustFit(doFit, hasLedgerFit, polygon = "")
+mustFit(doFit, hasLedgerFit, polygon = "", fitFileSuffix = NULL)
 }
 \arguments{
 \item{doFit}{\code{NA}, \code{TRUE} or \code{FALSE}, as returned by \code{\link[=resolveDoFit]{resolveDoFit()}}.}
@@ -13,6 +13,9 @@ mustFit(doFit, hasLedgerFit, polygon = "")
 lazily, only when \code{doFit} is not \code{TRUE}, so a forced fit never consults the ledger.}
 
 \item{polygon}{the polygon identifier, for the error message.}
+
+\item{fitFileSuffix}{the module's \code{fitFileSuffix} parameter, i.e., which ledger was searched, for the
+error message. \code{NULL} (default) leaves it out of the message.}
 }
 \value{
 \code{TRUE} to fit, \code{FALSE} to use the ledger's fit. Stops when \code{doFit} is \code{FALSE} and the
