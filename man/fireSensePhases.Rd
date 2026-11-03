@@ -8,6 +8,6 @@ fireSensePhases
 }
 \description{
 \code{"all"} fits if the ELF has no fit, then predicts. \code{"inputs"} builds every input and cache and
-stops before the spread threshold calibration (which forks). \code{"fit"} fits if the ELF has no fit,
+stops before the spread fit (the \code{run} event). \code{"fit"} fits if the ELF has no fit,
 then stops. See \code{\link[=phaseEvents]{phaseEvents()}} and \code{\link[=runJob]{runJob()}}.
 }

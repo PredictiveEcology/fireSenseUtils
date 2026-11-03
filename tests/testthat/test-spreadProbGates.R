@@ -1,6 +1,6 @@
 ## spreadProbGates() applies the objective's own spreadProb gates ("Too burny a landscape", "Not spread
 ## out enough", median out of range) to a parameter set without simulating a fire. The objective calls the
-## same spreadProbGateTest(), so a calibration that screens draws with it screens them as the objective will.
+## same spreadProbGateTest(), so anything that screens draws with it screens them as the objective will.
 
 set.seed(1)
 nPix <- 400L
