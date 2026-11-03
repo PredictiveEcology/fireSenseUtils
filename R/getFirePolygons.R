@@ -40,7 +40,7 @@ latestNBACUrl <- function(
 #' @param ... additional arguments passed to [reproducible::prepInputs()]
 #' @param useInnerCache logical indicating whether to cache the `prepInputs` call
 #'
-#' @return list of fire polygons by year
+#' @return list of fire polygons by year, each with its area in ha as `POLY_HA` and as `SIZE_HA`
 #'
 #' @seealso [latestNBACUrl()] for the discovery helper used when `url` is missing.
 #'
@@ -62,6 +62,7 @@ getFirePolygons <- function(url, years, useInnerCache = FALSE, ...) {
     firePolys$POLY_HA <- round(terra::expanse(firePolys, unit = "ha"), 2)
   else
     firePolys$POLY_HA <- round(as.numeric(sf::st_area(firePolys)) / 1e4, 2) # st_area() gives m2
+  firePolys$SIZE_HA <- firePolys$POLY_HA ## SIZE_HA is the fire-size column across FireSense
 
   firePolygonsList <- lapply(years, FUN = function(x, polys = firePolys) {
     firePoly <- polys[polys$YEAR == x, ]

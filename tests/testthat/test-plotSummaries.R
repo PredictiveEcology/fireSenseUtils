@@ -85,6 +85,47 @@ test_that("plotHistoricFires writes ignition, escape and area-burned figures", {
   expect_true(all(file.exists(f)))
 })
 
+## the observed rows of the area-burned figure's data, with ggsave() captured
+burnedData <- function(polys, pts, simFiles, dir, ...) {
+  plots <- list()
+  local_mocked_bindings(ggsave = function(plot, filename, ...) plots[[basename(filename)]] <<- plot,
+                        .package = "ggplot2")
+  suppressMessages(plotHistoricFires("CanESM5_ssp370", "SA", dir, pixelSize = 250, firePolys = polys,
+                                     ignitionPoints = pts, simFiles = simFiles, ...))
+  d <- plots[["simulated_burnArea_SA_CanESM5_ssp370.png"]]$data
+  d[d$stat == "observed", ]
+}
+
+test_that("plotHistoricFires needs only SIZE_HA, and gives the same burns as when POLY_HA is there too", {
+  withr::local_options(mc.cores = 1L)
+  dir <- withr::local_tempdir()
+  simFiles <- makeRepOutputs(dir, years = 2001:2010)
+  pts <- sf::st_as_sf(data.frame(x = 1:20, y = 1:20, YEAR = rep(2001:2010, 2)),
+                      coords = c("x", "y"), crs = 3978)
+  both <- terra::vect(sf::st_buffer(pts, 1))
+  both$SIZE_HA <- both$POLY_HA <- seq(100, 2000, by = 100)
+  only <- both
+  only$POLY_HA <- NULL
+
+  expect_no_error(obsOnly <- burnedData(only, pts, simFiles, dir))
+  expect_equal(obsOnly, burnedData(both, pts, simFiles, dir))
+  expect_gt(nrow(obsOnly), 0L)
+})
+
+test_that("plotHistoricFires filters and sums the one column named by sizeCol", {
+  withr::local_options(mc.cores = 1L)
+  dir <- withr::local_tempdir()
+  simFiles <- makeRepOutputs(dir, years = 2001:2010)
+  pts <- sf::st_as_sf(data.frame(x = 1:20, y = 1:20, YEAR = rep(2001:2010, 2)),
+                      coords = c("x", "y"), crs = 3978)
+  polys <- terra::vect(sf::st_buffer(pts, 1))
+  polys$ADJ_HA <- seq(100, 2000, by = 100)
+
+  obs <- burnedData(polys, pts, simFiles, dir, sizeCol = "ADJ_HA")
+
+  expect_equal(sum(obs$sumBurn), sum(polys$ADJ_HA[polys$ADJ_HA > 250]))
+})
+
 test_that(".attributes reads SpatVector, sf, Spatial and lists of them", {
   df <- data.frame(YEAR = 2001:2002, x = 1:2, y = 1:2)
   pts <- sf::st_as_sf(df, coords = c("x", "y"), crs = 3978)
