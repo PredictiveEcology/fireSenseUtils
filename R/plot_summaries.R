@@ -1,5 +1,5 @@
 utils::globalVariables(c(
-  ".size", "areaBurnedHa", "Nfires", "stat", "sumAB", "sumBurn", "val", "var", "YEAR"
+  ".size", ".y", "areaBurnedHa", "N", "Nfires", "nFires", "stat", "sumAB", "sumBurn", "val", "var", "YEAR", "year", "rep"
 ))
 
 .maxReps <- 0:99999 ## candidate replicate numbers, for SpaDES.core::dirnamesFromSet()
@@ -133,63 +133,39 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
     setnames(historicalBurns, "YEAR", "year")
     historicalBurns[, stat := "observed"]
 
-    ## only use the first rep
-    f <- .repOutputFiles(simFiles, filename = "fireSense_burnSummary.csv")[1L]
-    rep <- as.integer(names(f))
+    fs <- .repOutputFiles(simFiles, filename = "fireSense_burnSummary.csv")
+    burnSummary <- data.table::rbindlist(lapply(names(fs), function(rep) {
+      burnDT <- data.table::fread(fs[[rep]])
+      data.table(
+        year = burnDT[["year"]],
+        areaBurnedHa = burnDT[["areaBurnedHa"]],
+        rep = as.integer(rep)
+      )
+    })) ## TODO: this is the BUFFERED studyArea, not the REPORTING one!!!!
 
-    burnDT <- data.table::fread(f)
-    burnSummary <- data.table(
-      year = burnDT[["year"]],
-      N = burnDT[["N"]],
-      areaBurnedHa = burnDT[["areaBurnedHa"]],
-      rep = as.integer(rep)
-    ) ## TODO: this is the BUFFERED studyArea, not the REPORTING one!!!!
+    ## per replicate and year; a year in which a replicate had no fire counts as 0, not as missing,
+    ## so the median across replicates is not taken over the replicates that happened to burn
+    perRep <- burnSummary[, .(sumBurn = sum(areaBurnedHa), N = .N,
+                              nFires = sum(areaBurnedHa > pixelSize)), .(year, rep)]
+    perRep <- perRep[data.table::CJ(year = unique(year), rep = unique(rep)), on = c("year", "rep")]
+    for (col in c("sumBurn", "N", "nFires")) data.table::set(perRep, which(is.na(perRep[[col]])), col, 0)
+    projected <- rbind(perRep[, stat := "projected"],
+                       perRep[, .(sumBurn = stats::median(sumBurn), N = stats::median(N),
+                                  nFires = stats::median(nFires), stat = "projected median"), .(year)],
+                       fill = TRUE)
 
-    ## TODO: average by number of reps
-    projectedEscapes <- burnSummary[areaBurnedHa > pixelSize, .(nFires = .N), .(year)]
-    projectedBurns <- burnSummary[, .(sumBurn = sum(areaBurnedHa)), .(year)]
-    projectedBurns <- projectedBurns[projectedEscapes, on = c("year")]
-    projectedBurns[, stat := "projected"]
-    dat <- rbind(projectedBurns, historicalBurns)
+    dat <- rbind(projected[, c("year", "sumBurn", "nFires", "stat", "rep")], historicalBurns, fill = TRUE)
 
     trueHistoricalIgs <- as.data.table(.attributes(ignitionPoints)) %>%
       .[, .N, .(YEAR)] %>%
       setnames(., "YEAR", "year") %>%
       .[, stat := "observed"] %>%
       .[, year := as.numeric(year)]
-    projectedIgs <- burnSummary[, .N, .(year)] %>%
-      .[, stat := "projected"]
-    dat2 <- rbind(trueHistoricalIgs, projectedIgs)
+    dat2 <- rbind(projected[, c("year", "N", "stat", "rep")], trueHistoricalIgs, fill = TRUE)
 
-    gIgnitions <- ggplot2::ggplot(data = dat2, ggplot2::aes(x = year, y = N, col = stat)) +
-      ggplot2::geom_point() +
-      # ggplot2::geom_smooth() +
-      ggplot2::ylim(0, max(dat2$N) * 1.2) +
-      ggplot2::labs(
-        y = "number of ignitions",
-        title = studyAreaName,
-        subtitle = scenSubtitle
-      )
-
-    gEscapes <- ggplot2::ggplot(data = dat, ggplot2::aes(x = year, y = nFires, col = stat)) +
-      ggplot2::geom_point() +
-      # ggplot2::geom_smooth() +
-      ggplot2::ylim(0, max(dat$nFires) * 1.2) +
-      ggplot2::labs(
-        y = "number of escaped fires",
-        title = studyAreaName,
-        subtitle = scenSubtitle
-      )
-
-    gBurns <- ggplot2::ggplot(data = dat, ggplot2::aes(x = year, y = sumBurn, col = stat)) +
-      ggplot2::geom_point() +
-      # ggplot2::geom_smooth() +
-      ggplot2::ylim(0, max(dat$sumBurn) * 1.1) +
-      ggplot2::labs(
-        y = "annual area burned (ha)",
-        title = paste(studyAreaName, "rep", rep),
-        subtitle = scenSubtitle
-      )
+    gIgnitions <- .plotRepsMedian(dat2, "N", "number of ignitions", studyAreaName, scenSubtitle)
+    gEscapes <- .plotRepsMedian(dat, "nFires", "number of escaped fires", studyAreaName, scenSubtitle)
+    gBurns <- .plotRepsMedian(dat, "sumBurn", "annual area burned (ha)", studyAreaName, scenSubtitle)
 
     figs <- list(
       ignition = .figFile("simulated_Ignitions", outputDir, studyAreaName, scenLabel),
@@ -202,6 +178,22 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
 
     return(unlist(figs))
   }
+}
+
+## Observed points, each replicate as a thin line, and the median across replicates in bold.
+## `dat` has `year`, `stat` ("observed", "projected", "projected median"), `rep`, and the column `y`.
+## @noRd
+.plotRepsMedian <- function(dat, y, ylab, title, subtitle) {
+  dat <- data.table::copy(dat)[, .y := dat[[y]]]
+  ggplot2::ggplot(data = dat, ggplot2::aes(x = year, y = .y, col = stat)) +
+    ggplot2::geom_line(data = function(d) d[d$stat == "projected", ],
+                       ggplot2::aes(group = rep), linewidth = 0.2, alpha = 0.6) +
+    ggplot2::geom_line(data = function(d) d[d$stat == "projected median", ], linewidth = 1) +
+    ggplot2::geom_point(data = function(d) d[d$stat == "observed", ]) +
+    ggplot2::scale_colour_manual(values = c(observed = "black", projected = "grey60",
+                                            `projected median` = "red")) +
+    ggplot2::ylim(0, max(dat$.y, na.rm = TRUE) * 1.2) +
+    ggplot2::labs(y = ylab, title = title, subtitle = subtitle)
 }
 
 #' Plot cumulative burn maps
@@ -274,7 +266,7 @@ plotCumulativeBurns <- function(climateScenario, studyAreaName, outputDir,
 
 #' Plot burn summary
 #'
-#' Create plot with subplots showing: a) area burned; b) number of fires; c) mean fire size.
+#' Create plot with subplots showing: a) area burned; b) number of fires; c) median fire size.
 #'
 #' @template summary_plots
 #'
@@ -350,7 +342,7 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
     # meanFireSize <- meanFireSize[, lapply(.SD, mean), by = "year", .SDcols = "areaBurnedHa"]
 
     pixelSizeHa <- (pixelSize^2) / 1e4
-    burnSummaryAllReps[areaBurnedHa > pixelSizeHa, fireSize := mean(areaBurnedHa, na.rm = TRUE),
+    burnSummaryAllReps[areaBurnedHa > pixelSizeHa, fireSize := stats::median(areaBurnedHa, na.rm = TRUE),
       by = c("year", "rep")
     ]
     fireSize <- na.omit(unique(burnSummaryAllReps[, c("year", "rep", "fireSize")]))
@@ -386,7 +378,7 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
         "x + ", ifelse(coefYF < 10000, coefYF, formatC(coefYF, format = "e", digits = 2)), pValueF
       ),
       paste0(
-        "Mean fire size:\n",
+        "Median fire size:\n",
         "y = ", ifelse(coefXS < 10000, coefXS, formatC(coefXS, format = "e", digits = 2)),
         "x + ", ifelse(coefYS < 10000, coefYS, formatC(coefYS, format = "e", digits = 2)), pValueS
       )
@@ -432,7 +424,7 @@ plotBurnSummary <- function(climateScenario, studyAreaName, outputDir,
         strip.text.y = ggplot2::element_text(size = 9, face = "bold"),
         plot.margin = ggplot2::unit(c(-0.01, 0.2, 0.2, 0.2), "cm")
       ) +
-      ggplot2::labs(y = "mean fire size (ha)")
+      ggplot2::labs(x = "Simulation year", y = "median fire size (ha)")
 
     title <- cowplot::ggdraw() +
       cowplot::draw_label(paste("Fires in the", studyAreaName, "study area under",

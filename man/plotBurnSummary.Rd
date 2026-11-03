@@ -44,5 +44,5 @@ is ignored.}
 list of file names corresponding to the figures and/or objects written to disk
 }
 \description{
-Create plot with subplots showing: a) area burned; b) number of fires; c) mean fire size.
+Create plot with subplots showing: a) area burned; b) number of fires; c) median fire size.
 }

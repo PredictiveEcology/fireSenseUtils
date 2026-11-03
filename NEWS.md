@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `plotHistoricFires()` draws every replicate (thin lines) and their median (bold) against the observed series, instead of the first replicate only, and no longer puts "rep 1" in the title. `plotBurnSummary()` plots the median, not the mean, fire size per year and titles its x axis "Simulation year".
+
 * `runJob(ledger = , scenario = )` records each uploaded run in a `reproducible::CacheGeoLedger()`, with the unbuffered ELF (`studyAreaELF`) as its polygon, so the `simListArchive` module can find it by study area. The default `ledger = NULL` records nothing.
 
 * `phaseEvents("inputs")` stops before `fireSense_spreadFit`'s `run` event, not before `estimateThreshold`, which the threshold-calibration removal took out of the module: an inputs-only job would have gone on to fit.
