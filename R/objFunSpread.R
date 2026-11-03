@@ -321,7 +321,7 @@ utils::globalVariables(c(
 
   doMADTest <- any(grepl("mad", tolower(tests)))
   doSNLLTest <- any(grepl("snll$", tolower(tests)))
-  doSNLL_FSTest <- any(grepl("snll_fs", tolower(tests)))
+  doSNLL_FSTest <- objectiveHasEarlyStop(tests)
   doCrps <- any(tolower(tests) == "crps")
   crpsWeights <- utils::modifyList(crpsWeightsDefault(), as.list(crpsWeights))
   ## "crps" takes over these two terms, with its own weights
