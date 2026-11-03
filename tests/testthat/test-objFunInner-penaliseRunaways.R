@@ -1,5 +1,5 @@
 ## A simulated fire that burns an open edge pixel of its year's buffers (next to flammable land outside
-## every buffer, bufferOpen()) is cut ("at least this big"): it adds no density to its fire's score.
+## every buffer, bufferOpen()) is cut ("at least this big"): the per-fire CRPS scores it as at least the observed size.
 ## Before, a fire was capped at multiplier() of its observed size and "capHit" meant reaching that cap;
 ## the cap is gone, and spread is bounded only by the year's buffers. Here the landscape has no values,
 ## so every cell is flammable and every edge pixel of these separate buffers is open.
@@ -35,8 +35,8 @@ runawayObjective <- function(sp, seed = 1, fx = runawayFixture(), Nreps = 6L, ..
     indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 1,
     lowerSpreadProb = 0.05, cells = numeric(3600), lanscape1stQuantileThresh = 1,
-    weighted = FALSE, r = r60, Nreps = Nreps,
-    doSNLL_FSTest = TRUE, doMADTest = TRUE, doADTest = TRUE, doYearArea = TRUE,
+    r = r60, Nreps = Nreps,
+    doMADTest = TRUE, doADTest = TRUE, doYearArea = TRUE, doCrps = TRUE,
     plot.it = FALSE, verbose = 0, ...
   )
 }
@@ -50,14 +50,9 @@ test_that("a saturated parameter set is cut in every replicate and scores the ce
   on <- runawayObjective(c(0.9, 0.99), fx = fx, stopCutFires = TRUE)
   expect_equal(on$runaways, on$nSims)             # every replicate reached an open edge
   expect_equal(off$runaways, off$nSims)           # cut whether or not it is stopped there
-  expect_equal(on$SNLL_FS, 5 * -log(1e-29))       # the per-fire likelihood gives a cut replicate no density: the floor
-  expect_equal(off$SNLL_FS, 5 * -log(1e-29))
   ## the size-based terms score what it burned, bounded by its 36-pixel buffer
   expect_true(all(off$allFireSizes <= 36))
   expect_lte(max(off$annualAreaByRep), 5 * 36)
-  ## the kernel log score: the same ceiling
-  kern <- runawayObjective(c(0.9, 0.99), fx = fx, sizeLik = "kernel")
-  expect_equal(kern$SNLL_FS, 5 * fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE))
 })
 
 test_that("with no fire reaching the edge of its buffer, the objective is identical with and without the stop", {
@@ -112,7 +107,7 @@ test_that(".objfunSpreadFit() stops cut fires by default, and not with penaliseR
   local_mocked_bindings(
     objFunInner = function(stopCutFires, ...) {
       seen[[length(seen) + 1L]] <<- stopCutFires
-      list(SNLL_FS = 0)
+      list()
     },
     .package = "fireSenseUtils"
   )
@@ -126,7 +121,7 @@ test_that(".objfunSpreadFit() stops cut fires by default, and not with penaliseR
       formulaToFit = "~ 0 + cov",
       historicalFires = list(year2004 = data.frame(size = 40L, cells = 1L, ids = 1L)),
       fireBufferedListDT = list(year2004 = data.table::data.table(ids = 1L, pixelID = 1:400)),
-      doAssertions = FALSE, ...
+      tests = "", doAssertions = FALSE, ...
     )
     seen
   }
@@ -135,7 +130,7 @@ test_that(".objfunSpreadFit() stops cut fires by default, and not with penaliseR
 })
 
 test_that("capSizes and penaliseCapHits are deprecated: one warning, then ignored", {
-  local_mocked_bindings(objFunInner = function(...) list(SNLL_FS = 0), .package = "fireSenseUtils")
+  local_mocked_bindings(objFunInner = function(...) list(), .package = "fireSenseUtils")
   rm(list = ls(fireSenseUtils:::.deprecatedArgsWarned), envir = fireSenseUtils:::.deprecatedArgsWarned)
   land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
   call1 <- function(...) fireSenseUtils::.objfunSpreadFit(
@@ -145,45 +140,12 @@ test_that("capSizes and penaliseCapHits are deprecated: one warning, then ignore
     formulaToFit = "~ 0 + cov",
     historicalFires = list(year2004 = data.frame(size = 40L, cells = 1L, ids = 1L)),
     fireBufferedListDT = list(year2004 = data.table::data.table(ids = 1L, pixelID = 1:400)),
-    indexNonAnnual = data.table::data.table(ind = 1L, date = "2004"), doAssertions = FALSE, ...)
+    indexNonAnnual = data.table::data.table(ind = 1L, date = "2004"), tests = "", doAssertions = FALSE, ...)
   expect_warning(call1(capSizes = FALSE, penaliseCapHits = TRUE), "penaliseRunaways")
   expect_no_warning(call1(capSizes = FALSE))
 })
 
-test_that("returnTerms reports the first block's value per fire and whether it bailed", {
-  ## the early stop's own numbers, so a caller calibrating `thresh` need not read the printed log
-  mk <- function(snll, gated = FALSE, thresh = Inf, ...) {
-    local_mocked_bindings(
-      objFunInner = function(yr, ...) list(SNLL_FS = snll[[yr]], runaways = 0L, nSims = 0L, gated = gated[[yr]]),
-      .package = "fireSenseUtils")
-    land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
-    yrs <- c("2001", "2002", "2003")
-    dt <- function(...) data.table::data.table(...)
-    fireSenseUtils::.objfunSpreadFit(
-      par = c(0.27, 1, 1, 1), landscape = land,
-      annualDTx1000 = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, cov = 100L)), yrs),
-      nonAnnualDTx1000 = list(`2001_2003` = dt(pixelID = 1:2)),
-      formulaToFit = "~ 0 + cov",
-      historicalFires = list(`2001` = data.frame(size = c(100, 200), cells = 1:2, ids = 1:2),
-                             `2002` = data.frame(size = c(150, 250), cells = 3:4, ids = 1:2),
-                             `2003` = data.frame(size = c(5, 6), cells = 5:6, ids = 1:2)),
-      fireBufferedListDT = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, ids = 1L)), yrs),
-      tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0, thresh = thresh,
-      returnTerms = TRUE, ...)
-  }
-  snll <- c("2001" = 100, "2002" = 300, "2003" = 40)  # 2001 and 2002 are the first block (the largest areas)
-  ok <- mk(snll, gated = c("2001" = FALSE, "2002" = FALSE, "2003" = FALSE))
-  expect_equal(ok[["firstBlockPerFire"]], (100 + 300) / 4)   # 2 fires in each year
-  expect_equal(ok[["bailed"]], 0)
-  gated <- mk(snll, gated = c("2001" = FALSE, "2002" = TRUE, "2003" = FALSE))
-  expect_equal(gated[["bailed"]], 1)               # a year refused as too burny / not spread out
-  expect_equal(gated[["firstBlockPerFire"]], 100)  # still reported, with thresh = Inf
-  over <- mk(snll, gated = c("2001" = FALSE, "2002" = FALSE, "2003" = FALSE), thresh = 75)
-  expect_equal(over[["bailed"]], 1)                # 100 per fire against a threshold of 75
-  expect_equal(over[["firstBlockPerFire"]], 100)
-})
-
-## The early stop: with `stopCutFires`, spreadCpp() is told to stop a fire at the first open pixel of its
+## The stop at the first open pixel: with `stopCutFires`, spreadCpp() is told to stop a fire at the first open pixel of its
 ## own buffer. `stopRuns(stop)` runs the objective with spreadCpp() wrapped to keep or drop those arguments, and
 ## records how many cells each call burned.
 stopRuns <- function(sp, stop, fx, seed = 1, Nreps = 6L, ...) {
@@ -208,7 +170,7 @@ oneFire <- function(n = 10L) {
   list(buf = fx$buf[fx$buf$ids == 1L, , drop = FALSE], fires = fx$fires[1L, , drop = FALSE])
 }
 
-test_that("early stop: one fire, one replicate, the score and the classification are those of the full burn", {
+test_that("stop at the open pixel: one fire, one replicate, the classification is that of the full burn", {
   skip_if_not_installed("SpaDES.tools")
   skip_if_not("stopCells" %in% names(formals(SpaDES.tools::spreadCpp)))
   fx <- oneFire()
@@ -219,15 +181,14 @@ test_that("early stop: one fire, one replicate, the score and the classification
       off <- stopRuns(sp, FALSE, fx, seed = seed, Nreps = 1L, stopCutFires = TRUE)
       expect_setequal(on$stopArgs, c("stopCells", "stopEvent", "stopAt"))
       expect_equal(on$res$runaways, off$res$runaways)
-      ## the "mad" term's sizes are what each fire burned, so a stopped fire's is smaller
-      expect_identical(on$res[c("SNLL_FS", "runaways", "nSims")], off$res[c("SNLL_FS", "runaways", "nSims")])
+      expect_equal(on$res$nSims, off$res$nSims)
       sawRunaway <- sawRunaway || on$res$runaways > 0
       sawNone <- sawNone || on$res$runaways == 0
     }
   expect_true(sawRunaway && sawNone)       # the comparison covers both kinds of replicate
 })
 
-test_that("early stop: a cut fire burns fewer cells, and only with stopCutFires and without returnSims", {
+test_that("stop at the open pixel: a cut fire burns fewer cells, and only with stopCutFires and without returnSims", {
   skip_if_not_installed("SpaDES.tools")
   skip_if_not("stopCells" %in% names(formals(SpaDES.tools::spreadCpp)))
   fx <- oneFire(18L)
@@ -244,7 +205,7 @@ test_that("early stop: a cut fire burns fewer cells, and only with stopCutFires 
   expect_length(sims$stopArgs, 0L)
 })
 
-test_that("early stop: timing on the five-fire fixture (reported, not asserted)", {
+test_that("stop at the open pixel: timing on the five-fire fixture (reported, not asserted)", {
   skip_if_not_installed("SpaDES.tools")
   skip_if_not("stopCells" %in% names(formals(SpaDES.tools::spreadCpp)))
   fx <- runawayFixture(18L)

@@ -73,8 +73,7 @@ test_that("the default weights are the 2026-10-28 profile's, and crpsWeights ove
 ## .objfunSpreadFit() with the per-year work mocked: one year, 2 fitted fires (25, 60 pixels), Nreps = 2
 crpsFit <- function(..., sizes = data.table::data.table(rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50))) {
   local_mocked_bindings(
-    objFunInner = function(yr, ...) list(SNLL_FS = 5, runaways = 0L, nSims = 4L, gated = FALSE,
-                                         allFireSizes = sizes$N, crpsFire = 1.5, crpsSizes = sizes),
+    objFunInner = function(yr, ...) list(allFireSizes = sizes$N, crpsFire = 1.5, crpsSizes = sizes),
     .package = "fireSenseUtils")
   land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
   fireSenseUtils::.objfunSpreadFit(
@@ -86,9 +85,9 @@ crpsFit <- function(..., sizes = data.table::data.table(rep = c(1, 1, 2, 2), N =
     Nreps = 2L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
 }
 
-test_that("tests = \"crps\" is the weighted sum of its five terms, with no annual-area term and no early stop", {
+test_that("tests = \"crps\" is the weighted sum of its five terms, with no annual-area term", {
   w <- crpsWeightsDefault()
-  fit <- crpsFit(tests = "crps", yearAreaWeight = "auto", thresh = 0.001)
+  fit <- crpsFit(tests = "crps", yearAreaWeight = "auto")
   obs <- c(25, 60); sizes <- c(20, 70, 30, 50)
   ta <- crpsEnsemble(log(c(90, 80)), log(85))
   top <- crpsEnsemble(log(c(70, 50)), log(60)) + crpsEnsemble(log(c(20, 30)), log(25))
@@ -127,7 +126,7 @@ test_that("a refused year scores as every fire left at one pixel (gateRefusal = 
 
 test_that("the defaults leave the objective's value as it was before the CRPS options", {
   ## A real objFunInner() and spreadCpp() on a 20 x 20 landscape, 3 years, 6 fires, seed 42. The values were
-  ## computed on development before this change (2026-10-28).
+  ## computed on development (2026-10-28), less the removed fire-size likelihood term (15.2773 and 15.0812).
   skip_if_not_installed("SpaDES.tools")
   dt <- function(...) data.table::data.table(...)
   yrs <- c("2001", "2002", "2003")
@@ -147,15 +146,14 @@ test_that("the defaults leave the objective's value as it was before the CRPS op
                              `2002` = data.frame(size = c(12, 90), cells = c(100L, 300L), ids = 1:2),
                              `2003` = data.frame(size = c(8, 25), cells = c(150L, 360L), ids = 1:2)),
       fireBufferedListDT = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:400, ids = rep(1:2, each = 200))), yrs),
-      Nreps = 8L, doAssertions = FALSE, verbose = 0, thresh = Inf, returnTerms = TRUE, ...)
+      Nreps = 8L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
   }
-  a <- ob(tests = c("snll_fs", "adTest"), yearAreaWeight = "auto", areaDistWeight = "auto")
-  expect_equal(unname(a[c("objective", "SNLL_FS", "adTest", "yearArea", "areaDist")]),
-               c(41.7991463621852, 15.2772756261106, 2.93199853484711, 17.1236740922091, 6.46619810901835),
+  a <- ob(tests = "adTest", yearAreaWeight = "auto", areaDistWeight = "auto")
+  expect_equal(unname(a[c("objective", "adTest", "yearArea", "areaDist")]),
+               c(26.5218707360746, 2.93199853484711, 17.1236740922091, 6.46619810901835),
                tolerance = 1e-10)
-  b <- ob(tests = c("snll_fs", "adTest"), sizeLik = "t", weighted = FALSE)
-  expect_equal(unname(b[c("objective", "SNLL_FS", "adTest")]),
-               c(15.5170892083938, 15.0812307018957, 0.435858506498095), tolerance = 1e-10)
-  expect_equal(ob(tests = c("snll_fs", "adTest"), yearAreaWeight = "auto", areaDistWeight = "auto",
+  b <- ob(tests = "adTest", sizeLik = "t", weighted = FALSE)
+  expect_equal(unname(b[c("objective", "adTest")]), c(0.435858506498095, 0.435858506498095), tolerance = 1e-10)
+  expect_equal(ob(tests = "adTest", yearAreaWeight = "auto", areaDistWeight = "auto",
                   gateRefusal = "minLik")[["objective"]], a[["objective"]])
 })

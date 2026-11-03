@@ -19,13 +19,12 @@ test_that("runDEoptim() names the parameters from names(lower), grouped", {
     itermax = 5, trace = FALSE, strategy = 2L, cores = c("hostA", "hostB"),
     paths = list(cachePath = withr::local_tempdir()),
     lower = lower, upper = lower + 1, mutuallyExclusive = NULL, formulaToFit = form,
-    objFunCoresInternal = 1L, covMinMax = NULL, maxFireSpread = 0.3, Nreps = 1L, thresh = 512,
+    objFunCoresInternal = 1L, covMinMax = NULL, maxFireSpread = 0.3, Nreps = 1L,
     logPath = file.path(withr::local_tempdir(), "fit.log"), .verbose = FALSE)))
   msgs <- paste(msgs, collapse = "")
   expect_match(msgs, paste0("Fitting 6 parameters: logistic: maxAsymptote, inflectionPoint1; ",
                             "covariates: CMD, youngAge, dom_agb_Pice_mar; year effect: yearSpreadSD"),
                fixed = TRUE)
-  expect_match(msgs, "objectiveFunction threshold per fire to run all years after first 2 years: 512",
-               fixed = TRUE)
+  expect_false(grepl("threshold", msgs))
   expect_false(grepl("logit", msgs))
 })

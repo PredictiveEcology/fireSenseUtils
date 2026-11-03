@@ -49,10 +49,9 @@ test_that("rescorePopulation() runs on a cluster's workers", {
                    rescorePopulation(pop, noisy, reps = 3L, seed = 5L))
 })
 
-test_that("runDEoptim() re-scores the final population with the early stop off, after the fit", {
+test_that("runDEoptim() re-scores the final population after the fit", {
   src <- paste(deparse(runDEoptim), collapse = "\n")
   expect_match(src, "rescorePopulation", fixed = TRUE)
-  expect_match(src, "thresh = Inf", fixed = TRUE)
   expect_lt(regexpr("DEoptimIterative", src), regexpr("rescorePopulation", src))
   expect_identical(formals(runDEoptim)$rescoreReps, 10L)
 })

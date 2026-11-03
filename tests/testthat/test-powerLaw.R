@@ -107,8 +107,8 @@ test_that(".objfunSpreadFit() and runDEoptim() carry powerLawGamma; the default 
     par = c(maxAsymptote = pcT, clim = 1, fuel = 1.5, youngAge = -1), landscape = r,
     annualDTx1000 = climFix$annualDTx1000, nonAnnualDTx1000 = climFix$nonAnnualDTx1000,
     formulaToFit = formC, historicalFires = climFix$historicalFires, fireBufferedListDT = fb,
-    mutuallyExclusive = NULL, tests = "snll_fs", Nreps = 3L, doAssertions = FALSE, verbose = 0,
-    lanscape1stQuantileThresh = Inf, thresh = Inf, ...)
+    mutuallyExclusive = NULL, tests = "crps", Nreps = 3L, doAssertions = FALSE, verbose = 0,
+    lanscape1stQuantileThresh = Inf, ...)
   set.seed(7); v0 <- call()
   set.seed(7); v1 <- call(powerLawGamma = 4)
   expect_identical(v1, v0)                       # gamma is unused without the link

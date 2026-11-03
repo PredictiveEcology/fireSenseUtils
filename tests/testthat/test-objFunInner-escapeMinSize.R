@@ -3,7 +3,7 @@
 ## first escapeSizePixels() cells whatever spreadProb (SpaDES.tools::spreadCpp(minSize =)). Before this,
 ## an escaped fire was any fire over 1 pixel, while 11-16% of simulated fires never left their first pixel.
 ##
-## Same fake-spread() idiom as test-objFunInner-sizeLikT.R.
+## Same fake-spread() idiom as test-objFunInner-spreadProbVector.R.
 
 test_that("escapeSizePixels() is the fewest whole pixels covering escapeSizeHa", {
   r240 <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 2400, ymin = 0, ymax = 2400) # 5.76 ha
@@ -39,8 +39,8 @@ spreadCppArgs <- function(...) {
     indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
     lowerSpreadProb = 0.13, cells = numeric(400), lanscape1stQuantileThresh = 0.25,
-    weighted = FALSE, r = r20, Nreps = 3L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
+    r = r20, Nreps = 3L,
+    doMADTest = FALSE, doADTest = FALSE, doCrps = TRUE,
     plot.it = FALSE, verbose = 0, ...
   )
   seen
@@ -65,7 +65,7 @@ test_that("observed fires below escapeSizeHa are not fitted", {
   local_mocked_bindings(
     objFunInner = function(annualFires, ...) {
       handed <<- rbind(handed, annualFires)
-      list(SNLL_FS = 0)
+      list()
     },
     .package = "fireSenseUtils"
   )
@@ -79,7 +79,7 @@ test_that("observed fires below escapeSizeHa are not fitted", {
       nonAnnualDTx1000 = list(`year2004` = data.table::data.table(pixelID = 1:400)),
       formulaToFit = "~ 0 + cov", historicalFires = fires,
       fireBufferedListDT = list(year2004 = data.table::data.table(ids = 1:4, pixelID = 1:4, buffer = 1L)),
-      tests = "snll_fs", Nreps = 2L, doAssertions = FALSE, thresh = Inf, verbose = 0, ...), silent = TRUE)
+      tests = "", Nreps = 2L, doAssertions = FALSE, verbose = 0, ...), silent = TRUE)
     sort(handed$size)
   }
   expect_identical(run(), c(3L, 8L, 9L, 40L))                 # minFireSize = 2

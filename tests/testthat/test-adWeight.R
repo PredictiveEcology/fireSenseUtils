@@ -1,8 +1,5 @@
-## `adWeight` multiplies the Anderson-Darling statistic before it is added to the fire-size SNLL.
-## The fixed 50 balanced the two terms only for the kernel-density likelihood with no size weight:
-## measured across six ELFs, the AD term's share of the influence on the objective ranged from 0.16
-## to 0.94 over the four sizeLik x weighted combinations. `adWeight = "auto"` scales with the number
-## of fitted fires, which is what both terms grow with, and holds that share to 0.36-0.68.
+## `adWeight` multiplies the Anderson-Darling statistic. `adWeight = "auto"` scales with the number
+## of fitted fires (adWeightAuto()).
 
 test_that("adWeightAuto() is c * sqrt(nFires), with c from sizeLik and weighted", {
   expect_equal(adWeightAuto(100, "kde", FALSE), 1.897 * 10)
@@ -14,7 +11,7 @@ test_that("adWeightAuto() is c * sqrt(nFires), with c from sizeLik and weighted"
   expect_gt(adWeightAuto(1624, "kde", FALSE), adWeightAuto(138, "kde", FALSE))
 })
 
-## the fixture of test-objFunSpread-pruneAboveBehaviour.R: 3 fire years, 6 fires, objFunInner mocked
+## 3 fire years, 6 fires, objFunInner mocked
 mkFixture <- function() {
   dt <- function(...) data.table::data.table(...)
   yrs <- c("2001", "2002", "2003")
@@ -33,14 +30,14 @@ mkFixture <- function() {
 runObjFun <- function(...) {
   fx <- mkFixture()
   local_mocked_bindings(
-    objFunInner = function(...) list(SNLL_FS = 0, allFireSizes = c(2, 10, 300)),
+    objFunInner = function(...) list(allFireSizes = c(2, 10, 300)),
     adStatistic = function(x, y) 7
   )
   do.call(fireSenseUtils:::.objfunSpreadFit, c(
     fx[c("par", "landscape", "annualDTx1000", "nonAnnualDTx1000", "formulaToFit",
          "historicalFires", "fireBufferedListDT")],
-    list(tests = c("adTest", "snll_fs"), Nreps = 1L, doAssertions = FALSE, plot.it = FALSE,
-         verbose = 0, thresh = Inf, ...)
+    list(tests = "adTest", Nreps = 1L, doAssertions = FALSE, plot.it = FALSE,
+         verbose = 0, ...)
   ))
 }
 
