@@ -416,7 +416,6 @@ test_that("makeELFs on the real ecostratification gives the ELF maps of the SCAN
   skip_if_offline("sis.agr.gc.ca")
   skip_if_not_installed("dismo")
   skip_if_not_installed("deldir")
-  skip_if_not_installed("digest")
   dp <- withr::local_tempdir(tmpdir = dirname(tempdir()))
   ## cold cache and a caller RNG state unlike the campaign's; the result must not depend on either
   withr::local_options(reproducible.cachePath = file.path(dp, "cache"),
@@ -429,16 +428,35 @@ test_that("makeELFs on the real ecostratification gives the ELF maps of the SCAN
   ## the ca_<id>.tif files of ELFs_final are out$rasWhole
   f <- vapply(out$rasWhole, terra::sources, character(1))
   ids <- sub("^ca_(.*)\\.tif$", "\\1", basename(f))
-  f <- f[order(ids)]
-  sums <- vapply(f, function(p) {
-    r <- terra::rast(p)
-    digest::digest(list(round(as.vector(terra::ext(r)), 2), dim(r), terra::values(r, mat = FALSE)),
-                   algo = "xxhash64")
-  }, character(1))
-  names(sums) <- sort(ids)
-  expect_length(sums, 79)
-  ## "ec1a815c01d736e6" was the 2026-10-05 campaign's maps (SCANFI v1.2 template); "3dd5c361ed1acdda" the
-  ## SCANFI v2 ones (82 ELFs) before the cores tiled the map: the convex hull of a multi-polygon province took
+  cores <- vapply(f, function(p) sum(terra::values(terra::rast(p), mat = FALSE) == 2, na.rm = TRUE), numeric(1))
+  names(cores) <- ids
+  expect_length(cores, 79)
+  ## Cells in the core of each ELF (cells equal to 2), from terra 1.9-50. Not a digest of the maps: terra 1.9-46
+  ## and 1.9-50 differ by one cell in the size of every map (the 1.9-50 NEWS changes terra::project() to a
+  ## template, which the ELF code uses), which changes any digest ("3c0420b6adb29f04" with 1.9-46, "f6bfdbfd1c6bf726" with 1.9-50) but moves
+  ## no core by more than one cell. Another split of a province (RNG) or hull cells would move them by hundreds.
+  ## History: "ec1a815c01d736e6" was the 2026-10-05 campaign's maps (SCANFI v1.2 template); "3dd5c361ed1acdda"
+  ## the SCANFI v2 ones (82 ELFs) before the cores tiled the map: the convex hull of a multi-polygon province took
   ## its neighbours' cells, and 1.2.1, 1.2.2 and 2.3.3 were made of hull cells outside the land template only
-  expect_identical(digest::digest(sums, algo = "xxhash64"), "f6bfdbfd1c6bf726")
+  expected <- c("1.2" = 1545, "10.1" = 1296, "10.2.1" = 3144, "10.2.2" = 3864,
+    "10.3.1" = 5243, "10.3.2" = 4881, "11.1" = 1015, "11.2" = 778,
+    "11.3" = 2256, "11.4" = 6003, "12.1" = 1083, "12.2" = 9018, "12.3" = 6376,
+    "12.4" = 1458, "13.1" = 1127, "13.2.1" = 3753, "13.2.2" = 3665,
+    "13.3" = 1095, "14.1" = 5435, "14.2" = 4137, "14.3" = 2331, "14.4" = 7216,
+    "15.1" = 2912, "15.2.1" = 3958, "15.2.2" = 8793, "2.3.1" = 1078,
+    "2.3.2" = 4886, "2.3.4" = 3958, "2.4" = 279, "2.5.1" = 9574,
+    "2.5.2" = 2397, "2.5.3" = 2029, "2.5.4" = 276, "2.7.1" = 1038,
+    "2.7.2" = 131, "3.1.1" = 6446, "3.1.2" = 6859, "3.2.1" = 9985,
+    "3.2.2" = 3980, "3.2.3" = 70, "3.2.4" = 1387, "3.2.5" = 171,
+    "3.3.1" = 2573, "3.3.2" = 4956, "4.1" = 3267, "4.2.1" = 5196,
+    "4.2.2" = 7608, "4.3" = 8724, "5.1.1" = 5201, "5.1.2" = 9028,
+    "5.1.3" = 9709, "5.2.1" = 7455, "5.2.2" = 8128, "5.3.1" = 4697,
+    "5.3.2" = 5924, "5.4" = 5167, "6.1.1" = 7558, "6.1.2" = 7108,
+    "6.1.3" = 5566, "6.2.1" = 6657, "6.2.2" = 6488, "6.2.3" = 7563,
+    "6.3.1" = 8765, "6.3.2" = 6305, "6.4" = 6300, "6.5" = 3004, "6.6.1" = 6712,
+    "6.6.2" = 6753, "7.1" = 4240, "7.2" = 2065, "7.3" = 4098, "8.1" = 5318,
+    "8.2" = 1740, "9.1.1" = 2245, "9.1.2" = 2418, "9.2.1" = 6350,
+    "9.2.2" = 6181, "9.2.3" = 6222, "9.3" = 5143)
+  expect_setequal(names(cores), names(expected))
+  expect_lte(max(abs(cores - expected[names(cores)])), 1)
 })

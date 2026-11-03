@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* The `makeELFs()` real-ecostratification test checks the core size of each ELF (within one cell) instead of a digest of the maps, which changed with the installed terra (1.9-46 vs 1.9-50 differ by one cell in every map's size). terra (>= 1.9-50) is now required, so every machine makes the same ELF maps.
+
 * `plotHistoricFires()` sums the observed annual area burned over all fires, as the simulated series does, not only over fires larger than `pixelSize`; escapes count fires larger than one pixel (`pixelSize` is in metres, so `pixelSize^2 / 1e4` ha, not `pixelSize` ha) on both sides.
 * `plotHistoricFires()` draws every replicate (thin lines) and their median (bold) against the observed series, instead of the first replicate only, and no longer puts "rep 1" in the title. `plotBurnSummary()` plots the median, not the mean, fire size per year and titles its x axis "Simulation year".
 * `plotELFs()` takes `metricCol`, `metricTitle` and `metricRange`: the colours, legend title and fixed value range (e.g. `c(0, 100)`) of the `metrics` it maps. `plotFires` still sets its own colours and title, where these are `NULL`.
