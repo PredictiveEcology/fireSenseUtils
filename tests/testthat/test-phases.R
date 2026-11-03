@@ -7,9 +7,11 @@ test_that("phase 'all' has no barriers, and is the default", {
   expect_null(phaseEvents())
 })
 
-test_that("phase 'inputs' stops before the threshold calibration and the climate rasters", {
+test_that("phase 'inputs' stops before the fit and the climate rasters", {
+  ## fireSense_spreadFit has no "estimateThreshold" event any more; a barrier on an event that is never
+  ## scheduled does not stop anything, so the job would go on to fit
   expect_identical(phaseEvents("inputs"),
-                   list(.stopBefore = list(fireSense_spreadFit = "estimateThreshold",
+                   list(.stopBefore = list(fireSense_spreadFit = "run",
                                            fireSense_dataPrepPredict = "getClimateRasters")))
 })
 

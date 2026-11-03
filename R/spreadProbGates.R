@@ -1,5 +1,5 @@
-## The spreadProb gates of `.objfunSpreadFit()`, as functions of their own, so that the objective
-## and the threshold calibration (fireSense_spreadFit) apply the same test.
+## The spreadProb gates of `.objfunSpreadFit()`, as functions of their own, so that anything that
+## screens parameter sets applies the same test as the objective.
 
 #' The objective's spread-probability gates, on one year's spreadProb
 #'

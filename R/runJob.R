@@ -1,7 +1,7 @@
 #' The phases a fireSense job can be split into
 #'
 #' `"all"` fits if the ELF has no fit, then predicts. `"inputs"` builds every input and cache and
-#' stops before the spread threshold calibration (which forks). `"fit"` fits if the ELF has no fit,
+#' stops before the spread fit (the `run` event). `"fit"` fits if the ELF has no fit,
 #' then stops. See [phaseEvents()] and [runJob()].
 #'
 #' @export
@@ -22,7 +22,7 @@ phaseEvents <- function(phase = fireSensePhases, validates = FALSE) {
   stopBeforeClimate <- list(fireSense_dataPrepPredict = "getClimateRasters")
   switch(phase,
          all = NULL,
-         inputs = list(.stopBefore = c(list(fireSense_spreadFit = "estimateThreshold"), stopBeforeClimate)),
+         inputs = list(.stopBefore = c(list(fireSense_spreadFit = "run"), stopBeforeClimate)),
          fit = list(.stopAfter = list(fireSense_spreadFit = if (validates) "crossValidate" else "run"),
                     .stopBefore = stopBeforeClimate))
 }
