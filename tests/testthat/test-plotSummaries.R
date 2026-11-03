@@ -144,7 +144,7 @@ test_that("plotHistoricFires counts the same fires on both sides of each figure"
   withr::local_options(mc.cores = 1L)
   dir <- withr::local_tempdir()
   simFiles <- makeRepOutputs(dir, nReps = 2, years = 2001:2004)
-  ## observed fires of mixed sizes, some below pixelSize (250), two per year
+  ## observed fires of mixed sizes, some below one pixel (250 m = 6.25 ha), two per year
   pts <- sf::st_as_sf(data.frame(x = 1:8, y = 1:8, YEAR = rep(2001:2004, each = 2)),
                       coords = c("x", "y"), crs = 3978)
   polys <- terra::vect(sf::st_buffer(pts, 1))
@@ -167,12 +167,33 @@ test_that("plotHistoricFires counts the same fires on both sides of each figure"
 
   ## escapes: fires larger than pixelSize, both sides
   expect_equal(as.numeric(byYear(obs(dat("Escapes")), "nFires")),
-               as.numeric(tapply(polys$SIZE_HA > 250, polys$YEAR, sum)))
-  expect_equal(sum(proj(dat("Escapes"))$nFires), sum(sim$areaBurnedHa > 250))
+               as.numeric(tapply(polys$SIZE_HA > 250^2 / 1e4, polys$YEAR, sum)))
+  expect_equal(sum(proj(dat("Escapes"))$nFires), sum(sim$areaBurnedHa > 250^2 / 1e4))
 
   ## ignitions: every fire, both sides
   expect_equal(as.numeric(byYear(obs(dat("Ignitions")), "N")), rep(2, 4))
   expect_equal(sum(proj(dat("Ignitions"))$N), nrow(sim))
+})
+
+test_that("plotHistoricFires counts a fire larger than one pixel as an escape (pixelSize is in metres)", {
+  withr::local_options(mc.cores = 1L)
+  dir <- withr::local_tempdir()
+  simFiles <- makeRepOutputs(dir, nReps = 1, years = 2001:2002)
+  ## 250 m pixel = 6.25 ha: a 10 ha fire escaped, a 5 ha one did not
+  pts <- sf::st_as_sf(data.frame(x = 1:2, y = 1:2, YEAR = 2001:2002), coords = c("x", "y"), crs = 3978)
+  polys <- terra::vect(sf::st_buffer(pts, 1))
+  polys$SIZE_HA <- c(10, 5)
+  plots <- list()
+  local_mocked_bindings(ggsave = function(plot, filename, ...) plots[[basename(filename)]] <<- plot,
+                        .package = "ggplot2")
+  suppressMessages(plotHistoricFires("CanESM5_ssp370", "SA", dir, pixelSize = 250, firePolys = polys,
+                                     ignitionPoints = pts, simFiles = simFiles))
+  d <- plots[["simulated_Escapes_SA_CanESM5_ssp370.png"]]$data
+  d <- d[d$stat == "observed", ]
+  expect_equal(d$nFires[order(d$year)], c(1, 0))
+  sim <- data.table::fread(simFiles[grepl("csv$", simFiles)])
+  p <- plots[["simulated_Escapes_SA_CanESM5_ssp370.png"]]$data
+  expect_equal(sum(p$nFires[p$stat == "projected"]), sum(sim$areaBurnedHa > 6.25))
 })
 
 test_that("plotHistoricFires draws every replicate, and the median across replicates", {
