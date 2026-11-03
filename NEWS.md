@@ -1,6 +1,7 @@
 # fireSenseUtils (development version)
 
 * `plotHistoricFires()` draws every replicate (thin lines) and their median (bold) against the observed series, instead of the first replicate only, and no longer puts "rep 1" in the title. `plotBurnSummary()` plots the median, not the mean, fire size per year and titles its x axis "Simulation year".
+* `plotELFs()` takes `metricCol`, `metricTitle` and `metricRange`: the colours, legend title and fixed value range (e.g. `c(0, 100)`) of the `metrics` it maps. `plotFires` still sets its own colours and title, where these are `NULL`.
 
 * `runJob(ledger = , scenario = )` records each uploaded run in a `reproducible::CacheGeoLedger()`, with the unbuffered ELF (`studyAreaELF`) as its polygon, so the `simListArchive` module can find it by study area. The default `ledger = NULL` records nothing.
 

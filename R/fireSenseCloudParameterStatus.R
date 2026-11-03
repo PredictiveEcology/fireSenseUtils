@@ -103,6 +103,10 @@ fireSenseCloudParametersMap <-
 #'   the values to map, e.g. from [readELFmetrics()]. `NULL` (default) maps none.
 #' @param metric The column of `metrics` whose values fill the cores, drawn over the other fills; ELFs
 #'   without a value keep theirs.
+#' @param metricCol,metricTitle,metricRange The colours (a vector, as `col` of [terra::plot()]), the legend title
+#'   and the value range (two numbers, e.g. `c(0, 100)`, fixing the colour scale) of `metric`. `NULL` (default)
+#'   takes terra's colours, `metric` as the title and the range of the values. With `plotFires`, the colours
+#'   and title left `NULL` are the green-to-red ramp and the name of the rate.
 #' @param plotFires `NULL` (default), `"number"`, `"density"`, `"area"` or `"proportion"`: fill the cores with
 #'   the mean natural ignitions per year, the mean natural ignitions per 100 km^2 of core per year, the mean
 #'   area burned per year (ha), or the mean proportion of the core burned per year, over `fireYears`, from
@@ -119,7 +123,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
                      ELFs = NULL,
                      labels = c("code", "name", "none"), labelWhich = c("all", "highlighted"),
                      buffers = TRUE, axes = c("m", "longlat", "none"), metrics = NULL, metric = NULL,
-                     plotFires = NULL, ...) {
+                     metricCol = NULL, metricTitle = NULL, metricRange = NULL, plotFires = NULL, ...) {
   labels <- match.arg(labels)
   labelWhich <- match.arg(labelWhich)
   axes <- match.arg(axes)
@@ -134,8 +138,6 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       Cache(omitArgs = "destinationPath")
     plan <- plan$plan
   }
-  metricCol <- NULL
-  metricTitle <- NULL
   if (!is.null(plotFires)) {
     plotFires <- match.arg(plotFires, c("number", "density", "area", "proportion"))
     if (!is.null(metrics)) stop("plotELFs(): give `metrics` or `plotFires`, not both")
@@ -144,8 +146,8 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
                             destinationPath = destinationPath)
     metric <- c(number = "naturalFiresPerYear", density = "naturalFiresPer100km2PerYear",
                 area = "haBurnedPerYear", proportion = "proportionBurnedPerYear")[[plotFires]]
-    metricCol <- grDevices::hcl.colors(100, "RdYlGn", rev = TRUE) # green = less, red = more
-    metricTitle <- c(number = "natural fires / yr", density = "natural fires\n/ 100 km\u00b2 / yr",
+    if (is.null(metricCol)) metricCol <- grDevices::hcl.colors(100, "RdYlGn", rev = TRUE) # green = less, red = more
+    if (is.null(metricTitle)) metricTitle <- c(number = "natural fires / yr", density = "natural fires\n/ 100 km\u00b2 / yr",
                      area = "ha burned / yr", proportion = "proportion burned / yr")[[plotFires]]
   }
   ## the map shows the merged ELFs, not the ones they were made from
@@ -206,6 +208,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       w <- u[2] - u[1]
       h <- u[4] - u[3]
       terra::plot(valued, metric, add = TRUE, type = if (is.numeric(values)) "continuous", col = metricCol,
+                  range = metricRange,
                   plg = list(ext = c(u[2] - 0.13 * w, u[2] - 0.11 * w, u[3] + 0.05 * h, u[3] + 0.40 * h),
                              title = if (is.null(metricTitle)) metric else metricTitle))
     }
