@@ -17,16 +17,8 @@ adWeightAuto(nFires, sizeLik = "kde", weighted = FALSE)
 A single numeric.
 }
 \description{
-The multiplier that gives the \code{"adTest"} term and the fire-size SNLL about equal influence on the
-objective, \code{c * sqrt(nFires)}. Both terms are sums over the fitted fires, so both grow with how
-many there are; measured across six ELFs (138 to 1624 fires, 2,708 to 1,114,569 pixels burned,
-14 members of each fit's final population), the spread of the SNLL across members grew with
-\code{nFires^0.5} to \code{nFires^1}, and neither term scaled with the ELF's area or its area burned. \code{c}
-comes from the same measurements, one per \code{sizeLik} and \code{weighted} combination. Under it the AD
-term's share of the influence stayed within 0.36-0.68 of the total, against 0.16-0.94 under the
-fixed 50.
-}
-\details{
-The constants were measured on populations fitted with an older objective, and a spread estimated
-from 14 members is coarse, so treat the result as the right order of magnitude rather than exact.
+The multiplier of the \code{"adTest"} term, \code{c * sqrt(nFires)}: it grows with the number of fitted fires,
+as the (retired) fire-size likelihood the term was balanced against did. \code{c} was measured across six
+ELFs (138 to 1624 fires), one value per \code{sizeLik} and \code{weighted} combination, on populations fitted
+with an older objective, so treat the result as the right order of magnitude rather than exact.
 }

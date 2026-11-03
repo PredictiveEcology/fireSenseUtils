@@ -26,7 +26,7 @@ test_that("a caller's logPath is used as given", {
     itermax = 5, trace = FALSE, strategy = 2L, cores = c("hostA", "hostB"),
     paths = list(cachePath = withr::local_tempdir()),
     lower = lower, upper = lower + 1, mutuallyExclusive = NULL, formulaToFit = form,
-    objFunCoresInternal = 1L, covMinMax = NULL, maxFireSpread = 0.3, Nreps = 1L, thresh = 512,
+    objFunCoresInternal = 1L, covMinMax = NULL, maxFireSpread = 0.3, Nreps = 1L,
     logPath = mine, .verbose = FALSE)))
   expect_identical(got, mine)
 })

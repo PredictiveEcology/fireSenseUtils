@@ -99,7 +99,8 @@ retiredObjectiveArgs <- local({
   cap <- paste("simulated fires are no longer capped at a size. A fire that reaches an open edge of the",
                "year's buffers is cut instead; see `penaliseRunaways`.")
   size <- "a cut replicate is scored at the size it reached in the size-based terms."
-  c(capSizes = cap, penaliseCapHits = cap, runawaySize = size, runawayBufferMultiple = size)
+  c(capSizes = cap, penaliseCapHits = cap, runawaySize = size, runawayBufferMultiple = size,
+    thresh = "the early stop went with the \"SNLL_FS\" test, which was removed.")
 })
 .deprecatedArgsWarned <- new.env(parent = emptyenv())
 ## `argNames`: the retired arguments a caller used (others are ignored here)

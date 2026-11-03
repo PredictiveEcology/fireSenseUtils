@@ -38,8 +38,8 @@ callInner <- function(sp, cells = numeric(100), loci = 24L, lanscape1stQuantileT
       mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28,
       lowerSpreadProb = 0.13, cells = cells,
       lanscape1stQuantileThresh = lanscape1stQuantileThresh,
-      weighted = TRUE, r = r10, Nreps = 2L,
-      doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE,
+      r = r10, Nreps = 2L,
+      doMADTest = FALSE, doADTest = FALSE, doCrps = TRUE,
       plot.it = FALSE, verbose = 0
     ),
     reachedSpread = function(e) "reachedSpread"
@@ -83,10 +83,10 @@ test_that("what spread() burned comes back as landscape cell indices", {
   ## observed size 50 against two replicates that each burned 2 cells: what matters here is that
   ## the join on the ignition's LANDSCAPE cell (24) found the simulated fires at all
   expect_type(out, "list")
-  expect_true(is.finite(out$SNLL_FS))
+  expect_true(is.finite(out$crpsFire))
   missed <- callInner(sp, spreadReturns = function(args) data.table::data.table(
     initialLocus = 99L, indices = c(99L, 100L), id = 1L, active = FALSE))$out
-  expect_false(isTRUE(all.equal(out$SNLL_FS, missed$SNLL_FS)))
+  expect_false(isTRUE(all.equal(out$crpsFire, missed$crpsFire)))
 })
 
 test_that("a year that bails never reaches spread()", {

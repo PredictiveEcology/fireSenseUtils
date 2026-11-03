@@ -35,9 +35,9 @@ objectiveRefused <- function(par, yr) {
     annualFireBufferedDT = dtx(ids = 1L, pixelID = 1:nPix),
     indexNonAnnual = dtx(ind = 1L, date = "2000"), colsToUse = c("cov1", "cov2"), covMinMax = NULL,
     mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 0.28, lowerSpreadProb = 0.13,
-    cells = numeric(nPix), lanscape1stQuantileThresh = 0.265, weighted = TRUE,
+    cells = numeric(nPix), lanscape1stQuantileThresh = 0.265,
     r = terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20), Nreps = 1L,
-    doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0,
+    doMADTest = FALSE, doADTest = FALSE, doCrps = TRUE, plot.it = FALSE, verbose = 0,
     returnSims = TRUE)
   !reached
 }

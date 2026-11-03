@@ -39,7 +39,7 @@ historical fire perimeters; \code{fireSense_dataPrepFit} uses 10 times this (\co
 \details{
 The defaults (with that factor 10) make a simulated fire that is cut at the buffers' open edge
 (\code{\link[=bufferOpen]{bufferOpen()}}) while still smaller than its observed fire rare, so the spread objective
-(\code{\link[=kernelLogScore]{kernelLogScore()}}) is the same as with no buffers. They are the smallest buffers (over the observed
+(the per-fire \code{"crps"} term) is the same as with no buffers. They are the smallest buffers (over the observed
 fires of three ELFs) that keep that rate at or below 1e-4 per fire and replicate in every size class
 of known-truth simulations (2026-10-23): a buffer of about 135 times the size at 9 pixels, 70 times
 from 100 to 10,000 pixels, 55 times at 18,000 pixels. They cost about what the previous defaults

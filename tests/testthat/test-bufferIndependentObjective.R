@@ -1,93 +1,10 @@
 ## A simulated fire that reaches an open edge pixel of the year's buffers (one next to flammable land outside
-## every buffer) is cut: bufferOpen(), addBufferEdge(). The per-fire term gives it no density at the observed
+## every buffer) is cut: bufferOpen(), addBufferEdge(). The per-fire CRPS scores it as at least the observed
 ## size; the size-based terms (adTest, annual area, area-weighted size distribution) score the size it reached.
-## kernelLogScore() is one choice of the per-fire term (`sizeLik = "kernel"`), not the default.
 ## The fixture is from the known-truth prototype (~/claudeSessions/2026-10-06-multiELF-predict/phase4/
 ## bufferCensor/tune, 2026-10-23): ELF 6.6.1, one dataset, its truth, production buffers, 50 replicates.
 
 fixture <- readRDS(test_path("fixtures", "bufferIndependentObjective.rds"))
-h <- 0.25
-shift <- log(dnorm(0) / h) # the largest log density: the score of a perfect prediction is 0
-
-test_that("kernelLogScore() is 0 for a perfect prediction, grows with the miss, and is finite and >= 0 when all are cut", {
-  expect_equal(fireSenseUtils:::kernelLogScore(100, rep(100, 50), rep(FALSE, 50)), 0)
-  near <- fireSenseUtils:::kernelLogScore(100, rep(110, 50), rep(FALSE, 50))
-  far <- fireSenseUtils:::kernelLogScore(100, rep(200, 50), rep(FALSE, 50))
-  expect_gt(near, 0)
-  expect_gt(far, near)
-  allCut <- fireSenseUtils:::kernelLogScore(100, rep(100, 50), rep(TRUE, 50))
-  expect_true(is.finite(allCut))
-  expect_equal(allCut, shift - log(1e-29))
-  ## a cut replicate adds no density: cutting the ones at the observed size costs, cutting far ones does not
-  sims <- c(rep(100, 25), rep(5000, 25))
-  none <- fireSenseUtils:::kernelLogScore(100, sims, rep(FALSE, 50))
-  expect_equal(fireSenseUtils:::kernelLogScore(100, sims, sims == 5000), none)
-  expect_gt(fireSenseUtils:::kernelLogScore(100, sims, sims == 100), none)
-  ## never negative, also where the Monte Carlo correction would take log(m) past its bound
-  set.seed(1)
-  s <- replicate(200, fireSenseUtils:::kernelLogScore(100, 100 * exp(rnorm(3, 0, 0.05)), rep(FALSE, 3)))
-  expect_true(all(s >= 0))
-})
-
-test_that("kernelLogScore() is finite when the density is positive but its square underflows", {
-  ## ELF 4.1, 2026-10-24: a 61577-pixel fire whose replicates burned 9-54 pixels. Every kernel value is
-  ## below 1e-162, so k^2 and m^2 underflow to 0 and the Monte Carlo correction was 0 / 0: the score was
-  ## NaN, and the objective's early-stop `if (over)` stopped the first DEoptim generation.
-  sims <- c(11, 14, 14, 32, 10, 20, 9, 23, 9, 9, 12, 9, 12, 11, 54, 24, 10, 12, 18, 10, 34, 27, 31, 11, 10,
-            14, 17, 9, 11, 25, 12, 10, 50, 10, 24, 32, 23, 32, 11, 10, 9, 11, 9, 20, 9, 10, 14, 13, 34, 22)
-  s <- fireSenseUtils:::kernelLogScore(61577, sims, rep(FALSE, 50))
-  expect_true(is.finite(s))
-  ## m is far below minLik: the floor's score, less the correction (at most 1)
-  expect_lte(s, shift - log(1e-29))
-  expect_gte(s, shift - log(1e-29) - 1)
-})
-
-test_that("with sizeLik = \"kernel\" the per-fire term equals the prototype's on its saved simulations", {
-  ## objFunInner() with spreadCpp() replaced by the prototype's simulated fires: each fire gets its own run
-  ## of cells, the first of which is its buffer's only open pixel; a replicate the prototype cut burns it.
-  sc <- fixture$scores
-  total <- 0
-  for (y in unique(sc$obs$yr)) {
-    o <- sc$obs[sc$obs$yr == y, ]
-    s <- sc$sims[sc$sims$yr == y, ]
-    len <- vapply(o$ids, function(i) max(s$sim[s$ids == i]) + 1L, numeric(1))
-    first <- cumsum(c(1, head(len, -1)))
-    cellsOf <- function(k) first[k] + seq_len(len[k]) - 1
-    buf <- data.table::rbindlist(lapply(seq_along(o$ids), function(k)
-      data.table::data.table(ids = o$ids[k], pixelID = cellsOf(k), buffer = 0L))) # pixel ids as numeric
-    buf[, `:=`(edge = pixelID %in% first, open = pixelID %in% first)]
-    fires <- data.table::data.table(cells = first + 1, size = o$size, ids = o$ids)
-    r <- terra::rast(nrows = ceiling(sum(len) / 1000), ncols = 1000)
-    nCall <- 0L
-    local_mocked_bindings(
-      cropToCells = function(r, cells, ...) list(r = r, ncell = terra::ncell(r), toCrop = identity, toFull = identity),
-      paramsSeparate = function(...) list(logisticPars = c(0.27, 1, 1), covPars = 1),
-      spreadProbFromIntegerCovs = function(...) data.table::data.table(pixelID = buf$pixelID, cov = 0),
-      logisticAll = function(...) seq(0.06, 0.08, length.out = nrow(buf)),
-      .package = "fireSenseUtils")
-    local_mocked_bindings(
-      spreadCpp = function(landscape, loci, ...) {
-        nCall <<- nCall + 1L
-        data.table::rbindlist(lapply(seq_along(o$ids), function(k) {
-          z <- s[s$ids == o$ids[k] & s$rep == nCall, ]
-          cells <- if (z$cut) cellsOf(k)[seq_len(z$sim)] else cellsOf(k)[1L + seq_len(z$sim)]
-          data.table::data.table(initialLocus = loci[k], indices = cells)
-        }))
-      },
-      .package = "SpaDES.tools")
-    out <- fireSenseUtils:::objFunInner(
-      yr = sub("year", "", y), annDTx1000 = NULL, par = 1, parsModel = NULL,
-      annualFires = fires, nonAnnualDTx1000 = NULL, annualFireBufferedDT = buf,
-      indexNonAnnual = NULL, colsToUse = "cov", covMinMax = NULL, mutuallyExclusive = NULL, doAssertions = FALSE,
-      maxFireSpread = 1, lowerSpreadProb = 0.05, cells = numeric(terra::ncell(r)), lanscape1stQuantileThresh = 1,
-      weighted = FALSE, r = r, Nreps = sc$Nreps, doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE,
-      verbose = 0, sizeLik = "kernel")
-    expect_equal(out$runaways, sum(s$cut))
-    total <- total + out$SNLL_FS
-  }
-  ## the prototype's value is unshifted: -sum(log(m) + correction)
-  expect_equal(total, sc$prototypeF + nrow(sc$obs) * shift, tolerance = 1e-10)
-})
 
 test_that("bufferOpen() reproduces the prototype's open edge pixels on a real year of production buffers", {
   op <- fixture$open
@@ -143,8 +60,8 @@ toyObjective <- function(burn, Nreps = 2L, buffers = toy3, ...) {
     list(yr = "2001", annDTx1000 = NULL, par = 1, parsModel = NULL, annualFires = fires, nonAnnualDTx1000 = NULL,
          annualFireBufferedDT = addBufferEdge(list(buffers), r3)[[1]], indexNonAnnual = NULL, colsToUse = "cov",
          covMinMax = NULL, mutuallyExclusive = NULL, doAssertions = FALSE, maxFireSpread = 1, lowerSpreadProb = 0.05,
-         cells = numeric(50), lanscape1stQuantileThresh = 1, weighted = FALSE, r = r3, Nreps = Nreps,
-         doSNLL_FSTest = TRUE, doMADTest = FALSE, doADTest = FALSE, plot.it = FALSE, verbose = 0, sizeLik = "kernel"),
+         cells = numeric(50), lanscape1stQuantileThresh = 1, r = r3, Nreps = Nreps,
+         doMADTest = FALSE, doADTest = FALSE, doCrps = TRUE, plot.it = FALSE, verbose = 0),
     list(...))
   out <- do.call(fireSenseUtils:::objFunInner, args)
   c(out, list(spreadArgs = seen$args))
@@ -152,14 +69,14 @@ toyObjective <- function(burn, Nreps = 2L, buffers = toy3, ...) {
 
 test_that("a replicate is cut when it burns an open pixel of any buffer of its year, and only then", {
   skip_if_not_installed("SpaDES.tools")
+  ## observed sizes 10, 10 and 5; a cut replicate is scored as at least the observed size, so one that
+  ## stopped short of it adds 0 to the per-fire CRPS instead of log(observed / burned)
+  crpsOf <- function(burn) toyObjective(burn)$crpsFire
   quiet <- list(cell3(2:4, 2:4), cell3(2:4, 5:6), cell3(2:4, 10))     # NA side, shared border, boundary: not cut
-  expect_equal(toyObjective(quiet)$runaways, 0)
-  expect_equal(toyObjective(list(cell3(2:4, 2:4), cell3(2:4, 5:7), cell3(3, 10)))$runaways, 2)  # fire 2 x 2 replicates
+  expect_equal(crpsOf(quiet), log(10 / 9) + log(10 / 6) + log(5 / 3))
+  expect_equal(crpsOf(list(cell3(2:4, 2:4), cell3(2:4, 5:7), cell3(3, 10))), log(10 / 9) + 0 + log(5))
   ## fire 1 runs through buffer 2 to its open column: cut, though its own buffer has no open pixel
-  expect_equal(toyObjective(list(cell3(3, 2:7), cell3(3, 6), cell3(3, 10)))$runaways, 2)
-  ## a cut fire scores as one with no density at its observed size
-  cutAll <- toyObjective(list(cell3(1:5, 2:7), cell3(1:5, 5:7), cell3(1:5, 9:10)))
-  expect_equal(cutAll$SNLL_FS, 3 * fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE))
+  expect_equal(crpsOf(list(cell3(3, 2:7), cell3(3, 6), cell3(3, 10))), 0 + log(10) + log(5))
 })
 
 test_that("stopCutFires stops a fire at the first open pixel of its own buffer", {
@@ -174,56 +91,19 @@ test_that("stopCutFires stops a fire at the first open pixel of its own buffer",
   expect_null(off$stopCells)
 })
 
-test_that("the first block's early stop is per fire, not per year", {
-  ## two years in the first block with 3 and 1 fires: 400 in all is 100 per fire (it was 200 per year)
-  mk <- function(thresh, pruneAbove = Inf) {
-    local_mocked_bindings(
-      objFunInner = function(yr, ...) list(SNLL_FS = c("2001" = 300, "2002" = 100, "2003" = 7)[[yr]],
-                                           runaways = 0L, nSims = 0L, gated = FALSE),
-      .package = "fireSenseUtils")
-    land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
-    yrs <- c("2001", "2002", "2003")
-    dt <- function(...) data.table::data.table(...)
-    fireSenseUtils::.objfunSpreadFit(
-      par = c(0.27, 1, 1, 1), landscape = land,
-      annualDTx1000 = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, cov = 100L)), yrs),
-      nonAnnualDTx1000 = list(`2001_2003` = dt(pixelID = 1:2)), formulaToFit = "~ 0 + cov",
-      historicalFires = list(`2001` = data.frame(size = c(100, 200, 300), cells = 1:3, ids = 1:3),
-                             `2002` = data.frame(size = 900, cells = 4, ids = 1),
-                             `2003` = data.frame(size = c(5, 6), cells = 5:6, ids = 1:2)),
-      fireBufferedListDT = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:6, ids = 1L)), yrs),
-      tests = "snll_fs", Nreps = 1L, doAssertions = FALSE, verbose = 0, thresh = thresh, pruneAbove = pruneAbove,
-      returnTerms = TRUE)
-  }
-  ok <- mk(Inf)
-  expect_equal(ok[["firstBlockPerFire"]], 100)
-  expect_equal(ok[["objective"]], 407)
-  expect_equal(ok[["bailed"]], 0)
-  expect_equal(mk(150)[["bailed"]], 0)       # 100 per fire: under 150 (200 per year was not)
-  over <- mk(90)
-  expect_equal(over[["bailed"]], 1)
-  expect_equal(over[["objective"]], 1e6)
-  expect_equal(mk(Inf, pruneAbove = 399)[["objective"]], 1e6) # pruneAbove keeps the total's unit
-})
-
 test_that("a cut replicate is scored at the size it reached by the size-based terms", {
   skip_if_not_installed("SpaDES.tools")
   ## fire 1 burns 9 pixels inside its buffer; fire 2 burns 9 pixels including its open column 7: cut
   burn <- list(cell3(2:4, 2:4), cell3(2:4, 5:7), cell3(3, 10))
   out <- toyObjective(burn, doADTest = TRUE, doYearArea = TRUE, doMADTest = TRUE)
-  expect_equal(out$runaways, 2)                       # fire 2, in both replicates
   expect_equal(out$allFireSizes, rep(9, 4))           # fire 3 burns 1 pixel and is left out; the cut ones count 9
   expect_equal(out$annualAreaByRep, c(18, 18))
   expect_equal(out$fireSizes, c(9, 9, 1))
-  ## the default per-fire likelihood still counts them as cut
-  expect_equal(toyObjective(burn, sizeLik = "kde")$runaways, 2)
 })
 
-test_that("the default objective has the Anderson-Darling, annual-area and area-weighted terms", {
-  expect_true("adTest" %in% eval(formals(runDEoptim)$tests))
+test_that("the Anderson-Darling, annual-area and area-weighted terms add to the objective", {
   local_mocked_bindings(
-    objFunInner = function(yr, ...) list(SNLL_FS = 5, runaways = 0L, nSims = 2L, gated = FALSE,
-                                         allFireSizes = c(20, 30, 40, 55), annualAreaByRep = c(145, 150)),
+    objFunInner = function(yr, ...) list(allFireSizes = c(20, 30, 40, 55), annualAreaByRep = c(145, 150)),
     .package = "fireSenseUtils")
   land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
   fit <- function(...) fireSenseUtils::.objfunSpreadFit(
@@ -232,23 +112,18 @@ test_that("the default objective has the Anderson-Darling, annual-area and area-
     nonAnnualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
     historicalFires = list(`2004` = data.frame(size = c(25, 60), cells = 1:2, ids = 1:2)),
     fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400)),
-    tests = c("snll_fs", "adTest"), doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
+    tests = "adTest", doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
   base <- fit()
   expect_true(is.finite(base[["adTest"]]) && base[["adTest"]] > 0)
-  expect_equal(base[["objective"]], base[["SNLL_FS"]] + base[["adTest"]])
+  expect_equal(base[["objective"]], base[["adTest"]])
   expect_true(is.na(base[["yearArea"]]) && is.na(base[["areaDist"]]))      # off by default (weight 0)
   all <- fit(yearAreaWeight = "auto", areaDistWeight = "auto")
   expect_true(is.finite(all[["yearArea"]]) && is.finite(all[["areaDist"]]))
-  expect_equal(all[["objective"]], all[["SNLL_FS"]] + all[["adTest"]] + all[["yearArea"]] + all[["areaDist"]])
-  ## "kernel" has no "auto" constants of its own: those terms use the "kde" ones
-  k <- fit(yearAreaWeight = "auto", areaDistWeight = "auto", sizeLik = "kernel")
-  expect_equal(k[["adTest"]], all[["adTest"]])
-  expect_equal(k[["areaDist"]], all[["areaDist"]])
+  expect_equal(all[["objective"]], all[["adTest"]] + all[["yearArea"]] + all[["areaDist"]])
 })
 
 test_that("runawayBufferMultiple and runawaySize warn once and change nothing", {
-  local_mocked_bindings(objFunInner = function(...) list(SNLL_FS = 5, runaways = 0L, nSims = 0L, gated = FALSE),
-                        .package = "fireSenseUtils")
+  local_mocked_bindings(objFunInner = function(...) list(allFireSizes = c(2, 10, 300)), .package = "fireSenseUtils")
   rm(list = ls(fireSenseUtils:::.deprecatedArgsWarned), envir = fireSenseUtils:::.deprecatedArgsWarned)
   land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
   call1 <- function(...) fireSenseUtils::.objfunSpreadFit(
@@ -257,7 +132,7 @@ test_that("runawayBufferMultiple and runawaySize warn once and change nothing", 
     nonAnnualDTx1000 = list(`year2004` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
     historicalFires = list(year2004 = data.frame(size = 40L, cells = 1L, ids = 1L)),
     fireBufferedListDT = list(year2004 = data.table::data.table(ids = 1L, pixelID = 1:400)),
-    doAssertions = FALSE, verbose = 0, ...)
+    tests = "adTest", doAssertions = FALSE, verbose = 0, ...)
   plain <- call1()
   expect_warning(withMult <- call1(runawayBufferMultiple = 2), "deprecated and ignored")
   expect_equal(withMult, plain)
@@ -320,17 +195,14 @@ test_that("the PITs do not change when the buffers grow and no replicate was cut
   ## buffers that extend to column 8. Same simulations, same u.
   burn <- list(cell3(2:4, 2:4), cell3(1:5, 5:7), cell3(3, 10))
   small <- toyObjective(burn, doPitADTest = TRUE)
-  expect_equal(small$runaways, 2)
   grown <- rbind(toy3, data.table::data.table(ids = 2L, pixelID = cell3(1:5, 8)))
   withBig <- toyObjective(burn, doPitADTest = TRUE, buffers = grown)
-  expect_lt(withBig$runaways, small$runaways)
   expect_equal(withBig$pit, small$pit)
 })
 
 test_that("tests = \"pitAD\" adds a finite, weighted term, beside or instead of the pooled adTest", {
   local_mocked_bindings(
-    objFunInner = function(yr, ...) list(SNLL_FS = 5, runaways = 0L, nSims = 2L, gated = FALSE,
-                                         allFireSizes = c(20, 30, 40, 55), pit = c(0.2, 0.9)),
+    objFunInner = function(yr, ...) list(allFireSizes = c(20, 30, 40, 55), pit = c(0.2, 0.9)),
     .package = "fireSenseUtils")
   land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
   fit <- function(tests, ...) fireSenseUtils::.objfunSpreadFit(
@@ -340,27 +212,27 @@ test_that("tests = \"pitAD\" adds a finite, weighted term, beside or instead of 
     historicalFires = list(`2004` = data.frame(size = c(25, 60), cells = 1:2, ids = 1:2)),
     fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400)),
     tests = tests, Nreps = 10L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
-  p <- fit(c("snll_fs", "pitAD"))
+  p <- fit("pitAD")
   expect_true(is.finite(p[["pitAD"]]) && p[["pitAD"]] > 0)
   expect_true(is.na(p[["adTest"]]))
-  expect_equal(p[["objective"]], p[["SNLL_FS"]] + p[["pitAD"]])
+  expect_equal(p[["objective"]], p[["pitAD"]])
   expect_equal(p[["pitAD"]], fireSenseUtils:::adUniform(c(0.2, 0.9), 10L) * fireSenseUtils::adWeightAuto(2, "kde", FALSE))
-  expect_equal(fit(c("snll_fs", "pitAD"), adWeight = 7)[["pitAD"]], fireSenseUtils:::adUniform(c(0.2, 0.9), 10L) * 7)
-  both <- fit(c("snll_fs", "adTest", "pitAD"))
-  expect_equal(both[["objective"]], both[["SNLL_FS"]] + both[["adTest"]] + both[["pitAD"]])
-  expect_true(is.na(fit("snll_fs")[["pitAD"]]))
+  expect_equal(fit("pitAD", adWeight = 7)[["pitAD"]], fireSenseUtils:::adUniform(c(0.2, 0.9), 10L) * 7)
+  both <- fit(c("adTest", "pitAD"))
+  expect_equal(both[["objective"]], both[["adTest"]] + both[["pitAD"]])
+  expect_true(is.na(fit("adTest")[["pitAD"]]))
 })
 
 test_that("tests = \"crps\": objFunInner() returns the per-fire CRPS and every simulated fire", {
   skip_if_not_installed("SpaDES.tools")
   ## fires burn 9, 6 and 1 pixels in both replicates; observed 10, 10 and 5
   burn <- list(cell3(2:4, 2:4), cell3(2:4, 5:6), cell3(3, 10))
-  out <- toyObjective(burn, doCrps = TRUE, doSNLL_FSTest = FALSE)
+  out <- toyObjective(burn)
   expect_equal(out$crpsFire, log(10 / 9) + log(10 / 6) + log(5))
   expect_equal(sort(out$crpsSizes$N), sort(rep(c(9, 6, 1), 2)))
   expect_equal(sort(unique(out$crpsSizes$rep)), 1:2)
   ## fire 2 burns its open column 7 (cut) and stops at 4 pixels of a 10-pixel observed fire: scored as 10
-  cutShort <- toyObjective(list(cell3(2:4, 2:4), cell3(3, 5:7), cell3(3, 10)), doCrps = TRUE, doSNLL_FSTest = FALSE)
+  cutShort <- toyObjective(list(cell3(2:4, 2:4), cell3(3, 5:7), cell3(3, 10)))
   expect_equal(cutShort$crpsFire, log(10 / 9) + 0 + log(5))
 })
 
@@ -368,13 +240,10 @@ test_that("gateRefusal = \"simulate\" scores a year the gates would refuse", {
   skip_if_not_installed("SpaDES.tools")
   burn <- list(cell3(2:4, 2:4), cell3(2:4, 5:6), cell3(3, 10))
   ## the first quartile of the spread probabilities (0.06-0.08) is above 0.01: "too burny", refused
-  refused <- toyObjective(burn, lanscape1stQuantileThresh = 0.01, doCrps = TRUE)
-  expect_true(refused$gated)
+  refused <- toyObjective(burn, lanscape1stQuantileThresh = 0.01)
   expect_true(all(refused$crpsSizes$N == 1L))
   expect_equal(refused$crpsFire, sum(log(c(10, 10, 5))))                 # every fire left at one pixel
-  expect_equal(refused$SNLL_FS, 3 * fireSenseUtils:::kernelLogScore(1, 1, cut = TRUE))
-  simulated <- toyObjective(burn, lanscape1stQuantileThresh = 0.01, gateRefusal = "simulate", doCrps = TRUE)
-  expect_false(simulated$gated)
+  simulated <- toyObjective(burn, lanscape1stQuantileThresh = 0.01, gateRefusal = "simulate")
   expect_equal(simulated$crpsFire, log(10 / 9) + log(10 / 6) + log(5))
-  expect_lt(simulated$SNLL_FS, refused$SNLL_FS)
+  expect_lt(simulated$crpsFire, refused$crpsFire)
 })
