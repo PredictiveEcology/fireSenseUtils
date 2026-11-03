@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `runJob(ledger = , scenario = )` records each uploaded run in a `reproducible::CacheGeoLedger()`, with the unbuffered ELF (`studyAreaELF`) as its polygon, so the `simListArchive` module can find it by study area. The default `ledger = NULL` records nothing.
+
 * `plotELFs()` labels the ELFs given in `which` "selected" in its legend, not "ELFs" followed by their codes. The legend lists only what is drawn on the map: a category with no ELF in it, or filled with `NA` (e.g. `arcticFill = NA`), has no entry.
 
 * `latestSpreadFits()` and `latestIgnitionFits()` with `suffix = ""` (the default, so the modules' `fitFileSuffix = ""` and `"latest"`) read every ledger file of the current model tag, whatever its suffix, newest first by the last 8-digit date (`yyyymmdd`) in the suffix; files without one are older, and ties go by modified time (new `ledgerFileOrder()`). They read only unsuffixed files, by modified time, so a new user got fits weeks old. A non-empty suffix still reads only its own files. New `spreadFitLedgerFolder(testing = TRUE)` / `ignitionFitLedgerFolder(testing = TRUE)`: the ledger folder's `"testing"` subfolder, for experiment fits, which `"latest"` over the main folder never reads (`drive_ls()` does not recurse).
