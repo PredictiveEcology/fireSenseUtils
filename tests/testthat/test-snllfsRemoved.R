@@ -28,7 +28,7 @@ test_that("a crps fit scores every year and reports no first-block terms", {
   local_mocked_bindings(
     objFunInner = function(yr, ...) {
       seen <<- c(seen, yr)
-      list(crpsFire = 1, crpsSizes = dt(year = yr, rep = 1L, N = 5L))
+      list(crpsFire = 1, crpsSizes = dt(year = yr, rep = 1L, N = 5L), allFireSizes = c(5, 7))
     },
     .package = "fireSenseUtils")
   out <- fireSenseUtils:::.objfunSpreadFit(
@@ -44,4 +44,37 @@ test_that("a crps fit scores every year and reports no first-block terms", {
   expect_setequal(seen, yrs)
   expect_false(any(c("SNLL_FS", "firstBlockPerFire", "bailed") %in% names(out)))
   expect_lt(out[["objective"]], 1e6)
+})
+
+test_that("simulateFireSizes() asks the objective for the simulations with the gates lifted, and for no early stop", {
+  seen <- NULL
+  fn <- function(par, ...) {
+    seen <<- list(...)
+    structure(data.table::data.table(yr = "2001", rep = 1L, sim = 5L, size = 4), spreadProb = list(n = 1))
+  }
+  out <- simulateFireSizes(matrix(c(0.1, 0.2), 1), fn = fn, fnArgs = list(Nreps = 3L))
+  expect_true(seen$returnSims)
+  expect_identical(seen$lanscape1stQuantileThresh, Inf)
+  expect_identical(seen$Nreps, 3L)
+  expect_false("thresh" %in% names(seen))
+  expect_identical(out$member, 1L)
+})
+
+test_that("a crps fit's log line reports the share of fires cut at an open buffer edge", {
+  dt <- function(...) data.table::data.table(...)
+  yrs <- c("2001", "2002")
+  local_mocked_bindings(
+    objFunInner = function(yr, ...)
+      list(crpsFire = 1, crpsSizes = dt(year = yr, rep = 1L, N = 5L), allFireSizes = c(5, 7), runaways = 1L, nSims = 4L),
+    .package = "fireSenseUtils")
+  log <- utils::capture.output(fireSenseUtils:::.objfunSpreadFit(
+    par = c(1, 1),
+    landscape = terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 10, ymin = 0, ymax = 10, vals = 1),
+    annualDTx1000 = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, cov1 = c(100L, 200L))), yrs),
+    nonAnnualDTx1000 = list(`2001_2002` = dt(pixelID = 1:2, cov1 = c(100L, 200L))),
+    historicalFires = list(`2001` = data.frame(size = c(100, 200), cells = 1:2),
+                           `2002` = data.frame(size = c(150, 250), cells = 3:4)),
+    fireBufferedListDT = stats::setNames(lapply(yrs, function(y) dt(pixelID = 1:2, buffer = c(1L, 0L), ids = 1L)), yrs),
+    formulaToFit = "~ 0 + cov1", tests = "crps", Nreps = 1L, doAssertions = FALSE, verbose = 2))
+  expect_match(paste(log, collapse = "\n"), "cut share: 0.25", fixed = TRUE)   # 2 of 8
 })
