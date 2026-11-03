@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `plotELFs()` labels the ELFs given in `which` "selected" in its legend, not "ELFs" followed by their codes. The legend lists only what is drawn on the map: a category with no ELF in it, or filled with `NA` (e.g. `arcticFill = NA`), has no entry.
+
 * `latestSpreadFits()` and `latestIgnitionFits()` with `suffix = ""` (the default, so the modules' `fitFileSuffix = ""` and `"latest"`) read every ledger file of the current model tag, whatever its suffix, newest first by the last 8-digit date (`yyyymmdd`) in the suffix; files without one are older, and ties go by modified time (new `ledgerFileOrder()`). They read only unsuffixed files, by modified time, so a new user got fits weeks old. A non-empty suffix still reads only its own files. New `spreadFitLedgerFolder(testing = TRUE)` / `ignitionFitLedgerFolder(testing = TRUE)`: the ledger folder's `"testing"` subfolder, for experiment fits, which `"latest"` over the main folder never reads (`drive_ls()` does not recurse).
 
 * Moved from `fireSense_dataPrepFit`, so `fireSense_burn` can give non-escaped ignitions their sizes in a run without it: `nfdbFirePoints()`, `pointsOfCauses()`, `dropRepeatedFirePoints()` and `nonEscapedFireSizes()`. New `nfdbFirePointsOfCauses()`: the study area's NFDB fires of some years and causes, one row per fire (what `fireSense_dataPrepFit` makes `ignitionFirePoints` with).
