@@ -126,6 +126,76 @@ test_that("plotHistoricFires filters and sums the one column named by sizeCol", 
   expect_equal(sum(obs$sumBurn), sum(polys$ADJ_HA[polys$ADJ_HA > 250]))
 })
 
+## every figure of plotHistoricFires(), with ggsave() captured
+historicFigs <- function(simFiles, dir) {
+  plots <- list()
+  local_mocked_bindings(ggsave = function(plot, filename, ...) plots[[basename(filename)]] <<- plot,
+                        .package = "ggplot2")
+  pts <- sf::st_as_sf(data.frame(x = 1:20, y = 1:20, YEAR = rep(2001:2010, 2)),
+                      coords = c("x", "y"), crs = 3978)
+  polys <- terra::vect(sf::st_buffer(pts, 1))
+  polys$SIZE_HA <- seq(100, 2000, by = 100)
+  suppressMessages(plotHistoricFires("CanESM5_ssp370", "SA", dir, pixelSize = 250, firePolys = polys,
+                                     ignitionPoints = pts, simFiles = simFiles))
+  plots
+}
+
+test_that("plotHistoricFires draws every replicate, and the median across replicates", {
+  withr::local_options(mc.cores = 1L)
+  dir <- withr::local_tempdir()
+  simFiles <- makeRepOutputs(dir, nReps = 3, years = 2001:2010)
+
+  plots <- historicFigs(simFiles, dir)
+  d <- plots[["simulated_burnArea_SA_CanESM5_ssp370.png"]]$data
+  proj <- d[d$stat == "projected", ]
+  expect_setequal(proj$rep, 1:3)
+
+  med <- d[d$stat == "projected median", ]
+  expect_equal(med$sumBurn[order(med$year)],
+               as.numeric(tapply(proj$sumBurn, proj$year, stats::median)))
+  expect_false(any(grepl("rep", plots[["simulated_burnArea_SA_CanESM5_ssp370.png"]]$labels$title)))
+  for (f in plots) expect_s3_class(f, "ggplot")
+})
+
+test_that("plotHistoricFires still works with a single replicate", {
+  withr::local_options(mc.cores = 1L)
+  dir <- withr::local_tempdir()
+  simFiles <- makeRepOutputs(dir, nReps = 1, years = 2001:2010)
+  d <- historicFigs(simFiles, dir)[["simulated_burnArea_SA_CanESM5_ssp370.png"]]$data
+  expect_equal(d$sumBurn[d$stat == "projected median"][order(d$year[d$stat == "projected median"])],
+               d$sumBurn[d$stat == "projected"][order(d$year[d$stat == "projected"])])
+})
+
+test_that("plotBurnSummary plots the median fire size, and titles the x axis Simulation year", {
+  skip_if_not_installed("cowplot")
+  withr::local_options(mc.cores = 1L)
+  dir <- withr::local_tempdir()
+  simFiles <- makeRepOutputs(dir)
+  panels <- NULL
+  local_mocked_bindings(
+    plot_grid = function(...) {
+      args <- list(...)
+      if (is.null(panels) && length(args) >= 3L) panels <<- args[1:3]
+      ggplot2::ggplot()
+    }, .package = "cowplot")
+  local_mocked_bindings(ggsave = function(...) NULL, .package = "ggplot2")
+  suppressMessages(plotBurnSummary("CanESM5_ssp370", "SA", dir, Nreps = 3, years = c(2011, 2020),
+                                   pixelSize = 250, simFiles = simFiles))
+
+  ## the median per rep and year, of the fires larger than a pixel (250 m pixel = 6.25 ha)
+  fires <- do.call(rbind, lapply(1:3, function(r)
+    cbind(as.data.frame(data.table::fread(simFiles[grepl(paste0("rep", r, "/.*csv"), simFiles)])), rep = r)))
+  fires <- fires[fires$areaBurnedHa > 250^2 / 1e4, ]
+  expected <- tapply(fires$areaBurnedHa, list(fires$year, fires$rep), stats::median)
+  got <- panels[[3]]$data
+  expect_equal(sort(got$val), sort(as.numeric(expected[!is.na(expected)])))
+  expect_match(panels[[3]]$labels$y, "median fire size")
+  expect_identical(panels[[3]]$labels$x, "Simulation year")
+  expect_s3_class(panels[[1]]$theme$axis.title.x, "element_blank")
+  expect_s3_class(panels[[2]]$theme$axis.title.x, "element_blank")
+  expect_null(panels[[3]]$theme$axis.title.x)
+})
+
 test_that(".attributes reads SpatVector, sf, Spatial and lists of them", {
   df <- data.frame(YEAR = 2001:2002, x = 1:2, y = 1:2)
   pts <- sf::st_as_sf(df, coords = c("x", "y"), crs = 3978)
