@@ -4,7 +4,7 @@ test_that("spreadFitFilenameFor() names a fit by its fire years and the model ta
   expect_error(spreadFitFilenameFor(NA), "no years")
 })
 
-test_that("undated and suffixed experiment files are not ledger files; the dated tag is", {
+test_that("files without the dated model tag are not ledger files; suffixed ones with it are", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseParams_1985-2024_linearFuel_esc50.rds" = list(modified = "2026-10-12T10:00:00Z",
@@ -14,9 +14,10 @@ test_that("undated and suffixed experiment files are not ledger files; the dated
     "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-01T10:00:00Z",
                                                       ledger = ledgerRows("4.1", 1))))
   out <- latestSpreadFits("folder", d)
-  expect_identical(out$polygonID, "4.1")
-  expect_identical(out$objFunVal, 1)
-  expect_identical(drive$downloads, "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds")
+  ## both have no date in their suffix: the later modified is read first
+  expect_setequal(out$polygonID, c("4.1", "6.1"))
+  expect_identical(out$objFunVal[out$polygonID == "4.1"], 8)
+  expect_false("fireSenseParams_1985-2024_linearFuel_esc50.rds" %in% drive$downloads)
   oldPattern <- "^fireSenseParams_.*_linearFuel_esc50\\.rds$"
   expect_false(grepl(oldPattern, spreadFitFilenameFor(1985:2024)))
 })
@@ -86,21 +87,39 @@ test_that("a suffix goes after the model tag; \"\" is the production name", {
   expect_identical(spreadFitFilenameFor(1986:2024, ""), spreadFitFilenameFor(1986:2024))
 })
 
-test_that("\"latest\" ignores suffixed files, and a suffixed run reads only its own file", {
+test_that("\"latest\" reads every suffix, newest date in the suffix first; a suffix reads only its own files", {
   d <- withr::local_tempdir()
-  prod <- spreadFitFilenameFor(1986:2024)
-  test81 <- spreadFitFilenameFor(1986:2024, "_boundfix_rep81")
+  prod <- spreadFitFilenameFor(1986:2024)                                  # no suffix: no date, oldest
+  test81 <- spreadFitFilenameFor(1986:2024, "_boundfix_rep81")             # no date in the suffix either
+  gpsc <- spreadFitFilenameFor(1986:2024, "_gpscCause_20261029")
+  bufI <- spreadFitFilenameFor(1986:2024, "_bufIndep20261024")
   drive <- fakeDrive(setNames(list(
-    list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.1", 1)),
-    list(modified = "2026-10-15T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1"), c(81, 81)))),
-    c(prod, test81)))
+    list(modified = "2026-11-01T10:00:00Z", ledger = ledgerRows(c("4.1", "7.1"), c(1, 1))),
+    list(modified = "2026-10-15T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1", "7.1"), c(81, 81, 81))),
+    list(modified = "2026-10-29T10:00:00Z", ledger = ledgerRows("4.1", 29)),
+    ## modified after the gpsc file (a fit added later), but its suffix date is older
+    list(modified = "2026-11-02T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1"), c(24, 24)))),
+    c(prod, test81, gpsc, bufI)))
   out <- latestSpreadFits("folder", d)
-  expect_identical(out$polygonID, "4.1")
-  expect_identical(out$objFunVal, 1)
-  expect_identical(drive$downloads, prod)
+  val <- function(id) out$objFunVal[out$polygonID == id]
+  expect_identical(val("4.1"), 29)      # 20261029 beats 20261024, whatever the modified times
+  expect_identical(val("5.1"), 24)
+  expect_identical(val("7.1"), 1)       # undated files: the later modified first
+  expect_identical(drive$downloads, c(gpsc, bufI, prod, test81))   # no polygonIDs: every file
+  ## reading stops once every ELF asked for is found
+  drive$downloads <- character()
+  out <- latestSpreadFits("folder", d, polygonIDs = c("4.1", "5.1"))
+  expect_identical(drive$downloads, c(gpsc, bufI))
+  ## a suffix reads only its own files
   out <- latestSpreadFits("folder", d, suffix = "_boundfix_rep81")
-  expect_setequal(out$polygonID, c("4.1", "5.1"))
+  expect_setequal(out$polygonID, c("4.1", "5.1", "7.1"))
   expect_identical(unique(out$objFunVal), 81)
+})
+
+test_that("ledgerFileOrder(): the last 8-digit date of the suffix, undated last, then modified time", {
+  n <- paste0("fireSenseParams_1986-2024_linearFuel_esc50_20260925", c("", "_a_20261101", "_x20261024", "_rep3", "_D05_20261102"), ".rds")
+  m <- c("2026-11-03", "2026-11-01", "2026-11-04", "2026-11-05", "2026-11-02")
+  expect_identical(n[ledgerFileOrder(n, m, "_linearFuel_esc50_20260925")], n[c(5, 2, 3, 4, 1)])
 })
 
 ## Drive unreachable, as on a compute node with no internet: drive_ls() fails to resolve the host

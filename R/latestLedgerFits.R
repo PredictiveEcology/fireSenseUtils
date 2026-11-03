@@ -3,7 +3,8 @@
 #' The one implementation behind [latestSpreadFits()] and [latestIgnitionFits()].
 #'
 #' @param cloudFolderID,destinationPath,polygonIDs As in [latestSpreadFits()].
-#' @param filePrefix,fileTag,suffix The ledger files are those named `<filePrefix>*<fileTag><suffix>.rds`.
+#' @param filePrefix,fileTag,suffix The ledger files are those named `<filePrefix>*<fileTag><suffix>.rds`;
+#'   with `suffix = ""`, every `<filePrefix>*<fileTag>*.rds`, whatever its suffix ([ledgerFileOrder()]).
 #' @param caller Name of the calling function, for messages.
 #' @param attrName Name of the attribute that records the file each polygon came from.
 #' @return As [latestSpreadFits()].
@@ -28,14 +29,18 @@
     message(caller, "(): Google Drive cannot be reached; using the file list saved ", file.mtime(listing))
     readRDS(listing)
   })
-  ## the tag is followed directly by the suffix, so "" matches only unsuffixed files
-  tagAndSuffix <- gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", paste0(fileTag, suffix))
-  files <- files[grepl(paste0("^", filePrefix, ".*", tagAndSuffix, "\\.rds$"), files$name), ]
+  ## The tag is followed directly by the suffix. A suffix reads only its own files; "" (the default) reads
+  ## every file of the model tag, whatever its suffix, newest by the date in its suffix (ledgerFileOrder()).
+  ## drive_ls() is not recursive: files in a subfolder (the "testing" folder) are never listed.
+  esc <- function(x) gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", x)
+  files <- files[grepl(paste0("^", filePrefix, ".*", esc(fileTag), if (nzchar(suffix)) esc(suffix) else ".*",
+                              "\\.rds$"), files$name), ]
   if (!NROW(files)) {
-    message(caller, "(): no ", filePrefix, "*", fileTag, suffix, ".rds file in ", cloudFolderID)
+    message(caller, "(): no ", filePrefix, "*", fileTag, if (nzchar(suffix)) suffix else "*", ".rds file in ",
+            cloudFolderID)
     return(NULL)
   }
-  files <- files[order(files$modifiedTime, decreasing = TRUE), ]
+  files <- files[ledgerFileOrder(files$name, files$modifiedTime, fileTag), ]
 
   rows <- list()
   from <- character()                              # polygonID -> file
@@ -69,4 +74,25 @@
     message(caller, "(): ", paste(names(from)[from == f], collapse = ", "), " from ", f)
   attr(out, attrName) <- from
   out
+}
+
+#' The order to read ledger files in: newest first, by the date in the suffix
+#'
+#' A ledger file is named `<prefix>*<fileTag><suffix>.rds`. Its date is the last 8-digit `yyyymmdd` in
+#' the suffix (`"_gpscCause_20261029"` is 20261029, `"_bufIndep20261024"` 20261024): when its fits were
+#' made, which the file's modified time is not (a file is modified whenever a fit is added). A file
+#' without a date in its suffix (e.g. no suffix) is older than any dated one; files of the same date, or
+#' both undated, are ordered by modified time.
+#'
+#' @param names File names.
+#' @param modifiedTime Their modified times (ISO 8601 strings, as Google Drive gives them).
+#' @param fileTag The model tag ([spreadFitFileTag], [ignitionFitFileTag]).
+#' @return Integer: the order of `names`, newest first.
+#' @export
+ledgerFileOrder <- function(names, modifiedTime, fileTag) {
+  suffix <- sub("\\.rds$", "", vapply(strsplit(names, fileTag, fixed = TRUE), function(x)
+    if (length(x) > 1L) x[length(x)] else "", character(1)))
+  date <- vapply(regmatches(suffix, gregexpr("[0-9]{8}", suffix)), function(d)
+    if (length(d)) d[length(d)] else "00000000", character(1))
+  order(date, as.character(modifiedTime), decreasing = TRUE)
 }

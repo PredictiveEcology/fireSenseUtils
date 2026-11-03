@@ -13,8 +13,17 @@ test_that("resolveDoFit: the deprecated aliases map, and refitExisting wins", {
   expect_identical(q(refitExisting = FALSE), NA)
   expect_identical(q(refitExisting = TRUE, stopIfNoPreRunFit = TRUE), TRUE)
   expect_identical(q(refitExisting = FALSE, stopIfNoPreRunFit = TRUE), FALSE)
-  expect_identical(q(doFit = FALSE, refitExisting = TRUE), FALSE)   # explicit doFit is kept
-  expect_identical(q(doFit = TRUE, stopIfNoPreRunFit = TRUE), TRUE)
+  expect_identical(q(doFit = TRUE, stopIfNoPreRunFit = TRUE), TRUE)   # doFit TRUE is kept
+  expect_identical(q(doFit = NA, refitExisting = TRUE), TRUE)
+  expect_identical(q(doFit = NA, stopIfNoPreRunFit = TRUE), FALSE)
+})
+
+test_that("resolveDoFit: doFit FALSE, the modules' default, yields to an alias", {
+  q <- function(...) suppressMessages(resolveDoFit(...))
+  expect_identical(q(doFit = FALSE, refitExisting = TRUE), TRUE)
+  expect_identical(q(doFit = FALSE, stopIfNoPreRunFit = FALSE), NA)   # the old "allow a fit"
+  expect_identical(q(doFit = FALSE, stopIfNoPreRunFit = TRUE), FALSE)
+  expect_identical(q(doFit = FALSE, refitExisting = FALSE), NA)
 })
 
 test_that("resolveDoFit: one message naming doFit and the module when an alias is set, none otherwise", {
@@ -33,6 +42,11 @@ test_that("mustFit: doFit x ledger", {
   expect_true(mustFit(TRUE, FALSE)); expect_true(mustFit(TRUE, TRUE))
   expect_false(mustFit(FALSE, TRUE))
   expect_error(mustFit(FALSE, FALSE, polygon = "9.9"), "polygon 9\\.9.*doFit")
+  ## the message says FALSE is the default and how to fit
+  expect_error(mustFit(FALSE, FALSE, polygon = "9.9"), "the default.*doFit = NA.*doFit = TRUE")
+  ## ... and names the ledger it searched
+  expect_error(mustFit(FALSE, FALSE, polygon = "9.9", fitFileSuffix = "_x"), "polygon 9\\.9 in the ledger with fitFileSuffix \"_x\"")
+  expect_error(mustFit(FALSE, FALSE, polygon = NULL), "polygon <none>")
 })
 
 test_that("mustFit does not consult the ledger when doFit is TRUE", {

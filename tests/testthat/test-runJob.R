@@ -7,6 +7,7 @@ fakeSim <- function(phase = NULL, mode = "fit", heldOutFold = NA) {
 
 ## `skip`: what queueSkipForFits() returns; `fail`: whether outSaveTarUpload() errors. `calls` records every call.
 mockJob <- function(skip = NULL, fail = FALSE, env = parent.frame()) {
+  testthat::skip_if_not_installed("SpaDES.project")
   calls <- new.env()
   calls$spades <- list()
   calls$skip <- list()

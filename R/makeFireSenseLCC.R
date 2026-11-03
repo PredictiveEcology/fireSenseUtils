@@ -208,13 +208,14 @@ makeFireSenseLCC <- function(neededYear, to, maskTo = NULL, # to, maskTo = NULL,
     allFlam <- .wetlandToLCC(allFlam, wet, keepClasses = c(0, nonflammableLCC))
   }
   flammableProp <- terra::ifel(is.na(allFlam), NA, flammableProp)
-  
+  ## a class map: ifel() and the wetland recoding return doubles, which LandR::defineFlammable() refuses
+  if (!terra::is.int(allFlam)) allFlam <- terra::as.int(allFlam)
+
   if (!is.null(writeTo)) {
     outPath <- file.path(destinationPath, writeTo)
     propFlamPath <- .suffix(outPath, "_propFlam")
     message("Writing output raster to: ", outPath)
-    # Ensure data type supports 0 if original LCC didn't (though usually integer, so fine)
-    allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = overwrite)
+    allFlam <- terra::writeRaster(allFlam, filename = outPath, overwrite = overwrite, datatype = "INT2S")
     flammableProp <- writeRaster(flammableProp, filename = propFlamPath, overwrite = TRUE)
   }
   
