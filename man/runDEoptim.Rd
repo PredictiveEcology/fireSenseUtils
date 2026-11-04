@@ -18,7 +18,7 @@ runDEoptim(
   strategy,
   cores = NULL,
   paths,
-  libPath = .libPaths()[1],
+  libPath = .libPaths(),
   logPath = tempfile(sprintf("runDEoptim_\%s_", format(Sys.time(),
     "\%Y-\%m-\%d_\%H\%M\%S")), fileext = ".log"),
   doObjFunAssertions = getOption("fireSenseUtils.assertions", TRUE),
@@ -118,9 +118,10 @@ the length of the vector indicates how many cores should be used on that machine
 \item{paths}{list of paths containing the \code{cachePath} to store cache.
 Should likely be \code{cachePath(sim)}. See \link[SpaDES.core:paths]{SpaDES.core::paths}.}
 
-\item{libPath}{A character string indicating an R package library directory.
-This location must exist on each machine, though the function will make sure it
-does internally.}
+\item{libPath}{Character vector of R package library directories, in order (e.g. a dev
+library, then a stable one); all are passed to \code{\link[clusters:clusterSetup]{clusters::clusterSetup()}}, which ships
+them to the workers, leaving out R's own. They must exist on each machine, though the
+function will make sure they do internally. Not part of the \code{Cache()} key.}
 
 \item{logPath}{A character string indicating what file to write logs to. This
 \code{dirname(logPath)} must exist on each machine, though the function will make sure it
