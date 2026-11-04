@@ -129,3 +129,15 @@ test_that("the fit's clusters assume spreadFitWorkerMemoryGB per worker unless t
   callRunDEoptim(seen)
   expect_identical(seen$memAtSetup, 6)
 })
+
+test_that("runDEoptim hands every library to clusters, in order (a dev library, then a stable one)", {
+  seen <- new.env()
+  mockCluster(seen)
+  libs <- c(withr::local_tempdir(), withr::local_tempdir())
+  callRunDEoptim(seen, libPath = libs)
+  expect_identical(seen$setupArgs$libPath, libs)
+})
+
+test_that("runDEoptim's default library is all of .libPaths(), not the first", {
+  expect_identical(formals(runDEoptim)$libPath, quote(.libPaths()))
+})

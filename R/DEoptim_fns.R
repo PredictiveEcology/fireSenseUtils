@@ -66,9 +66,10 @@ deoptimPopulationSize <- function(nParams) {
 #'   machine names (including possibly "localhost"), where
 #'   the length of the vector indicates how many cores should be used on that machine.
 #'
-#' @param libPath A character string indicating an R package library directory.
-#'   This location must exist on each machine, though the function will make sure it
-#'   does internally.
+#' @param libPath Character vector of R package library directories, in order (e.g. a dev
+#'   library, then a stable one); all are passed to [clusters::clusterSetup()], which ships
+#'   them to the workers, leaving out R's own. They must exist on each machine, though the
+#'   function will make sure they do internally. Not part of the `Cache()` key.
 #'
 #' @param logPath A character string indicating what file to write logs to. This
 #'   `dirname(logPath)` must exist on each machine, though the function will make sure it
@@ -213,7 +214,7 @@ runDEoptim <- function(landscape,
                        strategy,
                        cores = NULL,
                        paths,
-                       libPath = .libPaths()[1],
+                       libPath = .libPaths(),
                        logPath = tempfile(sprintf(
                          "runDEoptim_%s_",
                          format(Sys.time(), "%Y-%m-%d_%H%M%S")
@@ -310,7 +311,7 @@ runDEoptim <- function(landscape,
     cores = cores, # logPath = file.path(dataPath(sim)),
     ## deoptimPopulationSize() workers; clusterSetup() sets NP to the workers it gets
     nCoresNeeded = nCoresNeeded,
-    libPath = libPath[1], NP = NP, runName = runName,
+    libPath = libPath, NP = NP, runName = runName,
     logPath = logPath,
     objsNeeded = objsNeeded,
     pkgsNeeded = neededPkgs, envir = environment(),

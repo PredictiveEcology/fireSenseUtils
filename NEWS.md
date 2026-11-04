@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* `runDEoptim()` passes all of `libPath` to `clusters::clusterSetup()` (it cut it to `libPath[1]`, `R/DEoptim_fns.R`), so workers, and remote hosts, get a stable library behind a dev library (clusters PR 69). The default is `.libPaths()`. `libPath` was and is not in the `Cache()` key.
+
 * New optional `"crps"` term `crpsTopShare()`, weight `crpsWeights$topShare` (default 0: left out). It scores the logit of the share of the area burned by the 10 largest fires (pooled over fit years) against the observed share, so it is scale-free and separate from `totalArea`. `crpsWeightsDefault()` gains `topShare = 0`, and `returnTerms = TRUE` gains `crpsTopShare` (`NA` without `"crps"`).
 
 * The `makeELFs()` real-ecostratification test checks the core size of each ELF (within one cell) instead of a digest of the maps, which changed with the installed terra (1.9-46 vs 1.9-50 differ by one cell in every map's size). terra (>= 1.9-50) is now required, so every machine makes the same ELF maps.
