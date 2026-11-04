@@ -8,10 +8,11 @@
 #'
 #' @return A named list: `fire` (per-fire CRPS on log size, [crpsFireSizes()]), `adTest` ([adStatistic()]),
 #'   `areaDist` ([areaWeightedCvM()]), `totalArea` ([crpsTotalArea()]), `top10` ([crpsTopFires()]) and
-#'   `annualArea` ([crpsAnnualArea()]; 0, so the term is left out unless a weight is given).
+#'   `annualArea` ([crpsAnnualArea()]) and `topShare` ([crpsTopShare()]); the last two are 0, so their terms
+#'   are left out unless a weight is given.
 #' @export
 crpsWeightsDefault <- function() {
-  list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0)
+  list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0, topShare = 0)
 }
 
 #' Ensemble CRPS of a sample against one observation
@@ -105,4 +106,25 @@ crpsTopFires <- function(repSizes, obsSizes, Nreps, k = 10L) {
     top[r, seq_along(s)] <- s
   }
   sum(vapply(seq_len(k), function(i) crpsEnsemble(log(top[, i]), log(obsTop[i])), numeric(1)))
+}
+
+#' CRPS of the share of the area burned by the largest fires
+#'
+#' For each replicate, the share of its total simulated area (all fit years) burned by its `k` largest
+#' fires (pooled over the fit years), against the same share of the observed fitted fires. The CRPS is on
+#' the logit of the share, so it is scale-free: multiplying every fire size by a constant leaves it
+#' unchanged. It scores the weight of the tail, separately from how much burns ([crpsTotalArea()]).
+#'
+#' @inheritParams crpsTotalArea
+#' @param k Number of fires, default 10.
+#' @return A single non-negative number: [crpsEnsemble()] of the logit of the shares, each clamped to
+#'   `[1e-6, 1 - 1e-6]` so the logit is finite. A replicate with no fire has share 1 (all of its, zero,
+#'   area is in the largest fires), and so does an observation with fewer than `k` fires.
+#' @keywords internal
+crpsTopShare <- function(repSizes, obsSizes, Nreps, k = 10L) {
+  share <- function(x) if (sum(x) > 0) sum(utils::head(sort(x, decreasing = TRUE), k)) / sum(x) else 1
+  s <- rep(1, Nreps)
+  for (r in unique(repSizes$rep)) s[r] <- share(repSizes$N[repSizes$rep == r])
+  lg <- function(p) stats::qlogis(pmin(pmax(p, 1e-6), 1 - 1e-6))
+  crpsEnsemble(lg(s), lg(share(obsSizes)))
 }

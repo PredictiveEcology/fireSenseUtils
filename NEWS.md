@@ -1,5 +1,7 @@
 # fireSenseUtils (development version)
 
+* New optional `"crps"` term `crpsTopShare()`, weight `crpsWeights$topShare` (default 0: left out). It scores the logit of the share of the area burned by the 10 largest fires (pooled over fit years) against the observed share, so it is scale-free and separate from `totalArea`. `crpsWeightsDefault()` gains `topShare = 0`, and `returnTerms = TRUE` gains `crpsTopShare` (`NA` without `"crps"`).
+
 * The `makeELFs()` real-ecostratification test checks the core size of each ELF (within one cell) instead of a digest of the maps, which changed with the installed terra (1.9-46 vs 1.9-50 differ by one cell in every map's size). terra (>= 1.9-50) is now required, so every machine makes the same ELF maps.
 
 * `plotHistoricFires()` sums the observed annual area burned over all fires, as the simulated series does, not only over fires larger than `pixelSize`; escapes count fires larger than one pixel (`pixelSize` is in metres, so `pixelSize^2 / 1e4` ha, not `pixelSize` ha) on both sides.

@@ -66,8 +66,26 @@ test_that("crpsTopFires() sums the per-rank CRPS of the sorted largest fires, an
 })
 
 test_that("the default weights are the 2026-10-28 profile's, and crpsWeights overrides by name", {
-  expect_identical(crpsWeightsDefault(), list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0))
+  expect_identical(crpsWeightsDefault(), list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0, topShare = 0))
   expect_identical(crpsWeightsDefault()$annualArea, 0)
+})
+
+test_that("crpsTopShare() is scale-free, scores a heavier observed tail, and is finite for a replicate with no fire", {
+  set.seed(1)
+  rs <- data.table::data.table(rep = rep(1:4, each = 30), N = ceiling(exp(rnorm(120, 3, 1))))
+  obs <- ceiling(exp(rnorm(30, 3, 1)))
+  expect_equal(crpsTopShare(rs, obs, 4L), crpsTopShare(data.table::copy(rs)[, N := N * 7], obs * 7, 4L))
+  ## by hand: share of the top 2 of c(60, 30, 10) is 0.9; rep 2 has no fire, so share 1
+  r1 <- data.table::data.table(rep = 1L, N = c(60, 30, 10))
+  lg <- function(p) qlogis(pmin(pmax(p, 1e-6), 1 - 1e-6))
+  expect_equal(crpsTopShare(r1, c(50, 40, 10), 2L, k = 2L), crpsEnsemble(lg(c(0.9, 1)), lg(0.9)))
+  expect_true(is.finite(crpsTopShare(r1, c(50, 40, 10), 2L, k = 2L)))
+  ## heavier tail: the observation's big fires x2; the simulation unchanged
+  big <- function(x, k = 10L) { x[order(-x)[seq_len(k)]] <- x[order(-x)[seq_len(k)]] * 2; x }
+  obsHeavy <- big(obs)
+  expect_false(isTRUE(all.equal(crpsTopShare(rs, obs, 4L), crpsTopShare(rs, obsHeavy, 4L))))
+  rsHeavy <- data.table::copy(rs)[, N := big(N, 3L), by = "rep"]
+  expect_lt(crpsTopShare(rsHeavy, obsHeavy, 4L), crpsTopShare(rs, obsHeavy, 4L))
 })
 
 ## .objfunSpreadFit() with the per-year work mocked: one year, 2 fitted fires (25, 60 pixels), Nreps = 2
@@ -114,6 +132,18 @@ test_that("crpsWeights$annualArea adds the annual-area term to the objective, an
   ann <- crpsAnnualArea(sizes, c(`2004` = 85), 2L)
   expect_gt(ann, 0)
   expect_equal(fit[["objective"]], base[["objective"]] + 3 * ann)
+})
+
+test_that("crpsWeights$topShare adds the top-share term, returned as crpsTopShare, and 0 leaves it as it was", {
+  sizes <- data.table::data.table(year = "2004", rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50))
+  base <- crpsFit(tests = "crps", sizes = sizes)
+  expect_true(is.na(base[["crpsTopShare"]]))
+  expect_equal(crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(topShare = 0))[["objective"]],
+               base[["objective"]])
+  fit <- crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(topShare = 2))
+  sh <- crpsTopShare(sizes, c(25, 60), 2L)
+  expect_equal(fit[["crpsTopShare"]], sh)
+  expect_equal(fit[["objective"]], base[["objective"]] + 2 * sh)
 })
 
 test_that("a refused year scores as every fire left at one pixel (gateRefusal = \"minLik\")", {

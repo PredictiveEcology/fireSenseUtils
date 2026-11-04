@@ -86,12 +86,12 @@ utils::globalVariables(c(
 #'   for consistency. This should be set to `FALSE` for operational situations, as the assertions
 #'   take some small amount of time.
 #'
-#' @param tests One or more of `"mad"`, `"adTest"`, `"pitAD"` or `"crps"`. Default: `"crps"`. (`"snll_fs"` and `"SNLL"` were removed; `"snll_fs"` stops with an error.) `"crps"` is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size ([crpsFireSizes()], summed over fitted fires), plus the pooled `adTest`, plus `areaDist` ([areaWeightedCvM()]), plus the CRPS of the log total area burned over all fit years ([crpsTotalArea()]), plus the CRPS of the 10 largest fires ([crpsTopFires()]), plus, if its weight is not 0, the mean over fit years of the CRPS of each year's log area burned ([crpsAnnualArea()]), each times its weight in `crpsWeights`. It takes over the `adTest` and `areaDist` terms (their weights come from `crpsWeights`, not `adWeight` or `areaDistWeight`), has its own annual-area term, off by default (`crpsWeights$annualArea`; `yearAreaWeight` is not used with it). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. `"pitAD"` is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates ([pitMidRank()]), scored against Uniform(0, 1) ([adUniform()]), weighted like `"adTest"` (`adWeight`).
+#' @param tests One or more of `"mad"`, `"adTest"`, `"pitAD"` or `"crps"`. Default: `"crps"`. (`"snll_fs"` and `"SNLL"` were removed; `"snll_fs"` stops with an error.) `"crps"` is a different objective made of proper scores, each smooth in the parameters: the per-fire CRPS on log size ([crpsFireSizes()], summed over fitted fires), plus the pooled `adTest`, plus `areaDist` ([areaWeightedCvM()]), plus the CRPS of the log total area burned over all fit years ([crpsTotalArea()]), plus the CRPS of the 10 largest fires ([crpsTopFires()]), plus, if its weight is not 0, the mean over fit years of the CRPS of each year's log area burned ([crpsAnnualArea()]), plus, if its weight is not 0, the CRPS of the logit of the share of the area burned by the 10 largest fires ([crpsTopShare()]), each times its weight in `crpsWeights`. It takes over the `adTest` and `areaDist` terms (their weights come from `crpsWeights`, not `adWeight` or `areaDistWeight`), has its own annual-area term, off by default (`crpsWeights$annualArea`; `yearAreaWeight` is not used with it). A cut replicate (burned an open buffer edge pixel) is scored in the per-fire term as at least the observed size, and in the other terms at the size it burned. Combined with the other tests it adds to them. `"pitAD"` is a rank-based Anderson-Darling term that does not depend on the fit buffers: each fitted fire's observed size ranked among its own replicates ([pitMidRank()]), scored against Uniform(0, 1) ([adUniform()]), weighted like `"adTest"` (`adWeight`).
 #'
 #' @param Nreps Integer. The number of replicates, per ignition, to run.
 #'
 #' @param crpsWeights Named list of the multipliers of the `"crps"` test's terms, `fire`, `adTest`, `areaDist`,
-#'   `totalArea`, `top10` and `annualArea` (0: left out); names left out take the values of [crpsWeightsDefault()] (set by the 2026-10-28
+#'   `totalArea`, `top10`, `annualArea` and `topShare` (the last two 0: left out); names left out take the values of [crpsWeightsDefault()] (set by the 2026-10-28
 #'   profile on ELFs 6.6.2, 14.3 and 11.3, "W3": 1, 0.34, 2.6, 164 and 16.5). `NULL` is all defaults. Not used
 #'   without `"crps"` in `tests`.
 #'
@@ -481,11 +481,17 @@ utils::globalVariables(c(
       crpsAnn <- crpsAnnualArea(crpsSizes, obsYear, Nreps)
       objFunRes <- objFunRes + crpsWeights$annualArea * crpsAnn
     }
+    crpsShare <- NA_real_
+    if (!identical(as.numeric(crpsWeights$topShare), 0)) {
+      crpsShare <- crpsTopShare(crpsSizes, obsSizes, Nreps)
+      objFunRes <- objFunRes + crpsWeights$topShare * crpsShare
+    }
     if (verbose > 1) {
       cuts <- do.call(rbind, cutList)
       cutShare <- sum(cuts[, "cut"]) / max(1, sum(cuts[, "sims"]))
       print(paste0("  ", Sys.getpid(), " crpsFire:", round(crpsFire, 2), "; crpsTotalArea:", round(crpsTotal, 4),
                    "; crpsTop10:", round(crpsTop, 3), "; crpsAnnualArea:", round(crpsAnn, 4),
+                   "; crpsTopShare:", round(crpsShare, 4),
                    "; cut share: ", round(cutShare, 3), "; "))
     }
   }
@@ -555,7 +561,8 @@ utils::globalVariables(c(
     return(c(objective = objFunRes, adTest = adPart, pitAD = pitPart, yearArea = yearAreaTerm,
              areaDist = areaDistTerm, crpsFire = if (isTRUE(doCrps)) crpsFire else NA_real_,
              crpsTotalArea = if (isTRUE(doCrps)) crpsTotal else NA_real_,
-             crpsTop10 = if (isTRUE(doCrps)) crpsTop else NA_real_, nFires = nFitFires))
+             crpsTop10 = if (isTRUE(doCrps)) crpsTop else NA_real_,
+             crpsTopShare = if (isTRUE(doCrps)) crpsShare else NA_real_, nFires = nFitFires))
   return(objFunRes)
 }
 

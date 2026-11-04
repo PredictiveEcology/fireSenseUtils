@@ -9,7 +9,8 @@ crpsWeightsDefault()
 \value{
 A named list: \code{fire} (per-fire CRPS on log size, \code{\link[=crpsFireSizes]{crpsFireSizes()}}), \code{adTest} (\code{\link[=adStatistic]{adStatistic()}}),
 \code{areaDist} (\code{\link[=areaWeightedCvM]{areaWeightedCvM()}}), \code{totalArea} (\code{\link[=crpsTotalArea]{crpsTotalArea()}}), \code{top10} (\code{\link[=crpsTopFires]{crpsTopFires()}}) and
-\code{annualArea} (\code{\link[=crpsAnnualArea]{crpsAnnualArea()}}; 0, so the term is left out unless a weight is given).
+\code{annualArea} (\code{\link[=crpsAnnualArea]{crpsAnnualArea()}}) and \code{topShare} (\code{\link[=crpsTopShare]{crpsTopShare()}}); the last two are 0, so their terms
+are left out unless a weight is given.
 }
 \description{
 The multipliers of the terms of \code{tests = "crps"} in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}. They were set by the
