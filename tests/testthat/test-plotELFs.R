@@ -491,3 +491,20 @@ test_that("plotELFs(plotFires) takes 'number', 'density', 'area' or 'proportion'
   expect_error(drawn(plan = mergePlan(), plotFires = "area", metrics = data.frame(ELF = "11.3", v = 1), metric = "v"),
                "not both")
 })
+
+test_that("plotELFs(which, metrics): the `which` fill does not cover the ELFs that have a metric value", {
+  ## fireSense_summary's NRV map passes `which` (to label the reported ELFs) with `metrics`; the map came out
+  ## solid `fill` with the metric's colour bar beside it
+  m <- data.frame(ELF = c("11.1_2", "11.3"), share = c(20, NA))
+  out <- drawn(plan = mergePlan(), which = c("11.1_2", "11.3"), fill = "green", metrics = m, metric = "share",
+               fewFires = character(0), arcticFill = NA)
+  greened <- unlist(lapply(Filter(function(p) identical(p$col, "green"), out$plots), function(p) p$x$ID))
+  expect_identical(greened, "11.3")                        # no value: it keeps the `which` fill
+  expect_identical(out$legend$legend, "selected")
+
+  m$share[2] <- 80                                         # every `which` ELF has a value
+  out <- drawn(plan = mergePlan(), which = c("11.1_2", "11.3"), fill = "green", metrics = m, metric = "share",
+               fewFires = character(0), arcticFill = NA)
+  expect_length(Filter(function(p) identical(p$col, "green"), out$plots), 0L)
+  expect_null(out$legend)                                  # no "selected" entry for a fill that is not drawn
+})

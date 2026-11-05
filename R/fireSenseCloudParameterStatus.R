@@ -78,7 +78,7 @@ fireSenseCloudParametersMap <-
   }
 
 #' @param which Character. ELF names (e.g., `c("13.1", "4.1")`) whose cores `plotELFs()`
-#'   fills with `fill`. Default `NULL` fills none.
+#'   fills with `fill`, except those that have a `metric` value. Default `NULL` fills none.
 #' @param fill The colour used to fill the `which` ELFs.
 #' @param plan The merges and skips to show: `sim$ELFmerges` of `fireSense_ELFs`, as returned by
 #'   [ELFmergePlan()] or [fewFireELFs()]. `plotELFs()` always draws the state after the merges
@@ -217,7 +217,9 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     missingELFs <- setdiff(which, ELFsPoly$ID)
     if (length(missingELFs))
       warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
-    fillELFs(which, fill, "selected")
+    ## the metric is drawn over the other fills, so `fill` only goes where `metric` has no value
+    valuedIDs <- if (is.null(metrics)) character(0) else metrics$ELF[!is.na(metrics[[metric]])]
+    fillELFs(setdiff(which, valuedIDs), fill, "selected")
   }
   if (!identical(labels, "none")) {
     keep <- ELFsPoly$buffer %in% 2

@@ -59,7 +59,7 @@ individual ecozones plus buffer.}
 If \code{FALSE}, then some (or most) will not be cached.}
 
 \item{which}{Character. ELF names (e.g., \code{c("13.1", "4.1")}) whose cores \code{plotELFs()}
-fills with \code{fill}. Default \code{NULL} fills none.}
+fills with \code{fill}, except those that have a \code{metric} value. Default \code{NULL} fills none.}
 
 \item{fill}{The colour used to fill the \code{which} ELFs.}
 
