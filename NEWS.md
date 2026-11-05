@@ -1,6 +1,7 @@
 # fireSenseUtils (development version)
 
 * `plotELFs(which = , metrics = )` no longer fills the `which` ELFs with `fill` over their metric colours: `fill` now goes only on `which` ELFs without a value. fireSense_summary's NRV map passes both, and came out solid green beside a correct colour bar.
+* `plotELFs(metrics = )` draws its colour bar in a strip added right of the map, not over the map's bottom-right corner, where its title ran over the 6.4 label and off the edge. A label moved off its ELF stays out of that strip.
 
 * `runDEoptim()` passes all of `libPath` to `clusters::clusterSetup()` (it cut it to `libPath[1]`, `R/DEoptim_fns.R`), so workers, and remote hosts, get a stable library behind a dev library (clusters PR 69). The default is `.libPaths()`. `libPath` was and is not in the `Cache()` key.
 

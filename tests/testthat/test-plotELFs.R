@@ -508,3 +508,35 @@ test_that("plotELFs(which, metrics): the `which` fill does not cover the ELFs th
   expect_length(Filter(function(p) identical(p$col, "green"), out$plots), 0L)
   expect_null(out$legend)                                  # no "selected" entry for a fill that is not drawn
 })
+
+test_that("plotELFs(metrics) puts the colour bar in a strip right of the ELFs, where no label goes", {
+  ## the NRV map's legend title ran over the 6.4 label and off the right edge of the map
+  sq <- function(x0) sprintf("POLYGON ((%1$s 0, %2$s 0, %2$s 1, %1$s 1, %1$s 0))", x0, x0 + 1)
+  poly <- terra::vect(c(sq(0), sq(2)))
+  poly$ID <- c("4.1", "13.1")
+  poly$buffer <- c(2, 2)
+  local_mocked_bindings(makeELFs = function(...) list(poly = poly), Cache = function(x, ...) x)
+  local_plotDevice()
+  plotArgs <- NULL; plg <- NULL; labelUsr <- NULL
+  local_mocked_bindings(
+    plot = function(x, ..., add = FALSE, plg = NULL) {
+      if (isTRUE(add)) { if (!is.null(plg)) plg <<- plg } else plotArgs <<- list(...)
+    },
+    text = function(...) NULL,
+    .package = "terra"
+  )
+  local_mocked_bindings(elfLabelXY = function(x, y, w, h, usr) { labelUsr <<- usr; list(x = x, y = y) })
+  m <- data.frame(ELF = c("4.1", "13.1"), v = c(10, 90))
+  for (lw in c("all", "highlighted")) {
+    plotELFs(which = c("4.1", "13.1"), labelWhich = lw, metrics = m, metric = "v", plan = noPlan)
+    mapRight <- if (lw == "all") 3 else 3.24                     # the map's right edge (with the label padding)
+    ext <- as.vector(plotArgs$ext)
+    expect_gt(plg$ext[1], mapRight)                              # the bar is right of every ELF ...
+    expect_lt(plg$ext[2], ext[["xmax"]])                         # ... inside the plotted extent
+    expect_equal(ext[["xmax"]] - plg$ext[2], plg$ext[1] - mapRight)  # centred in the strip, so its title fits
+    expect_lte(labelUsr[2], mapRight)                            # labels stay on the map side
+  }
+  plotArgs <- list()
+  plotELFs(which = "4.1", plan = noPlan)                         # no metric: no strip
+  expect_null(plotArgs$ext)
+})
