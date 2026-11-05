@@ -78,7 +78,7 @@ fireSenseCloudParametersMap <-
   }
 
 #' @param which Character. ELF names (e.g., `c("13.1", "4.1")`) whose cores `plotELFs()`
-#'   fills with `fill`. Default `NULL` fills none.
+#'   fills with `fill`, except those that have a `metric` value. Default `NULL` fills none.
 #' @param fill The colour used to fill the `which` ELFs.
 #' @param plan The merges and skips to show: `sim$ELFmerges` of `fireSense_ELFs`, as returned by
 #'   [ELFmergePlan()] or [fewFireELFs()]. `plotELFs()` always draws the state after the merges
@@ -167,10 +167,16 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
 
   ## a few labels on a map edge need room beside it to avoid the ELFs: widen the extent then
   args <- list(drawn)
+  mapExt <- terra::ext(drawn)
   if (!identical(labels, "none") && identical(labelWhich, "highlighted")) {
-    e <- terra::ext(drawn)
-    args$ext <- e + 0.08 * (e$xmax - e$xmin) # terra pads each side by this amount
+    mapExt <- mapExt + 0.08 * (mapExt$xmax - mapExt$xmin) # terra pads each side by this amount
+    args$ext <- mapExt
   }
+  ## the colour bar of `metrics` goes in a strip right of the map, so it covers no ELF and no label
+  mapW <- mapExt$xmax - mapExt$xmin
+  mapH <- mapExt$ymax - mapExt$ymin
+  if (!is.null(metrics))
+    args$ext <- terra::ext(mapExt$xmin, mapExt$xmax + 0.18 * mapW, mapExt$ymin, mapExt$ymax)
   if (!identical(axes, "m")) args <- c(args, list(axes = FALSE, box = FALSE))
   if (identical(axes, "longlat")) args$mar <- c(3, 3, 1, 1)
   do.call(terra::plot, args)
@@ -202,14 +208,12 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     if (NROW(valued)) {
       values <- metrics[[metric]][match(valued$ID, metrics$ELF)]
       valued[[metric]] <- values
-      ## the legend goes in the map's bottom-right corner (the Atlantic), not beside the valued ELFs only;
+      ## the bar is centred in the strip right of the map, low down, so its title fits above it;
       ## a number is a colour ramp even with few distinct values
-      u <- graphics::par("usr")
-      w <- u[2] - u[1]
-      h <- u[4] - u[3]
       terra::plot(valued, metric, add = TRUE, type = if (is.numeric(values)) "continuous", col = metricCol,
                   range = metricRange,
-                  plg = list(ext = c(u[2] - 0.13 * w, u[2] - 0.11 * w, u[3] + 0.05 * h, u[3] + 0.40 * h),
+                  plg = list(ext = c(mapExt$xmax + 0.08 * mapW, mapExt$xmax + 0.10 * mapW,
+                                     mapExt$ymin + 0.05 * mapH, mapExt$ymin + 0.40 * mapH),
                              title = if (is.null(metricTitle)) metric else metricTitle))
     }
   }
@@ -217,7 +221,9 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     missingELFs <- setdiff(which, ELFsPoly$ID)
     if (length(missingELFs))
       warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
-    fillELFs(which, fill, "selected")
+    ## the metric is drawn over the other fills, so `fill` only goes where `metric` has no value
+    valuedIDs <- if (is.null(metrics)) character(0) else metrics$ELF[!is.na(metrics[[metric]])]
+    fillELFs(setdiff(which, valuedIDs), fill, "selected")
   }
   if (!identical(labels, "none")) {
     keep <- ELFsPoly$buffer %in% 2
@@ -229,8 +235,11 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       cen <- terra::centroids(ELFsPoly[ keep, ], inside = TRUE)
       txt <- elfLabels(ELFsPoly$ID[keep], labels)
       xy <- terra::crds(cen)
+      ## a label moved off its ELF stays out of the colour bar's strip
+      usr <- graphics::par("usr")
+      if (!is.null(metrics)) usr[2] <- min(usr[2], mapExt$xmax)
       lab <- elfLabelXY(xy[, 1], xy[, 2], graphics::strwidth(txt, cex = cex),
-                        graphics::strheight(txt, cex = cex), usr = graphics::par("usr"))
+                        graphics::strheight(txt, cex = cex), usr = usr)
       moved <- lab$x != xy[, 1] | lab$y != xy[, 2]
       graphics::segments(xy[moved, 1], xy[moved, 2], lab$x[moved], lab$y[moved], col = "grey20", lwd = 1.5)
       ## halo: a white outline keeps the text readable over the polygon lines
