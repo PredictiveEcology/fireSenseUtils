@@ -77,3 +77,25 @@ test_that("fitted ignitions outside every buffer of their year are warned about"
   expect_identical(unname(n), c(1L, 0L))
   expect_no_warning(warnIgnitionsOutsideBuffers(list(y2 = fx$fires), list(y2 = fx$buf)))
 })
+
+test_that("under gateRefusal = 'simulate' the gates do not run, and the objective is the same", {
+  skip_if_not_installed("SpaDES.tools")
+  calls <- 0L
+  realGate <- spreadProbGateTest
+  local_mocked_bindings(spreadProbGateTest = function(...) { calls <<- calls + 1L; realGate(...) })
+  for (whole in c(FALSE, TRUE)) {
+    calls <- 0L
+    skipped <- wlObjective(whole = whole, yearSpreadSD = 0.5, seed = 7)
+    expect_identical(calls, 0L)
+    ## not for verbose or returnSims either
+    utils::capture.output(wlObjective(whole = whole, seed = 7, verbose = 2))
+    sims <- wlObjective(whole = whole, seed = 7, returnSims = TRUE)
+    expect_identical(calls, 0L)
+    expect_false(is.null(sims$pSummary))
+    ## "minLik" decides with them; gates that pass leave the objective as it is without them
+    ran <- wlObjective(whole = whole, yearSpreadSD = 0.5, seed = 7, gateRefusal = "minLik",
+                       lanscape1stQuantileThresh = 1, maxFireSpread = 1)
+    expect_identical(calls, 1L)
+    expect_identical(ran, skipped)
+  }
+})

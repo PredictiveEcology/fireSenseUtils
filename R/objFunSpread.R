@@ -740,14 +740,21 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   whole <- isTRUE(wholeLandscape)
   shortAnnDT <- covsOfYear(annDTx1000, nonAnnualDTx1000, doAssertions)
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
-  set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
-                                                         climateRef = climateRef, powerLawGamma = powerLawGamma,
-                                                         powerLawShape = powerLawShape))
+  ## The gates decide only under gateRefusal = "minLik"; under "simulate" they never run. The plots read their
+  ## values, so they run when plotting.
+  runGates <- !identical(gateRefusal, "simulate") || SpaDES.core::anyPlotting(plot.it)
+  ## what the gates and pSummary (returnSims) look at; on the whole landscape spreadCpp() computes p per cell
+  ## reached, so the column is only for them
+  needP <- runGates || isTRUE(returnSims)
+  if (!whole || needP)
+    set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
+                                                           climateRef = climateRef, powerLawGamma = powerLawGamma,
+                                                           powerLawShape = powerLawShape))
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
   ## years that carry the climate signal. Without climateRef it is spreadProb itself, as always.
-  pGate <- if (is.null(climateRef)) shortAnnDT$spreadProb else
+  pGate <- if (!needP) NULL else if (is.null(climateRef)) shortAnnDT$spreadProb else
     as.numeric(spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = climateRef,
                                   climateAtRef = TRUE))
   pSummary <- if (isTRUE(returnSims)) spreadProbSummary(pGate, ceiling = logisticPars[1])
@@ -841,16 +848,19 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
     # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
     # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
-    gate <- spreadProbGateTest(pGate, logisticPars[1], lowerSpreadProb, maxFireSpread,
-                               lanscape1stQuantileThresh)
-    nonEdgeValues <- gate$nonEdgeValues
-    summ <- gate$summ
-    medSPRight <- gate$medianOK
-    spreadOutEnough <- !gate$notSpread
-    lowSPLowEnough <- !gate$burny
+    medSPRight <- spreadOutEnough <- lowSPLowEnough <- TRUE # not run: "simulate" simulates every year
+    if (runGates) {
+      gate <- spreadProbGateTest(pGate, logisticPars[1], lowerSpreadProb, maxFireSpread,
+                                 lanscape1stQuantileThresh)
+      nonEdgeValues <- gate$nonEdgeValues
+      summ <- gate$summ
+      medSPRight <- gate$medianOK
+      spreadOutEnough <- !gate$notSpread
+      lowSPLowEnough <- !gate$burny
+    }
     loci <- annualFires$cells
 
-    if (verbose > 1) {
+    if (verbose > 1 && runGates) {
       if (isTRUE(!spreadOutEnough)) {
         print(paste0(
           "  ",
@@ -868,7 +878,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     
     if ((medSPRight && spreadOutEnough && lowSPLowEnough) || identical(gateRefusal, "simulate")) {
-      if (verbose > 1) {
+      if (verbose > 1 && runGates) {
         print(paste0(
           " ",
           Sys.getpid(), ": ", yr, ", spreadProbs: ",
