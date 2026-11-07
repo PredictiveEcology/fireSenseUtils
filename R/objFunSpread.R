@@ -2,7 +2,7 @@ yearSpreadSDTxt <- "yearSpreadSD"
 
 utils::globalVariables(c(
   "..colsToKeep", "..colsToUse", ".N", "buffer", "burned", "burnedClass", "cut",
-  "id", "ids", "indices", "initialLocus", "N", "numAvailPixels", "open", "pixelID", "prob",
+  "hit", "id", "ids", "indices", "initialLocus", "N", "numAvailPixels", "open", "pixelID", "prob",
   "simFireSize", "size", "spreadProb", "value"
 ))
 
@@ -185,6 +185,18 @@ utils::globalVariables(c(
 #'   capped at any size: spread is bounded only by the year's buffers. The open pixels are found once per fit
 #'   (`runDEoptim()` adds `edge` and `open` columns to `fireBufferedListDT`, [addBufferEdge()]), or here,
 #'   for a table without them.
+#' @param annualDTx1000Whole,nonAnnualDTx1000Whole `NULL` (default), or the covariates of the whole landscape,
+#'   in the format of `annualDTx1000` and `nonAnnualDTx1000`, which switch on the re-simulation of cut fires
+#'   ([resimulateCutFires()]): a replicate fire cut at an open buffer edge is run again from its ignition on the
+#'   whole landscape, with its replicate's year effect, until it burns an open edge pixel, so every term scores
+#'   its unbounded size. `annualDTx1000Whole` has every fire year of `annualDTx1000`, `nonAnnualDTx1000Whole`
+#'   the tables of `nonAnnualDTx1000` under the same names; give both or neither. Inside the buffers they
+#'   should equal the fit's tables. The spreadProb gates still look at the buffers' pixels. Not with
+#'   `penaliseRunaways = TRUE`, which stops cut fires at the buffer on purpose (an error). With `returnSims`, the
+#'   result gains `simBuffered` (the buffered size) and `cut` (still cut: `cutMaxTries` ran out; it keeps its
+#'   buffered size). Needs memory for the whole landscape's tables on each worker. `NULL` changes nothing.
+#' @param cutMaxTries The most times a cut fire is re-simulated to find a run that burns an open edge pixel
+#'   (default 50). Used only with the whole-landscape tables.
 #' @param runawayEdgeFrac,runawayEdgeMin Ignored. A replicate was a runaway when it burned at least
 #'   `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))` of the `n` edge pixels of its own buffer, open or
 #'   not; it is now cut at the first open pixel of any buffer of its year.
@@ -266,6 +278,9 @@ utils::globalVariables(c(
                              verbose = 2,
                              crpsWeights = NULL,
                              gateRefusal = c("minLik", "simulate"),
+                             annualDTx1000Whole = NULL,
+                             nonAnnualDTx1000Whole = NULL,
+                             cutMaxTries = 50L,
                              ...) { # fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
@@ -304,6 +319,15 @@ utils::globalVariables(c(
   if (missing(fireBufferedListDT)) {
     fireBufferedListDT <- get("fireBufferedListDT", envir = .GlobalEnv)
   }
+  ## the whole-landscape tables are optional: a worker has them only if runDEoptim() shipped them
+  if (missing(annualDTx1000Whole) && exists("annualDTx1000Whole", envir = .GlobalEnv, inherits = FALSE)) {
+    annualDTx1000Whole <- get("annualDTx1000Whole", envir = .GlobalEnv)
+  }
+  if (missing(nonAnnualDTx1000Whole) && exists("nonAnnualDTx1000Whole", envir = .GlobalEnv, inherits = FALSE)) {
+    nonAnnualDTx1000Whole <- get("nonAnnualDTx1000Whole", envir = .GlobalEnv)
+  }
+  resimulateCuts <- checkCutFireTables(annualDTx1000Whole, nonAnnualDTx1000Whole, penaliseRunaways,
+                                       annualDTx1000, nonAnnualDTx1000)
   ## the buffers' edge and open pixels: made once by runDEoptim(); here for a caller that did not
   fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
   # lapply(annualDTx1000, setDT)
@@ -374,7 +398,7 @@ utils::globalVariables(c(
           annualFires = historicalFiresAboveMin[yrs],
           annualFireBufferedDT = fireBufferedListDT[yrs] # interactive debugging
           # annualFireBufferedDT = fireBufferedListDT[yrs],            # normal
-        ), # interactive debugging
+        ) |> c(if (resimulateCuts) list(annDTx1000Whole = annualDTx1000Whole[yrs])), # interactive debugging
         # MoreArgs = list(                                         # normal
         par = par, parsModel = parsModel,
         verbose = verbose,
@@ -399,6 +423,7 @@ utils::globalVariables(c(
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         doYearArea = doYearArea, doCrps = doCrps, gateRefusal = gateRefusal,
         covMinMax = covMinMax, # interactive debugging
+        nonAnnualDTx1000Whole = nonAnnualDTx1000Whole, cutMaxTries = cutMaxTries,
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
         .f = objFunInner # interactive debugging
@@ -425,7 +450,9 @@ utils::globalVariables(c(
       if (isTRUE(doCrps)) {
         crpsFireList[[ii]] <- sum(unlist(results$crpsFire))
         crpsSizesList[[ii]] <- data.table::rbindlist(results$crpsSizes)
-        cutList[[ii]] <- c(cut = sum(unlist(results$runaways)), sims = sum(unlist(results$nSims)))
+        cutList[[ii]] <- c(cut = sum(unlist(results$runaways)), sims = sum(unlist(results$nSims)),
+                           if (resimulateCuts) c(resimulated = sum(unlist(results$resimulated)),
+                                                 capHit = sum(unlist(results$capHit))))
       }
       if (isTRUE(doYearArea)) {
         yearAreaList[yrs] <- results$annualAreaByRep # a year the objective refused to simulate stays absent
@@ -492,7 +519,9 @@ utils::globalVariables(c(
       print(paste0("  ", Sys.getpid(), " crpsFire:", round(crpsFire, 2), "; crpsTotalArea:", round(crpsTotal, 4),
                    "; crpsTop10:", round(crpsTop, 3), "; crpsAnnualArea:", round(crpsAnn, 4),
                    "; crpsTopShare:", round(crpsShare, 4),
-                   "; cut share: ", round(cutShare, 3), "; "))
+                   "; cut share: ", round(cutShare, 3), "; ",
+                   if (resimulateCuts) paste0("re-simulated: ", sum(cuts[, "resimulated"]), " of ", sum(cuts[, "cut"]),
+                                              "; cap hit: ", sum(cuts[, "capHit"]), "; ")))
     }
   }
   ## The Anderson-Darling test compares whole distributions, so it runs once, after
@@ -707,7 +736,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         stopCutFires = FALSE, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
-                        powerLawShape = spreadPowerLawShape, doCrps = FALSE, gateRefusal = "minLik") {
+                        powerLawShape = spreadPowerLawShape, doCrps = FALSE, gateRefusal = "minLik",
+                        annDTx1000Whole = NULL, nonAnnualDTx1000Whole = NULL, cutMaxTries = 50L) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -718,14 +748,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   logisticPars <- parsList[["logisticPars"]]
   covPars <- parsList[["covPars"]]
 
-  shortAnnDT <- spreadProbCovsOfYear(
-    yr, annDTx1000, nonAnnualDTx1000, indexNonAnnual, covMinMax, mutuallyExclusive, colsToUse,
-    doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
-  )
-  mat <- as.matrix(shortAnnDT[, ..colsToUse])
-  set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
-                                                         climateRef = climateRef, powerLawGamma = powerLawGamma,
-                                                         powerLawShape = powerLawShape))
+  yearProb <- function(annDTx1000, nonAnnualDTx1000, doAssertions)
+    yearSpreadProb(yr, annDTx1000, nonAnnualDTx1000, indexNonAnnual, covMinMax, mutuallyExclusive, colsToUse,
+                   doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre, link,
+                   climateRef, powerLawGamma, powerLawShape)
+  yp <- yearProb(annDTx1000, nonAnnualDTx1000, doAssertions)
+  shortAnnDT <- yp$dt
+  mat <- yp$mat
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
@@ -931,11 +960,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## spreadCpp() call per replicate.
       ## The year effect is added on the logit of p, except with the powerLaw link, where it is added to the
       ## linear predictor x and p follows from it (p cannot pass p_c, so no year percolates).
+      ## Each replicate's draw is kept (`eps`) for re-simulating its cut fires with the same year effect.
+      eps <- numeric(Nreps)
+      if (yearSpreadSD > 0 || !is.null(annDTx1000Whole))
+        yearLink <- yearEffectLink(link, mat, covPars, shortAnnDT$spreadProb, logisticPars, powerLawGamma,
+                                   powerLawShape, lowerSpreadProb)
       if (yearSpreadSD > 0) {
         pixCrop <- crop$toCrop(shortAnnDT$pixelID)
-        powerLaw <- identical(link, "powerLaw")
-        lp <- if (powerLaw) as.vector(mat %*% covPars) else stats::qlogis(shortAnnDT$spreadProb)
-        toP <- if (powerLaw) function(z) powerLawLink(z, logisticPars[1L], powerLawGamma, lowerSpreadProb, powerLawShape) else stats::plogis
         lociCrop <- crop$toCrop(loci)
       }
       spreadState <- lapply(seq_len(Nreps), function(i) {
@@ -945,27 +976,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         gc(full = FALSE)
         sp <- spreadProbCrop
         if (yearSpreadSD > 0) {
-          sp[pixCrop] <- toP(lp + stats::rnorm(1, 0, yearSpreadSD))
+          e <- stats::rnorm(1, 0, yearSpreadSD)
+          eps[i] <<- e
+          sp[pixCrop] <- yearLink$toP(yearLink$lp + e)
           sp[lociCrop] <- 1
         }
-        if (is.null(escapeMinPx)) {
-          SpaDES.tools::spreadCpp(
-            landscape = crop$r,
-            loci = crop$toCrop(loci),
-            spreadProb = sp,
-            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt
-          )
-        } else { ## an escaped fire burns its first escapeMinPx cells whatever spreadProb
-          SpaDES.tools::spreadCpp(
-            landscape = crop$r,
-            loci = crop$toCrop(loci),
-            spreadProb = sp,
-            minSize = escapeMinPx,
-            jumpTries = jumpTries,
-            jumpMeanDist = jumpMeanDist,
-            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt
-          )
-        }
+        spreadFire(crop$r, crop$toCrop(loci), sp, escapeMinPx, jumpTries, jumpMeanDist, stopArgs)
       })
       if (SpaDES.core::anyPlotting(plot.it)) {
         # par(
@@ -989,19 +1005,38 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## back to landscape cell indices
       set(spreadState, NULL, "initialLocus", crop$toFull(spreadState$initialLocus))
       set(spreadState, NULL, "indices", crop$toFull(spreadState$indices))
-      if (isTRUE(returnSims)) {
-        simSize <- spreadState[, list(sim = .N), by = c("rep", "initialLocus")]
-        f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
-        return(list(sims = data.table::data.table(yr = as.character(yr), simSize[f, on = "initialLocus"]),
-                    pSummary = pSummary,
-                    burned = if (isTRUE(returnBurned)) spreadState[, list(rep, pixelID = indices)]))
-      }
       ## One row per simulated fire. A fire that burned an open edge pixel of any of the year's buffers
       ## is cut: it would have kept burning, so its size is "at least this big". The per-fire term gives
       ## it no density at the observed size; the other size-based terms score the size it burned.
       set(spreadState, NULL, "open", spreadState$indices %in% openEdge$pixelID) # one lookup, not one per fire
       simSizes <- spreadState[, list(N = .N, cut = any(open)), by = c("rep", "initialLocus")]
-      ret <- append(ret, list(runaways = sum(simSizes$cut), nSims = NROW(simSizes)))
+      nCut <- sum(simSizes$cut)
+      ## With the whole landscape's covariates, a cut fire is run again on it (see resimulateCutFires()), so
+      ## everything below scores its unbounded size.
+      resim <- NULL
+      if (!is.null(annDTx1000Whole)) {
+        resim <- resimulateCutFires(
+          spreadState, simSizes, openEdge$pixelID, loci, eps,
+          wholeLp = function() {
+            w <- yearProb(annDTx1000Whole, nonAnnualDTx1000Whole, FALSE)
+            list(pixelID = w$dt$pixelID,
+                 lp = yearEffectLink(link, w$mat, covPars, w$dt$spreadProb, logisticPars, powerLawGamma,
+                                     powerLawShape, lowerSpreadProb)$lp)
+          },
+          toP = yearLink$toP, r = r, escapeMinPx = escapeMinPx, jumpTries = jumpTries,
+          jumpMeanDist = jumpMeanDist, maxTries = cutMaxTries)
+        simSizes <- resim$simSizes
+      }
+      if (isTRUE(returnSims)) {
+        f <- data.table::as.data.table(annualFires)[, list(ids, initialLocus = cells, size)]
+        simSize <- simSizes[, list(rep, initialLocus, sim = N)]
+        if (!is.null(resim)) set(simSize, NULL, c("simBuffered", "cut"), list(simSizes$Nbuffered, simSizes$cut))
+        return(list(sims = data.table::data.table(yr = as.character(yr), simSize[f, on = "initialLocus"]),
+                    pSummary = pSummary,
+                    burned = if (isTRUE(returnBurned)) spreadState[, list(rep, pixelID = indices)]))
+      }
+      ret <- append(ret, list(runaways = nCut, nSims = NROW(simSizes)))
+      if (!is.null(resim)) ret <- append(ret, list(resimulated = resim$resimulated, capHit = resim$capHit))
       if (isTRUE(doPitADTest)) {
         ## one PIT per fitted fire, in annualFires order; a fire with no simulated replicate (no row) gets u = 1
         pe <- simSizes[annualFires, on = c("initialLocus" = "cells")]

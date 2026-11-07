@@ -67,7 +67,10 @@ runDEoptim(
   convergence = NULL,
   climateRef = NULL,
   powerLawGamma = spreadPowerLawGamma,
-  powerLawShape = spreadPowerLawShape
+  powerLawShape = spreadPowerLawShape,
+  annualDTx1000Whole = NULL,
+  nonAnnualDTx1000Whole = NULL,
+  cutMaxTries = 50L
 )
 
 termsInDEoptim(fireSense_spreadFormula, numParams)
@@ -260,6 +263,11 @@ keys (\code{\link[=powerLawOmitArgs]{powerLawOmitArgs()}}) and the re-score's ar
 \item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, passed like
 \code{powerLawGamma}. At its default, 1, it is left out of the cache keys and the re-score's arguments, so fits made
 before it existed are found.}
+
+\item{annualDTx1000Whole, nonAnnualDTx1000Whole, cutMaxTries}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the
+re-score, which then re-simulate each cut fire on the whole landscape (see there). \code{NULL} tables (default)
+add nothing to the fit's cache key or the workers' data; otherwise they are shipped to the workers with the
+other tables, so they are part of the key. Not with \code{penaliseRunaways = TRUE} (an error).}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}

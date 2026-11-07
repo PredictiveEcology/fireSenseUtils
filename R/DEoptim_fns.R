@@ -177,6 +177,10 @@ deoptimPopulationSize <- function(nParams) {
 #' @param runawayEdgeFrac,runawayEdgeMin,runawayBufferMultiple Passed to [.objfunSpreadFit()], which
 #'   ignores them (see there); a non-`NULL` `runawayBufferMultiple` warns once.
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
+#' @param annualDTx1000Whole,nonAnnualDTx1000Whole,cutMaxTries Passed to [.objfunSpreadFit()] in the fit and the
+#'   re-score, which then re-simulate each cut fire on the whole landscape (see there). `NULL` tables (default)
+#'   add nothing to the fit's cache key or the workers' data; otherwise they are shipped to the workers with the
+#'   other tables, so they are part of the key. Not with `penaliseRunaways = TRUE` (an error).
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
@@ -265,8 +269,15 @@ runDEoptim <- function(landscape,
                        convergence = NULL,
                        climateRef = NULL,
                        powerLawGamma = spreadPowerLawGamma,
-                       powerLawShape = spreadPowerLawShape) {
+                       powerLawShape = spreadPowerLawShape,
+                       annualDTx1000Whole = NULL,
+                       nonAnnualDTx1000Whole = NULL,
+                       cutMaxTries = 50L) {
   checkObjectiveTests(tests)
+  resimulateCuts <- checkCutFireTables(annualDTx1000Whole, nonAnnualDTx1000Whole, penaliseRunaways,
+                                       annualDTx1000, nonAnnualDTx1000)
+  ## only a fit that re-simulates its cut fires has these arguments, so every other fit keeps its cache keys
+  cutMaxTriesArg <- if (resimulateCuts) cutMaxTries
   ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
@@ -300,6 +311,7 @@ runDEoptim <- function(landscape,
     "historicalFires",
     "mutuallyExclusive"
   )
+  if (resimulateCuts) objsNeeded <- c(objsNeeded, list("annualDTx1000Whole", "nonAnnualDTx1000Whole"))
 
   neededPkgs <- c("magrittr", "raster", "data.table", "SpaDES.core",
                   "SpaDES.tools", "fireSenseUtils", "sf", "plyr",# "mirai",
@@ -335,6 +347,10 @@ runDEoptim <- function(landscape,
   fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)
   if (fitYearSpreadSD && !identical(names(lower)[length(lower)], yearSpreadSDTxt))
     stop("runDEoptim: `", yearSpreadSDTxt, "` must be the last element of `lower` and `upper`")
+
+  ## clusterSetup() digested the objects it shipped once; the fit, its re-score, profile and simulated members
+  ## all run the objective on them
+  shippedDigest <- clusters::shippedObjectsDigest(control)
 
   # aaaa <<- 1; on.exit(rm(aaaa, envir = .GlobalEnv))
   DE <- Cache(
@@ -384,6 +400,7 @@ runDEoptim <- function(landscape,
       runawayEdgeFrac = runawayEdgeFrac,
       runawayEdgeMin = runawayEdgeMin,
       runawayBufferMultiple = runawayBufferMultiple,
+      cutMaxTries = cutMaxTriesArg,
       rep = rep,
       runName = runName,
       progressFile = progressFile,
@@ -393,11 +410,11 @@ runDEoptim <- function(landscape,
     omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link, powerLawShape),
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
                  omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
-                              convergence = convergence, climateRef = climateRef)),
+                              convergence = convergence, climateRef = climateRef, cutMaxTries = cutMaxTriesArg)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
-    .cacheExtra = clusters::shippedObjectsDigest(control)
+    .cacheExtra = shippedDigest
     , .functionName = paste0("DEoptimIterative_", runName)
     # , cacheId = "8448b6a37b54361b"
   ) # iteration 201 to 300
@@ -427,6 +444,7 @@ runDEoptim <- function(landscape,
   if (!"powerLawShape" %in% powerLawOmitArgs(link, powerLawShape)) rescoreArgs$powerLawShape <- powerLawShape
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   rescoreArgs$crpsWeights <- crpsWeights
+  rescoreArgs$cutMaxTries <- cutMaxTriesArg
   if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
@@ -436,6 +454,7 @@ runDEoptim <- function(landscape,
       fnArgs = rescoreArgs,
       omitArgs = "cl",
       cachePath = paths$cachePath,
+      .cacheExtra = shippedDigest,
       .functionName = paste0("rescoreFinalPopulation_", runName))
   }
 
@@ -447,13 +466,13 @@ runDEoptim <- function(landscape,
         profileCoefficients,
         best = unlist(top$params[1]), pop = finalPop, fn = fireSenseUtils::.objfunSpreadFit,
         reps = as.integer(profileReps), cl = cl, fnArgs = rescoreArgs,
-        omitArgs = "cl", cachePath = paths$cachePath,
+        omitArgs = "cl", cachePath = paths$cachePath, .cacheExtra = shippedDigest,
         .functionName = paste0("profileBestMember_", runName))
     if (isTRUE(simulateMembers > 0))
       attr(DE, "fitSims") <- Cache(
         simulateFireSizes,
         pop = top$params, fn = fireSenseUtils::.objfunSpreadFit, cl = cl, fnArgs = rescoreArgs,
-        omitArgs = "cl", cachePath = paths$cachePath,
+        omitArgs = "cl", cachePath = paths$cachePath, .cacheExtra = shippedDigest,
         .functionName = paste0("simulateBestMembers_", runName))
   }
   DE
