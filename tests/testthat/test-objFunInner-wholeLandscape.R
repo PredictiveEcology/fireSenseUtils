@@ -99,3 +99,18 @@ test_that("under gateRefusal = 'simulate' the gates do not run, and the objectiv
     expect_identical(ran, skipped)
   }
 })
+
+test_that("a fit evaluation (returnSims FALSE) under 'simulate' does no gate or pGate work", {
+  skip_if_not_installed("SpaDES.tools")
+  n <- new.env(); n$gate <- n$summ <- n$p <- 0L
+  realGate <- spreadProbGateTest; realSumm <- spreadProbSummary; realP <- spreadProbFromCovs
+  local_mocked_bindings(spreadProbGateTest = function(...) { n$gate <- n$gate + 1L; realGate(...) },
+                        spreadProbSummary = function(...) { n$summ <- n$summ + 1L; realSumm(...) },
+                        spreadProbFromCovs = function(...) { n$p <- n$p + 1L; realP(...) })
+  wlObjective(whole = TRUE, yearSpreadSD = 0.5, seed = 8)
+  expect_identical(c(n$gate, n$summ, n$p), c(0L, 0L, 0L))  # on the whole landscape not even the spreadProb column
+  wlObjective(yearSpreadSD = 0.5, seed = 8)
+  expect_identical(c(n$gate, n$summ), c(0L, 0L))           # buffered: the column feeds the spread, nothing else
+  wlObjective(whole = TRUE, seed = 8, returnSims = TRUE)
+  expect_identical(c(n$gate, n$summ), c(0L, 1L))           # the saturation summary, only when asked for
+})
