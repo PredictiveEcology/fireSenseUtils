@@ -1,5 +1,8 @@
 # fireSenseUtils (development version)
 
+* `.objfunSpreadFit()` and `runDEoptim()` take `annualDTx1000Whole`, `nonAnnualDTx1000Whole` and `cutMaxTries` (default 50): with the whole landscape's covariate tables, every replicate fire cut at an open buffer edge is re-simulated on the whole landscape from its ignition, with its replicate's year effect, until it burns an open edge pixel (rejection, exact by coupling; `resimulateCutFires()`), so every term scores its unbounded size. Fits that match area inside the buffers burned 1.2-1.4x the observed area when run unbounded, because a cut fire was scored at its truncated size. About +40-65% per evaluation. Not with `penaliseRunaways = TRUE` (an error). With the tables `NULL` (default) results and the fit's cache keys are unchanged. `returnSims = TRUE` then also gives `simBuffered` and `cut`.
+* `runDEoptim()`'s final-population re-score, coefficient profile and simulated members are cached with the digest of the data shipped to the workers, as the fit already was (`R/DEoptim_fns.R`); before, a new fit on other data found the old data's re-score. Their cache keys change once.
+
 * `plotELFs(which = , metrics = )` no longer fills the `which` ELFs with `fill` over their metric colours: `fill` now goes only on `which` ELFs without a value. fireSense_summary's NRV map passes both, and came out solid green beside a correct colour bar.
 * `plotELFs(metrics = )` draws its colour bar in a strip added right of the map, not over the map's bottom-right corner, where its title ran over the 6.4 label and off the edge. A label moved off its ELF stays out of that strip.
 
