@@ -42,14 +42,14 @@ test_that("the re-score, profile and simulated members are not shared by fits on
   expect_identical(c(seen$rescore, seen$profile, seen$sims), c(2L, 2L, 2L))
 })
 
-test_that("the whole-landscape tables reach the workers and the re-score only when given", {
+test_that("wholeLandscape reaches the fit and the re-score only when TRUE", {
   seen <- new.env(); seen$rescore <- seen$profile <- seen$sims <- 0L
   seen$objs <- list()
   withr::local_options(reproducible.useCache = FALSE)
   testthat::local_mocked_bindings(
     clusterSetup = function(..., objsNeeded) { seen$objs <- c(seen$objs, list(unlist(objsNeeded)))
       structure(list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL), objsDigest = "d") },
-    DEoptimIterative = function(..., cutMaxTries = "unset") { seen$fitTries <- cutMaxTries
+    DEoptimIterative = function(..., wholeLandscape = "unset") { seen$fitWhole <- wholeLandscape
       list(list(member = list(pop = matrix(c(0.26, 1, 1, 0.5), nrow = 1)))) },
     .package = "clusters")
   testthat::local_mocked_bindings(
@@ -63,12 +63,12 @@ test_that("the whole-landscape tables reach the workers and the re-score only wh
     lower = lower, upper = lower + 1, mutuallyExclusive = NULL, formulaToFit = NULL, objFunCoresInternal = 1L,
     covMinMax = NULL, maxFireSpread = 0.3, Nreps = 1L, .verbose = FALSE, ...))
   run()
-  expect_false(any(c("annualDTx1000Whole", "nonAnnualDTx1000Whole") %in% seen$objs[[1]]))
-  expect_null(seen$fitTries)                       # NULL (not the default 50) reaches the fit, and is omitted from its key
-  expect_false("cutMaxTries" %in% names(seen$rescoreArgs))
-  run(annualDTx1000Whole = list(), nonAnnualDTx1000Whole = list(), penaliseRunaways = FALSE, cutMaxTries = 7L)
-  expect_true(all(c("annualDTx1000Whole", "nonAnnualDTx1000Whole") %in% seen$objs[[2]]))
-  expect_identical(seen$fitTries, 7L)
-  expect_identical(seen$rescoreArgs$cutMaxTries, 7L)
-  expect_error(run(annualDTx1000Whole = list(), nonAnnualDTx1000Whole = list()), "penaliseRunaways = FALSE")
+  expect_null(seen$fitWhole)                       # NULL (not FALSE) reaches the fit, and is omitted from its key
+  expect_false("wholeLandscape" %in% names(seen$rescoreArgs))
+  run(wholeLandscape = TRUE, penaliseRunaways = FALSE, link = "powerLaw")
+  expect_true(seen$fitWhole)
+  expect_true(seen$rescoreArgs$wholeLandscape)
+  expect_identical(seen$objs[[2]], seen$objs[[1]])  # the same objects shipped
+  expect_error(run(wholeLandscape = TRUE, link = "powerLaw"), "penaliseRunaways = FALSE")
+  expect_error(run(wholeLandscape = TRUE, penaliseRunaways = FALSE), "powerLaw")
 })

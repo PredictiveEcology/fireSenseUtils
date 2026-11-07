@@ -12,9 +12,7 @@ test_that("objFunInner spreads with spreadCpp(), not spread()", {
   ## it never re-validates spreadProb, so the per-call cost described above is
   ## gone by construction. Guard against a silent revert to spread().
   ## `:::`: objFunInner() is internal, called from .objfunSpreadFit().
-  ## The call is in spreadFire(), which objFunInner() and resimulateCutFires() share.
-  src <- paste(deparse(fireSenseUtils:::objFunInner), deparse(fireSenseUtils:::spreadFire), collapse = "\n")
-  expect_match(src, "spreadFire(", fixed = TRUE)
+  src <- paste(deparse(fireSenseUtils:::objFunInner), collapse = "\n")
   expect_match(src, "SpaDES.tools::spreadCpp(", fixed = TRUE)
   expect_false(grepl("SpaDES.tools::spread(", src, fixed = TRUE))
 })

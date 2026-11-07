@@ -49,9 +49,7 @@
   verbose = 2,
   crpsWeights = NULL,
   gateRefusal = c("minLik", "simulate"),
-  annualDTx1000Whole = NULL,
-  nonAnnualDTx1000Whole = NULL,
-  cutMaxTries = 50L,
+  wholeLandscape = FALSE,
   ...
 )
 }
@@ -257,19 +255,13 @@ annual-area term). \code{"simulate"}:
 the gates are not applied, the year is simulated and scored like any other, so a parameter set is never
 refused for its spread probabilities alone.}
 
-\item{annualDTx1000Whole, nonAnnualDTx1000Whole}{\code{NULL} (default), or the covariates of the whole landscape,
-in the format of \code{annualDTx1000} and \code{nonAnnualDTx1000}, which switch on the re-simulation of cut fires
-(\code{\link[=resimulateCutFires]{resimulateCutFires()}}): a replicate fire cut at an open buffer edge is run again from its ignition on the
-whole landscape, with its replicate's year effect, until it burns an open edge pixel, so every term scores
-its unbounded size. \code{annualDTx1000Whole} has every fire year of \code{annualDTx1000}, \code{nonAnnualDTx1000Whole}
-the tables of \code{nonAnnualDTx1000} under the same names; give both or neither. Inside the buffers they
-should equal the fit's tables. The spreadProb gates still look at the buffers' pixels. Not with
-\code{penaliseRunaways = TRUE}, which stops cut fires at the buffer on purpose (an error). With \code{returnSims}, the
-result gains \code{simBuffered} (the buffered size) and \code{cut} (still cut: \code{cutMaxTries} ran out; it keeps its
-buffered size). Needs memory for the whole landscape's tables on each worker. \code{NULL} changes nothing.}
-
-\item{cutMaxTries}{The most times a cut fire is re-simulated to find a run that burns an open edge pixel
-(default 50). Used only with the whole-landscape tables.}
+\item{wholeLandscape}{\code{FALSE} (default), or \code{TRUE}: every fire spreads on all the pixels of \code{annualDTx1000}
+(the whole landscape's tables) with no buffer edge, so no fire is cut and every term scores the size it
+burned unbounded. The linear predictor is computed once per year and the spread probability only for the
+cells a fire reaches (\code{SpaDES.tools::spreadCpp(link = "powerLaw")}, the doubles of \code{\link[=powerLawLink]{powerLawLink()}}), with
+no landscape-length vector per replicate, so a fit costs about what a buffered fit does. Needs
+\code{link = "powerLaw"}; not with \code{penaliseRunaways = TRUE}, which stops fires at the buffer edge (both an
+error). \code{FALSE} changes nothing.}
 
 \item{...}{This is not used here, but allows for extraneous arguments to not break this function.
 The removed arguments \code{capSizes}, \code{penaliseCapHits} and \code{thresh} arrive here: they are ignored with a

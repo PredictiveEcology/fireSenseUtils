@@ -177,10 +177,10 @@ deoptimPopulationSize <- function(nParams) {
 #' @param runawayEdgeFrac,runawayEdgeMin,runawayBufferMultiple Passed to [.objfunSpreadFit()], which
 #'   ignores them (see there); a non-`NULL` `runawayBufferMultiple` warns once.
 #' @param penaliseCapHits Deprecated and ignored; use `penaliseRunaways`.
-#' @param annualDTx1000Whole,nonAnnualDTx1000Whole,cutMaxTries Passed to [.objfunSpreadFit()] in the fit and the
-#'   re-score, which then re-simulate each cut fire on the whole landscape (see there). `NULL` tables (default)
-#'   add nothing to the fit's cache key or the workers' data; otherwise they are shipped to the workers with the
-#'   other tables, so they are part of the key. Not with `penaliseRunaways = TRUE` (an error).
+#' @param wholeLandscape Passed to [.objfunSpreadFit()] in the fit and the re-score: `TRUE` spreads every fire on
+#'   all pixels of `annualDTx1000` (the whole landscape's tables), see there. `FALSE` (default) adds nothing to
+#'   the fit's cache key; then a fitted ignition outside every buffer of its year (where spreadProb is 0) is
+#'   warned about once.
 #' @param escapeSizeHa Passed to [.objfunSpreadFit()] in the fit and the re-score: the size (ha) a
 #'   fire must reach to count as escaped. `NULL` keeps the historical rules.
 #' @param sizeLik,sizeLikDf,weighted,adWeight Passed to [.objfunSpreadFit()], in the fit AND in the
@@ -270,14 +270,12 @@ runDEoptim <- function(landscape,
                        climateRef = NULL,
                        powerLawGamma = spreadPowerLawGamma,
                        powerLawShape = spreadPowerLawShape,
-                       annualDTx1000Whole = NULL,
-                       nonAnnualDTx1000Whole = NULL,
-                       cutMaxTries = 50L) {
+                       wholeLandscape = FALSE) {
   checkObjectiveTests(tests)
-  resimulateCuts <- checkCutFireTables(annualDTx1000Whole, nonAnnualDTx1000Whole, penaliseRunaways,
-                                       annualDTx1000, nonAnnualDTx1000)
-  ## only a fit that re-simulates its cut fires has these arguments, so every other fit keeps its cache keys
-  cutMaxTriesArg <- if (resimulateCuts) cutMaxTries
+  wholeLandscape <- checkWholeLandscape(wholeLandscape, penaliseRunaways, link)
+  if (!wholeLandscape) warnIgnitionsOutsideBuffers(historicalFires, fireBufferedListDT)
+  ## only a whole-landscape fit has the argument, so every other fit keeps its cache keys
+  wholeLandscapeArg <- if (wholeLandscape) TRUE
   ## a fit's first cluster has no memory record yet; without a per-worker figure clusters places
   ## workers by free cores alone and can fill a host's memory (2026-10-09: core hung, landr killed workers)
   withr::local_options(clusters.workerMemoryGB =
@@ -311,7 +309,6 @@ runDEoptim <- function(landscape,
     "historicalFires",
     "mutuallyExclusive"
   )
-  if (resimulateCuts) objsNeeded <- c(objsNeeded, list("annualDTx1000Whole", "nonAnnualDTx1000Whole"))
 
   neededPkgs <- c("magrittr", "raster", "data.table", "SpaDES.core",
                   "SpaDES.tools", "fireSenseUtils", "sf", "plyr",# "mirai",
@@ -400,7 +397,7 @@ runDEoptim <- function(landscape,
       runawayEdgeFrac = runawayEdgeFrac,
       runawayEdgeMin = runawayEdgeMin,
       runawayBufferMultiple = runawayBufferMultiple,
-      cutMaxTries = cutMaxTriesArg,
+      wholeLandscape = wholeLandscapeArg,
       rep = rep,
       runName = runName,
       progressFile = progressFile,
@@ -410,7 +407,7 @@ runDEoptim <- function(landscape,
     omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link, powerLawShape),
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
                  omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
-                              convergence = convergence, climateRef = climateRef, cutMaxTries = cutMaxTriesArg)),
+                              convergence = convergence, climateRef = climateRef, wholeLandscape = wholeLandscapeArg)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -444,7 +441,7 @@ runDEoptim <- function(landscape,
   if (!"powerLawShape" %in% powerLawOmitArgs(link, powerLawShape)) rescoreArgs$powerLawShape <- powerLawShape
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   rescoreArgs$crpsWeights <- crpsWeights
-  rescoreArgs$cutMaxTries <- cutMaxTriesArg
+  rescoreArgs$wholeLandscape <- wholeLandscapeArg
   if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)

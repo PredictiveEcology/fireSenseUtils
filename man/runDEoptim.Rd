@@ -68,9 +68,7 @@ runDEoptim(
   climateRef = NULL,
   powerLawGamma = spreadPowerLawGamma,
   powerLawShape = spreadPowerLawShape,
-  annualDTx1000Whole = NULL,
-  nonAnnualDTx1000Whole = NULL,
-  cutMaxTries = 50L
+  wholeLandscape = FALSE
 )
 
 termsInDEoptim(fireSense_spreadFormula, numParams)
@@ -264,10 +262,10 @@ keys (\code{\link[=powerLawOmitArgs]{powerLawOmitArgs()}}) and the re-score's ar
 \code{powerLawGamma}. At its default, 1, it is left out of the cache keys and the re-score's arguments, so fits made
 before it existed are found.}
 
-\item{annualDTx1000Whole, nonAnnualDTx1000Whole, cutMaxTries}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the
-re-score, which then re-simulate each cut fire on the whole landscape (see there). \code{NULL} tables (default)
-add nothing to the fit's cache key or the workers' data; otherwise they are shipped to the workers with the
-other tables, so they are part of the key. Not with \code{penaliseRunaways = TRUE} (an error).}
+\item{wholeLandscape}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} spreads every fire on
+all pixels of \code{annualDTx1000} (the whole landscape's tables), see there. \code{FALSE} (default) adds nothing to
+the fit's cache key; then a fitted ignition outside every buffer of its year (where spreadProb is 0) is
+warned about once.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
