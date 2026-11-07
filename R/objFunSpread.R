@@ -984,14 +984,13 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       spreadState <- lapply(seq_len(Nreps), function(i) {
         linkOffset <- 0
         if (whole) {
-          ## the year effect is the offset of the linear predictor; nothing landscape-length is copied, so no gc()
+          ## the year effect is the offset of the linear predictor; nothing landscape-length is copied
           sp <- lpCrop
           if (yearSpreadSD > 0) linkOffset <- stats::rnorm(1, 0, yearSpreadSD)
         } else {
-          ## each replicate copies the year's spreadProb vector (~70 MB on a large ELF) and R's heap growth lets the
-          ## dead copies pile up (peak 5.5 GB on a 2.25 GB worker); a young-generation gc each replicate keeps that
-          ## down at no measurable time cost (a full gc here is >15 times slower)
-          gc(full = FALSE)
+          ## Each replicate copies the year's spreadProb vector. A young-generation gc() here kept the dead copies
+          ## down, but on three fitted ELFs (2026-11-07) dropping it made an evaluation 1.4-1.7x faster for 6-20%
+          ## more peak memory, with identical results; speed won.
           sp <- spreadProbCrop
           if (yearSpreadSD > 0) {
             sp[pixCrop] <- toP(lp + stats::rnorm(1, 0, yearSpreadSD))
