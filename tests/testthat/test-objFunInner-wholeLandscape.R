@@ -53,12 +53,15 @@ test_that("on the whole landscape no fire is cut, and fires burn past the buffer
 test_that("with wholeLandscape FALSE the objective is what it was before it existed", {
   skip_if_not_installed("SpaDES.tools")
   ## equal to the last bit (tolerance = 0); identical() would also compare data.table internals
-  ## fixtures/objFunInnerBuffered.rds was made by the same calls on fireSenseUtils 0.2.3.9155 (c86d0a4)
+  ## fixtures/objFunInnerBuffered.rds was made by the same calls on fireSenseUtils 0.2.3.9155 (c86d0a4), on Linux
+  ## x86_64. Other platforms' maths libraries differ in the last bit (macOS arm64: 1.8e-16 in crpsFire), so there the
+  ## comparison allows that.
+  tol <- if (identical(Sys.info()[["sysname"]], "Linux") && identical(R.version$arch, "x86_64")) 0 else 1e-12
   before <- readRDS(test_path("fixtures", "objFunInnerBuffered.rds"))
-  expect_equal(wlObjective(p = 0.2, yearSpreadSD = 0.4, Nreps = 30L, seed = 5), before$crps, tolerance = 0)
-  expect_equal(wlObjective(p = 0.2, Nreps = 30L, seed = 6), before$noEffect, tolerance = 0)
+  expect_equal(wlObjective(p = 0.2, yearSpreadSD = 0.4, Nreps = 30L, seed = 5), before$crps, tolerance = tol)
+  expect_equal(wlObjective(p = 0.2, Nreps = 30L, seed = 6), before$noEffect, tolerance = tol)
   sims <- wlObjective(p = 0.2, yearSpreadSD = 0.4, Nreps = 30L, seed = 5, returnSims = TRUE, returnBurned = TRUE)
-  expect_equal(sims, before$sims, tolerance = 0)
+  expect_equal(sims, before$sims, tolerance = tol)
 })
 
 test_that("wholeLandscape needs the powerLaw link, and not penaliseRunaways", {
