@@ -185,6 +185,13 @@ utils::globalVariables(c(
 #'   capped at any size: spread is bounded only by the year's buffers. The open pixels are found once per fit
 #'   (`runDEoptim()` adds `edge` and `open` columns to `fireBufferedListDT`, [addBufferEdge()]), or here,
 #'   for a table without them.
+#' @param wholeLandscape `FALSE` (default), or `TRUE`: every fire spreads on all the pixels of `annualDTx1000`
+#'   (the whole landscape's tables) with no buffer edge, so no fire is cut and every term scores the size it
+#'   burned unbounded. The linear predictor is computed once per year and the spread probability only for the
+#'   cells a fire reaches (`SpaDES.tools::spreadCpp(link = "powerLaw")`, the doubles of [powerLawLink()]), with
+#'   no landscape-length vector per replicate, so a fit costs about what a buffered fit does. Needs
+#'   `link = "powerLaw"`; not with `penaliseRunaways = TRUE`, which stops fires at the buffer edge (both an
+#'   error). `FALSE` changes nothing.
 #' @param runawayEdgeFrac,runawayEdgeMin Ignored. A replicate was a runaway when it burned at least
 #'   `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))` of the `n` edge pixels of its own buffer, open or
 #'   not; it is now cut at the first open pixel of any buffer of its year.
@@ -266,6 +273,7 @@ utils::globalVariables(c(
                              verbose = 2,
                              crpsWeights = NULL,
                              gateRefusal = c("minLik", "simulate"),
+                             wholeLandscape = FALSE,
                              ...) { # fireSense_SpreadFitRaster
   # Optimization's objective function
   # lapply(historicalFires, setDT)
@@ -304,8 +312,10 @@ utils::globalVariables(c(
   if (missing(fireBufferedListDT)) {
     fireBufferedListDT <- get("fireBufferedListDT", envir = .GlobalEnv)
   }
-  ## the buffers' edge and open pixels: made once by runDEoptim(); here for a caller that did not
-  fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
+  wholeLandscape <- checkWholeLandscape(wholeLandscape, penaliseRunaways, link)
+  ## the buffers' edge and open pixels: made once by runDEoptim(); here for a caller that did not. On the whole
+  ## landscape no fire is cut, so they are not needed.
+  if (!wholeLandscape) fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
   # lapply(annualDTx1000, setDT)
   lapply(nonAnnualDTx1000, setDT)
   # lapply(fireBufferedListDT, setDT)
@@ -399,6 +409,7 @@ utils::globalVariables(c(
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         doYearArea = doYearArea, doCrps = doCrps, gateRefusal = gateRefusal,
         covMinMax = covMinMax, # interactive debugging
+        wholeLandscape = wholeLandscape,
         # covMinMax = covMinMax                              # normal
         # ),                                                   # normal
         .f = objFunInner # interactive debugging
@@ -707,7 +718,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         link = NULL, returnSims = FALSE, returnBurned = FALSE,
                         stopCutFires = FALSE, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
                         doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
-                        powerLawShape = spreadPowerLawShape, doCrps = FALSE, gateRefusal = "minLik") {
+                        powerLawShape = spreadPowerLawShape, doCrps = FALSE, gateRefusal = "minLik",
+                        wholeLandscape = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -718,19 +730,31 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   logisticPars <- parsList[["logisticPars"]]
   covPars <- parsList[["covPars"]]
 
-  shortAnnDT <- spreadProbCovsOfYear(
+  ## the year's covariates, as the model sees them, and the linear predictor of a design matrix
+  covsOfYear <- function(annDTx1000, nonAnnualDTx1000, doAssertions) spreadProbCovsOfYear(
     yr, annDTx1000, nonAnnualDTx1000, indexNonAnnual, covMinMax, mutuallyExclusive, colsToUse,
     doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
   )
+  linearPredictor <- function(mat) as.vector(mat %*% covPars)
+  ## wholeLandscape: every fire spreads on all the pixels of annDTx1000, with spreadProb computed per cell reached
+  whole <- isTRUE(wholeLandscape)
+  shortAnnDT <- covsOfYear(annDTx1000, nonAnnualDTx1000, doAssertions)
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
-  set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
-                                                         climateRef = climateRef, powerLawGamma = powerLawGamma,
-                                                         powerLawShape = powerLawShape))
+  ## The gates only skip hopeless parameter sets (gateRefusal = "minLik"); under "simulate" they never run, and
+  ## the plots leave out their panel.
+  runGates <- !identical(gateRefusal, "simulate")
+  ## what the gates, pSummary (returnSims) and the plots look at; on the whole landscape spreadCpp() computes p per
+  ## cell reached, so the column is only for them
+  needP <- runGates || isTRUE(returnSims) || SpaDES.core::anyPlotting(plot.it)
+  if (!whole || needP)
+    set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
+                                                           climateRef = climateRef, powerLawGamma = powerLawGamma,
+                                                           powerLawShape = powerLawShape))
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
   ## years that carry the climate signal. Without climateRef it is spreadProb itself, as always.
-  pGate <- if (is.null(climateRef)) shortAnnDT$spreadProb else
+  pGate <- if (!needP) NULL else if (is.null(climateRef)) shortAnnDT$spreadProb else
     as.numeric(spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = climateRef,
                                   climateAtRef = TRUE))
   pSummary <- if (isTRUE(returnSims)) spreadProbSummary(pGate, ceiling = logisticPars[1])
@@ -824,16 +848,19 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # set(annDTx1000, NULL, "spreadProb", logistic4p(annDTx1000$pred, par[1:4])) ## 5-parameters logistic
     # set(annDTx1000, NULL, "spreadProb", logistic5p(annDTx1000$pred, par[1:5])) ## 5-parameters logistic
     # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
-    gate <- spreadProbGateTest(pGate, logisticPars[1], lowerSpreadProb, maxFireSpread,
-                               lanscape1stQuantileThresh)
-    nonEdgeValues <- gate$nonEdgeValues
-    summ <- gate$summ
-    medSPRight <- gate$medianOK
-    spreadOutEnough <- !gate$notSpread
-    lowSPLowEnough <- !gate$burny
+    medSPRight <- spreadOutEnough <- lowSPLowEnough <- TRUE # not run: "simulate" simulates every year
+    if (runGates) {
+      gate <- spreadProbGateTest(pGate, logisticPars[1], lowerSpreadProb, maxFireSpread,
+                                 lanscape1stQuantileThresh)
+      nonEdgeValues <- gate$nonEdgeValues
+      summ <- gate$summ
+      medSPRight <- gate$medianOK
+      spreadOutEnough <- !gate$notSpread
+      lowSPLowEnough <- !gate$burny
+    }
     loci <- annualFires$cells
 
-    if (verbose > 1) {
+    if (verbose > 1 && runGates) {
       if (isTRUE(!spreadOutEnough)) {
         print(paste0(
           "  ",
@@ -851,7 +878,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     }
     
     if ((medSPRight && spreadOutEnough && lowSPLowEnough) || identical(gateRefusal, "simulate")) {
-      if (verbose > 1) {
+      if (verbose > 1 && runGates) {
         print(paste0(
           " ",
           Sys.getpid(), ": ", yr, ", spreadProbs: ",
@@ -860,10 +887,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       }
       setDT(annualFireBufferedDT)
       ## the open edge pixels of the year's buffers (bufferOpen()): made by .objfunSpreadFit() or
-      ## runDEoptim(); here, for a caller of this function alone, with every cell of `r` flammable
-      if (!"open" %in% names(annualFireBufferedDT))
+      ## runDEoptim(); here, for a caller of this function alone, with every cell of `r` flammable.
+      ## On the whole landscape there is no buffer edge, so no fire is cut.
+      if (!whole && !"open" %in% names(annualFireBufferedDT))
         annualFireBufferedDT <- addBufferEdge(list(annualFireBufferedDT), r)[[1]]
-      openEdge <- annualFireBufferedDT[which(open), list(ids, pixelID)]
+      openEdge <- if (whole) annualFireBufferedDT[integer(0), list(ids, pixelID)] else
+        annualFireBufferedDT[which(open), list(ids, pixelID)]
       ## the size (pixels) of each fire's buffer, burned and unburned
       bufferSizes <- annualFireBufferedDT[, list(numAvailPixels = .N), by = "ids"]
       if (doAssertions || SpaDES.core::anyPlotting(plot.it)) {
@@ -901,11 +930,25 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           stopArgs <- list(stopCells = crop$toCrop(stopOpen$pixelID),
                            stopEvent = match(stopOpen$ids, annualFires$ids), stopAt = 1L)
       }
-      spreadProbCrop <- numeric(crop$ncell)
-      spreadProbCrop[crop$toCrop(shortAnnDT$pixelID)] <- shortAnnDT$spreadProb
-      # if (any(cells[loci] == 0)) {
-      spreadProbCrop[crop$toCrop(loci)] <- 1
-      # }
+      spreadLink <- NULL
+      spreadLinkPars <- NULL
+      if (whole) {
+        ## spreadCpp() gets the linear predictor (NA, unburnable, off the year's pixels) and computes p from it
+        ## only on the cells a fire reaches, with the year effect as the offset and the ignitions at 1: the
+        ## cells burned are those of the full probability vector, without building one per replicate.
+        ## The arithmetic is powerLawLink()'s, so the doubles are the same.
+        lpCrop <- rep(NA_real_, crop$ncell)
+        lpCrop[crop$toCrop(shortAnnDT$pixelID)] <- linearPredictor(mat)
+        spreadLink <- "powerLaw"
+        spreadLinkPars <- c(pc = logisticPars[[1L]], gamma = powerLawGamma, floor = lowerSpreadProb,
+                            shape = powerLawShape)
+      } else {
+        spreadProbCrop <- numeric(crop$ncell)
+        spreadProbCrop[crop$toCrop(shortAnnDT$pixelID)] <- shortAnnDT$spreadProb
+        # if (any(cells[loci] == 0)) {
+        spreadProbCrop[crop$toCrop(loci)] <- 1
+        # }
+      }
       if (SpaDES.core::anyPlotting(plot.it)) {
         ## the plotting code further down reads the landscape-length vector
         cells[shortAnnDT$pixelID] <- shortAnnDT$spreadProb
@@ -931,29 +974,36 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## spreadCpp() call per replicate.
       ## The year effect is added on the logit of p, except with the powerLaw link, where it is added to the
       ## linear predictor x and p follows from it (p cannot pass p_c, so no year percolates).
-      if (yearSpreadSD > 0) {
+      if (yearSpreadSD > 0 && !whole) {
         pixCrop <- crop$toCrop(shortAnnDT$pixelID)
         powerLaw <- identical(link, "powerLaw")
-        lp <- if (powerLaw) as.vector(mat %*% covPars) else stats::qlogis(shortAnnDT$spreadProb)
+        lp <- if (powerLaw) linearPredictor(mat) else stats::qlogis(shortAnnDT$spreadProb)
         toP <- if (powerLaw) function(z) powerLawLink(z, logisticPars[1L], powerLawGamma, lowerSpreadProb, powerLawShape) else stats::plogis
         lociCrop <- crop$toCrop(loci)
       }
       spreadState <- lapply(seq_len(Nreps), function(i) {
-        ## each replicate copies the year's spreadProb vector (~70 MB on a large ELF) and R's heap growth lets the dead
-        ## copies pile up (peak 5.5 GB on a 2.25 GB worker); a young-generation gc each replicate keeps that down at
-        ## no measurable time cost (a full gc here is >15 times slower)
-        gc(full = FALSE)
-        sp <- spreadProbCrop
-        if (yearSpreadSD > 0) {
-          sp[pixCrop] <- toP(lp + stats::rnorm(1, 0, yearSpreadSD))
-          sp[lociCrop] <- 1
+        linkOffset <- 0
+        if (whole) {
+          ## the year effect is the offset of the linear predictor; nothing landscape-length is copied
+          sp <- lpCrop
+          if (yearSpreadSD > 0) linkOffset <- stats::rnorm(1, 0, yearSpreadSD)
+        } else {
+          ## Each replicate copies the year's spreadProb vector. A young-generation gc() here kept the dead copies
+          ## down, but on three fitted ELFs (2026-11-07) dropping it made an evaluation 1.4-1.7x faster for 6-20%
+          ## more peak memory, with identical results; speed won.
+          sp <- spreadProbCrop
+          if (yearSpreadSD > 0) {
+            sp[pixCrop] <- toP(lp + stats::rnorm(1, 0, yearSpreadSD))
+            sp[lociCrop] <- 1
+          }
         }
         if (is.null(escapeMinPx)) {
           SpaDES.tools::spreadCpp(
             landscape = crop$r,
             loci = crop$toCrop(loci),
             spreadProb = sp,
-            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt
+            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt,
+            link = spreadLink, linkPars = spreadLinkPars, linkOffset = linkOffset
           )
         } else { ## an escaped fire burns its first escapeMinPx cells whatever spreadProb
           SpaDES.tools::spreadCpp(
@@ -963,7 +1013,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
             minSize = escapeMinPx,
             jumpTries = jumpTries,
             jumpMeanDist = jumpMeanDist,
-            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt
+            stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt,
+            link = spreadLink, linkPars = spreadLinkPars, linkOffset = linkOffset
           )
         }
       })
@@ -975,7 +1026,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         
         lapply(colsToUse, function(cn) hist(shortAnnDT[[cn]], main = cn))
         mtext(side = 3, "Histograms of distribution of rescaled variables", outer = TRUE, line = -1)
-        hist(nonEdgeValues, main = "spreadProb")
+        if (runGates) hist(nonEdgeValues, main = "spreadProb")
         sam <- sample(NROW(shortAnnDT), NROW(shortAnnDT) / 100)
         val <- as.matrix(shortAnnDT[sam, ..colsToUse]) %*% covPars
         # val <- mat[sam, ] %*% covPars
@@ -1433,4 +1484,30 @@ areaWeightedCvM <- function(sim, obs) {
   x <- sort(obs)
   w <- x / sum(x)
   length(obs) * sum(w * (Fw(sim, x) - Fw(obs, x))^2)
+}
+
+## wholeLandscape of .objfunSpreadFit() and runDEoptim(): the powerLaw link (spreadCpp()'s link computes p per cell
+## from the linear predictor), and not the penalty that stops fires at the buffer edge. Returns it as TRUE/FALSE.
+checkWholeLandscape <- function(wholeLandscape, penaliseRunaways, link) {
+  if (!isTRUE(wholeLandscape)) return(FALSE)
+  if (isTRUE(penaliseRunaways))
+    stop("`wholeLandscape = TRUE` spreads fires on the whole landscape, while `penaliseRunaways = TRUE` stops them ",
+         "at the buffer edge: use `penaliseRunaways = FALSE`", call. = FALSE)
+  if (!identical(link, "powerLaw")) stop("`wholeLandscape = TRUE` needs `link = \"powerLaw\"`", call. = FALSE)
+  TRUE
+}
+
+## A fitted ignition outside every buffer of its year starts where the buffered objective has no spreadProb (0):
+## it burns its ignition cell and, at most, what a jump reaches. The buffers come from the fire data (dataPrepFit);
+## on the whole landscape (wholeLandscape) such a fire spreads as any other. Warns once, with the counts.
+warnIgnitionsOutsideBuffers <- function(historicalFires, fireBufferedListDT) {
+  yrs <- intersect(names(historicalFires), names(fireBufferedListDT))
+  n <- vapply(yrs, function(y) sum(!historicalFires[[y]]$cells %in% fireBufferedListDT[[y]]$pixelID), integer(1))
+  if (any(n > 0))
+    warning(sum(n), " of ", sum(vapply(historicalFires[yrs], NROW, integer(1))), " fitted ignitions are outside ",
+            "every buffer of their year (", paste0(yrs[n > 0], ": ", n[n > 0], collapse = ", "), "); there the ",
+            "buffered objective has no spreadProb, so such a fire burns its ignition cell and at most what a jump ",
+            "reaches. Check the fire buffers, or fit on the whole landscape (`wholeLandscape`).",
+            call. = FALSE)
+  invisible(n)
 }

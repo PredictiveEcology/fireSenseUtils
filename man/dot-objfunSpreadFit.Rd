@@ -49,6 +49,7 @@
   verbose = 2,
   crpsWeights = NULL,
   gateRefusal = c("minLik", "simulate"),
+  wholeLandscape = FALSE,
   ...
 )
 }
@@ -253,6 +254,14 @@ simulated and scores as if every fire stayed one pixel (\code{"crps"}), or the \
 annual-area term). \code{"simulate"}:
 the gates are not applied, the year is simulated and scored like any other, so a parameter set is never
 refused for its spread probabilities alone.}
+
+\item{wholeLandscape}{\code{FALSE} (default), or \code{TRUE}: every fire spreads on all the pixels of \code{annualDTx1000}
+(the whole landscape's tables) with no buffer edge, so no fire is cut and every term scores the size it
+burned unbounded. The linear predictor is computed once per year and the spread probability only for the
+cells a fire reaches (\code{SpaDES.tools::spreadCpp(link = "powerLaw")}, the doubles of \code{\link[=powerLawLink]{powerLawLink()}}), with
+no landscape-length vector per replicate, so a fit costs about what a buffered fit does. Needs
+\code{link = "powerLaw"}; not with \code{penaliseRunaways = TRUE}, which stops fires at the buffer edge (both an
+error). \code{FALSE} changes nothing.}
 
 \item{...}{This is not used here, but allows for extraneous arguments to not break this function.
 The removed arguments \code{capSizes}, \code{penaliseCapHits} and \code{thresh} arrive here: they are ignored with a

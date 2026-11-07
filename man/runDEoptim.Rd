@@ -67,7 +67,8 @@ runDEoptim(
   convergence = NULL,
   climateRef = NULL,
   powerLawGamma = spreadPowerLawGamma,
-  powerLawShape = spreadPowerLawShape
+  powerLawShape = spreadPowerLawShape,
+  wholeLandscape = FALSE
 )
 
 termsInDEoptim(fireSense_spreadFormula, numParams)
@@ -260,6 +261,11 @@ keys (\code{\link[=powerLawOmitArgs]{powerLawOmitArgs()}}) and the re-score's ar
 \item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, passed like
 \code{powerLawGamma}. At its default, 1, it is left out of the cache keys and the re-score's arguments, so fits made
 before it existed are found.}
+
+\item{wholeLandscape}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} spreads every fire on
+all pixels of \code{annualDTx1000} (the whole landscape's tables), see there. \code{FALSE} (default) adds nothing to
+the fit's cache key; then a fitted ignition outside every buffer of its year (where spreadProb is 0) is
+warned about once.}
 
 \item{fireSense_spreadFormula}{The formula to be submitted to \code{\link[DEoptim:DEoptim]{DEoptim::DEoptim()}},
 from e.g., \code{sim$fireSense_spreadFormula}.}
