@@ -740,12 +740,12 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   whole <- isTRUE(wholeLandscape)
   shortAnnDT <- covsOfYear(annDTx1000, nonAnnualDTx1000, doAssertions)
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
-  ## The gates decide only under gateRefusal = "minLik"; under "simulate" they never run. The plots read their
-  ## values, so they run when plotting.
-  runGates <- !identical(gateRefusal, "simulate") || SpaDES.core::anyPlotting(plot.it)
-  ## what the gates and pSummary (returnSims) look at; on the whole landscape spreadCpp() computes p per cell
-  ## reached, so the column is only for them
-  needP <- runGates || isTRUE(returnSims)
+  ## The gates only skip hopeless parameter sets (gateRefusal = "minLik"); under "simulate" they never run, and
+  ## the plots leave out their panel.
+  runGates <- !identical(gateRefusal, "simulate")
+  ## what the gates, pSummary (returnSims) and the plots look at; on the whole landscape spreadCpp() computes p per
+  ## cell reached, so the column is only for them
+  needP <- runGates || isTRUE(returnSims) || SpaDES.core::anyPlotting(plot.it)
   if (!whole || needP)
     set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
                                                            climateRef = climateRef, powerLawGamma = powerLawGamma,
@@ -1027,7 +1027,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         
         lapply(colsToUse, function(cn) hist(shortAnnDT[[cn]], main = cn))
         mtext(side = 3, "Histograms of distribution of rescaled variables", outer = TRUE, line = -1)
-        hist(nonEdgeValues, main = "spreadProb")
+        if (runGates) hist(nonEdgeValues, main = "spreadProb")
         sam <- sample(NROW(shortAnnDT), NROW(shortAnnDT) / 100)
         val <- as.matrix(shortAnnDT[sam, ..colsToUse]) %*% covPars
         # val <- mat[sam, ] %*% covPars

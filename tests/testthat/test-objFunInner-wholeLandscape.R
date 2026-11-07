@@ -90,8 +90,12 @@ test_that("under gateRefusal = 'simulate' the gates do not run, and the objectiv
     calls <- 0L
     skipped <- wlObjective(whole = whole, yearSpreadSD = 0.5, seed = 7)
     expect_identical(calls, 0L)
-    ## not for verbose or returnSims either
+    ## not for verbose, returnSims or plotting either
     utils::capture.output(wlObjective(whole = whole, seed = 7, verbose = 2))
+    grDevices::pdf(nullFile <- tempfile(fileext = ".pdf"))
+    ## the plots run without the gates' panel (the toy buffers are small, which the plotting path warns about)
+    expect_no_error(suppressWarnings(wlObjective(whole = whole, seed = 7, plot.it = "screen")))
+    grDevices::dev.off(); unlink(nullFile)
     sims <- wlObjective(whole = whole, seed = 7, returnSims = TRUE)
     expect_identical(calls, 0L)
     expect_false(is.null(sims$pSummary))
