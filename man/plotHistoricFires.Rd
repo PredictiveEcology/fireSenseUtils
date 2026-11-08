@@ -12,7 +12,8 @@ plotHistoricFires(
   firePolys,
   ignitionPoints,
   simFiles,
-  sizeCol = "SIZE_HA"
+  sizeCol = "SIZE_HA",
+  escapeSizeHa = .pixelAreaHa(pixelSize)
 )
 }
 \arguments{
@@ -24,7 +25,7 @@ including SSP, formatted as in \code{ClimateNA}, using underscores as separator
 
 \item{outputDir}{Path specifying the directory to which outputs figures/objects should be saved.}
 
-\item{pixelSize}{raster pixel (cell) side length (m); a fire larger than one pixel (\code{pixelSize^2 / 1e4} ha) is an escape}
+\item{pixelSize}{raster pixel (cell) side length (m)}
 
 \item{firePolys}{A \code{sf} spatial polygons of historic fire burn areas, from the Canadian
 National Fire Database.}
@@ -43,6 +44,9 @@ is ignored.}
 
 \item{sizeCol}{The column of \code{firePolys} with the fire size (ha), used both to count escaped
 fires (larger than one pixel) and to sum the area burned of all fires.}
+
+\item{escapeSizeHa}{fire size (ha) above which a fire is an escape, on the observed and the simulated side;
+default one pixel (\code{pixelSize^2 / 1e4} ha)}
 }
 \value{
 list of file names corresponding to the figures and/or objects written to disk
