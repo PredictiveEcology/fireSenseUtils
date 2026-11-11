@@ -46,6 +46,7 @@
   runawaySize = NULL,
   runawayBufferMultiple = NULL,
   fitYearSpreadSD = NULL,
+  fitFireSpreadSD = NULL,
   verbose = 2,
   crpsWeights = NULL,
   gateRefusal = c("minLik", "simulate"),
@@ -57,7 +58,7 @@
 \item{par}{parameters: the logistic parameters (\code{maxAsymptote} first, then \code{upperTail1} if the link has
 one; without \code{hillSlope1} and \code{inflectionPoint1}, which are fixed at 1 -- see \code{fixLogisticPars()}), then the covariate coefficients (the intercept's first, when
 the formula has one -- see \code{\link[=spreadDesignCols]{spreadDesignCols()}}), and optionally
-\code{yearSpreadSD} last (see \code{fitYearSpreadSD}).}
+\code{fireSpreadSD} (see \code{fitFireSpreadSD}) and \code{yearSpreadSD} last (see \code{fitYearSpreadSD}), in that order.}
 
 \item{landscape}{A \code{SpatRaster} with extent, resolution, and projection (crs) used for
 \link[SpaDES.tools:spread2]{SpaDES.tools::spread2}.}
@@ -241,6 +242,14 @@ year's fires are bigger or smaller together. Without it the simulated fire sizes
 medians too large and the largest fires too small at once (2026-09-23). \code{sd = 0} is the model
 without it, exactly (no random numbers are drawn). \code{NULL} (default): \code{TRUE} when \code{par} is named and
 includes \code{yearSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
+
+\item{fitFireSpreadSD}{If \code{TRUE}, \code{par} has the sd of a per-fire random effect, before \code{yearSpreadSD} if that is
+fitted too, else last: in each replicate every fire draws its own \code{eps ~ N(0, sd^2)}, added to the linear
+predictor of the cells it spreads to (\code{SpaDES.tools::spreadCpp()}'s \code{linkOffset}, one per fire, on top of
+the year's draw), so fires of one year can differ in how readily they spread. Only with
+\code{wholeLandscape = TRUE} (an error otherwise, when the sd is above 0). \code{sd = 0} draws no random numbers, so
+the objective is exactly the one without it. \code{NULL} (default): \code{TRUE} when \code{par} is named and includes
+\code{fireSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 

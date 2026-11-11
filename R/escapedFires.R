@@ -11,8 +11,37 @@
 #' @return The rows of `fires` that escaped.
 #' @export
 escapedFires <- function(fires, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA") {
-  s <- as.data.frame(fires)[[sizeCol]]
-  fires[which(s > pixSizeHa & s >= escapeSizeHa), ]
+  fires[which(isEscapeSize(as.data.frame(fires)[[sizeCol]], escapeSizeHa, pixSizeHa)), ]
+}
+
+## the size rule of an escape: at least escapeSizeHa and larger than one pixel
+isEscapeSize <- function(ha, escapeSizeHa, pixSizeHa) ha > pixSizeHa & ha >= escapeSizeHa
+
+## one SpatVector from a SpatVector, an sf, or a list of them (one per year; NULL elements dropped); NULL if none
+asOneVect <- function(x) {
+  asVect <- function(v) if (inherits(v, "SpatVector")) v else terra::vect(v)
+  if (is.list(x) && !inherits(x, "sf")) {
+    x <- Filter(Negate(is.null), x)
+    return(if (length(x)) do.call(rbind, unname(lapply(x, asVect))))
+  }
+  if (is.null(x)) NULL else asVect(x)
+}
+
+## The polygons that are escapes, with their area in `.ha`: at least `escapeSizeHa` and larger than one pixel, judged
+## on `sizeCol` (the whole fire) or, with `sizeCol = NULL` or a `polys` without it, on `terra::expanse()` (the part
+## given); with `causes`, only polygons whose `polyCauseCol` is one of them. `.poly` is each one's row in `polys`.
+escapePolys <- function(polys, escapeSizeHa, pixSizeHa, sizeCol = NULL, causes = NULL,
+                        polyCauseCol = polyCauseColTxt) {
+  polys <- asOneVect(polys)
+  if (!NROW(polys)) return(NULL)
+  polys$.poly <- seq_len(NROW(polys))
+  polys$.ha <- polySizeHa(polys, sizeCol)
+  keep <- isEscapeSize(polys$.ha, escapeSizeHa, pixSizeHa)
+  if (!is.null(causes)) {
+    if (!polyCauseCol %in% names(polys)) stop("polys has no column '", polyCauseCol, "' to select causes from")
+    keep <- keep & polys[[polyCauseCol]][, 1] %in% causes
+  }
+  polys[which(keep), ]
 }
 
 #' Ignition points and the fire polygons they match
@@ -30,23 +59,23 @@ escapedFires <- function(fires, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA") {
 #' @param escapeSizeHa Size (ha) a polygon must reach.
 #' @param pixSizeHa Pixel area (ha). A polygon must also be larger than one pixel.
 #' @param maxDistM Distance (m) from a polygon's edge within which a point outside it still matches it.
+#' @param sizeCol `NULL` (default): a polygon is judged on its area as given (`terra::expanse()`). A column of
+#'   `polys` (e.g. `"POLY_HA"`): judged on that, the whole fire's size, as [escapeFireSet()] does.
+#' @param causes `NULL` (default): polygons of every cause. NBAC cause values (e.g.
+#'   `fireCauseCodes(fireCauses, "nbac")`): only polygons whose `polyCauseCol` is one of them.
+#' @param polyCauseCol Column of `polys` holding the cause, used with `causes`.
 #' @return A list: `points` and `polys` (the polygons that count, with their area in `.ha`), both
 #'   `SpatVector`, and `pairs`, a matrix with columns `point` and `poly` (rows of those) and logical `inside`.
 #' @export
 #' @importFrom terra buffer crs expanse project relate same.crs vect
-ignitionPolygonPairs <- function(points, polys, escapeSizeHa, pixSizeHa, maxDistM = 1000) {
-  asVect <- function(x) if (inherits(x, "SpatVector")) x else terra::vect(x)
-  points <- asVect(points)
-  if (is.list(polys) && !inherits(polys, "sf")) {
-    polys <- Filter(Negate(is.null), polys)
-    polys <- if (length(polys)) do.call(rbind, unname(lapply(polys, asVect)))
-  }
+ignitionPolygonPairs <- function(points, polys, escapeSizeHa, pixSizeHa, maxDistM = 1000, sizeCol = NULL,
+                                 causes = NULL, polyCauseCol = polyCauseColTxt) {
+  points <- asOneVect(points)
   none <- list(points = points, polys = NULL, pairs = cbind(point = integer(), poly = integer(), inside = integer()))
+  polys <- asOneVect(polys)
   if (!NROW(polys)) return(none)
-  polys <- asVect(polys)
   if (!terra::same.crs(polys, points)) polys <- terra::project(polys, terra::crs(points))
-  polys$.ha <- terra::expanse(polys, unit = "ha")
-  polys <- escapedFires(polys, escapeSizeHa, pixSizeHa, sizeCol = ".ha")
+  polys <- escapePolys(polys, escapeSizeHa, pixSizeHa, sizeCol, causes, polyCauseCol)
   none$polys <- polys
   if (!NROW(polys) || !NROW(points)) return(none)
 
@@ -74,10 +103,14 @@ ignitionPolygonPairs <- function(points, polys, escapeSizeHa, pixSizeHa, maxDist
 #' @return Logical, one per row of `points`: `TRUE` for an escape.
 #' @export
 escapedIgnitions <- function(points, polys, escapeSizeHa, pixSizeHa, sizeCol = "SIZE_HA", maxDistM = 1000) {
-  m <- ignitionPolygonPairs(points, polys, escapeSizeHa, pixSizeHa, maxDistM)
+  pickEscapePoints(ignitionPolygonPairs(points, polys, escapeSizeHa, pixSizeHa, maxDistM), sizeCol)
+}
+
+## The point that is each polygon's escape, from ignitionPolygonPairs(): points inside first, then the largest
+## `sizeCol` (the first of ties); each polygon takes its first point not already taken. Logical, per point.
+pickEscapePoints <- function(m, sizeCol) {
   out <- logical(NROW(m$points))
   hits <- m$pairs
-  ## per polygon: points inside first, then the largest; each polygon takes its first point not already taken
   size <- as.data.frame(m$points)[[sizeCol]][hits[, "point"]]
   hits <- hits[order(hits[, "poly"], !hits[, "inside"], -size, hits[, "point"]), , drop = FALSE]
   for (p in unique(hits[, "poly"])) {
@@ -107,28 +140,34 @@ escapedIgnitions <- function(points, polys, escapeSizeHa, pixSizeHa, sizeCol = "
 #'   that the ignition and escape counts read.
 #' @export
 polygonIgnitions <- function(points, polys, starts, idCol, escapeSizeHa, pixSizeHa, maxDistM = 1000,
-                             polyCauseCol = "FIRECAUS", naturalPolyCauses = "Natural") {
+                             polyCauseCol = polyCauseColTxt, naturalPolyCauses = "Natural") {
   m <- ignitionPolygonPairs(points, polys, escapeSizeHa, pixSizeHa, maxDistM)
-  asPoints <- function(xy, p) {
-    out <- terra::vect(xy, crs = terra::crs(m$points))
-    out$YEAR <- as.integer(p$YEAR)
-    out$CAUSE <- rep("N", NROW(p))
-    out$SIZE_HA <- p$.ha
-    out
-  }
+  none <- ignitionsAt(matrix(numeric(), ncol = 2), terra::crs(m$points), integer(), character(), numeric())
   p <- m$polys
   if (NROW(p) && !polyCauseCol %in% names(p)) {
     warning("polys has no column '", polyCauseCol, "': no polygon ignitions added")
     p <- NULL
   }
   if (NROW(p)) p <- p[p[[polyCauseCol]][, 1] %in% naturalPolyCauses & !seq_len(NROW(p)) %in% m$pairs[, "poly"], ]
-  if (!NROW(p)) return(asPoints(matrix(numeric(), ncol = 2), data.frame(YEAR = integer(), .ha = numeric())))
-  asVect <- function(x) if (inherits(x, "SpatVector")) x else terra::vect(x)
-  if (is.list(starts) && !inherits(starts, "sf"))
-    starts <- do.call(rbind, unname(lapply(Filter(Negate(is.null), starts), asVect)))
-  starts <- terra::project(asVect(starts), terra::crs(m$points))
-  key <- function(x) paste(as.integer(x$YEAR), x[[idCol]][, 1])
-  at <- match(key(p), key(starts))
+  if (!NROW(p)) return(none)
+  starts <- terra::project(asOneVect(starts), terra::crs(m$points))
+  at <- startOf(p, starts, idCol)
   p <- p[!is.na(at), ]
-  asPoints(terra::crds(starts)[at[!is.na(at)], , drop = FALSE], p)
+  ignitionsAt(terra::crds(starts)[at[!is.na(at)], , drop = FALSE], terra::crs(m$points), p$YEAR,
+              rep("N", NROW(p)), p$.ha)
+}
+
+## ignition points at `xy` with the columns the ignition and escape counts read: YEAR, CAUSE and SIZE_HA
+ignitionsAt <- function(xy, crs, year, cause, ha) {
+  out <- terra::vect(xy, crs = crs)
+  out$YEAR <- as.integer(year)
+  out$CAUSE <- as.character(cause)
+  out$SIZE_HA <- as.numeric(ha)
+  out
+}
+
+## the row of `starts` that is the start of each polygon of `p`: same YEAR and `idCol` (NA where none)
+startOf <- function(p, starts, idCol) {
+  key <- function(x) paste(as.integer(x$YEAR), x[[idCol]][, 1])
+  match(key(p), key(starts))
 }

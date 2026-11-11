@@ -2,11 +2,13 @@
 % Please edit documentation in R/spreadProbGates.R
 \name{splitSpreadPar}
 \alias{splitSpreadPar}
-\title{Split \code{par} as the objective does: drop the trailing \code{yearSpreadSD} and insert the fixed \code{hillSlope1} and \code{inflectionPoint1}}
+\title{Split \code{par} as the objective does: drop the trailing random-effect sds (\code{fireSpreadSD}, then \code{yearSpreadSD}) and
+insert the fixed \code{hillSlope1} and \code{inflectionPoint1}}
 \usage{
-splitSpreadPar(par, fitYearSpreadSD = NULL)
+splitSpreadPar(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL)
 }
 \description{
-Split \code{par} as the objective does: drop the trailing \code{yearSpreadSD} and insert the fixed \code{hillSlope1} and \code{inflectionPoint1}
+Split \code{par} as the objective does: drop the trailing random-effect sds (\code{fireSpreadSD}, then \code{yearSpreadSD}) and
+insert the fixed \code{hillSlope1} and \code{inflectionPoint1}
 }
 \keyword{internal}

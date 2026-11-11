@@ -203,19 +203,23 @@ spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link
   stats::plogis(stats::qlogis(p0) + shift)
 }
 
-#' Split `par` as the objective does: drop the trailing `yearSpreadSD` and insert the fixed `hillSlope1` and `inflectionPoint1`
+#' Split `par` as the objective does: drop the trailing random-effect sds (`fireSpreadSD`, then `yearSpreadSD`) and
+#' insert the fixed `hillSlope1` and `inflectionPoint1`
 #' @keywords internal
-splitSpreadPar <- function(par, fitYearSpreadSD = NULL) {
-  yearSpreadSD <- 0
+splitSpreadPar <- function(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL) {
   if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
-  if (isTRUE(fitYearSpreadSD)) {
-    if (!is.null(names(par)) && !identical(names(par)[length(par)], yearSpreadSDTxt))
-      stop("`", yearSpreadSDTxt, "` must be the last parameter")
-    yearSpreadSD <- unname(par[length(par)])
-    par <- par[-length(par)]
+  if (is.null(fitFireSpreadSD)) fitFireSpreadSD <- fireSpreadSDTxt %in% names(par)
+  sds <- c(fireSpreadSD = 0, yearSpreadSD = 0)
+  trailing <- spreadRandomEffectTxt[c(isTRUE(fitFireSpreadSD), isTRUE(fitYearSpreadSD))]
+  n <- length(trailing)
+  if (n) {
+    if (!is.null(names(par)) && !identical(utils::tail(names(par), n), trailing))
+      stop("`", paste(trailing, collapse = "`, `"), "` must be the last parameter", if (n > 1) "s, in that order")
+    sds[trailing] <- unname(utils::tail(par, n))
+    par <- utils::head(par, -n)
   }
   ## hillSlope1 and inflectionPoint1 are fixed at 1, not fitted -- see fixLogisticPars() for why.
-  list(par = fixLogisticPars(par), yearSpreadSD = yearSpreadSD)
+  list(par = fixLogisticPars(par), yearSpreadSD = sds[["yearSpreadSD"]], fireSpreadSD = sds[["fireSpreadSD"]])
 }
 
 #' The observed fires of each year, at or above `minFireSize`, one row per cell; years left with none

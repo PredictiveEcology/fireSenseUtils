@@ -60,9 +60,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
   burned <- attr(sims, "burned")
 
   ## the parameters as the objective uses them
-  if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
-  if (isTRUE(fitYearSpreadSD)) par <- par[-length(par)]
-  par <- fixLogisticPars(par)
+  par <- splitSpreadPar(par, fitYearSpreadSD)$par
   colsToUse <- spreadDesignCols(formulaToFit)
   covCols <- spreadCovCols(colsToUse)
   pp <- paramsSeparate(par, length(colsToUse))

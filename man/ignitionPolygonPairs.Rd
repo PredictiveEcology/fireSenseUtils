@@ -4,7 +4,16 @@
 \alias{ignitionPolygonPairs}
 \title{Ignition points and the fire polygons they match}
 \usage{
-ignitionPolygonPairs(points, polys, escapeSizeHa, pixSizeHa, maxDistM = 1000)
+ignitionPolygonPairs(
+  points,
+  polys,
+  escapeSizeHa,
+  pixSizeHa,
+  maxDistM = 1000,
+  sizeCol = NULL,
+  causes = NULL,
+  polyCauseCol = polyCauseColTxt
+)
 }
 \arguments{
 \item{points}{Ignition points (\code{SpatVector} or \code{sf}) with column \code{YEAR}.}
@@ -17,6 +26,14 @@ ignitionPolygonPairs(points, polys, escapeSizeHa, pixSizeHa, maxDistM = 1000)
 \item{pixSizeHa}{Pixel area (ha). A polygon must also be larger than one pixel.}
 
 \item{maxDistM}{Distance (m) from a polygon's edge within which a point outside it still matches it.}
+
+\item{sizeCol}{\code{NULL} (default): a polygon is judged on its area as given (\code{terra::expanse()}). A column of
+\code{polys} (e.g. \code{"POLY_HA"}): judged on that, the whole fire's size, as \code{\link[=escapeFireSet]{escapeFireSet()}} does.}
+
+\item{causes}{\code{NULL} (default): polygons of every cause. NBAC cause values (e.g.
+\code{fireCauseCodes(fireCauses, "nbac")}): only polygons whose \code{polyCauseCol} is one of them.}
+
+\item{polyCauseCol}{Column of \code{polys} holding the cause, used with \code{causes}.}
 }
 \value{
 A list: \code{points} and \code{polys} (the polygons that count, with their area in \code{.ha}), both

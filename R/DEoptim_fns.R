@@ -89,7 +89,9 @@ deoptimPopulationSize <- function(nParams) {
 #'   Passed to [DEoptim::DEoptim].
 #'
 #'   If named and including `yearSpreadSD` (which must be last), the per-year random effect (a seasonal departure) of
-#'   [.objfunSpreadFit()] (`fitYearSpreadSD`) is fitted, in the fit and in the re-score.
+#'   [.objfunSpreadFit()] (`fitYearSpreadSD`) is fitted, in the fit and in the re-score. Likewise `fireSpreadSD`, the
+#'   per-fire random effect (`fitFireSpreadSD`; needs `wholeLandscape = TRUE`), which comes just before
+#'   `yearSpreadSD`, or last without it. A fit without `fireSpreadSD` keeps its cache keys.
 #'
 #' @param upper Numeric vector. Upper bounds for the parameters being optimized.
 #'   Passed to [DEoptim::DEoptim].
@@ -335,15 +337,22 @@ runDEoptim <- function(landscape,
   ## name the parameters from `lower`. termsInDEoptim() called every non-formula parameter a "logit"
   ## term, so yearSpreadSD was reported as a third logistic parameter.
   covTerms <- spreadDesignCols(formulaToFit) # includes the intercept, if the formula has one
-  logisticTerms <- setdiff(names(lower), c(covTerms, yearSpreadSDTxt))
+  logisticTerms <- setdiff(names(lower), c(covTerms, spreadRandomEffectTxt))
   message("Fitting ", length(lower), " parameters: logistic: ", paste(logisticTerms, collapse = ", "),
           "; covariates: ", paste(covTerms, collapse = ", "),
+          if (fireSpreadSDTxt %in% names(lower)) paste0("; fire effect: ", fireSpreadSDTxt),
           if (yearSpreadSDTxt %in% names(lower)) paste0("; year effect: ", yearSpreadSDTxt))
-  ## the per-year random effect is fitted when the bounds include it (its sd is the LAST parameter);
-  ## DEoptim passes `par` unnamed, so the objective is told explicitly
+  ## the random effects are fitted when the bounds include them (their sds are the LAST parameters, fireSpreadSD
+  ## then yearSpreadSD); DEoptim passes `par` unnamed, so the objective is told explicitly
   fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)
-  if (fitYearSpreadSD && !identical(names(lower)[length(lower)], yearSpreadSDTxt))
-    stop("runDEoptim: `", yearSpreadSDTxt, "` must be the last element of `lower` and `upper`")
+  fitFireSpreadSD <- fireSpreadSDTxt %in% names(lower)
+  reTerms <- intersect(spreadRandomEffectTxt, names(lower))
+  if (length(reTerms) && !identical(utils::tail(names(lower), length(reTerms)), reTerms))
+    stop("runDEoptim: `", paste(reTerms, collapse = "` then `"), "` must be the last element",
+         if (length(reTerms) > 1) "s", " of `lower` and `upper`")
+  checkFireSpreadSD(fitFireSpreadSD, wholeLandscape)
+  ## only a fit with the per-fire effect has the argument, so every other fit keeps its cache keys
+  fitFireSpreadSDArg <- if (fitFireSpreadSD) TRUE
 
   ## clusterSetup() digested the objects it shipped once; the fit, its re-score, profile and simulated members
   ## all run the objective on them
@@ -386,6 +395,7 @@ runDEoptim <- function(landscape,
       adWeight = adWeight,
       link = link,
       fitYearSpreadSD = fitYearSpreadSD,
+      fitFireSpreadSD = fitFireSpreadSDArg,
       escapeSizeHa = escapeSizeHa,
       jumpTries = jumpTries,
       jumpMeanDist = jumpMeanDist,
@@ -407,7 +417,8 @@ runDEoptim <- function(landscape,
     omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link, powerLawShape),
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
                  omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
-                              convergence = convergence, climateRef = climateRef, wholeLandscape = wholeLandscapeArg)),
+                              convergence = convergence, climateRef = climateRef, wholeLandscape = wholeLandscapeArg,
+                              fitFireSpreadSD = fitFireSpreadSDArg)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -442,6 +453,7 @@ runDEoptim <- function(landscape,
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   rescoreArgs$crpsWeights <- crpsWeights
   rescoreArgs$wholeLandscape <- wholeLandscapeArg
+  rescoreArgs$fitFireSpreadSD <- fitFireSpreadSDArg
   if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)

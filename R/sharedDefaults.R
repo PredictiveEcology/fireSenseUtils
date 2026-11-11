@@ -29,6 +29,10 @@
 #'   `fireCauses` in `fireSense_dataPrepFit` and `fireSense_summary`, which check that they agree
 #'   (`SpaDES.core::paramCheckOtherMods()`), and of the readers in `fireSimulator_validation`. [hindcastObserved()] and
 #'   [ELFfireCounts()] keep `fireCauses = NULL` (the `naturalCauses` they are given), so they stay usable for other models.
+#' - `fireSenseELFCoreValue`: the value of the core cells of a one-ELF raster (`2`; the buffer is `1`), e.g.
+#'   `rasterToMatchLargeELF`, the default `coreValues` of [fireStarts()].
+#' - `fireSenseEscapeSizeHa`: the whole-polygon size (ha) at and above which a fire escaped (`50`), the default of
+#'   [escapeDefinition()].
 #'
 #' @name fireSenseSharedDefaults
 #' @format Vectors of length 1, except `fireSenseForestedLCC` (`numeric`, length 5) and `fireSenseFireCauses`
@@ -74,3 +78,11 @@ fireSenseRunawayEdgeMin <- 3L
 #' @rdname fireSenseSharedDefaults
 #' @export
 fireSenseFireCauses <- c("natural", "unknown")
+
+#' @rdname fireSenseSharedDefaults
+#' @export
+fireSenseEscapeSizeHa <- 50
+
+#' @rdname fireSenseSharedDefaults
+#' @export
+fireSenseELFCoreValue <- 2
