@@ -241,3 +241,22 @@ test_that("escapeDefinitionOf: the definition of a run's modules, which must agr
   expect_identical(run(list(escapeSizeHa = NA_real_), list(escapeSizeHa = NA_real_))$def_escA$escapeSizeHa, NA_real_)
   expect_error(run(list(escapeSizeHa = 100), list(escapeSizeHa = 50)), "multiple values for escapeSizeHa")
 })
+
+test_that("snappedCentroids() moves a centroid that is off its fire and keeps the `.poly` id", {
+  ras <- hbpRaster()
+  ## a U-shaped fire: its centroid is in the gap, which is not burnable
+  uCells <- fireCells(ras, 5:10, 5:10)
+  gap <- fireCells(ras, 7:8, 5:8)
+  ras[gap] <- NA
+  uCells <- setdiff(uCells, gap)
+  r <- terra::rast(ras); r[] <- NA; r[uCells] <- 1L
+  fire <- terra::as.polygons(r, dissolve = TRUE) |> terra::aggregate()
+  fire$.poly <- 1L
+  fire$YEAR <- 2001L
+  cl <- data.table::data.table(.poly = 1L, pixelID = uCells)
+
+  out <- snappedCentroids(fire, cl, ras)
+
+  expect_identical(out$.poly, 1L)
+  expect_true(terra::cellFromXY(ras, as.matrix(out[, c("x", "y")])) %in% uCells)
+})
