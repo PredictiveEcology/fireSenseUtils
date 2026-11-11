@@ -3,14 +3,14 @@
 
 library(data.table)
 
-test_that("climateCovRanges is one table of c(min, max) per climate variable, provisionally 0-100", {
+test_that("climateCovRanges is one table of c(min, max) per climate variable, provisionally 0-100 for the moisture-deficit ones", {
   expect_type(climateCovRanges, "list")
-  expect_setequal(names(climateCovRanges), c("CMD", "CMDsm", "CMDsp", "cumMDC"))
+  expect_setequal(names(climateCovRanges), c("CMD", "CMDsm", "CMDsp", "cumMDC", "Tmaxsm", "PPTsm"))
   for (r in climateCovRanges) {
     expect_length(r, 2L)
     expect_true(r[2] > r[1])
   }
-  expect_true(all(vapply(climateCovRanges, identical, logical(1), c(0, 100))))
+  expect_true(all(vapply(climateCovRanges[c("CMD", "CMDsm", "CMDsp", "cumMDC")], identical, logical(1), c(0, 100))))
 })
 
 test_that("a climate value is stored as the same integer by the fit and the predict path", {

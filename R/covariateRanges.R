@@ -4,14 +4,19 @@
 #' spread model, that `fireSense_spreadFit` uses by default (its `covFixedRange`) instead of the range of
 #' each ELF's data, so a coefficient means the same thing in every ELF. The variables and their units:
 #' `CMD`, `CMDsm` and `CMDsp` are climate moisture deficit in mm (annual, summer-to-date and spring);
-#' `cumMDC` is a cumulative Monthly Drought Code, an index with no unit (it is not mm). The values are
-#' provisional: all four are 0-100 for now, to be replaced after the `cumMDC` values have been checked.
+#' `cumMDC` is a cumulative Monthly Drought Code, an index with no unit (it is not mm). `Tmaxsm` is the
+#' summer (June-August) mean of the daily maximum temperature in degrees C, 0-10; `PPTsm` is summer
+#' precipitation in mm, 0-100. Spans are round decimal numbers, so a coefficient is easy to multiply out
+#' afterwards; the rescaling is linear, so values outside a span are fine. The values are
+#' provisional: the four moisture-deficit variables are 0-100 for now, to be replaced after the `cumMDC`
+#' values have been checked, and `Tmaxsm` and `PPTsm` are first guesses.
 #' A climate covariate selected for the spread fit that is not in this table stops the fit; add its range
 #' here.
 #'
 #' @format A named list of `c(min, max)`.
 #' @export
-climateCovRanges <- list(CMDsm = c(0, 100), CMD = c(0, 100), CMDsp = c(0, 100), cumMDC = c(0, 100))
+climateCovRanges <- list(CMDsm = c(0, 100), CMD = c(0, 100), CMDsp = c(0, 100), cumMDC = c(0, 100),
+                         Tmaxsm = c(0, 10), PPTsm = c(0, 100))
 
 #' Indicator covariates of the spread model
 #'
