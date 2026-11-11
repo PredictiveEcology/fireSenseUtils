@@ -241,3 +241,17 @@ test_that("escapeDefinitionOf: the definition of a run's modules, which must agr
   expect_identical(run(list(escapeSizeHa = NA_real_), list(escapeSizeHa = NA_real_))$def_escA$escapeSizeHa, NA_real_)
   expect_error(run(list(escapeSizeHa = 100), list(escapeSizeHa = 50)), "multiple values for escapeSizeHa")
 })
+
+test_that("escapePolys: the polygons of an escape definition's size and causes, with their row and size", {
+  e <- escapePolys(escPolys(), 500, pixSizeHa = 100, sizeCol = polySizeColTxt, causes = "Natural")
+  expect_identical(e$FIRE_ID, c(1L, 2L, 3L, 1L))     # A, B, C and F; not the human D nor the small E
+  expect_identical(e$.poly, c(1L, 2L, 3L, 6L))
+  expect_equal(e$.ha, escPolys()$POLY_HA[c(1:3, 6)])
+  ## at 300 ha D and E (400 ha) are escapes too: the human D only without `causes`
+  expect_identical(escapePolys(escPolys(), 300, 100, causes = "Natural")$.poly, c(1L, 2L, 3L, 5L, 6L))
+  expect_identical(escapePolys(escPolys(), 300, 100)$.poly, 1:6)
+  p <- escPolys()
+  expect_identical(escapePolys(split(p, p$YEAR), 500, 100, causes = "Natural")$.poly, e$.poly)
+  expect_null(escapePolys(NULL, 500, 100))
+  expect_error(escapePolys(p[, "YEAR"], 500, 100, causes = "Natural"), "no column 'FIRECAUS'")
+})
