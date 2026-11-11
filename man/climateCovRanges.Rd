@@ -14,8 +14,12 @@ climateCovRanges
 spread model, that \code{fireSense_spreadFit} uses by default (its \code{covFixedRange}) instead of the range of
 each ELF's data, so a coefficient means the same thing in every ELF. The variables and their units:
 \code{CMD}, \code{CMDsm} and \code{CMDsp} are climate moisture deficit in mm (annual, summer-to-date and spring);
-\code{cumMDC} is a cumulative Monthly Drought Code, an index with no unit (it is not mm). The values are
-provisional: all four are 0-100 for now, to be replaced after the \code{cumMDC} values have been checked.
+\code{cumMDC} is a cumulative Monthly Drought Code, an index with no unit (it is not mm). \code{Tmaxsm} is the
+summer (June-August) mean of the daily maximum temperature in degrees C, 0-10; \code{PPTsm} is summer
+precipitation in mm, 0-100. Spans are round decimal numbers, so a coefficient is easy to multiply out
+afterwards; the rescaling is linear, so values outside a span are fine. The values are
+provisional: the four moisture-deficit variables are 0-100 for now, to be replaced after the \code{cumMDC}
+values have been checked, and \code{Tmaxsm} and \code{PPTsm} are first guesses.
 A climate covariate selected for the spread fit that is not in this table stops the fit; add its range
 here.
 }
