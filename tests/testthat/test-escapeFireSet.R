@@ -255,3 +255,36 @@ test_that("escapePolys: the polygons of an escape definition's size and causes, 
   expect_null(escapePolys(NULL, 500, 100))
   expect_error(escapePolys(p[, "YEAR"], 500, 100, causes = "Natural"), "no column 'FIRECAUS'")
 })
+
+## 2000: P1 (12 cells, columns 2-5) and P2 (12 cells, columns 4-7) overlap on 6 cells, which are P2's (the last
+## polygon's); P3 covers no cell centre. Column 3 cannot burn (flammableRTM 0) and one cell of P2 has land cover
+## the simulation cannot burn (not in landcoverDT).
+burnPolys <- function() {
+  v <- terra::vect(c(escSq(10, 10, 40, 30), escSq(30, 10, 40, 30), escSq(81, 81, 3, 3)), crs = "EPSG:3978")
+  v$YEAR <- 2000L
+  v$FIRECAUS <- "Natural"
+  v$FIRE_ID <- 1:3
+  v$POLY_HA <- terra::expanse(v, unit = "ha")
+  v
+}
+burnLandcoverPixels <- function() {
+  f <- escFlammable()
+  setdiff(which(terra::values(f, mat = FALSE) == 1), terra::cellFromXY(f, cbind(5500, 2500)))
+}
+
+test_that("burnableFireHa: the fit's target size and the scored observed size are the same numbers", {
+  p <- burnPolys()
+  burnable <- burnLandcoverPixels()
+  ## the fit: harmonizeFireData()'s buffers, then spreadFitBurnableFires()'s count
+  fb <- bufferToArea(list(year2000 = sf::st_as_sf(p)), escFlammable(), areaMultiplier = 2, field = "FIRE_ID",
+                     minSize = 10)[[1]]
+  fit <- burnableFireHa(removeBufferedFiresOutsideRTM(fb, escFlammable()), burnable, pixSizeHa = 100)
+  expect_identical(names(fit), c("1", "2"))                         # P3 has no pixel
+  expect_equal(as.vector(fit), c(300, 1100))                         # P1: columns 2-3, of which 3 cannot burn
+  ## the score: fireStarts()
+  s <- fireStarts(p, escFlammable(), idCol = "FIRE_ID", burnablePixels = burnable)
+  expect_identical(s$FIRE_ID, 1:2)                                     # P3 has no pixel, so no start
+  expect_equal(s$burnableHa, as.vector(fit[as.character(s$FIRE_ID)]))
+  ## without landcoverDT's pixels, flammableRTM decides: P2's 12 cells
+  expect_equal(fireStarts(p, escFlammable(), idCol = "FIRE_ID")$burnableHa, c(300, 1200))
+})

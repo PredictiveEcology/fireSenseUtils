@@ -183,7 +183,7 @@ harmonizeFireData <- function(firePolys, flammableRTM, spreadFirePoints,
 #' @export
 #' @seealso [harmonizeFireData()], [makeFireSenseLCCDeps()]
 harmonizeFireDataDeps <- function() {
-  list(bufferToArea, bufferToArea.list, bufferToArea.sf, bufferToArea.SpatialPolygons,
+  list(bufferToArea, bufferToArea.list, bufferToArea.sf, bufferToArea.SpatialPolygons, firePixels,
        removeBufferedFiresOutsideRTM, harmonizeBufferAndPoints, cleanUpSpreadFirePoints,
        .withSeed, .singleThreadedGDAL, multiplier)
 }

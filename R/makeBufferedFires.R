@@ -121,19 +121,16 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
                             minSize = 500, cores = 1, ...) {
   if (is.null(polyName)) polyName <- "Layer 1"
   if (as.integer(verb) >= 1) print(paste("Buffering polygons on", polyName))
-  r <- rasterize(
-    x = sf::st_transform(poly, sf::st_crs(rasterToMatch)),
-    y = rasterToMatch, field = field, ...
-  )
+  px <- firePixels(poly, rasterToMatch, field, ...)
+  r <- rasterToMatch
 
   emptyDT <- data.table(pixelID = integer(0), buffer = integer(0), ids = integer(0))
 
-  if (all(is.na(r[]))) {
+  if (!NROW(px)) {
     return(emptyDT)
   }
-  rvals <- values(r, mat = FALSE)
-  loci <- which(!is.na(rvals))
-  ids <- as.integer(rvals[loci])
+  loci <- px$pixelID
+  ids <- px$ids
 
   am <- if (is(areaMultiplier, "function")) {
     areaMultiplier
@@ -260,6 +257,40 @@ bufferToArea.sf <- function(poly, rasterToMatch, areaMultiplier = 10,
 #' @export
 multiplier <- function(size, minSize = 500, baseMultiplier = 7.5, logIntercept = 21, logSlope = 2) {
   pmax(minSize, round(pmax(baseMultiplier, logIntercept - logSlope * log(size)) * size, 0))
+}
+
+## Each fire's burned pixels on `rasterToMatch`, as the spread fit has them: the cells whose centre is in a polygon
+## (terra::rasterize(); where polygons overlap, the cell is the last one's), labelled by the integer column `field`.
+## A data.table of `pixelID` and `ids`.
+firePixels <- function(poly, rasterToMatch, field, ...) {
+  poly <- if (inherits(poly, "sf")) sf::st_transform(poly, sf::st_crs(rasterToMatch)) else
+    terra::project(poly, terra::crs(rasterToMatch))
+  rvals <- values(rasterize(x = poly, y = rasterToMatch, field = field, ...), mat = FALSE)
+  loci <- which(!is.na(rvals))
+  data.table(pixelID = loci, ids = as.integer(rvals[loci]))
+}
+
+#' A fire's burnable area
+#'
+#' The one measure of a fire's burnable area, for the spread fit's target size (`fireSense_dataPrepFit`'s
+#' `BURNABLE_HA`) and the observed fire it is scored against ([fireStarts()]'s `burnableHa`, used by
+#' [hindcastObserved()]): the fire's burned pixels that the simulation can burn, times the pixel area. A fire's burned
+#' pixels are those of [harmonizeFireData()]: the cells whose centre is in its polygon, one fire per cell where the
+#' polygons of a year overlap (the last polygon's), less the cells where `flammableRTM` is `NA`
+#' (`removeBufferedFiresOutsideRTM()`).
+#'
+#' @param firePixels `data.table` of the fires' pixels: `pixelID` and `ids` (the fire), and optionally `buffer`, as
+#'   in a year of `fireBufferedListDT`, of which only the burned rows (`buffer == 1`) count.
+#' @param burnablePixels The `pixelID`s the simulation can burn: those of the fire year's `landcoverDT` (its
+#'   spread covariates, so its spread probability, exist only there).
+#' @param pixSizeHa Area of one pixel (ha).
+#'
+#' @return A numeric vector of ha, named by fire (`ids`), one per fire of `firePixels` (0 if none of its pixels
+#'   can burn).
+#' @export
+burnableFireHa <- function(firePixels, burnablePixels, pixSizeHa) {
+  burned <- if ("buffer" %in% names(firePixels)) firePixels$buffer == 1L else TRUE
+  tapply(burned & firePixels$pixelID %in% burnablePixels, firePixels$ids, sum) * pixSizeHa
 }
 
 #' Remove buffered fires in `fireBufferedListDT` that are outside `flammableRTM`

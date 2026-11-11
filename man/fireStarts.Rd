@@ -13,7 +13,8 @@ fireStarts(
   idCol = NULL,
   sizeCol = polySizeColTxt,
   polyCauseCol = polyCauseColTxt,
-  coreIs = "ELF"
+  coreIs = "ELF",
+  burnablePixels = NULL
 )
 
 escapeFireSet(
@@ -25,14 +26,15 @@ escapeFireSet(
   idCol = NULL,
   sizeCol = polySizeColTxt,
   polyCauseCol = polyCauseColTxt,
-  coreIs = "ELF"
+  coreIs = "ELF",
+  burnablePixels = NULL
 )
 }
 \arguments{
 \item{polys}{Fire polygons (\code{SpatVector} or \code{sf}, or a list of them, one per year) with column \code{YEAR}.}
 
 \item{flammableRTM}{\code{SpatRaster} of the burnable pixels (1; 0 or \code{NA} cannot burn) of the whole landscape,
-core and buffer. Its grid gives \code{pixelID} and the burnable area.}
+core and buffer. Its grid gives \code{pixelID}, the fires' pixels and the burnable area.}
 
 \item{coreRaster}{\code{SpatRaster} of the core, read by \code{\link[=inELFCore]{inELFCore()}} (with \code{coreIs}), e.g. \code{rasterToMatchLargeELF}
 (2 core, 1 buffer). \code{NULL} makes every start a core start.}
@@ -50,12 +52,15 @@ is measured (\code{terra::expanse()}).}
 \item{coreIs}{What \code{coreRaster} is, as in \code{\link[=inELFCore]{inELFCore()}}: \code{"ELF"} (default; core \link{fireSenseELFCoreValue}, buffer 1)
 or \code{"mask"}.}
 
+\item{burnablePixels}{\code{NULL}, or the \code{pixelID}s the simulation can burn: those of the fire year's \code{landcoverDT}, as
+the spread fit counts them (\code{\link[=burnableFireHa]{burnableFireHa()}}). \code{NULL}: the cells of \code{flammableRTM} above 0.}
+
 \item{definition}{The escape definition, from \code{\link[=escapeDefinition]{escapeDefinition()}}.}
 }
 \value{
 A \code{SpatVector} of points in the CRS of \code{flammableRTM}, one per polygon with a start: \code{YEAR}, \code{.poly}
 (the polygon's row in \code{polys}), \code{idCol} (if given), \code{polyHa} (the whole polygon), \code{burnableHa} (its burnable
-pixels, core and buffer: the area the simulation can burn), \code{cause} (if \code{polys} has \code{polyCauseCol}),
+pixels, core and buffer: the area the simulation can burn; \code{\link[=burnableFireHa]{burnableFireHa()}}), \code{cause} (if \code{polys} has \code{polyCauseCol}),
 \code{pixelID} (the start's cell of \code{flammableRTM}) and \code{core} (logical: the start is in the core).
 }
 \description{
@@ -65,4 +70,9 @@ pixels, core and buffer: the area the simulation can burn), \code{cause} (if \co
 \code{\link[=harmonizeFireData]{harmonizeFireData()}} uses (\code{\link[=harmonizeBufferAndPoints]{harmonizeBufferAndPoints()}}, then \code{\link[=cleanUpSpreadFirePoints]{cleanUpSpreadFirePoints()}}), year by year.
 A polygon with no burnable pixel has no start and is left out. \code{escapeFireSet()} does the same for the
 escape polygons of \code{definition} only.
+}
+\details{
+A fire's pixels are the spread fit's (\code{\link[=burnableFireHa]{burnableFireHa()}}): the cells of \code{flammableRTM} whose centre is in the
+polygon, one fire per cell where polygons of a year overlap, less the \code{NA} cells; a polygon covering no cell centre
+has none, so no start, as \code{\link[=harmonizeFireData]{harmonizeFireData()}} drops it.
 }

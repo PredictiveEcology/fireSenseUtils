@@ -4,7 +4,7 @@
 ## core and buffer. Its start is the polygon centroid moved to the nearest burnable pixel of the fire, as the spread
 ## fit has always had it ([harmonizeBufferAndPoints()], [cleanUpSpreadFirePoints()]); never the NFDB point.
 
-utils::globalVariables(c(".poly", "flammable"))
+utils::globalVariables(".poly")
 
 #' The definition of an escaped fire
 #'
@@ -89,9 +89,15 @@ checkEscapeDefinition <- function(recorded, current = escapeDefinition(), what =
 #' A polygon with no burnable pixel has no start and is left out. `escapeFireSet()` does the same for the
 #' escape polygons of `definition` only.
 #'
+#' A fire's pixels are the spread fit's ([burnableFireHa()]): the cells of `flammableRTM` whose centre is in the
+#' polygon, one fire per cell where polygons of a year overlap, less the `NA` cells; a polygon covering no cell centre
+#' has none, so no start, as [harmonizeFireData()] drops it.
+#'
 #' @param polys Fire polygons (`SpatVector` or `sf`, or a list of them, one per year) with column `YEAR`.
 #' @param flammableRTM `SpatRaster` of the burnable pixels (1; 0 or `NA` cannot burn) of the whole landscape,
-#'   core and buffer. Its grid gives `pixelID` and the burnable area.
+#'   core and buffer. Its grid gives `pixelID`, the fires' pixels and the burnable area.
+#' @param burnablePixels `NULL`, or the `pixelID`s the simulation can burn: those of the fire year's `landcoverDT`, as
+#'   the spread fit counts them ([burnableFireHa()]). `NULL`: the cells of `flammableRTM` above 0.
 #' @param coreRaster `SpatRaster` of the core, read by [inELFCore()] (with `coreIs`), e.g. `rasterToMatchLargeELF`
 #'   (2 core, 1 buffer). `NULL` makes every start a core start.
 #' @param starts `NULL`, or start points (`SpatVector` or `sf`, or a list of them) sharing `YEAR` and `idCol` with
@@ -105,13 +111,14 @@ checkEscapeDefinition <- function(recorded, current = escapeDefinition(), what =
 #'
 #' @return A `SpatVector` of points in the CRS of `flammableRTM`, one per polygon with a start: `YEAR`, `.poly`
 #'   (the polygon's row in `polys`), `idCol` (if given), `polyHa` (the whole polygon), `burnableHa` (its burnable
-#'   pixels, core and buffer: the area the simulation can burn), `cause` (if `polys` has `polyCauseCol`),
+#'   pixels, core and buffer: the area the simulation can burn; [burnableFireHa()]), `cause` (if `polys` has `polyCauseCol`),
 #'   `pixelID` (the start's cell of `flammableRTM`) and `core` (logical: the start is in the core).
 #' @export
 #' @importFrom data.table data.table
 #' @importFrom terra cellFromXY cells centroids crds crs extract project res same.crs vect
 fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, idCol = NULL,
-                       sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt, coreIs = "ELF") {
+                       sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt, coreIs = "ELF",
+                       burnablePixels = NULL) {
   crsR <- terra::crs(flammableRTM)
   polys <- asOneVect(polys)
   if (!NROW(polys)) return(fireStartsOf(NULL, matrix(numeric(), ncol = 2), crsR, idCol, polyCauseCol))
@@ -119,11 +126,14 @@ fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, id
   if (!".poly" %in% names(polys)) polys$.poly <- seq_len(NROW(polys))
   if (!".ha" %in% names(polys)) polys$.ha <- polySizeHa(polys, sizeCol)
 
-  ## the pixels of each polygon, and whether they can burn
-  cl <- terra::cells(flammableRTM, polys)
-  cl <- data.table::data.table(.poly = polys$.poly[cl[, "ID"]], pixelID = as.integer(cl[, "cell"]))
-  flam <- terra::extract(flammableRTM, cl$pixelID)[[1]]
-  cl[, flammable := !is.na(flam) & flam > 0]
+  ## the pixels of each polygon, as harmonizeFireData() has them, year by year
+  cl <- data.table::rbindlist(lapply(split(seq_len(NROW(polys)), as.integer(polys$YEAR)), function(i)
+    removeBufferedFiresOutsideRTM(firePixels(polys[i, ".poly"], flammableRTM, ".poly"), flammableRTM)))
+  data.table::setnames(cl, "ids", ".poly")
+  if (is.null(burnablePixels)) {
+    flam <- terra::extract(flammableRTM, cl$pixelID)[[1]]
+    burnablePixels <- cl$pixelID[!is.na(flam) & flam > 0]
+  }
 
   if (is.null(starts)) {
     xy <- snappedCentroids(polys, cl, flammableRTM)
@@ -138,11 +148,12 @@ fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, id
   has <- !is.na(at)
   polys <- polys[has, ]
   xy <- xy[at[has], , drop = FALSE]
-  burnable <- cl[, list(n = sum(flammable)), by = ".poly"]
   pts <- fireStartsOf(polys, xy, crsR, idCol, polyCauseCol)
-  nBurnable <- burnable$n[match(polys$.poly, burnable$.poly)]
-  nBurnable[is.na(nBurnable)] <- 0L
-  pts$burnableHa <- nBurnable * prod(terra::res(flammableRTM)) / 1e4
+  burnableHa <- burnableFireHa(data.table::data.table(pixelID = cl$pixelID, ids = cl$.poly), burnablePixels,
+                               prod(terra::res(flammableRTM)) / 1e4)
+  burnableHa <- as.vector(burnableHa[as.character(polys$.poly)])
+  burnableHa[is.na(burnableHa)] <- 0
+  pts$burnableHa <- burnableHa
   pts$pixelID <- terra::cellFromXY(flammableRTM, xy)
   pts$core <- inELFCore(pts, coreRaster, coreIs)
   pts
@@ -152,9 +163,10 @@ fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, id
 #' @param definition The escape definition, from [escapeDefinition()].
 #' @export
 escapeFireSet <- function(polys, flammableRTM, coreRaster = NULL, definition = escapeDefinition(), starts = NULL,
-                          idCol = NULL, sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt, coreIs = "ELF") {
+                          idCol = NULL, sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt, coreIs = "ELF",
+                          burnablePixels = NULL) {
   polys <- escapesOf(polys, definition, flammableRTM, sizeCol, polyCauseCol)
-  fireStarts(polys, flammableRTM, coreRaster, starts, idCol, sizeCol, polyCauseCol, coreIs)
+  fireStarts(polys, flammableRTM, coreRaster, starts, idCol, sizeCol, polyCauseCol, coreIs, burnablePixels)
 }
 
 ## the polygons of `polys` that are escapes of `definition`, with `.poly` their row in `polys` (as [fireStarts()]'s)
@@ -215,7 +227,8 @@ escapeIgnitionPoints <- function(points, polys, fireSet, coreRaster, definition 
 escapeFireSetDeps <- function() {
   list(escapeDefinition, escapeCauses, escapeFireSet, fireStarts, escapeIgnitionPoints, escapePolys, polySizeHa,
        isEscapeSize, asOneVect, startOf, snappedCentroids, fireStartsOf, inELFCore, escapesOf, ignitionsAt, nfdbCauseOf,
-       ignitionPolygonPairs, pickEscapePoints, fireCauseCodes, harmonizeBufferAndPoints, cleanUpSpreadFirePoints)
+       ignitionPolygonPairs, pickEscapePoints, fireCauseCodes, harmonizeBufferAndPoints, cleanUpSpreadFirePoints,
+       firePixels, removeBufferedFiresOutsideRTM, burnableFireHa)
 }
 
 ## the whole fire's size (ha): `sizeCol` if `polys` has it, else the area given

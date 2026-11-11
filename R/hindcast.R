@@ -45,6 +45,9 @@
 #'   Needs `fireCauses` and `flammableRTM`, and `firePolys` with `polyCauseCol`.
 #' @param sizeCol With `coreStart = TRUE`: the column of `firePolys` with the whole fire's size (ha), as in
 #'   [escapeFireSet()].
+#' @param burnablePixels With `coreStart = TRUE`: the `pixelID`s of `flammableRTM` the simulation can burn, those of
+#'   the year's `landcoverDT`, so a fire's area is measured as the spread fit's target ([burnableFireHa()]). `NULL`
+#'   (default): the cells of `flammableRTM` above 0.
 #'
 #' @return A list. `counts` is a one-row `data.table`: `year`, `ignitions`, `escapes`, `areaBurnedHa`
 #'   (natural-cause polygons on burnable core pixels), `areaBurnedHaAllCause`, `nFires50` and `nFires50AllCause`
@@ -64,7 +67,7 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
                              pixelAreaHa = prod(terra::res(coreRaster)) / 1e4,
                              naturalCauses = c("L", "N"), polyCauseCol = polyCauseColTxt,
                              naturalPolyCauses = "Natural", flammableRTM = NULL, fireCauses = NULL,
-                             coreStart = FALSE, sizeCol = polySizeColTxt, coreIs = "mask") {
+                             coreStart = FALSE, sizeCol = polySizeColTxt, coreIs = "mask", burnablePixels = NULL) {
   if (!is.null(fireCauses)) {
     naturalCauses <- fireCauseCodes(fireCauses, "nfdb")
     naturalPolyCauses <- fireCauseCodes(fireCauses, "nbac")
@@ -83,7 +86,7 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   core <- coreZone(inCoreRaster)
   if (isTRUE(coreStart))
     return(hindcastObservedCoreStart(core, firePoints, firePolys, year, escapeSizeHa, fireCauses, flammableRTM,
-                                     pixelAreaHa, polyCauseCol, sizeCol))
+                                     pixelAreaHa, polyCauseCol, sizeCol, burnablePixels))
   ## the burnable core: the pixels the simulation can burn, the zone its area and sizes are counted on
   if (is.null(flammableRTM)) {
     warning("flammableRTM not supplied: observed area counts every core pixel as burnable")
@@ -149,7 +152,7 @@ hindcastCounts <- function(year, ignitions, escapes, sizes, sizesPolygon, escape
 
 ## hindcastObserved(coreStart = TRUE): the fires that start in the core (value 2 of `core`), at their whole extent
 hindcastObservedCoreStart <- function(core, firePoints, firePolys, year, escapeSizeHa, fireCauses, flammableRTM,
-                                      pixelAreaHa, polyCauseCol, sizeCol) {
+                                      pixelAreaHa, polyCauseCol, sizeCol, burnablePixels) {
   if (is.null(fireCauses)) stop("hindcastObserved(coreStart = TRUE) needs fireCauses, the escape definition's causes")
   if (is.null(flammableRTM)) stop("hindcastObserved(coreStart = TRUE) needs flammableRTM, the burnable pixels of ",
                                   "the core and the buffer")
@@ -159,7 +162,8 @@ hindcastObservedCoreStart <- function(core, firePoints, firePolys, year, escapeS
   if (NROW(yearPolys) && !polyCauseCol %in% names(yearPolys))
     stop("hindcastObserved(coreStart = TRUE): firePolys has no column '", polyCauseCol, "'")
   if (NROW(yearPolys)) yearPolys$.poly <- seq_len(NROW(yearPolys))
-  starts <- fireStarts(yearPolys, flammableRTM, core, sizeCol = sizeCol, polyCauseCol = polyCauseCol)
+  starts <- fireStarts(yearPolys, flammableRTM, core, sizeCol = sizeCol, polyCauseCol = polyCauseCol,
+                       burnablePixels = burnablePixels)
   ## the escapes' starts are those of their polygons, so the centroids are snapped once
   escapes <- starts[starts$.poly %in% escapesOf(yearPolys, definition, flammableRTM, sizeCol, polyCauseCol)$.poly, ]
   starts <- starts[starts$core, ]
