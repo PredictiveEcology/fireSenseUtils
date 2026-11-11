@@ -16,7 +16,7 @@
 #' given to [SpaDES.core::Plots()] as `fn`.
 #'
 #' @param par The fitted parameters, as given to [.objfunSpreadFit()] (without `hillSlope1` and
-#'   `inflectionPoint1`, which are fixed at 1; `yearSpreadSD` last if fitted).
+#'   `inflectionPoint1`, which are fixed at 1; `fireSpreadSD` then `yearSpreadSD` last if fitted).
 #' @inheritParams .objfunSpreadFit
 #' @param Nreps Simulations per fire; use the fit's `Nreps`.
 #' @param seed If not `NULL`, the simulations run with this seed and the session's random number
@@ -43,7 +43,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                     mutuallyExclusive = list("youngAge" = c("class", "nf")),
                                     covCentre = NULL, Nreps = 10, lowerSpreadProb = spreadProbFloor,
                                     maxFireSpread = spreadProbCeiling, link = NULL, fitYearSpreadSD = NULL,
-                                    climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
+                                    fitFireSpreadSD = NULL, wholeLandscape = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
                                     powerLawShape = spreadPowerLawShape, seed = NULL, ...) {
   if (!is.null(seed)) withr::local_seed(seed)
   objArgs <- utils::modifyList(
@@ -55,12 +55,13 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
     historicalFires = historicalFires, fireBufferedListDT = fireBufferedListDT,
     covMinMax = covMinMax, mutuallyExclusive = mutuallyExclusive, covCentre = covCentre,
     Nreps = Nreps, lowerSpreadProb = lowerSpreadProb, maxFireSpread = maxFireSpread, link = link,
-    fitYearSpreadSD = fitYearSpreadSD, climateRef = climateRef, powerLawGamma = powerLawGamma,
+    fitYearSpreadSD = fitYearSpreadSD, fitFireSpreadSD = fitFireSpreadSD, wholeLandscape = wholeLandscape,
+    climateRef = climateRef, powerLawGamma = powerLawGamma,
     powerLawShape = powerLawShape, returnBurned = TRUE), objArgs))
   burned <- attr(sims, "burned")
 
   ## the parameters as the objective uses them
-  par <- splitSpreadPar(par, fitYearSpreadSD)$par
+  par <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD)$par
   colsToUse <- spreadDesignCols(formulaToFit)
   covCols <- spreadCovCols(colsToUse)
   pp <- paramsSeparate(par, length(colsToUse))
