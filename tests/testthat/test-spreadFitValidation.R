@@ -193,3 +193,24 @@ test_that("the validation data omits the intercept from its covariates but keeps
   ## the response curves take the intercept into account without a column for it
   expect_s3_class(plotSpreadFitResponse(d), "ggplot")
 })
+
+test_that("spreadFitValidationData() on the whole landscape splits a fitted fireSpreadSD off, named or not", {
+  skip_if_not_installed("SpaDES.tools")
+  inp <- toyValidationInputs()
+  run <- function(par, ...) spreadFitValidationData(
+    par = par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
+    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
+    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
+    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive, Nreps = 4L, seed = 1L,
+    link = "powerLaw", wholeLandscape = TRUE, penaliseRunaways = FALSE, ...)
+  parSD <- c(inp$par, fireSpreadSD = 0.5)
+  d <- run(parSD)
+  expect_identical(names(d), c("year", "pixelID", "observed", "simulated", "p", "clim", "youngAge", "agb"))
+  ## the sd is not read as a coefficient: the coefficients are those of the par without it
+  expect_equal(unname(attr(d, "spreadFitValidation")$covPars), unname(inp$par[c("clim", "youngAge", "agb")]))
+  expect_equal(run(parSD, fitYearSpreadSD = FALSE, fitFireSpreadSD = TRUE), d)
+  ## an unnamed par (as DEoptim passes it) is split as `fitFireSpreadSD` says
+  dUnnamed <- run(unname(parSD), fitFireSpreadSD = TRUE)
+  expect_equal(unname(attr(dUnnamed, "spreadFitValidation")$covPars), unname(inp$par[c("clim", "youngAge", "agb")]))
+  expect_equal(dUnnamed$p, d$p)
+})
