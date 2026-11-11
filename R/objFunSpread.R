@@ -1,4 +1,9 @@
+#' @rdname fireSenseUtils-constants
+#' @export
 yearSpreadSDTxt <- "yearSpreadSD"
+
+#' @rdname fireSenseUtils-constants
+#' @export
 fireSpreadSDTxt <- "fireSpreadSD"
 
 #' @rdname fireSenseUtils-constants
@@ -1503,6 +1508,31 @@ areaWeightedCvM <- function(sim, obs) {
   x <- sort(obs)
   w <- x / sum(x)
   length(obs) * sum(w * (Fw(sim, x) - Fw(obs, x))^2)
+}
+
+#' The random-effect arguments of the spread objective, from a fit's bounds
+#'
+#' A spread fit fits a random effect when its bounds name it: `fireSpreadSD` and `yearSpreadSD`
+#' ([spreadRandomEffectTxt]), which must be the last of `lower`, in that order. `runDEoptim()` passes the result to
+#' [.objfunSpreadFit()]; anything else that calls the objective of a fit (an emulator) should too.
+#'
+#' @param lower Named lower bounds of the fit, as `runDEoptim(lower = )`.
+#' @param wholeLandscape As in `runDEoptim()`: `fireSpreadSD` needs `TRUE` (an error otherwise).
+#'
+#' @return A list of [.objfunSpreadFit()] arguments: `fitYearSpreadSD` (logical) and, only when `lower` has
+#'   `fireSpreadSD`, `fitFireSpreadSD = TRUE`. A fit without the per-fire effect does not get that argument, so its
+#'   cache keys are those it had before the effect existed.
+#' @export
+spreadRandomEffectArgs <- function(lower, wholeLandscape = FALSE) {
+  reTerms <- intersect(spreadRandomEffectTxt, names(lower))
+  if (length(reTerms) && !identical(utils::tail(names(lower), length(reTerms)), reTerms))
+    stop("runDEoptim: `", paste(reTerms, collapse = "` then `"), "` must be the last element",
+         if (length(reTerms) > 1) "s", " of `lower` and `upper`")
+  fitFireSpreadSD <- fireSpreadSDTxt %in% names(lower)
+  checkFireSpreadSD(fitFireSpreadSD, wholeLandscape)
+  out <- list(fitYearSpreadSD = yearSpreadSDTxt %in% names(lower))
+  if (fitFireSpreadSD) out$fitFireSpreadSD <- TRUE
+  out
 }
 
 ## the per-fire random effect is an offset per fire of spreadCpp()'s link, which only the whole landscape uses

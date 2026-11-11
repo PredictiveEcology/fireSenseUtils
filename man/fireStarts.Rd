@@ -13,7 +13,7 @@ fireStarts(
   idCol = NULL,
   sizeCol = polySizeColTxt,
   polyCauseCol = polyCauseColTxt,
-  coreValues = fireSenseELFCoreValue
+  coreIs = "ELF"
 )
 
 escapeFireSet(
@@ -25,7 +25,7 @@ escapeFireSet(
   idCol = NULL,
   sizeCol = polySizeColTxt,
   polyCauseCol = polyCauseColTxt,
-  coreValues = fireSenseELFCoreValue
+  coreIs = "ELF"
 )
 }
 \arguments{
@@ -34,8 +34,8 @@ escapeFireSet(
 \item{flammableRTM}{\code{SpatRaster} of the burnable pixels (1; 0 or \code{NA} cannot burn) of the whole landscape,
 core and buffer. Its grid gives \code{pixelID} and the burnable area.}
 
-\item{coreRaster}{\code{SpatRaster} whose cells with a value in \code{coreValues} are the core, e.g.
-\code{rasterToMatchLargeELF} (2 core, 1 buffer). \code{NULL} makes every start a core start.}
+\item{coreRaster}{\code{SpatRaster} of the core, read by \code{\link[=inELFCore]{inELFCore()}} (with \code{coreIs}), e.g. \code{rasterToMatchLargeELF}
+(2 core, 1 buffer). \code{NULL} makes every start a core start.}
 
 \item{starts}{\code{NULL}, or start points (\code{SpatVector} or \code{sf}, or a list of them) sharing \code{YEAR} and \code{idCol} with
 \code{polys}.}
@@ -47,7 +47,8 @@ is measured (\code{terra::expanse()}).}
 
 \item{polyCauseCol}{Column of \code{polys} holding the cause; default \link{polyCauseColTxt}.}
 
-\item{coreValues}{Values of \code{coreRaster} that are core; default \link{fireSenseELFCoreValue}.}
+\item{coreIs}{What \code{coreRaster} is, as in \code{\link[=inELFCore]{inELFCore()}}: \code{"ELF"} (default; core \link{fireSenseELFCoreValue}, buffer 1)
+or \code{"mask"}.}
 
 \item{definition}{The escape definition, from \code{\link[=escapeDefinition]{escapeDefinition()}}.}
 }

@@ -11,7 +11,8 @@ escapeDefinition(
 }
 \arguments{
 \item{escapeSizeHa}{Size (ha) of the whole polygon at and above which a fire escaped. Default
-\link{fireSenseEscapeSizeHa}.}
+\link{fireSenseEscapeSizeHa}. \code{NA} is the definition of a fit made before one was recorded: it is stored as such and
+\code{\link[=checkEscapeDefinition]{checkEscapeDefinition()}} does not check it.}
 
 \item{fireCauses}{Cause groups of \code{\link[=fireCauseCodes]{fireCauseCodes()}}. Default \link{fireSenseFireCauses}.}
 }
@@ -26,5 +27,5 @@ burn and score with them; a fit stores it in its ledger row, and \code{\link[=ch
 ledger row with the settings of a later run.
 }
 \seealso{
-\code{\link[=escapeFireSet]{escapeFireSet()}}, \code{\link[=checkEscapeDefinition]{checkEscapeDefinition()}}
+\code{\link[=escapeFireSet]{escapeFireSet()}}, \code{\link[=checkEscapeDefinition]{checkEscapeDefinition()}}, \code{\link[=escapeDefinitionOf]{escapeDefinitionOf()}}
 }

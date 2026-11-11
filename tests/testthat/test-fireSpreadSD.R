@@ -91,3 +91,14 @@ test_that("runDEoptim fits fireSpreadSD when the bounds name it, in the fit and 
   expect_error(run(lower[c(1, 2, 4, 3)]), "`fireSpreadSD` then `yearSpreadSD` must be the last elements")
   expect_error(run(lower, whole = FALSE), "needs `wholeLandscape = TRUE`")
 })
+
+test_that("spreadRandomEffectArgs: the objective's random-effect arguments from the bounds' names", {
+  lower <- stats::setNames(c(0.25, 0.1, 0, 0), c("maxAsymptote", "x", fireSpreadSDTxt, yearSpreadSDTxt))
+  expect_identical(spreadRandomEffectArgs(lower, wholeLandscape = TRUE),
+                   list(fitYearSpreadSD = TRUE, fitFireSpreadSD = TRUE))
+  ## without fireSpreadSD the argument is absent, not FALSE, so the objective's cache key is as before
+  expect_identical(spreadRandomEffectArgs(lower[-3]), list(fitYearSpreadSD = TRUE))
+  expect_identical(spreadRandomEffectArgs(lower[1:2]), list(fitYearSpreadSD = FALSE))
+  expect_error(spreadRandomEffectArgs(lower[c(1, 3, 2)], TRUE), "`fireSpreadSD` must be the last element")
+  expect_error(spreadRandomEffectArgs(lower), "needs `wholeLandscape = TRUE`")
+})

@@ -14,19 +14,36 @@ utils::globalVariables(c(".poly", "flammable"))
 #' ledger row with the settings of a later run.
 #'
 #' @param escapeSizeHa Size (ha) of the whole polygon at and above which a fire escaped. Default
-#'   [fireSenseEscapeSizeHa].
+#'   [fireSenseEscapeSizeHa]. `NA` is the definition of a fit made before one was recorded: it is stored as such and
+#'   [checkEscapeDefinition()] does not check it.
 #' @param fireCauses Cause groups of [fireCauseCodes()]. Default [fireSenseFireCauses].
 #'
 #' @return A one-row `data.table` with `escapeSizeHa` (numeric) and `fireCauses` (the groups, sorted and
 #'   joined by `","`), the columns a ledger row stores.
 #' @export
-#' @seealso [escapeFireSet()], [checkEscapeDefinition()]
+#' @seealso [escapeFireSet()], [checkEscapeDefinition()], [escapeDefinitionOf()]
 escapeDefinition <- function(escapeSizeHa = fireSenseEscapeSizeHa, fireCauses = fireSenseFireCauses) {
-  if (!is.numeric(escapeSizeHa) || length(escapeSizeHa) != 1L || is.na(escapeSizeHa) || escapeSizeHa < 0)
-    stop("escapeSizeHa must be one number, 0 or more")
+  if (length(escapeSizeHa) != 1L || !(is.na(escapeSizeHa) || (is.numeric(escapeSizeHa) && escapeSizeHa >= 0)))
+    stop("escapeSizeHa must be one number, 0 or more, or NA")
   fireCauseCodes(fireCauses) # stops on an unknown group
   data.table::data.table(escapeSizeHa = as.numeric(escapeSizeHa),
                          fireCauses = paste(sort(unique(fireCauses)), collapse = ","))
+}
+
+#' The escape definition of a SpaDES run
+#'
+#' [escapeDefinition()] of the current module's `escapeSizeHa` and `fireCauses` parameters, after
+#' `SpaDES.core::paramCheckOtherMods()` has checked that every other module of `sim` that has them has the same
+#' values (an error otherwise). Call it in an event of a module that defines both parameters.
+#'
+#' @param sim A `simList`.
+#'
+#' @return As [escapeDefinition()].
+#' @export
+#' @importFrom SpaDES.core paramCheckOtherMods
+escapeDefinitionOf <- function(sim) {
+  do.call(escapeDefinition, lapply(stats::setNames(nm = names(formals(escapeDefinition))), function(p)
+    SpaDES.core::paramCheckOtherMods(sim, p, ifSetButDifferent = "error")))
 }
 
 ## the cause groups of an escape definition
@@ -37,24 +54,30 @@ escapeCauses <- function(definition) strsplit(definition$fireCauses[1], ",", fix
 #' A fit's ledger row records the [escapeDefinition()] it was fitted with. Burning or scoring with another
 #' definition would compare fires of one kind with a model of another, so this is an error.
 #'
-#' @param recorded A ledger row (`data.frame` or list) with the columns of [escapeDefinition()].
-#'   A row without them (fitted before the definition was recorded) is not checked.
-#' @param current The definition in use, from [escapeDefinition()].
+#' @param recorded Ledger rows (`data.frame` or list), e.g. one per ELF, with the columns of [escapeDefinition()].
+#'   Rows without them, or with `escapeSizeHa` `NA` (fitted before the definition was recorded), are not checked.
+#'   With a [polygonIDTxt] column, the message names the ELF of the row that differs.
+#' @param current The definition in use, from [escapeDefinition()] or [escapeDefinitionOf()]. One with
+#'   `escapeSizeHa` `NA` (a run with an old fit's definition) checks nothing.
 #' @param what Where `recorded` comes from, for the message.
 #'
-#' @return `TRUE` invisibly if they agree, `NA` invisibly if `recorded` has no definition; otherwise an error.
+#' @return `TRUE` invisibly if every row checked agrees, `NA` invisibly if none was checked; otherwise an error.
 #' @export
 checkEscapeDefinition <- function(recorded, current = escapeDefinition(), what = "the fit") {
   cols <- names(escapeDefinition())
-  if (!all(cols %in% names(recorded))) return(invisible(NA))
-  recorded <- escapeDefinition(as.numeric(unlist(recorded[["escapeSizeHa"]])[1]),
-                               strsplit(as.character(unlist(recorded[["fireCauses"]])[1]), ",", fixed = TRUE)[[1]])
-  if (!isTRUE(all.equal(recorded$escapeSizeHa, current$escapeSizeHa)) ||
-      !identical(recorded$fireCauses, current$fireCauses))
-    stop("the escape definition of ", what, " (escapeSizeHa ", recorded$escapeSizeHa, ", fireCauses ",
-         recorded$fireCauses, ") differs from this run's (escapeSizeHa ", current$escapeSizeHa, ", fireCauses ",
-         current$fireCauses, ")", call. = FALSE)
-  invisible(TRUE)
+  if (!all(cols %in% names(recorded)) || is.na(current$escapeSizeHa)) return(invisible(NA))
+  sizes <- as.numeric(unlist(recorded[["escapeSizeHa"]]))
+  causes <- as.character(unlist(recorded[["fireCauses"]]))
+  ids <- if (polygonIDTxt %in% names(recorded)) as.character(unlist(recorded[[polygonIDTxt]]))
+  rows <- which(!is.na(sizes))
+  for (i in rows) {
+    rec <- escapeDefinition(sizes[i], strsplit(causes[i], ",", fixed = TRUE)[[1]])
+    if (!isTRUE(all.equal(rec$escapeSizeHa, current$escapeSizeHa)) || !identical(rec$fireCauses, current$fireCauses))
+      stop("the escape definition of ", what, if (!is.null(ids)) paste0(" of ELF ", ids[i]), " (escapeSizeHa ",
+           rec$escapeSizeHa, ", fireCauses ", rec$fireCauses, ") differs from this run's (escapeSizeHa ",
+           current$escapeSizeHa, ", fireCauses ", current$fireCauses, ")", call. = FALSE)
+  }
+  invisible(if (length(rows)) TRUE else NA)
 }
 
 #' One start per fire polygon, and whether it is in the core
@@ -69,15 +92,16 @@ checkEscapeDefinition <- function(recorded, current = escapeDefinition(), what =
 #' @param polys Fire polygons (`SpatVector` or `sf`, or a list of them, one per year) with column `YEAR`.
 #' @param flammableRTM `SpatRaster` of the burnable pixels (1; 0 or `NA` cannot burn) of the whole landscape,
 #'   core and buffer. Its grid gives `pixelID` and the burnable area.
-#' @param coreRaster `SpatRaster` whose cells with a value in `coreValues` are the core, e.g.
-#'   `rasterToMatchLargeELF` (2 core, 1 buffer). `NULL` makes every start a core start.
+#' @param coreRaster `SpatRaster` of the core, read by [inELFCore()] (with `coreIs`), e.g. `rasterToMatchLargeELF`
+#'   (2 core, 1 buffer). `NULL` makes every start a core start.
 #' @param starts `NULL`, or start points (`SpatVector` or `sf`, or a list of them) sharing `YEAR` and `idCol` with
 #'   `polys`.
 #' @param idCol The fire ID column of `polys` and `starts`; needed with `starts`, and copied to the result if given.
 #' @param sizeCol Column of `polys` with the whole fire's size (ha); default [polySizeColTxt]. A `polys` without it
 #'   is measured (`terra::expanse()`).
 #' @param polyCauseCol Column of `polys` holding the cause; default [polyCauseColTxt].
-#' @param coreValues Values of `coreRaster` that are core; default [fireSenseELFCoreValue].
+#' @param coreIs What `coreRaster` is, as in [inELFCore()]: `"ELF"` (default; core [fireSenseELFCoreValue], buffer 1)
+#'   or `"mask"`.
 #'
 #' @return A `SpatVector` of points in the CRS of `flammableRTM`, one per polygon with a start: `YEAR`, `.poly`
 #'   (the polygon's row in `polys`), `idCol` (if given), `polyHa` (the whole polygon), `burnableHa` (its burnable
@@ -87,8 +111,7 @@ checkEscapeDefinition <- function(recorded, current = escapeDefinition(), what =
 #' @importFrom data.table data.table
 #' @importFrom terra cellFromXY cells centroids crds crs extract project res same.crs vect
 fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, idCol = NULL,
-                       sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt,
-                       coreValues = fireSenseELFCoreValue) {
+                       sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt, coreIs = "ELF") {
   crsR <- terra::crs(flammableRTM)
   polys <- asOneVect(polys)
   if (!NROW(polys)) return(fireStartsOf(NULL, matrix(numeric(), ncol = 2), crsR, idCol, polyCauseCol))
@@ -121,7 +144,7 @@ fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, id
   nBurnable[is.na(nBurnable)] <- 0L
   pts$burnableHa <- nBurnable * prod(terra::res(flammableRTM)) / 1e4
   pts$pixelID <- terra::cellFromXY(flammableRTM, xy)
-  pts$core <- startsInCore(pts, coreRaster, coreValues)
+  pts$core <- inELFCore(pts, coreRaster, coreIs)
   pts
 }
 
@@ -129,11 +152,15 @@ fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, id
 #' @param definition The escape definition, from [escapeDefinition()].
 #' @export
 escapeFireSet <- function(polys, flammableRTM, coreRaster = NULL, definition = escapeDefinition(), starts = NULL,
-                          idCol = NULL, sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt,
-                          coreValues = fireSenseELFCoreValue) {
-  polys <- escapePolys(polys, definition$escapeSizeHa, prod(terra::res(flammableRTM)) / 1e4, sizeCol,
-                       fireCauseCodes(escapeCauses(definition), "nbac"), polyCauseCol)
-  fireStarts(polys, flammableRTM, coreRaster, starts, idCol, sizeCol, polyCauseCol, coreValues)
+                          idCol = NULL, sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt, coreIs = "ELF") {
+  polys <- escapesOf(polys, definition, flammableRTM, sizeCol, polyCauseCol)
+  fireStarts(polys, flammableRTM, coreRaster, starts, idCol, sizeCol, polyCauseCol, coreIs)
+}
+
+## the polygons of `polys` that are escapes of `definition`, with `.poly` their row in `polys` (as [fireStarts()]'s)
+escapesOf <- function(polys, definition, flammableRTM, sizeCol, polyCauseCol) {
+  escapePolys(polys, definition$escapeSizeHa, prod(terra::res(flammableRTM)) / 1e4, sizeCol,
+              fireCauseCodes(escapeCauses(definition), "nbac"), polyCauseCol)
 }
 
 #' The ignitions the ignition and escape models are fitted to, and the hindcast counts
@@ -148,7 +175,7 @@ escapeFireSet <- function(polys, flammableRTM, coreRaster = NULL, definition = e
 #' @param polys The fire polygons `fireSet` was made from.
 #' @param fireSet The escape polygons' starts, from [escapeFireSet()] with the same `definition`, `polys` and
 #'   `sizeCol`.
-#' @param coreRaster,coreValues As in [escapeFireSet()]: the core the points must start in.
+#' @param coreRaster,coreIs As in [escapeFireSet()]: the core the points must start in.
 #' @param definition The escape definition, from [escapeDefinition()].
 #' @param pixSizeHa Pixel area (ha), as in [escapedIgnitions()].
 #' @param maxDistM As in [ignitionPolygonPairs()].
@@ -160,7 +187,7 @@ escapeFireSet <- function(polys, flammableRTM, coreRaster = NULL, definition = e
 #'   whole size, `CAUSE` the NFDB code of its cause group).
 #' @export
 escapeIgnitionPoints <- function(points, polys, fireSet, coreRaster, definition = escapeDefinition(), pixSizeHa,
-                                 coreValues = fireSenseELFCoreValue, maxDistM = 1000, sizeCol = polySizeColTxt,
+                                 coreIs = "ELF", maxDistM = 1000, sizeCol = polySizeColTxt,
                                  pointSizeCol = "SIZE_HA", polyCauseCol = polyCauseColTxt) {
   causes <- escapeCauses(definition)
   points <- asOneVect(points)
@@ -168,7 +195,7 @@ escapeIgnitionPoints <- function(points, polys, fireSet, coreRaster, definition 
   m <- ignitionPolygonPairs(points, polys, definition$escapeSizeHa, pixSizeHa, maxDistM, sizeCol = sizeCol,
                             causes = fireCauseCodes(causes, "nbac"), polyCauseCol = polyCauseCol)
   points <- m$points[!pickEscapePoints(m, pointSizeCol), ]
-  points <- points[startsInCore(points, coreRaster, coreValues), ]
+  points <- points[inELFCore(points, coreRaster, coreIs), ]
   points$escaped <- rep(FALSE, NROW(points))
   esc <- fireSet[fireSet$core, ]
   esc <- terra::project(esc, terra::crs(points))
@@ -187,7 +214,7 @@ escapeIgnitionPoints <- function(points, polys, fireSet, coreRaster, definition 
 #' @export
 escapeFireSetDeps <- function() {
   list(escapeDefinition, escapeCauses, escapeFireSet, fireStarts, escapeIgnitionPoints, escapePolys, polySizeHa,
-       isEscapeSize, asOneVect, startOf, snappedCentroids, fireStartsOf, startsInCore, ignitionsAt, nfdbCauseOf,
+       isEscapeSize, asOneVect, startOf, snappedCentroids, fireStartsOf, inELFCore, escapesOf, ignitionsAt, nfdbCauseOf,
        ignitionPolygonPairs, pickEscapePoints, fireCauseCodes, harmonizeBufferAndPoints, cleanUpSpreadFirePoints)
 }
 
@@ -230,13 +257,43 @@ fireStartsOf <- function(polys, xy, crs, idCol, polyCauseCol) {
   pts
 }
 
-## whether each point is on a core cell of `coreRaster` (a value in `coreValues`); all TRUE without one
-startsInCore <- function(pts, coreRaster, coreValues) {
-  if (is.null(coreRaster)) return(rep(TRUE, NROW(pts)))
-  if (!NROW(pts)) return(logical())
-  if (!terra::same.crs(pts, coreRaster)) pts <- terra::project(pts, terra::crs(coreRaster))
-  v <- terra::extract(coreRaster, terra::crds(pts))[[1]]
-  !is.na(v) & v %in% coreValues
+#' Which points or cells are in an ELF's core
+#'
+#' The one rule for the core of an ELF, for every part of fireSense: the fit's fires, the escape and ignition data,
+#' the burn and the hindcast. Three kinds of raster are in use. The values of the first two cannot tell them apart
+#' (a 1 is buffer in one and core in the other), so `coreIs` says which a numeric `coreRaster` is:
+#' - `"ELF"`: a one-ELF raster, `rasterToMatchLargeELF`: the core is [fireSenseELFCoreValue] (2), the buffer 1.
+#' - `"mask"`: the core alone, as `rasterToMatchELF` and the `coreRaster` of [hindcastObserved()] and
+#'   [hindcastSimulated()]: the core is every value above 0; `NA` or 0 elsewhere.
+#' - A categorical raster (`terra::is.factor()`), as `fireSense_ELFs` makes `rasterToMatchLargeELF` of a study
+#'   area over several ELFs: each cell is labelled with its ELF (the codes start at 0) and the study area has no
+#'   buffer, so every labelled cell is core. `coreIs` is not used.
+#'
+#' @param x Points (`SpatVector` or `sf`), or cell numbers of `grid`.
+#' @param coreRaster `SpatRaster` of the core, as above. `NULL`: everything is core.
+#' @param coreIs `"ELF"` (default) or `"mask"`: what a numeric `coreRaster` is.
+#' @param grid `SpatRaster` whose cells `x` numbers; default `coreRaster`. On another grid each cell is placed by its
+#'   centre.
+#'
+#' @return A logical vector, one per point or cell: `TRUE` in the core.
+#' @export
+#' @importFrom terra compareGeom crds extract project same.crs xyFromCell
+inELFCore <- function(x, coreRaster, coreIs = c("ELF", "mask"), grid = coreRaster) {
+  coreIs <- match.arg(coreIs)
+  cells <- is.numeric(x)
+  n <- if (cells) length(x) else NROW(x)
+  if (is.null(coreRaster)) return(rep(TRUE, n))
+  if (!n) return(logical())
+  v <- if (cells) {
+    if (terra::compareGeom(grid, coreRaster, stopOnError = FALSE, messages = FALSE)) terra::extract(coreRaster, x)[[1]]
+    else terra::extract(coreRaster, terra::xyFromCell(grid, x))[[1]]
+  } else {
+    if (!inherits(x, "SpatVector")) x <- terra::vect(x)
+    if (!terra::same.crs(x, coreRaster)) x <- terra::project(x, terra::crs(coreRaster))
+    terra::extract(coreRaster, terra::crds(x))[[1]]
+  }
+  if (terra::is.factor(coreRaster)[1]) return(!is.na(v))
+  !is.na(v) & if (coreIs == "ELF") v %in% fireSenseELFCoreValue else v > 0
 }
 
 ## the NFDB CAUSE of NBAC cause values: the cause group's main NFDB code (N, U, H, RE)

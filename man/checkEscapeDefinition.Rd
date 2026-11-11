@@ -7,15 +7,17 @@
 checkEscapeDefinition(recorded, current = escapeDefinition(), what = "the fit")
 }
 \arguments{
-\item{recorded}{A ledger row (\code{data.frame} or list) with the columns of \code{\link[=escapeDefinition]{escapeDefinition()}}.
-A row without them (fitted before the definition was recorded) is not checked.}
+\item{recorded}{Ledger rows (\code{data.frame} or list), e.g. one per ELF, with the columns of \code{\link[=escapeDefinition]{escapeDefinition()}}.
+Rows without them, or with \code{escapeSizeHa} \code{NA} (fitted before the definition was recorded), are not checked.
+With a \link{polygonIDTxt} column, the message names the ELF of the row that differs.}
 
-\item{current}{The definition in use, from \code{\link[=escapeDefinition]{escapeDefinition()}}.}
+\item{current}{The definition in use, from \code{\link[=escapeDefinition]{escapeDefinition()}} or \code{\link[=escapeDefinitionOf]{escapeDefinitionOf()}}. One with
+\code{escapeSizeHa} \code{NA} (a run with an old fit's definition) checks nothing.}
 
 \item{what}{Where \code{recorded} comes from, for the message.}
 }
 \value{
-\code{TRUE} invisibly if they agree, \code{NA} invisibly if \code{recorded} has no definition; otherwise an error.
+\code{TRUE} invisibly if every row checked agrees, \code{NA} invisibly if none was checked; otherwise an error.
 }
 \description{
 A fit's ledger row records the \code{\link[=escapeDefinition]{escapeDefinition()}} it was fitted with. Burning or scoring with another
