@@ -27,9 +27,24 @@ asOneVect <- function(x) {
   if (is.null(x)) NULL else asVect(x)
 }
 
-## The polygons that are escapes, with their area in `.ha`: at least `escapeSizeHa` and larger than one pixel, judged
-## on `sizeCol` (the whole fire) or, with `sizeCol = NULL` or a `polys` without it, on `terra::expanse()` (the part
-## given); with `causes`, only polygons whose `polyCauseCol` is one of them. `.poly` is each one's row in `polys`.
+#' The fire polygons that are escapes
+#'
+#' The polygons of `polys` at least `escapeSizeHa` and larger than one pixel, and, with `causes`, of those causes:
+#' the size and cause rule of [escapeDefinition()], which [escapeFireSet()] and [ignitionPolygonPairs()] apply.
+#' Use it to select a definition's polygons rather than filtering by cause and size again.
+#'
+#' @param polys Fire polygons (`SpatVector` or `sf`, or a list of them, one per year; combined into one).
+#' @param escapeSizeHa Size (ha) at and above which a polygon is an escape.
+#' @param pixSizeHa Area of one pixel (ha); a polygon must be larger.
+#' @param sizeCol Column of `polys` with the whole fire's size (ha). `NULL`, or a `polys` without it: the area of the
+#'   polygon as given (`terra::expanse()`).
+#' @param causes `NULL` (any cause), or values of `polyCauseCol` to keep, e.g.
+#'   `fireCauseCodes(c("natural", "unknown"), "nbac")`.
+#' @param polyCauseCol Column of `polys` holding the cause; default [polyCauseColTxt].
+#'
+#' @return A `SpatVector` of the escape polygons, with `.poly` (each one's row in `polys`) and `.ha` (the size judged),
+#'   or `NULL` if `polys` has none.
+#' @export
 escapePolys <- function(polys, escapeSizeHa, pixSizeHa, sizeCol = NULL, causes = NULL,
                         polyCauseCol = polyCauseColTxt) {
   polys <- asOneVect(polys)

@@ -18,7 +18,8 @@ hindcastObserved(
   fireCauses = NULL,
   coreStart = FALSE,
   sizeCol = polySizeColTxt,
-  coreIs = "mask"
+  coreIs = "mask",
+  burnablePixels = NULL
 )
 }
 \arguments{
@@ -65,6 +66,10 @@ Needs \code{fireCauses} and \code{flammableRTM}, and \code{firePolys} with \code
 
 \item{coreIs}{What \code{coreRaster} is, as in \code{\link[=inELFCore]{inELFCore()}}: \code{"mask"} (default, as above) or \code{"ELF"} (a one-ELF
 raster, core 2 and buffer 1). A categorical (multi-ELF) raster is core wherever it has a label.}
+
+\item{burnablePixels}{With \code{coreStart = TRUE}: the \code{pixelID}s of \code{flammableRTM} the simulation can burn, those of
+the year's \code{landcoverDT}, so a fire's area is measured as the spread fit's target (\code{\link[=burnableFireHa]{burnableFireHa()}}). \code{NULL}
+(default): the cells of \code{flammableRTM} above 0.}
 }
 \value{
 A list. \code{counts} is a one-row \code{data.table}: \code{year}, \code{ignitions}, \code{escapes}, \code{areaBurnedHa}
