@@ -12,6 +12,8 @@
 \alias{fireSenseRunawayEdgeFrac}
 \alias{fireSenseRunawayEdgeMin}
 \alias{fireSenseFireCauses}
+\alias{fireSenseEscapeSizeHa}
+\alias{fireSenseELFCoreValue}
 \title{Defaults shared by the fireSense modules and functions}
 \format{
 Vectors of length 1, except \code{fireSenseForestedLCC} (\code{numeric}, length 5) and \code{fireSenseFireCauses}
@@ -37,6 +39,10 @@ fireSenseRunawayEdgeFrac
 fireSenseRunawayEdgeMin
 
 fireSenseFireCauses
+
+fireSenseEscapeSizeHa
+
+fireSenseELFCoreValue
 }
 \description{
 The \code{fireSense_dataPrepFit} and \code{fireSense_dataPrepPredict} modules each have parameters
@@ -70,5 +76,9 @@ observed fire is counted from (\code{c("natural", "unknown")}; groups of \code{\
 \code{fireCauses} in \code{fireSense_dataPrepFit} and \code{fireSense_summary}, which check that they agree
 (\code{SpaDES.core::paramCheckOtherMods()}), and of the readers in \code{fireSimulator_validation}. \code{\link[=hindcastObserved]{hindcastObserved()}} and
 \code{\link[=ELFfireCounts]{ELFfireCounts()}} keep \code{fireCauses = NULL} (the \code{naturalCauses} they are given), so they stay usable for other models.
+\item \code{fireSenseELFCoreValue}: the value of the core cells of a one-ELF raster (\code{2}; the buffer is \code{1}), e.g.
+\code{rasterToMatchLargeELF}, the default \code{coreValues} of \code{\link[=fireStarts]{fireStarts()}}.
+\item \code{fireSenseEscapeSizeHa}: the whole-polygon size (ha) at and above which a fire escaped (\code{50}), the default of
+\code{\link[=escapeDefinition]{escapeDefinition()}}.
 }
 }

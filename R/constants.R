@@ -23,6 +23,12 @@
 #'     (currently `"ignitions"`).
 #'   - `escapesTxt`: `character(1)`. Name of the escapes column
 #'     (currently `"escapes"`).
+#'   - `polyCauseColTxt`: `character(1)`. The cause column of NBAC fire polygons (currently `"FIRECAUS"`).
+#'   - `polySizeColTxt`: `character(1)`. The column of NBAC fire polygons with the whole fire's size in ha (currently
+#'     `"POLY_HA"`).
+#'   - `spreadRandomEffectTxt`: `character(2)`. Names of the spread fit's random-effect sds, in the order they end
+#'     `par` ([.objfunSpreadFit()]): `"fireSpreadSD"` (per fire), then `"yearSpreadSD"` (per year). They are not
+#'     covariate coefficients, so a predictor drops them from the fitted parameters.
 #'   - `ignitionObjectiveTxt`: `character(1)`. The xgboost objective the ignition and escape models
 #'     are fitted with (currently `"count:poisson"`); read it back from a fitted model with
 #'     [xgbObjective()].
@@ -68,7 +74,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -79,6 +85,12 @@ nonNFColNamesTxt <- c("pixelID", polygonIDTxt)
 
 #' @export
 yearTxt <- "year"
+
+#' @export
+polyCauseColTxt <- "FIRECAUS"
+
+#' @export
+polySizeColTxt <- "POLY_HA"
 
 #' @export
 youngAgeTxt <- "youngAge"

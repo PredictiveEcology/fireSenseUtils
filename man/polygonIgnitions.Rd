@@ -12,7 +12,7 @@ polygonIgnitions(
   escapeSizeHa,
   pixSizeHa,
   maxDistM = 1000,
-  polyCauseCol = "FIRECAUS",
+  polyCauseCol = polyCauseColTxt,
   naturalPolyCauses = "Natural"
 )
 }

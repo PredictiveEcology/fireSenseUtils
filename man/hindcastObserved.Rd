@@ -12,10 +12,12 @@ hindcastObserved(
   escapeSizeHa = 50,
   pixelAreaHa = prod(terra::res(coreRaster))/10000,
   naturalCauses = c("L", "N"),
-  polyCauseCol = "FIRECAUS",
+  polyCauseCol = polyCauseColTxt,
   naturalPolyCauses = "Natural",
   flammableRTM = NULL,
-  fireCauses = NULL
+  fireCauses = NULL,
+  coreStart = FALSE,
+  sizeCol = polySizeColTxt
 )
 }
 \arguments{
@@ -48,6 +50,17 @@ of the result are \code{NA}, with a warning.}
 \item{fireCauses}{\code{NULL} (default) uses \code{naturalCauses} and \code{naturalPolyCauses} as given. Cause groups (see
 \code{\link[=fireCauseCodes]{fireCauseCodes()}}), e.g. \code{c("natural", "unknown")}, set both from the one table, as \code{fireSense_dataPrepFit}'s
 \code{fireCauses} does, so the observed fire has the fit's causes.}
+
+\item{coreStart}{\code{FALSE} (default): as above, every fire is clipped to the core. \code{TRUE}: the fires of the ELF are
+those whose start (\code{\link[=fireStarts]{fireStarts()}}: the centroid moved to the nearest burnable pixel of the fire) is in the
+core, each at its whole extent, core and buffer, on the burnable pixels of \code{flammableRTM} (which must then
+cover the buffer too; it is not projected to \code{coreRaster}); a fire starting in the buffer is not counted at
+all. Escapes are the core-start polygons of \code{\link[=escapeDefinition]{escapeDefinition()}}\verb{(escapeSizeHa, fireCauses)}, one per
+polygon, and ignitions the points \code{\link[=escapeIgnitionPoints]{escapeIgnitionPoints()}} gives, the data the escape model is fitted to.
+Needs \code{fireCauses} and \code{flammableRTM}, and \code{firePolys} with \code{polyCauseCol}.}
+
+\item{sizeCol}{With \code{coreStart = TRUE}: the column of \code{firePolys} with the whole fire's size (ha), as in
+\code{\link[=escapeFireSet]{escapeFireSet()}}.}
 }
 \value{
 A list. \code{counts} is a one-row \code{data.table}: \code{year}, \code{ignitions}, \code{escapes}, \code{areaBurnedHa}

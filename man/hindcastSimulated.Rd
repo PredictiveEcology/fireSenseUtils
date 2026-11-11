@@ -4,7 +4,13 @@
 \alias{hindcastSimulated}
 \title{One simulated year in an ELF core}
 \usage{
-hindcastSimulated(burnID, coreRaster, ignitions = NULL, escapeSizeHa = 50)
+hindcastSimulated(
+  burnID,
+  coreRaster,
+  ignitions = NULL,
+  escapeSizeHa = 50,
+  coreStart = FALSE
+)
 }
 \arguments{
 \item{burnID}{\code{SpatRaster} of fire IDs (\code{NA} where nothing burned).}
@@ -16,11 +22,16 @@ of \code{burnID}: pixels are placed by their centres.}
 whether each ignition escaped. \code{NULL} gives \code{NA} ignitions and escapes.}
 
 \item{escapeSizeHa}{Size (ha) at which a fire counts in \code{nFires50}.}
+
+\item{coreStart}{\code{FALSE} (default): every fire is clipped to the core, as above. \code{TRUE}: the fires are those
+that burned the pixel of an ignition in the core, each at its whole extent (every pixel of its ID, core or
+buffer), as \code{\link[=hindcastObserved]{hindcastObserved()}}\code{(coreStart = TRUE)} counts the observed fire; a fire from a buffer ignition
+is not counted. Needs \code{ignitions}.}
 }
 \value{
 A list. \code{counts} is a one-row \code{data.table}: \code{ignitions}, \code{escapes}, \code{areaBurnedHa} and \code{nFires50},
 the columns of \code{\link[=hindcastObserved]{hindcastObserved()}}'s \code{counts} of the same names. \code{sizes} has one row per fire in the
-core: \code{fire_id} and \code{ha}.
+core (with \code{coreStart = TRUE}, per core-start fire): \code{fire_id} and \code{ha}.
 }
 \description{
 The simulated counterpart of \code{\link[=hindcastObserved]{hindcastObserved()}}, for one simulated year: the year's ignitions and

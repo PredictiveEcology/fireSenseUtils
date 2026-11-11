@@ -1,4 +1,9 @@
 yearSpreadSDTxt <- "yearSpreadSD"
+fireSpreadSDTxt <- "fireSpreadSD"
+
+#' @rdname fireSenseUtils-constants
+#' @export
+spreadRandomEffectTxt <- c(fireSpreadSDTxt, yearSpreadSDTxt)
 
 utils::globalVariables(c(
   "..colsToKeep", "..colsToUse", ".N", "buffer", "burned", "burnedClass", "cut",
@@ -11,7 +16,7 @@ utils::globalVariables(c(
 #' @param par parameters: the logistic parameters (`maxAsymptote` first, then `upperTail1` if the link has
 #'   one; without `hillSlope1` and `inflectionPoint1`, which are fixed at 1 -- see `fixLogisticPars()`), then the covariate coefficients (the intercept's first, when
 #'   the formula has one -- see [spreadDesignCols()]), and optionally
-#'   `yearSpreadSD` last (see `fitYearSpreadSD`).
+#'   `fireSpreadSD` (see `fitFireSpreadSD`) and `yearSpreadSD` last (see `fitYearSpreadSD`), in that order.
 #'
 #' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
 #'   [SpaDES.tools::spread2].
@@ -169,6 +174,13 @@ utils::globalVariables(c(
 #'   medians too large and the largest fires too small at once (2026-09-23). `sd = 0` is the model
 #'   without it, exactly (no random numbers are drawn). `NULL` (default): `TRUE` when `par` is named and
 #'   includes `yearSpreadSD`. DEoptim passes `par` unnamed, so `runDEoptim()` sets it explicitly.
+#' @param fitFireSpreadSD If `TRUE`, `par` has the sd of a per-fire random effect, before `yearSpreadSD` if that is
+#'   fitted too, else last: in each replicate every fire draws its own `eps ~ N(0, sd^2)`, added to the linear
+#'   predictor of the cells it spreads to (`SpaDES.tools::spreadCpp()`'s `linkOffset`, one per fire, on top of
+#'   the year's draw), so fires of one year can differ in how readily they spread. Only with
+#'   `wholeLandscape = TRUE` (an error otherwise, when the sd is above 0). `sd = 0` draws no random numbers, so
+#'   the objective is exactly the one without it. `NULL` (default): `TRUE` when `par` is named and includes
+#'   `fireSpreadSD`. DEoptim passes `par` unnamed, so `runDEoptim()` sets it explicitly.
 #' @param returnBurned If `TRUE`, also record which pixels burned: implies `returnSims = TRUE`, and the
 #'   result carries `attr(, "burned")`, a named list with one element per simulated fire year, each a
 #'   `data.table` with the replicate `rep` and the `pixelID` of every pixel that burned in it (ignition
@@ -269,6 +281,7 @@ utils::globalVariables(c(
                              runawaySize = NULL,
                              runawayBufferMultiple = NULL,
                              fitYearSpreadSD = NULL,
+                             fitFireSpreadSD = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              crpsWeights = NULL,
@@ -287,9 +300,10 @@ utils::globalVariables(c(
   if (isTRUE(returnBurned)) returnSims <- TRUE
   ## the per-year random effect's sd, fitted as the LAST element of `par`
   ## and hillSlope1 and inflectionPoint1 are fixed at 1, not fitted -- see fixLogisticPars() for why.
-  parSplit <- splitSpreadPar(par, fitYearSpreadSD)
+  parSplit <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD)
   par <- parSplit$par
   yearSpreadSD <- parSplit$yearSpreadSD
+  fireSpreadSD <- parSplit$fireSpreadSD
 
   doMADTest <- any(grepl("mad", tolower(tests)))
   doCrps <- any(tolower(tests) == "crps")
@@ -313,6 +327,7 @@ utils::globalVariables(c(
     fireBufferedListDT <- get("fireBufferedListDT", envir = .GlobalEnv)
   }
   wholeLandscape <- checkWholeLandscape(wholeLandscape, penaliseRunaways, link)
+  checkFireSpreadSD(fireSpreadSD > 0, wholeLandscape)
   ## the buffers' edge and open pixels: made once by runDEoptim(); here for a caller that did not. On the whole
   ## landscape no fire is cut, so they are not needed.
   if (!wholeLandscape) fireBufferedListDT <- addBufferEdge(fireBufferedListDT, landscape)
@@ -405,7 +420,7 @@ utils::globalVariables(c(
         link = link, climateRef = climateRef,
         powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
         returnSims = returnSims, returnBurned = returnBurned, stopCutFires = isTRUE(penaliseRunaways),
-        yearSpreadSD = yearSpreadSD,
+        yearSpreadSD = yearSpreadSD, fireSpreadSD = fireSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
         doYearArea = doYearArea, doCrps = doCrps, gateRefusal = gateRefusal,
         covMinMax = covMinMax, # interactive debugging
@@ -716,7 +731,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         r, Nreps, doMADTest, doADTest, doPitADTest = FALSE,
                         plot.it, verbose = 2, covCentre = NULL,
                         link = NULL, returnSims = FALSE, returnBurned = FALSE,
-                        stopCutFires = FALSE, yearSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0, jumpMeanDist = 0,
+                        stopCutFires = FALSE, yearSpreadSD = 0, fireSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0,
+                        jumpMeanDist = 0,
                         doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
                         powerLawShape = spreadPowerLawShape, doCrps = FALSE, gateRefusal = "minLik",
                         wholeLandscape = FALSE) {
@@ -738,6 +754,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   linearPredictor <- function(mat) as.vector(mat %*% covPars)
   ## wholeLandscape: every fire spreads on all the pixels of annDTx1000, with spreadProb computed per cell reached
   whole <- isTRUE(wholeLandscape)
+  checkFireSpreadSD(fireSpreadSD > 0, whole)
   shortAnnDT <- covsOfYear(annDTx1000, nonAnnualDTx1000, doAssertions)
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
   ## The gates only skip hopeless parameter sets (gateRefusal = "minLik"); under "simulate" they never run, and
@@ -987,6 +1004,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
           ## the year effect is the offset of the linear predictor; nothing landscape-length is copied
           sp <- lpCrop
           if (yearSpreadSD > 0) linkOffset <- stats::rnorm(1, 0, yearSpreadSD)
+          ## the per-fire effect on top: one draw per fire (per locus), after the year's; none when its sd is 0
+          if (fireSpreadSD > 0) linkOffset <- linkOffset + stats::rnorm(length(loci), 0, fireSpreadSD)
         } else {
           ## Each replicate copies the year's spreadProb vector. A young-generation gc() here kept the dead copies
           ## down, but on three fitted ELFs (2026-11-07) dropping it made an evaluation 1.4-1.7x faster for 6-20%
@@ -1484,6 +1503,12 @@ areaWeightedCvM <- function(sim, obs) {
   x <- sort(obs)
   w <- x / sum(x)
   length(obs) * sum(w * (Fw(sim, x) - Fw(obs, x))^2)
+}
+
+## the per-fire random effect is an offset per fire of spreadCpp()'s link, which only the whole landscape uses
+checkFireSpreadSD <- function(fitted, wholeLandscape) {
+  if (isTRUE(fitted) && !isTRUE(wholeLandscape))
+    stop("`", fireSpreadSDTxt, "` (a per-fire random effect) needs `wholeLandscape = TRUE`", call. = FALSE)
 }
 
 ## wholeLandscape of .objfunSpreadFit() and runDEoptim(): the powerLaw link (spreadCpp()'s link computes p per cell
