@@ -53,3 +53,35 @@ test_that("a year with no buffered cells gives NULL; points already in their fir
   expect_null(out$b)
   expect_equal(sf::st_coordinates(out$a), sf::st_coordinates(cent))
 })
+
+test_that("an id column ending in y or starting with x (e.g. `.poly`) is kept when a point moves", {
+  ras <- hbpRaster()
+  inFire <- fireCells(ras, 5:10, 5:10)
+  buff <- data.table::data.table(pixelID = inFire, ids = 1L, buffer = 1L)
+  for (idCol in c(".poly", "xid", "FIRE_ID", "city")) {
+    cent <- hbpPoints(1850, 1250, 1L)
+    names(cent)[names(cent) == "FIRE_ID"] <- idCol
+    out <- harmonizeBufferAndPoints(list(cent), list(buff), ras, idCol = idCol)[[1]]
+    expect_identical(out[[idCol]], 1L)
+    expect_true(terra::cellFromXY(ras, sf::st_coordinates(out)) %in% inFire)
+  }
+})
+
+test_that("snappedCentroids() moves a centroid that is off its fire and keeps the `.poly` id", {
+  ras <- hbpRaster()
+  ## a U-shaped fire: its centroid is in the gap, which is not burnable
+  uCells <- c(fireCells(ras, 5:10, 5:10))
+  gap <- fireCells(ras, 7:8, 5:8)
+  ras[gap] <- NA
+  uCells <- setdiff(uCells, gap)
+  r <- terra::rast(ras); r[] <- NA; r[uCells] <- 1L
+  fire <- terra::as.polygons(r, dissolve = TRUE) |> terra::aggregate()
+  fire$.poly <- 1L
+  fire$YEAR <- 2001L
+  cl <- data.table::data.table(.poly = 1L, pixelID = uCells)
+
+  out <- snappedCentroids(fire, cl, ras)
+
+  expect_identical(out$.poly, 1L)
+  expect_true(terra::cellFromXY(ras, as.matrix(out[, c("x", "y")])) %in% uCells)
+})

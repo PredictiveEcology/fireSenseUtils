@@ -126,7 +126,7 @@ harmonizeBufferAndPoints <- function(cent, buff, ras, idCol = "FIRE_ID") {
         spOrig <- spOrig[
           match(replacementCentroids$id, spOrig[[fireIDcol]]),
           .SD,
-          .SDcol = grep("^x|y$|coords", names(spOrig), value = TRUE, invert = TRUE)
+          .SDcol = setdiff(names(spOrig), c("x", "y", "coords", attr(polyCentroids, "sf_column")))
         ]
 
         # the join does not work with named argument for column, so assign to temp
