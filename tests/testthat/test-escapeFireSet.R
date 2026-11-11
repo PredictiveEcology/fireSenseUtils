@@ -117,14 +117,22 @@ test_that("hindcastObserved(coreStart = TRUE): buffer-start fires are out, core-
                                 coreStart = TRUE), "needs fireCauses")
 })
 
-test_that("hindcastSimulated(coreStart = TRUE): a buffer ignition's fire is out, a core one counts whole", {
+## two simulated fires: 1 starts at column 7 (core), 6 of its 10 pixels in the buffer; 2 starts at column 13 (buffer)
+## and has 2 core pixels. `ig` holds their ignitions, both escaped.
+escBurn <- function() {
   burnID <- terra::setValues(terra::rast(escLarge()), NA_integer_)
   cell <- function(row, col) terra::cellFromRowCol(burnID, row, col)
-  fire1 <- cell(5, 7:16)                                   # starts at column 7 (core), 6 of 10 pixels in the buffer
-  fire2 <- cell(10, 13:9)                                  # starts at column 13 (buffer), 2 core pixels
+  fire1 <- cell(5, 7:16)
+  fire2 <- cell(10, 13:9)
   burnID[fire1] <- 1L
   burnID[fire2] <- 2L
-  ig <- data.table::data.table(pixelID = c(fire1[1], fire2[1]), escaped = TRUE)
+  list(burnID = burnID, ig = data.table::data.table(pixelID = c(fire1[1], fire2[1]), escaped = TRUE))
+}
+
+test_that("hindcastSimulated(coreStart = TRUE): a buffer ignition's fire is out, a core one counts whole", {
+  b <- escBurn()
+  burnID <- b$burnID
+  ig <- b$ig
   s <- hindcastSimulated(burnID, escCoreOnly(), ig, escapeSizeHa = 500, coreStart = TRUE)
   expect_identical(s$sizes$fire_id, 1L)
   expect_equal(s$sizes$ha, 1000)
@@ -148,4 +156,88 @@ test_that("escapeDefinition is the ledger record, and checkEscapeDefinition stop
   expect_error(checkEscapeDefinition(ledgerRow, escapeDefinition(50, "natural"), what = "ledger row 3"),
                "escape definition of ledger row 3")
   expect_identical(checkEscapeDefinition(data.table::data.table(objFunVal = 1), d), NA) # an older ledger row
+})
+
+## the multi-ELF rasterToMatchLargeELF of fireSense_ELFs: every cell labelled with its ELF (codes from 0), no buffer
+escCategorical <- function() {
+  v <- terra::vect(c(escSq(0, 0, 100, 200), escSq(100, 0, 100, 200)), crs = "EPSG:3978")
+  v$ELFind <- c("4.3", "6.6.2")
+  terra::rasterize(v, terra::rast(escLarge()), field = "ELFind")
+}
+
+test_that("inELFCore: the core of a one-ELF raster, of a core mask and of a multi-ELF (categorical) raster", {
+  cells <- terra::cellFromRowCol(escLarge(), 1, c(1, 10, 11, 20))
+  expect_identical(inELFCore(cells, escLarge()), c(TRUE, TRUE, FALSE, FALSE))
+  expect_identical(inELFCore(cells, escLarge(), "mask"), rep(TRUE, 4))        # a 1 is core in a mask
+  expect_identical(inELFCore(cells, escCoreOnly(), "mask"), c(TRUE, TRUE, FALSE, FALSE))
+  expect_identical(inELFCore(cells, escCategorical()), rep(TRUE, 4))         # code 0 ("4.3") too
+  pts <- terra::vect(terra::xyFromCell(escLarge(), cells), crs = "EPSG:3978")
+  expect_identical(inELFCore(pts, escLarge()), c(TRUE, TRUE, FALSE, FALSE))
+  expect_identical(inELFCore(sf::st_as_sf(pts), escLarge()), c(TRUE, TRUE, FALSE, FALSE))
+  ## cells of another grid are placed by their centres: one 10 km cell per ELF zone
+  coarse <- terra::aggregate(terra::rast(escLarge()), 10)
+  expect_identical(inELFCore(1:4, escLarge(), grid = coarse), c(TRUE, FALSE, TRUE, FALSE))
+  expect_identical(inELFCore(1:3, NULL), rep(TRUE, 3))
+  expect_identical(inELFCore(integer(), escLarge()), logical())
+})
+
+test_that("a multi-ELF (categorical) raster is core everywhere, in the starts and in both hindcasts", {
+  s <- escapeFireSet(escPolys(), escFlammable(), escCategorical(), escDef(), idCol = "FIRE_ID")
+  expect_true(all(s$core))
+  b <- escBurn()
+  sim <- hindcastSimulated(b$burnID, escCategorical(), b$ig, escapeSizeHa = 500, coreStart = TRUE)
+  expect_identical(sim$sizes$fire_id, 1:2)
+  expect_identical(c(sim$counts$ignitions, sim$counts$escapes), c(2L, 2L))
+  o <- hindcastObserved(escCategorical(), escPoints(), escPolys(), year = 2000, escapeSizeHa = 500,
+                        flammableRTM = escFlammable(), fireCauses = "natural", coreStart = TRUE)
+  expect_equal(o$counts$areaBurnedHa, 2400 + 2400 + 600 + 400)  # A, B (in the core now), C and E
+  expect_identical(o$counts$escapes, 3L)                         # A, B and C
+})
+
+test_that("the hindcasts read a one-ELF raster (2 core, 1 buffer) as such when told, and its buffer is not core", {
+  b <- escBurn()
+  expect_identical(hindcastSimulated(b$burnID, escLarge(), b$ig, 500, coreStart = TRUE, coreIs = "ELF"),
+                   hindcastSimulated(b$burnID, escCoreOnly(), b$ig, 500, coreStart = TRUE))
+  obs <- function(core, ...) hindcastObserved(core, escPoints(), escPolys(), year = 2000, escapeSizeHa = 500,
+                                              flammableRTM = escFlammable(), fireCauses = "natural", ...)
+  expect_identical(obs(escLarge(), coreStart = TRUE, coreIs = "ELF")$counts, obs(escCoreOnly(), coreStart = TRUE)$counts)
+  expect_identical(obs(escLarge(), coreIs = "ELF")$counts, obs(escCoreOnly())$counts)
+})
+
+test_that("checkEscapeDefinition checks one row per ELF, skips rows without a definition, names the ELF", {
+  d <- escapeDefinition()
+  rows <- data.table::data.table(polygonID = c("4.3", "6.6.2", "9.1"), escapeSizeHa = c(50, NA, 50),
+                                 fireCauses = c(d$fireCauses, NA, d$fireCauses))
+  expect_true(checkEscapeDefinition(rows, d))
+  rows$escapeSizeHa[3] <- 100
+  expect_error(checkEscapeDefinition(rows, d), "escape definition of the fit of ELF 9.1 \\(escapeSizeHa 100")
+  expect_identical(checkEscapeDefinition(rows[2], d), NA)           # its only row has none
+  ## an old fit's definition (escapeSizeHa NA) is recorded as such, and checks nothing
+  old <- escapeDefinition(NA)
+  expect_identical(old$escapeSizeHa, NA_real_)
+  expect_identical(checkEscapeDefinition(rows, old), NA)
+  expect_error(escapeDefinition("50"), "one number")
+})
+
+test_that("escapeDefinitionOf: the definition of a run's modules, which must agree", {
+  mp <- withr::local_tempdir()
+  for (m in c("escA", "escB")) writeLines(sprintf(c(
+    'defineModule(sim, list(name = "%1$s", description = "", keywords = "", authors = person("a"),',
+    '  childModules = character(0), version = list(%1$s = "0.0.1"), timeframe = as.POSIXlt(c(NA, NA)),',
+    '  timeunit = "year", citation = list(), documentation = list(), reqdPkgs = list(),',
+    '  parameters = rbind(defineParameter("escapeSizeHa", "numeric", 50, NA, NA, ""),',
+    '                     defineParameter("fireCauses", "character", "natural", NA, NA, "")),',
+    '  inputObjects = bindrows(), outputObjects = bindrows(createsOutput("def_%1$s", "data.table", ""))))',
+    'doEvent.%1$s <- function(sim, eventTime, eventType) {',
+    '  sim$def_%1$s <- fireSenseUtils::escapeDefinitionOf(sim)',
+    '  invisible(sim)',
+    '}'), m), file.path(mp, m, paste0(m, ".R")) |> (\(f) { dir.create(dirname(f)); f })())
+  run <- function(a, b) suppressMessages(SpaDES.core::simInitAndSpades(
+    modules = c("escA", "escB"), paths = list(modulePath = mp), times = list(start = 0, end = 0),
+    params = list(escA = a, escB = b)))
+  sim <- run(list(escapeSizeHa = 100), list(escapeSizeHa = 100))
+  expect_identical(sim$def_escA, escapeDefinition(100, "natural"))
+  expect_identical(sim$def_escB, sim$def_escA)
+  expect_identical(run(list(escapeSizeHa = NA_real_), list(escapeSizeHa = NA_real_))$def_escA$escapeSizeHa, NA_real_)
+  expect_error(run(list(escapeSizeHa = 100), list(escapeSizeHa = 50)), "multiple values for escapeSizeHa")
 })

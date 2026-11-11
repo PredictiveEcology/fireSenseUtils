@@ -16,7 +16,9 @@
 #' simulation ignites natural fires only but the spread model was fitted to polygons of every cause.
 #'
 #' @param coreRaster `SpatRaster` of the ELF core on the simulation grid: cells outside the core are `NA`
-#'   or 0 (`rasterToMatchELF` in the fireSense simulation).
+#'   or 0 (`rasterToMatchELF` in the fireSense simulation), or another raster [inELFCore()] reads (`coreIs`).
+#' @param coreIs What `coreRaster` is, as in [inELFCore()]: `"mask"` (default, as above) or `"ELF"` (a one-ELF
+#'   raster, core 2 and buffer 1). A categorical (multi-ELF) raster is core wherever it has a label.
 #' @param flammableRTM `SpatRaster` of the pixels the simulation can burn (1; 0 or `NA` cannot burn), e.g.
 #'   `flammableRTM` of the fireSense simulation. Projected to `coreRaster` (nearest) if on another grid.
 #'   `NULL` counts every core pixel as burnable, with a warning.
@@ -62,24 +64,22 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
                              pixelAreaHa = prod(terra::res(coreRaster)) / 1e4,
                              naturalCauses = c("L", "N"), polyCauseCol = polyCauseColTxt,
                              naturalPolyCauses = "Natural", flammableRTM = NULL, fireCauses = NULL,
-                             coreStart = FALSE, sizeCol = polySizeColTxt) {
+                             coreStart = FALSE, sizeCol = polySizeColTxt, coreIs = "mask") {
   if (!is.null(fireCauses)) {
     naturalCauses <- fireCauseCodes(fireCauses, "nfdb")
     naturalPolyCauses <- fireCauseCodes(fireCauses, "nbac")
   }
   stopifnot(inherits(coreRaster, "SpatRaster"), inherits(firePoints, "SpatVector"),
             length(year) == 1L)
-  if (is.list(firePolys)) {
-    firePolys <- Filter(Negate(is.null), firePolys)
-    firePolys <- if (length(firePolys)) do.call(rbind, unname(firePolys))
-  }
+  firePolys <- asOneVect(firePolys)
   ## a zone is "core" (value 2) of a one-layer ELF raster, as ELFfireOverlay() reads it
   coreZone <- function(inZone) {
     z <- terra::ifel(inZone, 2, 0)
     names(z) <- "core"
     z
   }
-  inCoreRaster <- !is.na(coreRaster) & coreRaster > 0
+  inCoreRaster <- terra::setValues(terra::rast(coreRaster, nlyrs = 1),
+                                   inELFCore(seq_len(terra::ncell(coreRaster)), coreRaster, coreIs))
   core <- coreZone(inCoreRaster)
   if (isTRUE(coreStart))
     return(hindcastObservedCoreStart(core, firePoints, firePolys, year, escapeSizeHa, fireCauses, flammableRTM,
@@ -104,9 +104,6 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   allCausePolygon <- overlay(firePolys, core)
   naturalPolygon <- overlay(naturalPolys, core)
   inCore <- function(o) o$ha[o$zone == "core"]
-  big <- function(o) as.integer(sum(inCore(o) >= escapeSizeHa))
-  area <- function(o) if (noCause) NA_real_ else sum(inCore(o))
-  nBig <- function(o) if (noCause) NA_integer_ else big(o)
 
   ## escapes as the escape fit defines them: natural ignitions that became a polygon of the year
   naturalPts <- firePoints[firePoints$CAUSE %in% naturalCauses, ]
@@ -118,20 +115,36 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
                        returnPoints = TRUE)
   pts$points$escaped <- pts$points$.escaped
   pts$points$.escaped <- NULL
-  sizesOf <- function(cause, o) data.table::data.table(cause = rep(cause, length(inCore(o))), ha = inCore(o))
-  sizes <- function(nat, all) data.table::rbindlist(list(sizesOf("natural", nat), sizesOf("allCause", all)))
+  sizes <- hindcastSizes(inCore(natural), inCore(allCause))
+  sizesPolygon <- hindcastSizes(inCore(naturalPolygon), inCore(allCausePolygon))
   list(
-    counts = data.table::data.table(
-      year = as.integer(year), ignitions = pts$counts$naturalIgnitions, escapes = sum(pts$points$escaped),
-      areaBurnedHa = area(natural), areaBurnedHaAllCause = sum(inCore(allCause)),
-      nFires50 = nBig(natural), nFires50AllCause = big(allCause),
-      areaBurnedHaPolygon = area(naturalPolygon), areaBurnedHaAllCausePolygon = sum(inCore(allCausePolygon)),
-      nFires50Polygon = nBig(naturalPolygon), nFires50AllCausePolygon = big(allCausePolygon)),
-    sizes = sizes(natural, allCause),
-    sizesPolygon = sizes(naturalPolygon, allCausePolygon),
+    counts = hindcastCounts(year, pts$counts$naturalIgnitions, sum(pts$points$escaped), sizes, sizesPolygon,
+                            escapeSizeHa, noCause),
+    sizes = sizes,
+    sizesPolygon = sizesPolygon,
     polys = naturalPolys,
     points = pts$points
   )
+}
+
+## hindcastObserved()'s `sizes`: the areas (ha) of the natural-cause fires, then of the fires of every cause
+hindcastSizes <- function(natural, allCause) {
+  data.table::rbindlist(list(data.table::data.table(cause = rep("natural", length(natural)), ha = natural),
+                             data.table::data.table(cause = rep("allCause", length(allCause)), ha = allCause)))
+}
+
+## hindcastObserved()'s `counts`, from its `sizes` (on the burnable pixels) and `sizesPolygon` (on the polygons);
+## the natural-cause area and count are NA when the polygons have no cause (`noCause`)
+hindcastCounts <- function(year, ignitions, escapes, sizes, sizesPolygon, escapeSizeHa, noCause = FALSE) {
+  area <- function(d, cause) if (noCause && cause == "natural") NA_real_ else sum(d$ha[d$cause == cause])
+  nBig <- function(d, cause) if (noCause && cause == "natural") NA_integer_ else
+    as.integer(sum(d$ha[d$cause == cause] >= escapeSizeHa))
+  data.table::data.table(
+    year = as.integer(year), ignitions = ignitions, escapes = escapes,
+    areaBurnedHa = area(sizes, "natural"), areaBurnedHaAllCause = area(sizes, "allCause"),
+    nFires50 = nBig(sizes, "natural"), nFires50AllCause = nBig(sizes, "allCause"),
+    areaBurnedHaPolygon = area(sizesPolygon, "natural"), areaBurnedHaAllCausePolygon = area(sizesPolygon, "allCause"),
+    nFires50Polygon = nBig(sizesPolygon, "natural"), nFires50AllCausePolygon = nBig(sizesPolygon, "allCause"))
 }
 
 ## hindcastObserved(coreStart = TRUE): the fires that start in the core (value 2 of `core`), at their whole extent
@@ -145,29 +158,21 @@ hindcastObservedCoreStart <- function(core, firePoints, firePolys, year, escapeS
   yearPolys <- if (!is.null(firePolys)) firePolys[as.integer(firePolys$YEAR) == year, ]
   if (NROW(yearPolys) && !polyCauseCol %in% names(yearPolys))
     stop("hindcastObserved(coreStart = TRUE): firePolys has no column '", polyCauseCol, "'")
+  if (NROW(yearPolys)) yearPolys$.poly <- seq_len(NROW(yearPolys))
   starts <- fireStarts(yearPolys, flammableRTM, core, sizeCol = sizeCol, polyCauseCol = polyCauseCol)
+  ## the escapes' starts are those of their polygons, so the centroids are snapped once
+  escapes <- starts[starts$.poly %in% escapesOf(yearPolys, definition, flammableRTM, sizeCol, polyCauseCol)$.poly, ]
   starts <- starts[starts$core, ]
-  escapes <- escapeFireSet(yearPolys, flammableRTM, core, definition, sizeCol = sizeCol, polyCauseCol = polyCauseCol)
   pts <- firePoints[as.integer(firePoints$YEAR) == year, ]
   pts <- escapeIgnitionPoints(pts, yearPolys, escapes, core, definition, pixelAreaHa, sizeCol = sizeCol,
                               polyCauseCol = polyCauseCol)
   pts <- terra::project(pts, terra::crs(core))
   natural <- starts$cause %in% naturalPolyCauses
-  sizesOf <- function(col) data.table::rbindlist(list(
-    data.table::data.table(cause = rep("natural", sum(natural)), ha = starts[[col]][natural, 1]),
-    data.table::data.table(cause = rep("allCause", NROW(starts)), ha = starts[[col]][, 1])))
+  sizesOf <- function(col) hindcastSizes(starts[[col]][natural, 1], starts[[col]][, 1])
   sizes <- sizesOf("burnableHa")
   sizesPolygon <- sizesOf("polyHa")
-  sumOf <- function(d, cause) sum(d$ha[d$cause == cause])
-  nBig <- function(d, cause) as.integer(sum(d$ha[d$cause == cause] >= escapeSizeHa))
   list(
-    counts = data.table::data.table(
-      year = as.integer(year), ignitions = as.integer(NROW(pts)), escapes = sum(pts$escaped),
-      areaBurnedHa = sumOf(sizes, "natural"), areaBurnedHaAllCause = sumOf(sizes, "allCause"),
-      nFires50 = nBig(sizes, "natural"), nFires50AllCause = nBig(sizes, "allCause"),
-      areaBurnedHaPolygon = sumOf(sizesPolygon, "natural"),
-      areaBurnedHaAllCausePolygon = sumOf(sizesPolygon, "allCause"),
-      nFires50Polygon = nBig(sizesPolygon, "natural"), nFires50AllCausePolygon = nBig(sizesPolygon, "allCause")),
+    counts = hindcastCounts(year, as.integer(NROW(pts)), sum(pts$escaped), sizes, sizesPolygon, escapeSizeHa),
     sizes = sizes,
     sizesPolygon = sizesPolygon,
     polys = if (NROW(yearPolys)) yearPolys[yearPolys[[polyCauseCol]][, 1] %in% naturalPolyCauses, ],
@@ -185,7 +190,8 @@ hindcastObservedCoreStart <- function(core, firePoints, firePolys, year, escapeS
 #'
 #' @param burnID `SpatRaster` of fire IDs (`NA` where nothing burned).
 #' @param coreRaster `SpatRaster` of the ELF core; cells outside it are `NA` or 0. It need not share the grid
-#'   of `burnID`: pixels are placed by their centres.
+#'   of `burnID`: pixels are placed by their centres. Read by [inELFCore()] (`coreIs`).
+#' @param coreIs As in [hindcastObserved()]: `"mask"` (default, as above) or `"ELF"`.
 #' @param ignitions `data.table` with the ignition cell numbers of `burnID` in `pixelID` and, in `escaped`,
 #'   whether each ignition escaped. `NULL` gives `NA` ignitions and escapes.
 #' @param escapeSizeHa Size (ha) at which a fire counts in `nFires50`.
@@ -201,14 +207,12 @@ hindcastObservedCoreStart <- function(core, firePoints, firePolys, year, escapeS
 #' @export
 #' @importFrom data.table data.table
 #' @importFrom terra extract values xyFromCell
-hindcastSimulated <- function(burnID, coreRaster, ignitions = NULL, escapeSizeHa = 50, coreStart = FALSE) {
+hindcastSimulated <- function(burnID, coreRaster, ignitions = NULL, escapeSizeHa = 50, coreStart = FALSE,
+                              coreIs = "mask") {
   stopifnot(inherits(burnID, "SpatRaster"), inherits(coreRaster, "SpatRaster"))
   if (isTRUE(coreStart) && is.null(ignitions))
     stop("hindcastSimulated(coreStart = TRUE) needs ignitions: a fire belongs to the core by its ignition pixel")
-  inCore <- function(cells) {
-    v <- terra::extract(coreRaster, terra::xyFromCell(burnID, cells))[[1]]
-    !is.na(v) & v > 0
-  }
+  inCore <- function(cells) inELFCore(cells, coreRaster, coreIs, grid = burnID)
   ids <- terra::values(burnID, mat = FALSE)
   burned <- which(!is.na(ids))
   here <- if (!is.null(ignitions)) inCore(ignitions$pixelID)

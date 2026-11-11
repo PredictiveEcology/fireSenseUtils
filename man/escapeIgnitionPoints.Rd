@@ -11,7 +11,7 @@ escapeIgnitionPoints(
   coreRaster,
   definition = escapeDefinition(),
   pixSizeHa,
-  coreValues = fireSenseELFCoreValue,
+  coreIs = "ELF",
   maxDistM = 1000,
   sizeCol = polySizeColTxt,
   pointSizeCol = "SIZE_HA",
@@ -26,7 +26,7 @@ escapeIgnitionPoints(
 \item{fireSet}{The escape polygons' starts, from \code{\link[=escapeFireSet]{escapeFireSet()}} with the same \code{definition}, \code{polys} and
 \code{sizeCol}.}
 
-\item{coreRaster, coreValues}{As in \code{\link[=escapeFireSet]{escapeFireSet()}}: the core the points must start in.}
+\item{coreRaster, coreIs}{As in \code{\link[=escapeFireSet]{escapeFireSet()}}: the core the points must start in.}
 
 \item{definition}{The escape definition, from \code{\link[=escapeDefinition]{escapeDefinition()}}.}
 

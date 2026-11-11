@@ -29,6 +29,8 @@
 \alias{spreadFitPowerLawR2Txt}
 \alias{spreadFitPowerLawPcMarginTxt}
 \alias{spreadPowerLawPGrid}
+\alias{yearSpreadSDTxt}
+\alias{fireSpreadSDTxt}
 \alias{spreadRandomEffectTxt}
 \title{Hard-coded name/text constants}
 \format{
@@ -57,6 +59,8 @@ the fit's target size (currently \code{"BURNABLE_HA"}).
 \item \code{spreadRandomEffectTxt}: \code{character(2)}. Names of the spread fit's random-effect sds, in the order they end
 \code{par} (\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}): \code{"fireSpreadSD"} (per fire), then \code{"yearSpreadSD"} (per year). They are not
 covariate coefficients, so a predictor drops them from the fitted parameters.
+\item \code{fireSpreadSDTxt}, \code{yearSpreadSDTxt}: \code{character(1)}. The two names of \code{spreadRandomEffectTxt}, to test for one
+of them (\code{\link[=spreadRandomEffectArgs]{spreadRandomEffectArgs()}}).
 \item \code{ignitionObjectiveTxt}: \code{character(1)}. The xgboost objective the ignition and escape models
 are fitted with (currently \code{"count:poisson"}); read it back from a fitted model with
 \code{\link[=xgbObjective]{xgbObjective()}}.
@@ -102,6 +106,10 @@ built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (cur
 }
 }
 \usage{
+yearSpreadSDTxt
+
+fireSpreadSDTxt
+
 spreadRandomEffectTxt
 }
 \description{

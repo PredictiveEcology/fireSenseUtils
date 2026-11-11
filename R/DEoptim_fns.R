@@ -342,17 +342,11 @@ runDEoptim <- function(landscape,
           "; covariates: ", paste(covTerms, collapse = ", "),
           if (fireSpreadSDTxt %in% names(lower)) paste0("; fire effect: ", fireSpreadSDTxt),
           if (yearSpreadSDTxt %in% names(lower)) paste0("; year effect: ", yearSpreadSDTxt))
-  ## the random effects are fitted when the bounds include them (their sds are the LAST parameters, fireSpreadSD
-  ## then yearSpreadSD); DEoptim passes `par` unnamed, so the objective is told explicitly
-  fitYearSpreadSD <- yearSpreadSDTxt %in% names(lower)
-  fitFireSpreadSD <- fireSpreadSDTxt %in% names(lower)
-  reTerms <- intersect(spreadRandomEffectTxt, names(lower))
-  if (length(reTerms) && !identical(utils::tail(names(lower), length(reTerms)), reTerms))
-    stop("runDEoptim: `", paste(reTerms, collapse = "` then `"), "` must be the last element",
-         if (length(reTerms) > 1) "s", " of `lower` and `upper`")
-  checkFireSpreadSD(fitFireSpreadSD, wholeLandscape)
-  ## only a fit with the per-fire effect has the argument, so every other fit keeps its cache keys
-  fitFireSpreadSDArg <- if (fitFireSpreadSD) TRUE
+  ## the random effects are fitted when the bounds include them; DEoptim passes `par` unnamed, so the objective is
+  ## told explicitly
+  reArgs <- spreadRandomEffectArgs(lower, wholeLandscape)
+  fitYearSpreadSD <- reArgs$fitYearSpreadSD
+  fitFireSpreadSDArg <- reArgs$fitFireSpreadSD
 
   ## clusterSetup() digested the objects it shipped once; the fit, its re-score, profile and simulated members
   ## all run the objective on them

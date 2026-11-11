@@ -17,12 +17,13 @@ hindcastObserved(
   flammableRTM = NULL,
   fireCauses = NULL,
   coreStart = FALSE,
-  sizeCol = polySizeColTxt
+  sizeCol = polySizeColTxt,
+  coreIs = "mask"
 )
 }
 \arguments{
 \item{coreRaster}{\code{SpatRaster} of the ELF core on the simulation grid: cells outside the core are \code{NA}
-or 0 (\code{rasterToMatchELF} in the fireSense simulation).}
+or 0 (\code{rasterToMatchELF} in the fireSense simulation), or another raster \code{\link[=inELFCore]{inELFCore()}} reads (\code{coreIs}).}
 
 \item{firePoints}{\code{SpatVector} of fire points with columns \code{YEAR}, \code{CAUSE} and \code{SIZE_HA}
 (\code{ignitionFirePoints}).}
@@ -61,6 +62,9 @@ Needs \code{fireCauses} and \code{flammableRTM}, and \code{firePolys} with \code
 
 \item{sizeCol}{With \code{coreStart = TRUE}: the column of \code{firePolys} with the whole fire's size (ha), as in
 \code{\link[=escapeFireSet]{escapeFireSet()}}.}
+
+\item{coreIs}{What \code{coreRaster} is, as in \code{\link[=inELFCore]{inELFCore()}}: \code{"mask"} (default, as above) or \code{"ELF"} (a one-ELF
+raster, core 2 and buffer 1). A categorical (multi-ELF) raster is core wherever it has a label.}
 }
 \value{
 A list. \code{counts} is a one-row \code{data.table}: \code{year}, \code{ignitions}, \code{escapes}, \code{areaBurnedHa}

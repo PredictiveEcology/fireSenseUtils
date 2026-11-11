@@ -9,14 +9,15 @@ hindcastSimulated(
   coreRaster,
   ignitions = NULL,
   escapeSizeHa = 50,
-  coreStart = FALSE
+  coreStart = FALSE,
+  coreIs = "mask"
 )
 }
 \arguments{
 \item{burnID}{\code{SpatRaster} of fire IDs (\code{NA} where nothing burned).}
 
 \item{coreRaster}{\code{SpatRaster} of the ELF core; cells outside it are \code{NA} or 0. It need not share the grid
-of \code{burnID}: pixels are placed by their centres.}
+of \code{burnID}: pixels are placed by their centres. Read by \code{\link[=inELFCore]{inELFCore()}} (\code{coreIs}).}
 
 \item{ignitions}{\code{data.table} with the ignition cell numbers of \code{burnID} in \code{pixelID} and, in \code{escaped},
 whether each ignition escaped. \code{NULL} gives \code{NA} ignitions and escapes.}
@@ -27,6 +28,8 @@ whether each ignition escaped. \code{NULL} gives \code{NA} ignitions and escapes
 that burned the pixel of an ignition in the core, each at its whole extent (every pixel of its ID, core or
 buffer), as \code{\link[=hindcastObserved]{hindcastObserved()}}\code{(coreStart = TRUE)} counts the observed fire; a fire from a buffer ignition
 is not counted. Needs \code{ignitions}.}
+
+\item{coreIs}{As in \code{\link[=hindcastObserved]{hindcastObserved()}}: \code{"mask"} (default, as above) or \code{"ELF"}.}
 }
 \value{
 A list. \code{counts} is a one-row \code{data.table}: \code{ignitions}, \code{escapes}, \code{areaBurnedHa} and \code{nFires50},

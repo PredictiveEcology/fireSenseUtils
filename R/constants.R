@@ -29,6 +29,8 @@
 #'   - `spreadRandomEffectTxt`: `character(2)`. Names of the spread fit's random-effect sds, in the order they end
 #'     `par` ([.objfunSpreadFit()]): `"fireSpreadSD"` (per fire), then `"yearSpreadSD"` (per year). They are not
 #'     covariate coefficients, so a predictor drops them from the fitted parameters.
+#'   - `fireSpreadSDTxt`, `yearSpreadSDTxt`: `character(1)`. The two names of `spreadRandomEffectTxt`, to test for one
+#'     of them ([spreadRandomEffectArgs()]).
 #'   - `ignitionObjectiveTxt`: `character(1)`. The xgboost objective the ignition and escape models
 #'     are fitted with (currently `"count:poisson"`); read it back from a fitted model with
 #'     [xgbObjective()].
