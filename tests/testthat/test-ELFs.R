@@ -476,8 +476,10 @@ test_that("makeELFs without x uses ELFtemplateRaster(destinationPath), the templ
 
   set.seed(1)
   byDefault <- suppressWarnings(makeELFs(destinationPath = dp, useCache = FALSE))
+  ## its own folder: the first result reads the .tif files makeELFs() writes there, and Windows will
+  ## not let a second call overwrite an open file
   set.seed(1)
-  supplied <- suppressWarnings(makeELFs(template, destinationPath = dp, useCache = FALSE))
+  supplied <- suppressWarnings(makeELFs(template, destinationPath = localELFsDir(), useCache = FALSE))
 
   expect_identical(askedFor, dp)
   expect_identical(names(byDefault$rasWhole), names(supplied$rasWhole))
