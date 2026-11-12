@@ -460,3 +460,26 @@ test_that("makeELFs on the real ecostratification gives the ELF maps of the SCAN
   expect_setequal(names(cores), names(expected))
   expect_lte(max(abs(cores - expected[names(cores)])), 1)
 })
+
+test_that("makeELFs without x uses ELFtemplateRaster(destinationPath), the template the modules pass", {
+  skip_if_not_installed("dismo")
+  skip_if_not_installed("deldir")
+  ecos <- makeTestEcos()
+  dp <- localELFsDir()
+  local_mocked_bindings(prepInputs = function(url, ...) ecos, .package = "reproducible")
+  template <- terra::rasterize(ecos, terra::rast(ecos, resolution = 5000), field = 1)
+  askedFor <- NULL
+  local_mocked_bindings(ELFtemplateRaster = function(inputPath, ...) {
+    askedFor <<- inputPath
+    template
+  })
+
+  set.seed(1)
+  byDefault <- suppressWarnings(makeELFs(destinationPath = dp, useCache = FALSE))
+  set.seed(1)
+  supplied <- suppressWarnings(makeELFs(template, destinationPath = dp, useCache = FALSE))
+
+  expect_identical(askedFor, dp)
+  expect_identical(names(byDefault$rasWhole), names(supplied$rasWhole))
+  expect_identical(terra::values(byDefault$poly), terra::values(supplied$poly))
+})

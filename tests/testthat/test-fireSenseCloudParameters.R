@@ -76,3 +76,26 @@ test_that("fireSenseCloudParameters records the Drive file it reads in the downl
   expect_identical(rec[[1]]$url, "https://drive.google.com/file/d/abc123")
   expect_identical(rec[[1]]$fn, "fireSenseCloudParameters")
 })
+
+## The map's outline of Canada is the ELF template (ELFtemplateRaster()), not scfmutils' fire regime units.
+test_that("fireSenseCloudParametersMap draws its outline from ELFtemplateRaster(destinationPath)", {
+  sq <- sf::st_sfc(sf::st_polygon(list(rbind(c(0, 0), c(2e4, 0), c(2e4, 2e4), c(0, 2e4), c(0, 0)))),
+                   crs = "EPSG:3978")
+  fits <- data.frame(a = 1, b = 1, c = 1, d = 1, polygonID = "4.1")
+  fits$geometry <- sq
+  template <- terra::rast(terra::ext(0, 1e5, 0, 1e5), res = 1000, crs = "EPSG:3978", vals = 1)
+  askedFor <- NULL
+  local_mocked_bindings(
+    fireSenseCloudParameters = function(...) fits,
+    ELFtemplateRaster = function(inputPath, ...) { askedFor <<- inputPath; template })
+  local_mocked_bindings(plot = function(...) invisible(NULL), .package = "terra")
+  dp <- withr::local_tempdir()
+
+  out <- fireSenseCloudParametersMap(rasterize = TRUE, plot = TRUE, res = 5000, destinationPath = dp)
+
+  expect_identical(askedFor, dp)
+  expect_identical(terra::res(out), c(5000, 5000))
+  expect_identical(terra::crs(out), terra::crs(template))
+  expect_true(all(terra::values(out) %in% 1:2))   # land, and land with a fit
+  expect_true(any(terra::values(out) == 2))
+})

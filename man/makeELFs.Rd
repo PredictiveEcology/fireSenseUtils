@@ -38,9 +38,9 @@ plotELFs(
 }
 \arguments{
 \item{x}{A polygon layer (\code{SpatVector} or \code{sf}) or gridded layer (\code{SpatRaster})
-that maps the entire area of interest for the ELFs. If missing, it will try to use
-\code{scfmutils::prepInputsFireRegimePolys(type = "FRU")} if \code{scfmutils} is installed.
-Currently, only options with a column called \code{FRU} will work.}
+that maps the entire area of interest for the ELFs; it only sets which cells are land, the ELFs
+themselves are (sub-)ecoprovinces. If missing, the national template the fireSense modules use,
+\code{\link[=ELFtemplateRaster]{ELFtemplateRaster()}}\code{(destinationPath)}. A polygon layer needs a column called \code{FRU}.}
 
 \item{desiredBuffer}{The distance in \code{m} that the buffers should be. Default is \code{20000}.}
 
