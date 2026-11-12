@@ -23,6 +23,8 @@
 #'     (currently `"ignitions"`).
 #'   - `escapesTxt`: `character(1)`. Name of the escapes column
 #'     (currently `"escapes"`).
+#'   - `coreFractionTxt`: `character(1)`. Name of the column of the ignition covariates with the share of a coarse
+#'     pixel in the ELF's core (currently `"coreFraction"`). An exposure, not a covariate: `rescaleCovariates()` does not scale it.
 #'   - `polyCauseColTxt`: `character(1)`. The cause column of NBAC fire polygons (currently `"FIRECAUS"`).
 #'   - `polySizeColTxt`: `character(1)`. The column of NBAC fire polygons with the whole fire's size in ha (currently
 #'     `"POLY_HA"`).
@@ -76,7 +78,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -111,6 +113,9 @@ ignitionsTxt <- "ignitions"
 
 #' @export
 escapesTxt <- "escapes"
+
+#' @export
+coreFractionTxt <- "coreFraction"
 
 #' @export
 ignitionObjectiveTxt <- "count:poisson"

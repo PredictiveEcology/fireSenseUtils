@@ -13,6 +13,7 @@
 \alias{treedWetlandAgbTxt}
 \alias{ignitionsTxt}
 \alias{escapesTxt}
+\alias{coreFractionTxt}
 \alias{ignitionObjectiveTxt}
 \alias{spreadFitAdditionalColNamesTxt}
 \alias{ignitionFitAdditionalColNamesTxt}
@@ -53,6 +54,8 @@ the fit's target size (currently \code{"BURNABLE_HA"}).
 (currently \code{"ignitions"}).
 \item \code{escapesTxt}: \code{character(1)}. Name of the escapes column
 (currently \code{"escapes"}).
+\item \code{coreFractionTxt}: \code{character(1)}. Name of the column of the ignition covariates with the share of a coarse
+pixel in the ELF's core (currently \code{"coreFraction"}). An exposure, not a covariate: \code{rescaleCovariates()} does not scale it.
 \item \code{polyCauseColTxt}: \code{character(1)}. The cause column of NBAC fire polygons (currently \code{"FIRECAUS"}).
 \item \code{polySizeColTxt}: \code{character(1)}. The column of NBAC fire polygons with the whole fire's size in ha (currently
 \code{"POLY_HA"}).

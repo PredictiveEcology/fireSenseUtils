@@ -1,5 +1,6 @@
 # fireSenseUtils (development version)
 
+* New constant `coreFractionTxt` (`"coreFraction"`), the column of the ignition covariates that holds the share of a coarse pixel in the ELF's core (made by fireSense_dataPrepFit, used as a weight by fireSense_ignitionFit). `rescaleCovariates()` leaves it unscaled, as it does `ignitions` and `escapes`: it is an exposure, not a covariate.
 * `harmonizeBufferAndPoints()` no longer drops the fire id column when it ends in `y` or starts with `x` (such as `.poly`) while moving a centroid off a non-burnable pixel, which made `hindcastObserved(coreStart = TRUE)` fail with a missing `foo` column. It now drops only the coordinate and geometry columns. The function was defined twice (`cleanUpPolyCentroids.R` and `harmonizeBufferAndPoints.R`); the duplicate file is removed.
 
 * `climateCovRanges` has fixed ranges for summer maximum temperature (`Tmaxsm`, 0-10 degrees C) and summer precipitation (`PPTsm`, 0-100 mm), so a spread fit can use either as its climate covariate (provisional values, like the others).
