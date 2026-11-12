@@ -778,8 +778,8 @@ prepareCovariatesOuter <- function(unscaledData, algorithm, rescaleVars,
 #'   - Attaches centering/scaling attributes under `attr(covariates, "scaleData")`.
 #'
 #' **External references**:
-#'   - Uses `ignitionsTxt` and `escapesTxt` to
-#'     refer to the expected response column names. If these are not available,
+#'   - Uses `ignitionsTxt`, `escapesTxt` and `coreFractionTxt` to
+#'     refer to the response columns and the exposure, none of which is scaled. If these are not available,
 #'     ensure compatible strings are provided (see exported constants below).
 #'
 #' @return A `list` with elements:
@@ -840,7 +840,7 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
       # rescalers <- abs(sapply(covariates[, .SD, .SDcols = toRescale], FUN = max))
       message("Variables outside of [0,10] range will be rescaled to [0,10]")
       toRescale <- setdiff(names(covariates),
-                           c("pixelID", ignitionsTxt, escapesTxt, "year", "yearChar"))
+                           c("pixelID", ignitionsTxt, escapesTxt, coreFractionTxt, "year", "yearChar"))
       rescalers <- sapply(covariates[, .SD, .SDcols = toRescale], max)
       needRescale <- sapply(rescalers, FUN = function(x) !SpaDES.tools::inRange(x, 0, 10))
       cols <- names(rescalers)[which(needRescale)]
@@ -849,15 +849,19 @@ rescaleCovariates <- function(formula, covariates, rescaleVars, modelAlgorithm) 
       covariates <- rescaleVarsByMagnitude(covariates, ignitionRescalers)
     } else {
       
-      SDcols <- setdiff(colnames(covariates), c("yearChar", ignitionsTxt, "escapes"))
+      ## the responses and the exposure (`coreFraction`) are not covariates: they are not scaled
+      SDcols <- setdiff(colnames(covariates), c("yearChar", ignitionsTxt, escapesTxt, coreFractionTxt))
       scaledData <- scale(covariates[, ..SDcols])
       origIgnitions <- covariates[[ignitionsTxt]]
-      origEscapes <- covariates[["escapes"]]
+      origEscapes <- covariates[[escapesTxt]]
+      origCoreFraction <- covariates[[coreFractionTxt]]
       centeringData <- attributes(scaledData)
       covariates <- as.data.table(scaledData)
       set(covariates, NULL, ignitionsTxt, origIgnitions)
       if (!is.null(origEscapes))
-        set(covariates, NULL, "escapes", origEscapes)
+        set(covariates, NULL, escapesTxt, origEscapes)
+      if (!is.null(origCoreFraction))
+        set(covariates, NULL, coreFractionTxt, origCoreFraction)
       
       # covariates <- covariates[,
       #                          append(
