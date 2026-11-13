@@ -7,19 +7,19 @@
 powerLawOmitArgs(link, shape = spreadPowerLawShape)
 }
 \arguments{
-\item{link}{The spread link: \code{NULL}, \code{"logistic3pUpper"} or \code{"powerLaw"}.}
+\item{link}{The spread link: \code{NULL}, \code{"logistic3pUpper"}, \code{"powerLaw"}, \code{"powerLawSmooth"} or \code{"richards"}.}
 
 \item{shape}{The \code{powerLawShape} of the call; default \link{spreadPowerLawShape}.}
 }
 \value{
-\code{c("powerLawGamma", "powerLawShape")} unless \code{link = "powerLaw"}; with it, \code{"powerLawShape"} if \code{shape} is
-1, else \code{character()}. For \code{omitArgs} of \code{Cache()}.
+A character vector of argument names, for \code{omitArgs} of \code{Cache()}.
 }
 \description{
-\code{powerLawGamma} and \code{powerLawShape} matter only with \code{link = "powerLaw"}; with any other link they are left out
-of the key so a fit made without them is found as before.
+\code{powerLawGamma} and \code{powerLawShape} matter only with \code{link = "powerLaw"} or \code{"powerLawSmooth"}; \code{lowerAsymptote} only
+with \code{"powerLawSmooth"} or \code{"richards"}; \code{richardsNu} only with \code{"richards"}. An argument that does not matter for
+the link is left out of the key, so a fit made without it is found as before.
 }
 \details{
-With \code{link = "powerLaw"}, \code{powerLawShape} is also left out when it is the default, 1 (the original link), so a fit
-made before \code{powerLawShape} existed is found.
+With \code{link = "powerLaw"} or \code{"powerLawSmooth"}, \code{powerLawShape} is also left out when it is the default, 1 (the original
+link), so a fit made before \code{powerLawShape} existed is found.
 }

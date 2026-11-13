@@ -19,7 +19,7 @@ powerLawLink(
 
 \item{gamma}{The scale; default \link{spreadPowerLawGamma}.}
 
-\item{floor}{\code{lowerSpreadProb}: \code{p} at \code{x = 0}.}
+\item{floor}{\code{lowerSpreadProb}: \code{p} at \code{x = 0} (not a lower asymptote: see above).}
 
 \item{shape}{The curvature exponent; default \link{spreadPowerLawShape} (1).}
 }
@@ -30,8 +30,10 @@ A numeric vector, one value per \code{x}.
 \code{p = pc - (pc - floor) * exp(-sign(x) * abs(x / gamma)^shape)}, from a percolation calibration (log mean fire size is linear in
 \code{log(pc - p)} with slope \code{-gamma}, \code{pc} about 0.25 and \code{gamma} about 1.9). \code{log(pc - p)} falls linearly in
 the linear predictor \code{x}, so a year effect added to \code{x} multiplies a year's mean fire size by about
-\code{exp(eps)}; and \code{p} cannot pass \code{pc}, so no year percolates. \code{x = 0} gives \code{floor}; \code{x < 0} gives less than
-the floor, and a value below 0 is set to 0. \code{pc} takes the slot of \code{maxAsymptote} and is fitted; \code{gamma} is
+\code{exp(eps)}; and \code{p} cannot pass \code{pc}, so no year percolates. \code{floor} is \code{p} at \code{x = 0}, not a lower asymptote:
+\code{x < 0} gives less than \code{floor}, and a value below 0 is set to 0, so a cell with a low enough linear predictor
+cannot burn. \code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}} has the same curve for \code{x >= 0} and a lower asymptote below 0. \code{pc} takes the slot
+of \code{maxAsymptote} and is fitted; \code{gamma} is
 fixed, not fitted: it is exactly confounded with the scale of the coefficients. Used by \code{\link[=logisticAll]{logisticAll()}} with
 \code{link = "powerLaw"} (so by \code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}} and the objective) and by the objective's year effect.
 \code{shape} (default 1, the formula \code{p = pc - (pc - floor) * exp(-x / gamma)}) is fixed, not fitted. With \code{shape > 1}

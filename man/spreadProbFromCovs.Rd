@@ -13,7 +13,9 @@ spreadProbFromCovs(
   climateRef = NULL,
   climateAtRef = FALSE,
   powerLawGamma = spreadPowerLawGamma,
-  powerLawShape = spreadPowerLawShape
+  powerLawShape = spreadPowerLawShape,
+  lowerAsymptote = spreadProbFloor,
+  richardsNu = spreadRichardsNu
 )
 }
 \arguments{
@@ -31,9 +33,12 @@ held at its reference: what the ceiling applies to. The objective's gates and it
 look at \code{p0}, because under this link a dry year legitimately takes the landscape past \code{maxFireSpread}
 and a gate on \code{p} would refuse the years that carry the climate signal. Ignored without \code{climateRef}.}
 
-\item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma}; used only with \code{link = "powerLaw"}.}
+\item{powerLawGamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' \code{gamma}; used only with those links.}
 
-\item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape}; used only with \code{link = "powerLaw"}.}
+\item{powerLawShape}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' curvature exponent \code{shape}; used only with those links.}
+
+\item{lowerAsymptote, richardsNu}{The lower asymptote of \code{"powerLawSmooth"} and \code{"richards"}, and the \code{nu} of
+\code{"richards"} (\code{\link[=logisticAll]{logisticAll()}}); used only with those links.}
 }
 \value{
 A one-column numeric matrix, one value per row of \code{mat} (as \code{\link[=logisticAll]{logisticAll()}}).
@@ -45,7 +50,7 @@ the prediction (\code{fireSense_spreadPredict}) -- comes from this function, so 
 use one formula.
 }
 \details{
-Three links, chosen by \code{link} and \code{climateRef}:
+Links, chosen by \code{link} and \code{climateRef}:
 \itemize{
 \item \code{climateRef = NULL} (the default; \code{spreadLink = "ceiling"} in \code{fireSense_spreadFit}): the logistic of
 the whole linear predictor, \code{p = f + (maxAsymptote - f) * plogis(x)} with \code{x = mat \%*\% covPars}
@@ -64,6 +69,11 @@ same logit afterwards, so climate and the year effect act together after the fue
 climate coefficient (\verb{>= 0}, from \code{fireSense_spreadFit}'s bounds) is unchanged.
 \item \code{link = "powerLaw"} (\code{spreadLink = "powerLaw"}): \code{p = pc - (pc - f) * exp(-sign(x) * abs(x / powerLawGamma)^powerLawShape)}, with \code{pc}
 (\code{logisticPars[1]}) fitted (\code{\link[=powerLawLink]{powerLawLink()}}). The year effect \code{eps_Y} is added to \code{x}, not to the logit of \code{p}.
+Not combined with \code{climateRef}.
+\item \code{link = "powerLawSmooth"} (\code{spreadLink = "powerLawSmooth"}): the same for \code{x >= 0}; for \code{x < 0}, \code{p} falls from \code{f} to
+the lower asymptote \code{lowerAsymptote}, never below it (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}). Not combined with \code{climateRef}.
+\item \code{link = "richards"} (\code{spreadLink = "richards"}): \code{p = L + (pc - L) / (1 + nu * exp(-B * x))^(1 / nu)}, with \code{L} the
+\code{lowerAsymptote}, \code{nu} the \code{richardsNu} and \code{B} fixed (\code{\link[=richardsLink]{richardsLink()}}). It does not use \code{powerLawGamma}.
 Not combined with \code{climateRef}.
 }
 }

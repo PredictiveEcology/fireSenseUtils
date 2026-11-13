@@ -24,6 +24,14 @@
 \alias{spreadFitPowerLawGammaTxt}
 \alias{spreadFitPowerLawShapeTxt}
 \alias{spreadLinkOptions}
+\alias{spreadFitLowerAsymptoteTxt}
+\alias{spreadFitRichardsNuTxt}
+\alias{spreadRichardsNu}
+\alias{spreadRichardsB}
+\alias{spreadLinearLinks}
+\alias{spreadPowerLawLinks}
+\alias{spreadAsymptoteLinks}
+\alias{spreadLinkParNames}
 \alias{spreadPowerLawGamma}
 \alias{spreadPowerLawShape}
 \alias{spreadFitPowerLawPc50Txt}
@@ -87,12 +95,25 @@ ledger columns a fit made with a non-default \code{spreadLink} writes: \code{"sp
 \code{"powerLaw"}) and \code{"powerLawShape_spread"} (its \code{shape}, written when not 1; a row without it has shape 1), so prediction applies the same link (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}). A fit with the default
 \code{"ceiling"} link writes none of them; a row without them, every row written before, predicts as it
 always did.
+\item \code{spreadFitLowerAsymptoteTxt}, \code{spreadFitRichardsNuTxt}: \code{character(1)} each. Names of the ledger columns of a fit
+with \code{"powerLawSmooth"} or \code{"richards"}: \code{"lowerAsymptote_spread"} (the link's lower asymptote, both links) and
+\code{"richardsNu_spread"} (\code{nu} of \code{"richards"}). A \code{"powerLawSmooth"} row also has \code{gamma} and \code{shape}, as \code{"powerLaw"}.
+\item \code{spreadRichardsNu}: \code{numeric(1)}. The default \code{nu} of the \code{"richards"} link, 0.5 (\code{fireSense_spreadFit}'s \code{richardsNu}).
+\item \code{spreadLinearLinks}: \code{character}. The links that map the linear predictor \code{x} itself to \code{p} (the year effect is added
+to \code{x}): \code{"powerLaw"}, \code{"powerLawSmooth"} and \code{"richards"}.
+\item \code{spreadPowerLawLinks}, \code{spreadAsymptoteLinks}: \code{character}. The links of \code{spreadLinearLinks} that use the power law's
+\code{gamma} and \code{shape} (and so its calibration, \code{\link[=calibratePowerLaw]{calibratePowerLaw()}}): \code{"powerLaw"} and \code{"powerLawSmooth"}; and those
+that have a lower asymptote \code{lowerAsymptote}: \code{"powerLawSmooth"} and \code{"richards"}.
+\item \code{spreadLinkParNames}: named list, one element per link of \code{spreadLinearLinks}: the names of its parameters, in the
+order of \code{SpaDES.tools::spreadCpp(linkPars =)} (\code{\link[=linearLinkPars]{linearLinkPars()}}).
 \item \code{spreadLinkOptions}: \code{character} vector of the values \code{fireSense_spreadFit}'s \code{spreadLink} can
 take: \code{"ceiling"} (the default: climate inside the logistic, under \code{maxAsymptote}),
-\code{"climateOutside"} and \code{"powerLaw"} (\code{\link[=powerLawLink]{powerLawLink()}}).
+\code{"climateOutside"}, \code{"powerLaw"} (\code{\link[=powerLawLink]{powerLawLink()}}), \code{"powerLawSmooth"} (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}) and
+\code{"richards"} (\code{\link[=richardsLink]{richardsLink()}}).
 \item \code{spreadPowerLawGamma}: \code{numeric(1)}. The default \code{gamma} of the \code{"powerLaw"} link, 1.9, from a percolation
 calibration on a uniform landscape. \code{fireSense_spreadFit} calibrates \code{gamma} on each ELF's own flammable map
 instead (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}), unless a number is given.
+\item \code{spreadRichardsB}: \code{numeric(1)}. The fixed slope \code{B} of the \code{"richards"} link, \code{1 / spreadPowerLawGamma}.
 \item \code{spreadPowerLawShape}: \code{numeric(1)}. The default \code{shape} of the \code{"powerLaw"} link, 1 (the exponential approach to
 \code{pc}); \code{fireSense_spreadFit}'s \code{powerLawShape}. Fixed, not fitted.
 \item \code{spreadFitPowerLawPc50Txt}, \code{spreadFitPowerLawR2Txt}: \code{character(1)} each. Names of the ledger columns that
