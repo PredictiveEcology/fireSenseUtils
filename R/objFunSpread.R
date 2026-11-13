@@ -150,13 +150,18 @@ utils::globalVariables(c(
 #'
 #' @param link Passed to [logisticAll()]: `NULL` for the form implied by the logistic parameters, or
 #'   `"logistic3pUpper"` for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
-#'   parameter is `upperTail1`, or `"powerLaw"` for [powerLawLink()]: `maxAsymptote` is then `p_c`, fitted, and
+#'   parameter is `upperTail1`, or `"powerLaw"`, `"powerLawSmooth"` or `"richards"` for [powerLawLink()],
+#'   [powerLawSmoothLink()] or [richardsLink()]: `maxAsymptote` is then `p_c`, fitted, and
 #'   the year effect (`fitYearSpreadSD`) is added to the linear predictor `x`, not to the logit of `p`, so a year
 #'   cannot take `p` past `p_c`. Pass it explicitly when fitting: `par` may arrive unnamed.
-#' @param powerLawGamma The `"powerLaw"` link's `gamma` ([powerLawLink()]), fixed, not fitted; used only with
-#'   `link = "powerLaw"`.
-#' @param powerLawShape The `"powerLaw"` link's curvature exponent `shape` ([powerLawLink()]), fixed, not fitted;
-#'   used only with `link = "powerLaw"`. Default 1.
+#' @param powerLawGamma The `"powerLaw"` and `"powerLawSmooth"` links' `gamma` ([powerLawLink()]), fixed, not fitted; used only with
+#'   those links.
+#' @param powerLawShape The `"powerLaw"` and `"powerLawSmooth"` links' curvature exponent `shape` ([powerLawLink()]), fixed, not fitted;
+#'   used only with those links. Default 1.
+#' @param lowerAsymptote The lower asymptote `L` of the `"powerLawSmooth"` and `"richards"` links ([powerLawSmoothLink()],
+#'   [richardsLink()]), fixed, not fitted, `0 <= L <= spreadProbFloor`; default [spreadProbFloor]. The spread-probability
+#'   gates use it as their lower bound with those links ([spreadLinkLower()]).
+#' @param richardsNu The `"richards"` link's `nu`, fixed, not fitted; default [spreadRichardsNu].
 #' @param climateRef `NULL` (default): the climate covariates are inside the logistic, under the
 #'   `maxAsymptote` ceiling, as always. A named numeric or list ([spreadClimateRef()]): climate is taken
 #'   outside the ceiling, `p = plogis(qlogis(p0) + beta_clim * (climate - climateRef))` with `p0` the
@@ -205,9 +210,10 @@ utils::globalVariables(c(
 #' @param wholeLandscape `FALSE` (default), or `TRUE`: every fire spreads on all the pixels of `annualDTx1000`
 #'   (the whole landscape's tables) with no buffer edge, so no fire is cut and every term scores the size it
 #'   burned unbounded. The linear predictor is computed once per year and the spread probability only for the
-#'   cells a fire reaches (`SpaDES.tools::spreadCpp(link = "powerLaw")`, the doubles of [powerLawLink()]), with
+#'   cells a fire reaches (`SpaDES.tools::spreadCpp(link = )`, the doubles of [powerLawLink()], [powerLawSmoothLink()] or
+#'   [richardsLink()]), with
 #'   no landscape-length vector per replicate, so a fit costs about what a buffered fit does. Needs
-#'   `link = "powerLaw"`; not with `penaliseRunaways = TRUE`, which stops fires at the buffer edge (both an
+#'   `link` one of [spreadLinearLinks]; not with `penaliseRunaways = TRUE`, which stops fires at the buffer edge (both an
 #'   error). `FALSE` changes nothing.
 #' @param runawayEdgeFrac,runawayEdgeMin Ignored. A replicate was a runaway when it burned at least
 #'   `max(runawayEdgeMin, ceiling(runawayEdgeFrac * n))` of the `n` edge pixels of its own buffer, open or
@@ -278,6 +284,8 @@ utils::globalVariables(c(
                              climateRef = NULL,
                              powerLawGamma = spreadPowerLawGamma,
                              powerLawShape = spreadPowerLawShape,
+                             lowerAsymptote = spreadProbFloor,
+                             richardsNu = spreadRichardsNu,
                              returnSims = FALSE,
                              returnBurned = FALSE,
                              penaliseRunaways = TRUE,
@@ -424,6 +432,7 @@ utils::globalVariables(c(
         covCentre = covCentre,
         link = link, climateRef = climateRef,
         powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
+        lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
         returnSims = returnSims, returnBurned = returnBurned, stopCutFires = isTRUE(penaliseRunaways),
         yearSpreadSD = yearSpreadSD, fireSpreadSD = fireSpreadSD,
         escapeMinPx = escapeMinPx, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
@@ -739,7 +748,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         stopCutFires = FALSE, yearSpreadSD = 0, fireSpreadSD = 0, escapeMinPx = NULL, jumpTries = 0,
                         jumpMeanDist = 0,
                         doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
-                        powerLawShape = spreadPowerLawShape, doCrps = FALSE, gateRefusal = "minLik",
+                        powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
+                        richardsNu = spreadRichardsNu, doCrps = FALSE, gateRefusal = "minLik",
                         wholeLandscape = FALSE) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
@@ -757,6 +767,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
   )
   linearPredictor <- function(mat) as.vector(mat %*% covPars)
+  ## a link of spreadLinearLinks maps the linear predictor to p with these parameters (also spreadCpp()'s linkPars)
+  linearLink <- any(link %in% spreadLinearLinks)
+  linkPars <- if (linearLink) linearLinkPars(link, logisticPars[[1L]], powerLawGamma, lowerSpreadProb, powerLawShape,
+                                             lowerAsymptote, richardsNu)
   ## wholeLandscape: every fire spreads on all the pixels of annDTx1000, with spreadProb computed per cell reached
   whole <- isTRUE(wholeLandscape)
   checkFireSpreadSD(fireSpreadSD > 0, whole)
@@ -771,7 +785,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   if (!whole || needP)
     set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
                                                            climateRef = climateRef, powerLawGamma = powerLawGamma,
-                                                           powerLawShape = powerLawShape))
+                                                           powerLawShape = powerLawShape,
+                                                           lowerAsymptote = lowerAsymptote, richardsNu = richardsNu))
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
@@ -872,7 +887,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     # actualBurnSP <- annDTx1000[annualFireBufferedDT, on = "pixelID"]
     medSPRight <- spreadOutEnough <- lowSPLowEnough <- TRUE # not run: "simulate" simulates every year
     if (runGates) {
-      gate <- spreadProbGateTest(pGate, logisticPars[1], lowerSpreadProb, maxFireSpread,
+      gate <- spreadProbGateTest(pGate, logisticPars[1], spreadLinkLower(link, lowerSpreadProb, lowerAsymptote), maxFireSpread,
                                  lanscape1stQuantileThresh)
       nonEdgeValues <- gate$nonEdgeValues
       summ <- gate$summ
@@ -958,12 +973,11 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## spreadCpp() gets the linear predictor (NA, unburnable, off the year's pixels) and computes p from it
         ## only on the cells a fire reaches, with the year effect as the offset and the ignitions at 1: the
         ## cells burned are those of the full probability vector, without building one per replicate.
-        ## The arithmetic is powerLawLink()'s, so the doubles are the same.
+        ## The arithmetic is that of the R link (linearLinkProb()), so the doubles are the same.
         lpCrop <- rep(NA_real_, crop$ncell)
         lpCrop[crop$toCrop(shortAnnDT$pixelID)] <- linearPredictor(mat)
-        spreadLink <- "powerLaw"
-        spreadLinkPars <- c(pc = logisticPars[[1L]], gamma = powerLawGamma, floor = lowerSpreadProb,
-                            shape = powerLawShape)
+        spreadLink <- link
+        spreadLinkPars <- linkPars
       } else {
         spreadProbCrop <- numeric(crop$ncell)
         spreadProbCrop[crop$toCrop(shortAnnDT$pixelID)] <- shortAnnDT$spreadProb
@@ -998,9 +1012,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## linear predictor x and p follows from it (p cannot pass p_c, so no year percolates).
       if (yearSpreadSD > 0 && !whole) {
         pixCrop <- crop$toCrop(shortAnnDT$pixelID)
-        powerLaw <- identical(link, "powerLaw")
-        lp <- if (powerLaw) linearPredictor(mat) else stats::qlogis(shortAnnDT$spreadProb)
-        toP <- if (powerLaw) function(z) powerLawLink(z, logisticPars[1L], powerLawGamma, lowerSpreadProb, powerLawShape) else stats::plogis
+        lp <- if (linearLink) linearPredictor(mat) else stats::qlogis(shortAnnDT$spreadProb)
+        toP <- if (linearLink) function(z) linearLinkProb(z, link, linkPars) else stats::plogis
         lociCrop <- crop$toCrop(loci)
       }
       spreadState <- lapply(seq_len(Nreps), function(i) {
@@ -1541,14 +1554,15 @@ checkFireSpreadSD <- function(fitted, wholeLandscape) {
     stop("`", fireSpreadSDTxt, "` (a per-fire random effect) needs `wholeLandscape = TRUE`", call. = FALSE)
 }
 
-## wholeLandscape of .objfunSpreadFit() and runDEoptim(): the powerLaw link (spreadCpp()'s link computes p per cell
+## wholeLandscape of .objfunSpreadFit() and runDEoptim(): a link of spreadLinearLinks (spreadCpp()'s link computes p per cell
 ## from the linear predictor), and not the penalty that stops fires at the buffer edge. Returns it as TRUE/FALSE.
 checkWholeLandscape <- function(wholeLandscape, penaliseRunaways, link) {
   if (!isTRUE(wholeLandscape)) return(FALSE)
   if (isTRUE(penaliseRunaways))
     stop("`wholeLandscape = TRUE` spreads fires on the whole landscape, while `penaliseRunaways = TRUE` stops them ",
          "at the buffer edge: use `penaliseRunaways = FALSE`", call. = FALSE)
-  if (!identical(link, "powerLaw")) stop("`wholeLandscape = TRUE` needs `link = \"powerLaw\"`", call. = FALSE)
+  if (!any(link %in% spreadLinearLinks))
+    stop("`wholeLandscape = TRUE` needs `link` one of ", paste(dQuote(spreadLinearLinks, FALSE), collapse = ", "), call. = FALSE)
   TRUE
 }
 

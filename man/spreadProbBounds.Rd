@@ -21,8 +21,11 @@ One value each, used wherever the spread model needs them. \code{spreadProbCeili
 \code{fireSense_spreadFit} gives \code{maxAsymptote}, and the default \code{maxFireSpread} of the objective, the
 gates and the validation: a fitted \code{maxAsymptote} above it draws a warning. How a year's random
 effect can take a pixel past it is described at \code{maxFireSpread} in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.
-\code{spreadProbFloor} is the default \code{lowerSpreadProb}, the link's lower asymptote, in the objective, the
-gates, the validation and \code{fireSense_spreadPredict}. \code{spreadPowerLawPcBounds} are the bounds
+\code{spreadProbFloor} is the default \code{lowerSpreadProb} in the objective, the
+gates, the validation and \code{fireSense_spreadPredict}. It is the lower asymptote of the logistic links. With
+\code{"powerLaw"} it is \code{p} at \code{x = 0} and there is no lower asymptote: \code{p} falls below it for \code{x < 0} and is set to 0
+(\code{\link[=powerLawLink]{powerLawLink()}}). With \code{"powerLawSmooth"} it is \code{p} at \code{x = 0} and the default \code{lowerAsymptote}, the lower
+asymptote, which may be anywhere from 0 to it (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}). \code{spreadPowerLawPcBounds} are the bounds
 \code{fireSense_spreadFit} gives \code{p_c}, the \code{maxAsymptote} slot, with the \code{"powerLaw"} link (\code{\link[=powerLawLink]{powerLawLink()}}):
 \code{p_c} must stay above the floor (0.01 above it), and its upper bound is 0.35. These are the outer limits:
 \code{fireSense_spreadFit} bounds \code{p_c} above by the ELF's own calibrated threshold (\code{\link[=powerLawPcBounds]{powerLawPcBounds()}}).

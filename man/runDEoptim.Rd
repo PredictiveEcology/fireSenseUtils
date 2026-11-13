@@ -68,6 +68,8 @@ runDEoptim(
   climateRef = NULL,
   powerLawGamma = spreadPowerLawGamma,
   powerLawShape = spreadPowerLawShape,
+  lowerAsymptote = spreadProbFloor,
+  richardsNu = spreadRichardsNu,
   wholeLandscape = FALSE
 )
 
@@ -209,8 +211,8 @@ object as \code{attr(DE, "finalRescore")}, for \code{\link[=bestByReplicatedMean
 final-population re-score, so both evaluate the same objective. The defaults are that function's.
 Before these existed, every fit used those defaults whatever the caller wanted.}
 
-\item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL} or
-\code{"logistic3pUpper"}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
+\item{link}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{NULL},
+\code{"logistic3pUpper"} or one of \link{spreadLinearLinks}. Needed because DEoptim may hand the objective an unnamed \code{par}.}
 
 \item{escapeSizeHa}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: the size (ha) a
 fire must reach to count as escaped. \code{NULL} keeps the historical rules.}
@@ -256,13 +258,17 @@ diagnostics: \code{NULL} (default) keeps climate under the \code{maxAsymptote} c
 key are what they were; a named numeric (\code{\link[=spreadClimateRef]{spreadClimateRef()}}) takes climate outside the ceiling
 (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}).}
 
-\item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the
-fit and the re-score. Used only with \code{link = "powerLaw"}; with any other link it is left out of the cache
+\item{powerLawGamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the
+fit and the re-score. Used only with those links; with any other link it is left out of the cache
 keys (\code{\link[=powerLawOmitArgs]{powerLawOmitArgs()}}) and the re-score's arguments, so they are what they were.}
 
 \item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, passed like
 \code{powerLawGamma}. At its default, 1, it is left out of the cache keys and the re-score's arguments, so fits made
 before it existed are found.}
+
+\item{lowerAsymptote, richardsNu}{The lower asymptote of the \code{"powerLawSmooth"} and \code{"richards"} links and the \code{nu} of
+\code{"richards"} (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}, \code{\link[=richardsLink]{richardsLink()}}), fixed, passed like \code{powerLawGamma}. Used only with those links;
+with any other link they are left out of the cache keys and the re-score's arguments (\code{\link[=powerLawOmitArgs]{powerLawOmitArgs()}}).}
 
 \item{wholeLandscape}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} spreads every fire on
 all pixels of \code{annualDTx1000} (the whole landscape's tables), see there. \code{FALSE} (default) adds nothing to
