@@ -27,6 +27,8 @@ spreadFitValidationData(
   climateRef = NULL,
   powerLawGamma = spreadPowerLawGamma,
   powerLawShape = spreadPowerLawShape,
+  lowerAsymptote = spreadProbFloor,
+  richardsNu = spreadRichardsNu,
   seed = NULL,
   ...
 )
@@ -97,7 +99,8 @@ spread probability, after the link, so in a given year p can exceed \code{maxAsy
 
 \item{link}{Passed to \code{\link[=logisticAll]{logisticAll()}}: \code{NULL} for the form implied by the logistic parameters, or
 \code{"logistic3pUpper"} for the 3-parameter logistic with Stukel's upper tail, whose fourth logistic
-parameter is \code{upperTail1}, or \code{"powerLaw"} for \code{\link[=powerLawLink]{powerLawLink()}}: \code{maxAsymptote} is then \code{p_c}, fitted, and
+parameter is \code{upperTail1}, or \code{"powerLaw"}, \code{"powerLawSmooth"} or \code{"richards"} for \code{\link[=powerLawLink]{powerLawLink()}},
+\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}} or \code{\link[=richardsLink]{richardsLink()}}: \code{maxAsymptote} is then \code{p_c}, fitted, and
 the year effect (\code{fitYearSpreadSD}) is added to the linear predictor \code{x}, not to the logit of \code{p}, so a year
 cannot take \code{p} past \code{p_c}. Pass it explicitly when fitting: \code{par} may arrive unnamed.}
 
@@ -120,9 +123,10 @@ the objective is exactly the one without it. \code{NULL} (default): \code{TRUE} 
 \item{wholeLandscape}{\code{FALSE} (default), or \code{TRUE}: every fire spreads on all the pixels of \code{annualDTx1000}
 (the whole landscape's tables) with no buffer edge, so no fire is cut and every term scores the size it
 burned unbounded. The linear predictor is computed once per year and the spread probability only for the
-cells a fire reaches (\code{SpaDES.tools::spreadCpp(link = "powerLaw")}, the doubles of \code{\link[=powerLawLink]{powerLawLink()}}), with
+cells a fire reaches (\code{SpaDES.tools::spreadCpp(link = )}, the doubles of \code{\link[=powerLawLink]{powerLawLink()}}, \code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}} or
+\code{\link[=richardsLink]{richardsLink()}}), with
 no landscape-length vector per replicate, so a fit costs about what a buffered fit does. Needs
-\code{link = "powerLaw"}; not with \code{penaliseRunaways = TRUE}, which stops fires at the buffer edge (both an
+\code{link} one of \link{spreadLinearLinks}; not with \code{penaliseRunaways = TRUE}, which stops fires at the buffer edge (both an
 error). \code{FALSE} changes nothing.}
 
 \item{climateRef}{\code{NULL} (default): the climate covariates are inside the logistic, under the
@@ -133,11 +137,17 @@ effect (\code{fitYearSpreadSD}) is added on the same logit, after climate. The g
 (\code{\link[=spreadProbGateTest]{spreadProbGateTest()}}) and the saturation summary are then applied to \code{p0}, the spread probability
 at the reference climate, not to \code{p}.}
 
-\item{powerLawGamma}{The \code{"powerLaw"} link's \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
-\code{link = "powerLaw"}.}
+\item{powerLawGamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
+those links.}
 
-\item{powerLawShape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted;
-used only with \code{link = "powerLaw"}. Default 1.}
+\item{powerLawShape}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted;
+used only with those links. Default 1.}
+
+\item{lowerAsymptote}{The lower asymptote \code{L} of the \code{"powerLawSmooth"} and \code{"richards"} links (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}},
+\code{\link[=richardsLink]{richardsLink()}}), fixed, not fitted, \verb{0 <= L <= spreadProbFloor}; default \link{spreadProbFloor}. The spread-probability
+gates use it as their lower bound with those links (\code{\link[=spreadLinkLower]{spreadLinkLower()}}).}
+
+\item{richardsNu}{The \code{"richards"} link's \code{nu}, fixed, not fitted; default \link{spreadRichardsNu}.}
 
 \item{seed}{If not \code{NULL}, the simulations run with this seed and the session's random number
 stream is restored afterwards.}
@@ -164,7 +174,7 @@ of the fire year), \code{pixelID}, \code{observed} (1 if the pixel is inside an 
 probability, without the per-year random effect), and one column per covariate of the formula
 with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 \code{attr(, "spreadFitValidation")} holds what the plots need: the parameters, \code{covMinMax},
-\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawGamma}, \code{powerLawShape}, \code{Nreps}, the names of the covariates and of the
+\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawGamma}, \code{powerLawShape}, \code{lowerAsymptote}, \code{richardsNu}, \code{Nreps}, the names of the covariates and of the
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 

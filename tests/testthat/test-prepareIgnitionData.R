@@ -109,6 +109,23 @@ test_that("prepareCovariatesOuter centres and scales for xgboost, keeping the co
   expect_null(out$digestOfData)
 })
 
+## `coreFraction` (the share of a pixel in the ELF's core) is the exposure of the ignition fit, not a covariate:
+## standardising it would turn it into a feature and give the fit a weight that is not a share
+test_that("rescaleCovariates leaves coreFraction unscaled, as it does the responses", {
+  expect_identical(coreFractionTxt, "coreFraction")
+  covs <- data.frame(ignitions = c(0, 2, 1), escapes = c(0, 1, 1), coreFraction = c(0.25, 1, 0.5),
+                     MDC = c(150, 320, 90), year = 2001:2003)
+  out <- prepareCovariatesOuter(covs, algorithm = "xgb", rescaleVars = TRUE, useCache = FALSE)
+  expect_identical(out$covariates$coreFraction, c(0.25, 1, 0.5))
+  expect_identical(out$covariates$escapes, c(0, 1, 1))
+  expect_equal(mean(out$covariates$MDC), 0)
+  expect_false(coreFractionTxt %in% names(attr(out$covariates, "scaleData")[["scaled:center"]]))
+  ## the magnitude rescaling of the other algorithms leaves it too (a share above 10 is never rescaled anyway)
+  glm <- suppressMessages(rescaleCovariates(ignitions ~ MDC, transform(covs, coreFraction = c(25, 100, 50)),
+                                            rescaleVars = TRUE, modelAlgorithm = "glm"))
+  expect_equal(glm$covariates$coreFraction, c(25, 100, 50))
+})
+
 test_that("igOrEscNames builds object names in the asked case", {
   expect_identical(igOrEscNames("ignition", post = "Covariates"), "fireSense_ignitionCovariates")
   expect_identical(igOrEscNames("escape", post = "Fit", case = "camel"), "fireSense_EscapeFit")

@@ -19,15 +19,16 @@ wlTables <- function(pix) {
 }
 
 ## `p = NULL`: one covariate that varies from pixel to pixel, through the real "powerLaw" link (pc 0.4, gamma 1.9).
-## A number `p`: a flat spreadProb `p` and no link, as before the whole-landscape tables existed (the fixture).
+## `cov`: the covariate's value at the pixels. A number `p`: a flat spreadProb `p` and no link, as before the whole-landscape tables existed (the fixture).
 ## `annPix`: the pixels of the fit's tables (default: the buffer's; with `whole`, every pixel).
 wlObjective <- function(p = NULL, side = 11L, whole = FALSE, seed = 1, Nreps = 20L, fx = wlFixture(side),
-                        annPix = if (whole) seq_len(3600L) else fx$buf$pixelID, env = parent.frame(), ...) {
+                        annPix = if (whole) seq_len(3600L) else fx$buf$pixelID, env = parent.frame(),
+                        cov = function(pix) 1.6 + 1.2 * sin(pix), ...) {
   if (is.null(p)) {
     local_mocked_bindings(
       paramsSeparate = function(...) list(logisticPars = c(0.4, 1, 1), covPars = 1),
       spreadProbFromIntegerCovs = function(shortAnnDTx1000 = NULL, annDTx1000, ...)
-        data.table::data.table(pixelID = annDTx1000$pixelID, cov = 1.6 + 1.2 * sin(annDTx1000$pixelID)),
+        data.table::data.table(pixelID = annDTx1000$pixelID, cov = cov(annDTx1000$pixelID)),
       .package = "fireSenseUtils", .env = env)
   } else {
     local_mocked_bindings(

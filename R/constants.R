@@ -23,6 +23,8 @@
 #'     (currently `"ignitions"`).
 #'   - `escapesTxt`: `character(1)`. Name of the escapes column
 #'     (currently `"escapes"`).
+#'   - `coreFractionTxt`: `character(1)`. Name of the column of the ignition covariates with the share of a coarse
+#'     pixel in the ELF's core (currently `"coreFraction"`). An exposure, not a covariate: `rescaleCovariates()` does not scale it.
 #'   - `polyCauseColTxt`: `character(1)`. The cause column of NBAC fire polygons (currently `"FIRECAUS"`).
 #'   - `polySizeColTxt`: `character(1)`. The column of NBAC fire polygons with the whole fire's size in ha (currently
 #'     `"POLY_HA"`).
@@ -54,12 +56,25 @@
 #'     `"powerLaw"`) and `"powerLawShape_spread"` (its `shape`, written when not 1; a row without it has shape 1), so prediction applies the same link ([spreadProbFromCovs()]). A fit with the default
 #'     `"ceiling"` link writes none of them; a row without them, every row written before, predicts as it
 #'     always did.
+#'   - `spreadFitLowerAsymptoteTxt`, `spreadFitRichardsNuTxt`: `character(1)` each. Names of the ledger columns of a fit
+#'     with `"powerLawSmooth"` or `"richards"`: `"lowerAsymptote_spread"` (the link's lower asymptote, both links) and
+#'     `"richardsNu_spread"` (`nu` of `"richards"`). A `"powerLawSmooth"` row also has `gamma` and `shape`, as `"powerLaw"`.
+#'   - `spreadRichardsNu`: `numeric(1)`. The default `nu` of the `"richards"` link, 0.5 (`fireSense_spreadFit`'s `richardsNu`).
+#'   - `spreadLinearLinks`: `character`. The links that map the linear predictor `x` itself to `p` (the year effect is added
+#'     to `x`): `"powerLaw"`, `"powerLawSmooth"` and `"richards"`.
+#'   - `spreadPowerLawLinks`, `spreadAsymptoteLinks`: `character`. The links of `spreadLinearLinks` that use the power law's
+#'     `gamma` and `shape` (and so its calibration, [calibratePowerLaw()]): `"powerLaw"` and `"powerLawSmooth"`; and those
+#'     that have a lower asymptote `lowerAsymptote`: `"powerLawSmooth"` and `"richards"`.
+#'   - `spreadLinkParNames`: named list, one element per link of `spreadLinearLinks`: the names of its parameters, in the
+#'     order of `SpaDES.tools::spreadCpp(linkPars =)` ([linearLinkPars()]).
 #'   - `spreadLinkOptions`: `character` vector of the values `fireSense_spreadFit`'s `spreadLink` can
 #'     take: `"ceiling"` (the default: climate inside the logistic, under `maxAsymptote`),
-#'     `"climateOutside"` and `"powerLaw"` ([powerLawLink()]).
+#'     `"climateOutside"`, `"powerLaw"` ([powerLawLink()]), `"powerLawSmooth"` ([powerLawSmoothLink()]) and
+#'     `"richards"` ([richardsLink()]).
 #'   - `spreadPowerLawGamma`: `numeric(1)`. The default `gamma` of the `"powerLaw"` link, 1.9, from a percolation
 #'     calibration on a uniform landscape. `fireSense_spreadFit` calibrates `gamma` on each ELF's own flammable map
 #'     instead ([calibratePowerLaw()]), unless a number is given.
+#'   - `spreadRichardsB`: `numeric(1)`. The fixed slope `B` of the `"richards"` link, `1 / spreadPowerLawGamma`.
 #'   - `spreadPowerLawShape`: `numeric(1)`. The default `shape` of the `"powerLaw"` link, 1 (the exponential approach to
 #'     `pc`); `fireSense_spreadFit`'s `powerLawShape`. Fixed, not fitted.
 #'   - `spreadFitPowerLawPc50Txt`, `spreadFitPowerLawR2Txt`: `character(1)` each. Names of the ledger columns that
@@ -76,7 +91,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -113,6 +128,9 @@ ignitionsTxt <- "ignitions"
 escapesTxt <- "escapes"
 
 #' @export
+coreFractionTxt <- "coreFraction"
+
+#' @export
 ignitionObjectiveTxt <- "count:poisson"
 
 #' @export
@@ -144,10 +162,36 @@ spreadFitPowerLawGammaTxt <- "powerLawGamma_spread"
 spreadFitPowerLawShapeTxt <- "powerLawShape_spread"
 
 #' @export
-spreadLinkOptions <- c("ceiling", "climateOutside", "powerLaw")
+spreadLinkOptions <- c("ceiling", "climateOutside", "powerLaw", "powerLawSmooth", "richards")
+
+#' @export
+spreadFitLowerAsymptoteTxt <- "lowerAsymptote_spread"
+
+#' @export
+spreadFitRichardsNuTxt <- "richardsNu_spread"
+
+#' @export
+spreadRichardsNu <- 0.5
+
+#' @export
+spreadLinearLinks <- c("powerLaw", "powerLawSmooth", "richards")
+
+#' @export
+spreadPowerLawLinks <- c("powerLaw", "powerLawSmooth")
+
+#' @export
+spreadAsymptoteLinks <- c("powerLawSmooth", "richards")
+
+#' @export
+spreadLinkParNames <- list(powerLaw = c("pc", "gamma", "floor", "shape"),
+                           powerLawSmooth = c("pc", "gamma", "floor", "shape", "lower"),
+                           richards = c("pc", "lower", "nu", "B"))
 
 #' @export
 spreadPowerLawGamma <- 1.9
+
+#' @export
+spreadRichardsB <- 1 / spreadPowerLawGamma
 
 #' @export
 spreadPowerLawShape <- 1

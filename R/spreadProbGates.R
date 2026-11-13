@@ -147,7 +147,7 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 #' the prediction (`fireSense_spreadPredict`) -- comes from this function, so the fit and the prediction
 #' use one formula.
 #'
-#' Three links, chosen by `link` and `climateRef`:
+#' Links, chosen by `link` and `climateRef`:
 #'
 #' * `climateRef = NULL` (the default; `spreadLink = "ceiling"` in `fireSense_spreadFit`): the logistic of
 #'   the whole linear predictor, `p = f + (maxAsymptote - f) * plogis(x)` with `x = mat %*% covPars`
@@ -167,6 +167,11 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 #' * `link = "powerLaw"` (`spreadLink = "powerLaw"`): `p = pc - (pc - f) * exp(-sign(x) * abs(x / powerLawGamma)^powerLawShape)`, with `pc`
 #'   (`logisticPars[1]`) fitted ([powerLawLink()]). The year effect `eps_Y` is added to `x`, not to the logit of `p`.
 #'   Not combined with `climateRef`.
+#' * `link = "powerLawSmooth"` (`spreadLink = "powerLawSmooth"`): the same for `x >= 0`; for `x < 0`, `p` falls from `f` to
+#'   the lower asymptote `lowerAsymptote`, never below it ([powerLawSmoothLink()]). Not combined with `climateRef`.
+#' * `link = "richards"` (`spreadLink = "richards"`): `p = L + (pc - L) / (1 + nu * exp(-B * x))^(1 / nu)`, with `L` the
+#'   `lowerAsymptote`, `nu` the `richardsNu` and `B` fixed ([richardsLink()]). It does not use `powerLawGamma`.
+#'   Not combined with `climateRef`.
 #'
 #' @param mat Numeric matrix, one row per pixel, one column per design column (with `colnames` when
 #'   `climateRef` is given), as `spreadProbCovsOfYear()` gives them: `as.matrix(covs[, ..colsToUse])`.
@@ -174,8 +179,10 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 #'   columns of `mat`.
 #' @param climateRef `NULL`, or a named numeric or list: the reference value of each climate column, on the
 #'   scale of `mat` ([spreadClimateRef()]). Every name must be a column of `mat`.
-#' @param powerLawGamma The `"powerLaw"` link's `gamma`; used only with `link = "powerLaw"`.
-#' @param powerLawShape The `"powerLaw"` link's curvature exponent `shape`; used only with `link = "powerLaw"`.
+#' @param powerLawGamma The `"powerLaw"` and `"powerLawSmooth"` links' `gamma`; used only with those links.
+#' @param powerLawShape The `"powerLaw"` and `"powerLawSmooth"` links' curvature exponent `shape`; used only with those links.
+#' @param lowerAsymptote,richardsNu The lower asymptote of `"powerLawSmooth"` and `"richards"`, and the `nu` of
+#'   `"richards"` ([logisticAll()]); used only with those links.
 #' @param climateAtRef Logical. With `climateRef`, `TRUE` returns `p0`, the spread probability with climate
 #'   held at its reference: what the ceiling applies to. The objective's gates and its saturation summary
 #'   look at `p0`, because under this link a dry year legitimately takes the landscape past `maxFireSpread`
@@ -184,12 +191,13 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 #' @export
 spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link = NULL, climateRef = NULL,
                                climateAtRef = FALSE, powerLawGamma = spreadPowerLawGamma,
-                               powerLawShape = spreadPowerLawShape) {
+                               powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
+                               richardsNu = spreadRichardsNu) {
   if (is.null(climateRef) || !length(climateRef))
     return(logisticAll(logisticPars, mat = mat, covPars, lowerSpreadProb, link = link, gamma = powerLawGamma,
-                      shape = powerLawShape))
-  if (identical(link, "powerLaw"))
-    stop("spreadProbFromCovs(): `climateRef` (climate outside the ceiling) cannot be combined with link = \"powerLaw\"")
+                      shape = powerLawShape, lowerAsymptote = lowerAsymptote, richardsNu = richardsNu))
+  if (any(link %in% spreadLinearLinks))
+    stop("spreadProbFromCovs(): `climateRef` (climate outside the ceiling) cannot be combined with link = \"", link, "\"")
   climCols <- names(climateRef)
   if (is.null(climCols) || !all(climCols %in% colnames(mat)))
     stop("spreadProbFromCovs(): every name of `climateRef` must be a column of `mat`; climateRef: ",
@@ -261,7 +269,7 @@ effectiveMinFireSize <- function(minFireSize, escapeMinPx) {
 #' @param annualDTx1000,nonAnnualDTx1000,historicalFires,covMinMax,mutuallyExclusive,covCentre,link,climateRef,maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape
 #'   As in [.objfunSpreadFit()] (`landscape` is needed only with `escapeSizeHa`). With `climateRef` the gates
 #'   test the spread probability at the reference climate, as the objective does ([spreadProbFromCovs()]).
-#' @param powerLawGamma,powerLawShape As in [.objfunSpreadFit()].
+#' @param powerLawGamma,powerLawShape,lowerAsymptote,richardsNu As in [.objfunSpreadFit()].
 #' @param formulaToFit character; the spread formula, as in the objective.
 #' @param years character; the years to test. Default: the objective's first block.
 #' @param doAssertions logical; as in the objective.
@@ -274,7 +282,8 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
                             covCentre = NULL, link = NULL, maxFireSpread = spreadProbCeiling, lowerSpreadProb = spreadProbFloor,
                             lanscape1stQuantileThresh = 0.265, minFireSize = 2, escapeSizeHa = NULL,
                             landscape = NULL, years = NULL, doAssertions = FALSE, climateRef = NULL,
-                            powerLawGamma = spreadPowerLawGamma, powerLawShape = spreadPowerLawShape) {
+                            powerLawGamma = spreadPowerLawGamma, powerLawShape = spreadPowerLawShape,
+                            lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu) {
   data.table::setDTthreads(1)
   formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
   colsToUse <- spreadDesignCols(formulaToFit)
@@ -301,8 +310,10 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
     g <- lapply(covs, function(cv)
       spreadProbGateTest(spreadProbFromCovs(cv, ps$logisticPars, ps$covPars, lowerSpreadProb, link,
                                             climateRef = climateRef, climateAtRef = TRUE,
-                                            powerLawGamma = powerLawGamma, powerLawShape = powerLawShape),
-                         ps$logisticPars[1], lowerSpreadProb, maxFireSpread, lanscape1stQuantileThresh))
+                                            powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
+                                            lowerAsymptote = lowerAsymptote, richardsNu = richardsNu),
+                         ps$logisticPars[1], spreadLinkLower(link, lowerSpreadProb, lowerAsymptote), maxFireSpread,
+                         lanscape1stQuantileThresh))
     list(pass = all(vapply(g, `[[`, logical(1), "pass")),
          burny = any(vapply(g, `[[`, logical(1), "burny")),
          notSpread = any(vapply(g, `[[`, logical(1), "notSpread")),

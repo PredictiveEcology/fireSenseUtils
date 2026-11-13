@@ -26,7 +26,9 @@ logisticAll(
   lowerSpreadProb,
   link = NULL,
   gamma = spreadPowerLawGamma,
-  shape = spreadPowerLawShape
+  shape = spreadPowerLawShape,
+  lowerAsymptote = spreadProbFloor,
+  richardsNu = spreadRichardsNu
 )
 }
 \arguments{
@@ -56,13 +58,20 @@ named \code{upperTail1} is always \code{logistic3pUpper}, whatever its length.}
 (\code{par1}) used for the 2- and 3-parameter forms.}
 
 \item{link}{\code{NULL} (the default) to choose the form from \code{logisticPars} as above,
-\code{"logistic3pUpper"} to use the 3-parameter form with Stukel's upper tail, or \code{"powerLaw"} for
-\code{\link[=powerLawLink]{powerLawLink()}} (\code{logisticPars[1]} is then \code{p_c}). Pass it explicitly
+\code{"logistic3pUpper"} to use the 3-parameter form with Stukel's upper tail, or \code{"powerLaw"},
+\code{"powerLawSmooth"} or \code{"richards"} for \code{\link[=powerLawLink]{powerLawLink()}}, \code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}} or \code{\link[=richardsLink]{richardsLink()}}
+(\code{logisticPars[1]} is then \code{p_c}). Pass it explicitly
 wherever \code{logisticPars} may arrive without names, as inside the objective function.}
 
-\item{gamma}{The \code{"powerLaw"} link's scale \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}); not used by the other links.}
+\item{gamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' scale \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}); not used by the other links
+(\code{"richards"} has its own fixed scale, \code{\link[=richardsLink]{richardsLink()}}).}
 
-\item{shape}{The \code{"powerLaw"} link's curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}); default 1; not used by the other links.}
+\item{shape}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}); default 1; not used by the other links.}
+
+\item{lowerAsymptote}{The lower asymptote \code{L} of the \code{"powerLawSmooth"} and \code{"richards"} links (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}},
+\code{\link[=richardsLink]{richardsLink()}}), \verb{0 <= L <= spreadProbFloor}; default \link{spreadProbFloor}; not used by the other links.}
+
+\item{richardsNu}{The \code{"richards"} link's \code{nu} (\code{\link[=richardsLink]{richardsLink()}}); default \link{spreadRichardsNu}; not used by the other links.}
 }
 \value{
 Numeric vector of logistic values; same length as \code{x} (or

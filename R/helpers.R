@@ -23,11 +23,16 @@
 #' @param lowerSpreadProb Numeric scalar in `[0, 1]`. The lower asymptote
 #'   (`par1`) used for the 2- and 3-parameter forms.
 #' @param link `NULL` (the default) to choose the form from `logisticPars` as above,
-#'   `"logistic3pUpper"` to use the 3-parameter form with Stukel's upper tail, or `"powerLaw"` for
-#'   [powerLawLink()] (`logisticPars[1]` is then `p_c`). Pass it explicitly
+#'   `"logistic3pUpper"` to use the 3-parameter form with Stukel's upper tail, or `"powerLaw"`,
+#'   `"powerLawSmooth"` or `"richards"` for [powerLawLink()], [powerLawSmoothLink()] or [richardsLink()]
+#'   (`logisticPars[1]` is then `p_c`). Pass it explicitly
 #'   wherever `logisticPars` may arrive without names, as inside the objective function.
-#' @param gamma The `"powerLaw"` link's scale `gamma` ([powerLawLink()]); not used by the other links.
-#' @param shape The `"powerLaw"` link's curvature exponent `shape` ([powerLawLink()]); default 1; not used by the other links.
+#' @param gamma The `"powerLaw"` and `"powerLawSmooth"` links' scale `gamma` ([powerLawLink()]); not used by the other links
+#'   (`"richards"` has its own fixed scale, [richardsLink()]).
+#' @param shape The `"powerLaw"` and `"powerLawSmooth"` links' curvature exponent `shape` ([powerLawLink()]); default 1; not used by the other links.
+#' @param lowerAsymptote The lower asymptote `L` of the `"powerLawSmooth"` and `"richards"` links ([powerLawSmoothLink()],
+#'   [richardsLink()]), `0 <= L <= spreadProbFloor`; default [spreadProbFloor]; not used by the other links.
+#' @param richardsNu The `"richards"` link's `nu` ([richardsLink()]); default [spreadRichardsNu]; not used by the other links.
 #'
 #' @return Numeric vector of logistic values; same length as `x` (or
 #'   `nrow(mat)` for `logisticAll`).
@@ -96,12 +101,13 @@ logistic2p <- function(x, par, par1 = 0.1, par4 = 0.5) {
 #' @export
 #' @rdname logistic
 logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL, gamma = spreadPowerLawGamma,
-                        shape = spreadPowerLawShape) {
+                        shape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu) {
   if (is.null(link) && "upperTail1" %in% names(logisticPars)) link <- "logistic3pUpper"
   if (!is.null(link)) {
-    link <- match.arg(link, c("logistic3pUpper", "powerLaw"))
-    if (identical(link, "powerLaw"))
-      return(powerLawLink(mat %*% covPars, logisticPars[1L], gamma, lowerSpreadProb, shape))
+    link <- match.arg(link, c("logistic3pUpper", spreadLinearLinks))
+    if (link %in% spreadLinearLinks)
+      return(linearLinkProb(mat %*% covPars, link, linearLinkPars(link, logisticPars[[1L]], gamma, lowerSpreadProb,
+                                                                  shape, lowerAsymptote, richardsNu)))
     return(logistic3pUpper(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
   }
   if (length(logisticPars) == 4) {
@@ -120,8 +126,10 @@ logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL
 #' `p = pc - (pc - floor) * exp(-sign(x) * abs(x / gamma)^shape)`, from a percolation calibration (log mean fire size is linear in
 #' `log(pc - p)` with slope `-gamma`, `pc` about 0.25 and `gamma` about 1.9). `log(pc - p)` falls linearly in
 #' the linear predictor `x`, so a year effect added to `x` multiplies a year's mean fire size by about
-#' `exp(eps)`; and `p` cannot pass `pc`, so no year percolates. `x = 0` gives `floor`; `x < 0` gives less than
-#' the floor, and a value below 0 is set to 0. `pc` takes the slot of `maxAsymptote` and is fitted; `gamma` is
+#' `exp(eps)`; and `p` cannot pass `pc`, so no year percolates. `floor` is `p` at `x = 0`, not a lower asymptote:
+#' `x < 0` gives less than `floor`, and a value below 0 is set to 0, so a cell with a low enough linear predictor
+#' cannot burn. [powerLawSmoothLink()] has the same curve for `x >= 0` and a lower asymptote below 0. `pc` takes the slot
+#' of `maxAsymptote` and is fitted; `gamma` is
 #' fixed, not fitted: it is exactly confounded with the scale of the coefficients. Used by [logisticAll()] with
 #' `link = "powerLaw"` (so by [spreadProbFromCovs()] and the objective) and by the objective's year effect.
 #' `shape` (default 1, the formula `p = pc - (pc - floor) * exp(-x / gamma)`) is fixed, not fitted. With `shape > 1`
@@ -132,7 +140,7 @@ logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL
 #' @param pc The percolation threshold, `p` as `x` goes to infinity.
 #' @param gamma The scale; default [spreadPowerLawGamma].
 #' @param shape The curvature exponent; default [spreadPowerLawShape] (1).
-#' @param floor `lowerSpreadProb`: `p` at `x = 0`.
+#' @param floor `lowerSpreadProb`: `p` at `x = 0` (not a lower asymptote: see above).
 #' @return A numeric vector, one value per `x`.
 #' @export
 powerLawLink <- function(x, pc, gamma = spreadPowerLawGamma, floor = spreadProbFloor,
@@ -141,23 +149,143 @@ powerLawLink <- function(x, pc, gamma = spreadPowerLawGamma, floor = spreadProbF
   pmax(pc - (pc - floor) * exp(-sign(x) * abs(x / gamma)^shape), 0)
 }
 
+#' The power-law spread link with a lower asymptote
+#'
+#' For `x >= 0` exactly [powerLawLink()]: `p = pc - (pc - floor) * exp(-(x / gamma)^shape)`, so `p = floor` at `x = 0`.
+#' For `x < 0`, `p = lower + (floor - lower) * exp(-((pc - floor) / (floor - lower)) * (abs(x) / gamma)^shape)`: it
+#' falls from `floor` towards `lower` and never below it, so no cell becomes unburnable (the power law's `x < 0` branch
+#' falls to 0). The curve is continuous at 0 and has no clamp. With `lower = floor` the `x < 0` side is the constant
+#' `floor`. `gamma` is part of the power law's definition and is calibrated as for [powerLawLink()]
+#' ([calibratePowerLaw()]).
+#'
+#' @inheritParams powerLawLink
+#' @param lower The lower asymptote `L`, `0 <= L <= floor`; default `floor`. `pc`, `gamma`, `floor`, `shape` and `lower`
+#'   may each be one value or one per `x`.
+#' @return A numeric vector, one value per `x`.
+#' @export
+powerLawSmoothLink <- function(x, pc, gamma = spreadPowerLawGamma, floor = spreadProbFloor,
+                               shape = spreadPowerLawShape, lower = floor) {
+  x <- as.vector(x)
+  p <- powerLawLink(pmax(x, 0), pc, gamma, floor, shape)
+  neg <- which(x < 0)
+  if (length(neg)) {
+    ## the parameters may be one per x (a cell's own, as fireSense_burn gives them)
+    par <- function(v) rep_len(v, length(x))[neg]
+    pcN <- par(pc); fN <- par(floor); lN <- par(lower)
+    p[neg] <- ifelse(lN == fN, fN, lN + (fN - lN) * exp(-((pcN - fN) / (fN - lN)) * abs(x[neg] / par(gamma))^par(shape)))
+  }
+  p
+}
+
+#' The Richards (generalized logistic) spread link
+#'
+#' `p = lower + (pc - lower) / (1 + nu * exp(-B * x))^(1 / nu)`: a curve between the lower asymptote `lower` and `pc`.
+#' `nu = 0` is the Gompertz curve, `p = lower + (pc - lower) * exp(-exp(-B * x))`; `nu = 1` is the logistic.
+#' `nu` is fixed, not fitted. `B` (default [spreadRichardsB], `1 / spreadPowerLawGamma`) and the location (0) are fixed conventions, because
+#' they are confounded with the scale of the coefficients and the intercept. It does not use `gamma` or the calibration
+#' of [calibratePowerLaw()].
+#'
+#' @inheritParams powerLawLink
+#' @param lower The lower asymptote `L`, `0 <= L`; default [spreadProbFloor].
+#' @param nu The shape `nu >= 0`; default [spreadRichardsNu].
+#' @param B The slope; default [spreadRichardsB].
+#' @return A numeric vector, one value per `x`.
+#' @export
+richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, B = spreadRichardsB) {
+  e <- exp(-B * as.vector(x))
+  nu <- rep_len(nu, length(e))
+  ## (1 + nu * e)^(1 / nu) is exp(log1p(nu * e) / nu); at nu = 0 that is exp(e), the Gompertz curve
+  lower + (pc - lower) * exp(-ifelse(nu == 0, e, log1p(nu * e) / nu))
+}
+
+#' Check the parameters of the links with a lower asymptote
+#'
+#' The one check of `lowerAsymptote` and `richardsNu`, used by `fireSense_spreadFit` for its parameters and by
+#' `fireSense_spreadPredict` for a ledger row. `lower` must be one number from 0 to [spreadProbFloor] with
+#' `"powerLawSmooth"` and `"richards"`; `nu` one number, 0 or more, with `"richards"`. Other links have nothing to check.
+#'
+#' @param link The spread link.
+#' @param lower,nu The `lowerAsymptote` and `richardsNu` to check; `NULL` is not a number.
+#' @return `TRUE`, invisibly; an error otherwise.
+#' @export
+checkLinkParams <- function(link, lower = NULL, nu = NULL) {
+  one <- function(v) is.numeric(v) && length(v) == 1L && is.finite(v)
+  if (any(link %in% spreadAsymptoteLinks) && !(one(lower) && lower >= 0 && lower <= spreadProbFloor))
+    stop("lowerAsymptote must be one number from 0 to ", spreadProbFloor, "; got ", format(lower), call. = FALSE)
+  if (any(link %in% "richards") && !(one(nu) && nu >= 0))
+    stop("richardsNu must be one number, 0 or more; got ", format(nu), call. = FALSE)
+  invisible(TRUE)
+}
+
+#' The parameters of a linear-predictor link, in the order of `spreadCpp(linkPars =)`
+#'
+#' The parameter vector of one of [spreadLinearLinks], named as [spreadLinkParNames] says. It is what
+#' `SpaDES.tools::spreadCpp(link = link, linkPars = )` takes, and [linearLinkProb()] turns the same vector into `p`, so the
+#' R and the C++ link are given the same numbers. `"richards"` uses `lowerAsymptote`, `richardsNu` and its fixed
+#' `B = ` [spreadRichardsB], and not `gamma`, `floor` or `shape`.
+#'
+#' @param link One of [spreadLinearLinks].
+#' @param pc The percolation threshold (`maxAsymptote`).
+#' @param gamma,floor,shape As in [powerLawLink()].
+#' @param lowerAsymptote,richardsNu As in [logisticAll()].
+#' @return A named numeric vector.
+#' @export
+linearLinkPars <- function(link, pc, gamma = spreadPowerLawGamma, floor = spreadProbFloor,
+                           shape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu) {
+  all <- c(pc = pc, gamma = gamma, floor = floor, shape = shape, lower = lowerAsymptote, nu = richardsNu,
+           B = spreadRichardsB)
+  all[spreadLinkParNames[[link]]]
+}
+
+#' Spread probability from the linear predictor, for a link of [spreadLinearLinks]
+#'
+#' The one place the link is chosen: [powerLawLink()], [powerLawSmoothLink()] or [richardsLink()].
+#'
+#' @param x The linear predictor.
+#' @param link One of [spreadLinearLinks].
+#' @param pars The link's parameters: a named numeric vector ([linearLinkPars()]), or a matrix with those names as columns
+#'   and one row per element of `x`.
+#' @return A numeric vector, one value per `x`.
+#' @export
+linearLinkProb <- function(x, link, pars) {
+  par <- function(nm) if (is.matrix(pars)) pars[, nm] else pars[[nm]]
+  switch(link,
+         powerLaw = powerLawLink(x, par("pc"), par("gamma"), par("floor"), par("shape")),
+         powerLawSmooth = powerLawSmoothLink(x, par("pc"), par("gamma"), par("floor"), par("shape"), par("lower")),
+         richards = richardsLink(x, par("pc"), par("lower"), par("nu"), par("B")),
+         stop("`link` must be one of ", paste(dQuote(spreadLinearLinks, FALSE), collapse = ", "), "; got ", dQuote(link, FALSE)))
+}
+
+#' The lower bound the spread-probability gates use
+#'
+#' With `"powerLawSmooth"` or `"richards"` it is the link's lower asymptote, so a year in which most cells sit near it
+#' is not refused for a median below `lowerSpreadProb`; with any other link it is `lowerSpreadProb`, as always.
+#'
+#' @param link The spread link.
+#' @param lowerSpreadProb,lowerAsymptote As in [.objfunSpreadFit()].
+#' @return A number.
+#' @keywords internal
+spreadLinkLower <- function(link, lowerSpreadProb, lowerAsymptote)
+  if (any(link %in% spreadAsymptoteLinks)) lowerAsymptote else lowerSpreadProb
+
 #' Which arguments a `link`'s cache key leaves out
 #'
-#' `powerLawGamma` and `powerLawShape` matter only with `link = "powerLaw"`; with any other link they are left out
-#' of the key so a fit made without them is found as before.
+#' `powerLawGamma` and `powerLawShape` matter only with `link = "powerLaw"` or `"powerLawSmooth"`; `lowerAsymptote` only
+#' with `"powerLawSmooth"` or `"richards"`; `richardsNu` only with `"richards"`. An argument that does not matter for
+#' the link is left out of the key, so a fit made without it is found as before.
 #'
-#' With `link = "powerLaw"`, `powerLawShape` is also left out when it is the default, 1 (the original link), so a fit
-#' made before `powerLawShape` existed is found.
+#' With `link = "powerLaw"` or `"powerLawSmooth"`, `powerLawShape` is also left out when it is the default, 1 (the original
+#' link), so a fit made before `powerLawShape` existed is found.
 #'
-#' @param link The spread link: `NULL`, `"logistic3pUpper"` or `"powerLaw"`.
+#' @param link The spread link: `NULL`, `"logistic3pUpper"`, `"powerLaw"`, `"powerLawSmooth"` or `"richards"`.
 #' @param shape The `powerLawShape` of the call; default [spreadPowerLawShape].
-#' @return `c("powerLawGamma", "powerLawShape")` unless `link = "powerLaw"`; with it, `"powerLawShape"` if `shape` is
-#'   1, else `character()`. For `omitArgs` of `Cache()`.
+#' @return A character vector of argument names, for `omitArgs` of `Cache()`.
 #' @export
 powerLawOmitArgs <- function(link, shape = spreadPowerLawShape) {
-  if (!identical(link, "powerLaw")) c("powerLawGamma", "powerLawShape")
-  else if (isTRUE(shape == spreadPowerLawShape)) "powerLawShape"
-  else character()
+  c(if (!any(link %in% spreadPowerLawLinks)) c("powerLawGamma", "powerLawShape")
+    else if (isTRUE(shape == spreadPowerLawShape)) "powerLawShape",
+    if (!any(link %in% spreadAsymptoteLinks)) "lowerAsymptote",
+    if (!any(link %in% "richards")) "richardsNu") |> as.character()
 }
 
 #' Logistic parameter names
@@ -432,8 +560,11 @@ fixLogisticPars <- function(par) {
 #' `fireSense_spreadFit` gives `maxAsymptote`, and the default `maxFireSpread` of the objective, the
 #' gates and the validation: a fitted `maxAsymptote` above it draws a warning. How a year's random
 #' effect can take a pixel past it is described at `maxFireSpread` in [.objfunSpreadFit()].
-#' `spreadProbFloor` is the default `lowerSpreadProb`, the link's lower asymptote, in the objective, the
-#' gates, the validation and `fireSense_spreadPredict`. `spreadPowerLawPcBounds` are the bounds
+#' `spreadProbFloor` is the default `lowerSpreadProb` in the objective, the
+#' gates, the validation and `fireSense_spreadPredict`. It is the lower asymptote of the logistic links. With
+#' `"powerLaw"` it is `p` at `x = 0` and there is no lower asymptote: `p` falls below it for `x < 0` and is set to 0
+#' ([powerLawLink()]). With `"powerLawSmooth"` it is `p` at `x = 0` and the default `lowerAsymptote`, the lower
+#' asymptote, which may be anywhere from 0 to it ([powerLawSmoothLink()]). `spreadPowerLawPcBounds` are the bounds
 #' `fireSense_spreadFit` gives `p_c`, the `maxAsymptote` slot, with the `"powerLaw"` link ([powerLawLink()]):
 #' `p_c` must stay above the floor (0.01 above it), and its upper bound is 0.35. These are the outer limits:
 #' `fireSense_spreadFit` bounds `p_c` above by the ELF's own calibrated threshold ([powerLawPcBounds()]).

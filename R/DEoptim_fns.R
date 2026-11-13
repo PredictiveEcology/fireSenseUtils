@@ -114,12 +114,15 @@ deoptimPopulationSize <- function(nParams) {
 #'   diagnostics: `NULL` (default) keeps climate under the `maxAsymptote` ceiling, and the call and its cache
 #'   key are what they were; a named numeric ([spreadClimateRef()]) takes climate outside the ceiling
 #'   ([spreadProbFromCovs()]).
-#' @param powerLawGamma The `"powerLaw"` link's `gamma` ([powerLawLink()]), passed to [.objfunSpreadFit()] in the
-#'   fit and the re-score. Used only with `link = "powerLaw"`; with any other link it is left out of the cache
+#' @param powerLawGamma The `"powerLaw"` and `"powerLawSmooth"` links' `gamma` ([powerLawLink()]), passed to [.objfunSpreadFit()] in the
+#'   fit and the re-score. Used only with those links; with any other link it is left out of the cache
 #'   keys ([powerLawOmitArgs()]) and the re-score's arguments, so they are what they were.
 #' @param powerLawShape The `"powerLaw"` link's curvature exponent `shape` ([powerLawLink()]), fixed, passed like
 #'   `powerLawGamma`. At its default, 1, it is left out of the cache keys and the re-score's arguments, so fits made
 #'   before it existed are found.
+#' @param lowerAsymptote,richardsNu The lower asymptote of the `"powerLawSmooth"` and `"richards"` links and the `nu` of
+#'   `"richards"` ([powerLawSmoothLink()], [richardsLink()]), fixed, passed like `powerLawGamma`. Used only with those links;
+#'   with any other link they are left out of the cache keys and the re-score's arguments ([powerLawOmitArgs()]).
 #'
 #' @param convergence `NULL` (default: `clusters`' options and defaults decide) or a list with any of
 #'   `window`, `minGenerations`, `se`, `sdChange`: when [clusters::DEoptimIterative()] stops a fit
@@ -165,8 +168,8 @@ deoptimPopulationSize <- function(nParams) {
 #' @param simulateMembers Integer. If above 0, that many best members of the re-score simulate the
 #'   observed fires without the size cap ([simulateFireSizes()]), attached as `attr(DE, "fitSims")`
 #'   for [scoreFireSizes()] and [linkSaturation()]. Needs `rescoreReps > 0`.
-#' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL` or
-#'   `"logistic3pUpper"`. Needed because DEoptim may hand the objective an unnamed `par`.
+#' @param link Passed to [.objfunSpreadFit()] in the fit and the re-score: `NULL`,
+#'   `"logistic3pUpper"` or one of [spreadLinearLinks]. Needed because DEoptim may hand the objective an unnamed `par`.
 #' @param jumpTries,jumpMeanDist,yearAreaWeight,areaDistWeight Passed to [.objfunSpreadFit()], in the fit
 #'   and the final-population re-score. Off by default (`0`).
 #' @param crpsWeights,gateRefusal Passed to [.objfunSpreadFit()], in the fit and the final-population re-score:
@@ -272,6 +275,8 @@ runDEoptim <- function(landscape,
                        climateRef = NULL,
                        powerLawGamma = spreadPowerLawGamma,
                        powerLawShape = spreadPowerLawShape,
+                       lowerAsymptote = spreadProbFloor,
+                       richardsNu = spreadRichardsNu,
                        wholeLandscape = FALSE) {
   checkObjectiveTests(tests)
   wholeLandscape <- checkWholeLandscape(wholeLandscape, penaliseRunaways, link)
@@ -370,6 +375,8 @@ runDEoptim <- function(landscape,
       climateRef = climateRef,
       powerLawGamma = powerLawGamma,
       powerLawShape = powerLawShape,
+      lowerAsymptote = lowerAsymptote,
+      richardsNu = richardsNu,
       tests = tests,
       figurePath = visualizeDEoptim,
       maxFireSpread = maxFireSpread,
@@ -442,8 +449,9 @@ runDEoptim <- function(landscape,
   ## NULL adds nothing, so the cached re-score keeps its key
   rescoreArgs$covCentre <- covCentre
   rescoreArgs$climateRef <- climateRef
-  if (identical(link, "powerLaw")) rescoreArgs$powerLawGamma <- powerLawGamma
-  if (!"powerLawShape" %in% powerLawOmitArgs(link, powerLawShape)) rescoreArgs$powerLawShape <- powerLawShape
+  omitted <- powerLawOmitArgs(link, powerLawShape)
+  for (nm in setdiff(c("powerLawGamma", "powerLawShape", "lowerAsymptote", "richardsNu"), omitted))
+    rescoreArgs[[nm]] <- get(nm)
   rescoreArgs$runawayBufferMultiple <- runawayBufferMultiple
   rescoreArgs$crpsWeights <- crpsWeights
   rescoreArgs$wholeLandscape <- wholeLandscapeArg

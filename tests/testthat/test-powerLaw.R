@@ -156,11 +156,12 @@ test_that(".objfunSpreadFit() and runDEoptim() carry powerLawGamma; the default 
   expect_identical(seen$fit$powerLawShape, 2)
   expect_identical(seen$rescore$powerLawShape, 2)
   expect_false("powerLawShape" %in% seen$omit[[1]])
-  expect_identical(powerLawOmitArgs(NULL), c("powerLawGamma", "powerLawShape"))
-  expect_identical(powerLawOmitArgs("logistic3pUpper"), c("powerLawGamma", "powerLawShape"))
-  expect_identical(powerLawOmitArgs("powerLaw", 2), character())
-  expect_identical(powerLawOmitArgs("powerLaw"), "powerLawShape")
-  expect_identical(powerLawOmitArgs("powerLaw", 1L), "powerLawShape")
+  ## the arguments of the smooth links (lowerAsymptote, richardsNu) are left out for the old links, so their keys are as before
+  expect_identical(powerLawOmitArgs(NULL), c("powerLawGamma", "powerLawShape", "lowerAsymptote", "richardsNu"))
+  expect_identical(powerLawOmitArgs("logistic3pUpper"), c("powerLawGamma", "powerLawShape", "lowerAsymptote", "richardsNu"))
+  expect_identical(powerLawOmitArgs("powerLaw", 2), c("lowerAsymptote", "richardsNu"))
+  expect_identical(powerLawOmitArgs("powerLaw"), c("powerLawShape", "lowerAsymptote", "richardsNu"))
+  expect_identical(powerLawOmitArgs("powerLaw", 1L), c("powerLawShape", "lowerAsymptote", "richardsNu"))
 })
 
 ## powerLawShape: p = pc - (pc - floor) * exp(-sign(x) * abs(x / gamma)^shape); 1 is the original link
