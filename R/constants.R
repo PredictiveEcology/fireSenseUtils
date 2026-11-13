@@ -74,6 +74,8 @@
 #'   - `spreadPowerLawGamma`: `numeric(1)`. The default `gamma` of the `"powerLaw"` link, 1.9, from a percolation
 #'     calibration on a uniform landscape. `fireSense_spreadFit` calibrates `gamma` on each ELF's own flammable map
 #'     instead ([calibratePowerLaw()]), unless a number is given.
+#'   - `spreadLowerAsymptoteMin`: `numeric(1)`. The smallest `lowerAsymptote` ([checkLinkParams()]), 0.001: with 0 the spread
+#'     probability of a cell can be about 1e-9, and a fire under its `minSize` retries for about 1 / p generations.
 #'   - `spreadRichardsB`: `numeric(1)`. The fixed slope `B` of the `"richards"` link, `1 / spreadPowerLawGamma`.
 #'   - `spreadPowerLawShape`: `numeric(1)`. The default `shape` of the `"powerLaw"` link, 1 (the exponential approach to
 #'     `pc`); `fireSense_spreadFit`'s `powerLawShape`. Fixed, not fitted.
@@ -91,7 +93,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -192,6 +194,9 @@ spreadPowerLawGamma <- 1.9
 
 #' @export
 spreadRichardsB <- 1 / spreadPowerLawGamma
+
+#' @export
+spreadLowerAsymptoteMin <- 1e-3
 
 #' @export
 spreadPowerLawShape <- 1

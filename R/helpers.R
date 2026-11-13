@@ -31,7 +31,7 @@
 #'   (`"richards"` has its own fixed scale, [richardsLink()]).
 #' @param shape The `"powerLaw"` and `"powerLawSmooth"` links' curvature exponent `shape` ([powerLawLink()]); default 1; not used by the other links.
 #' @param lowerAsymptote The lower asymptote `L` of the `"powerLawSmooth"` and `"richards"` links ([powerLawSmoothLink()],
-#'   [richardsLink()]), `0 <= L <= spreadProbFloor`; default [spreadProbFloor]; not used by the other links.
+#'   [richardsLink()]), [spreadLowerAsymptoteMin] `<= L <= spreadProbFloor` ([checkLinkParams()]); default [spreadProbFloor]; not used by the other links.
 #' @param richardsNu The `"richards"` link's `nu` ([richardsLink()]); default [spreadRichardsNu]; not used by the other links.
 #'
 #' @return Numeric vector of logistic values; same length as `x` (or
@@ -201,7 +201,7 @@ richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, 
 #' Check the parameters of the links with a lower asymptote
 #'
 #' The one check of `lowerAsymptote` and `richardsNu`, used by `fireSense_spreadFit` for its parameters and by
-#' `fireSense_spreadPredict` for a ledger row. `lower` must be one number from 0 to [spreadProbFloor] with
+#' `fireSense_spreadPredict` for a ledger row. `lower` must be one number from [spreadLowerAsymptoteMin] to [spreadProbFloor] with
 #' `"powerLawSmooth"` and `"richards"`; `nu` one number, 0 or more, with `"richards"`. Other links have nothing to check.
 #'
 #' @param link The spread link.
@@ -210,8 +210,11 @@ richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, 
 #' @export
 checkLinkParams <- function(link, lower = NULL, nu = NULL) {
   one <- function(v) is.numeric(v) && length(v) == 1L && is.finite(v)
-  if (any(link %in% spreadAsymptoteLinks) && !(one(lower) && lower >= 0 && lower <= spreadProbFloor))
-    stop("lowerAsymptote must be one number from 0 to ", spreadProbFloor, "; got ", format(lower), call. = FALSE)
+  if (any(link %in% spreadAsymptoteLinks) &&
+      !(one(lower) && lower >= spreadLowerAsymptoteMin && lower <= spreadProbFloor))
+    stop("lowerAsymptote must be one number from ", spreadLowerAsymptoteMin, " to ", spreadProbFloor, "; got ", format(lower),
+         ". It is at least ", spreadLowerAsymptoteMin, ", never 0: a fire under its minSize keeps trying to spread until it ",
+         "has reached it, and with a spread probability of about 0 that is an unbounded number of generations.", call. = FALSE)
   if (any(link %in% "richards") && !(one(nu) && nu >= 0))
     stop("richardsNu must be one number, 0 or more; got ", format(nu), call. = FALSE)
   invisible(TRUE)
@@ -564,7 +567,7 @@ fixLogisticPars <- function(par) {
 #' gates, the validation and `fireSense_spreadPredict`. It is the lower asymptote of the logistic links. With
 #' `"powerLaw"` it is `p` at `x = 0` and there is no lower asymptote: `p` falls below it for `x < 0` and is set to 0
 #' ([powerLawLink()]). With `"powerLawSmooth"` it is `p` at `x = 0` and the default `lowerAsymptote`, the lower
-#' asymptote, which may be anywhere from 0 to it ([powerLawSmoothLink()]). `spreadPowerLawPcBounds` are the bounds
+#' asymptote, which may be anywhere from `spreadLowerAsymptoteMin` to it ([powerLawSmoothLink()]). `spreadPowerLawPcBounds` are the bounds
 #' `fireSense_spreadFit` gives `p_c`, the `maxAsymptote` slot, with the `"powerLaw"` link ([powerLawLink()]):
 #' `p_c` must stay above the floor (0.01 above it), and its upper bound is 0.35. These are the outer limits:
 #' `fireSense_spreadFit` bounds `p_c` above by the ELF's own calibrated threshold ([powerLawPcBounds()]).

@@ -25,7 +25,7 @@ effect can take a pixel past it is described at \code{maxFireSpread} in \code{\l
 gates, the validation and \code{fireSense_spreadPredict}. It is the lower asymptote of the logistic links. With
 \code{"powerLaw"} it is \code{p} at \code{x = 0} and there is no lower asymptote: \code{p} falls below it for \code{x < 0} and is set to 0
 (\code{\link[=powerLawLink]{powerLawLink()}}). With \code{"powerLawSmooth"} it is \code{p} at \code{x = 0} and the default \code{lowerAsymptote}, the lower
-asymptote, which may be anywhere from 0 to it (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}). \code{spreadPowerLawPcBounds} are the bounds
+asymptote, which may be anywhere from \code{spreadLowerAsymptoteMin} to it (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}). \code{spreadPowerLawPcBounds} are the bounds
 \code{fireSense_spreadFit} gives \code{p_c}, the \code{maxAsymptote} slot, with the \code{"powerLaw"} link (\code{\link[=powerLawLink]{powerLawLink()}}):
 \code{p_c} must stay above the floor (0.01 above it), and its upper bound is 0.35. These are the outer limits:
 \code{fireSense_spreadFit} bounds \code{p_c} above by the ELF's own calibrated threshold (\code{\link[=powerLawPcBounds]{powerLawPcBounds()}}).

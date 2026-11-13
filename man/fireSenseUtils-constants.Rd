@@ -28,6 +28,7 @@
 \alias{spreadFitRichardsNuTxt}
 \alias{spreadRichardsNu}
 \alias{spreadRichardsB}
+\alias{spreadLowerAsymptoteMin}
 \alias{spreadLinearLinks}
 \alias{spreadPowerLawLinks}
 \alias{spreadAsymptoteLinks}
@@ -113,6 +114,8 @@ take: \code{"ceiling"} (the default: climate inside the logistic, under \code{ma
 \item \code{spreadPowerLawGamma}: \code{numeric(1)}. The default \code{gamma} of the \code{"powerLaw"} link, 1.9, from a percolation
 calibration on a uniform landscape. \code{fireSense_spreadFit} calibrates \code{gamma} on each ELF's own flammable map
 instead (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}), unless a number is given.
+\item \code{spreadLowerAsymptoteMin}: \code{numeric(1)}. The smallest \code{lowerAsymptote} (\code{\link[=checkLinkParams]{checkLinkParams()}}), 0.001: with 0 the spread
+probability of a cell can be about 1e-9, and a fire under its \code{minSize} retries for about 1 / p generations.
 \item \code{spreadRichardsB}: \code{numeric(1)}. The fixed slope \code{B} of the \code{"richards"} link, \code{1 / spreadPowerLawGamma}.
 \item \code{spreadPowerLawShape}: \code{numeric(1)}. The default \code{shape} of the \code{"powerLaw"} link, 1 (the exponential approach to
 \code{pc}); \code{fireSense_spreadFit}'s \code{powerLawShape}. Fixed, not fitted.
