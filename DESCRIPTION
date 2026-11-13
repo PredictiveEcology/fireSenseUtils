@@ -68,7 +68,6 @@ Suggests:
     RColorBrewer,
     remotes,
     rmarkdown,
-    scfmutils,
     scoringRules,
     spatstat,
     spelling,
@@ -83,7 +82,6 @@ Remotes:
     PredictiveEcology/pemisc@development,
     PredictiveEcology/reproducible@development,
     PredictiveEcology/Require@development,
-    PredictiveEcology/scfmutils@development,
     PredictiveEcology/SpaDES.core@development,
     PredictiveEcology/SpaDES.project@development,
     PredictiveEcology/SpaDES.tools@development
