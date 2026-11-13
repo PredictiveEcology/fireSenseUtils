@@ -181,20 +181,40 @@ powerLawSmoothLink <- function(x, pc, gamma = spreadPowerLawGamma, floor = sprea
 #'
 #' `p = lower + (pc - lower) / (1 + nu * exp(-B * x))^(1 / nu)`: a curve between the lower asymptote `lower` and `pc`.
 #' `nu = 0` is the Gompertz curve, `p = lower + (pc - lower) * exp(-exp(-B * x))`; `nu = 1` is the logistic.
-#' `nu` is fixed, not fitted. `B` (default `1 / spreadPowerLawGamma`) and the location (0) are fixed conventions, because
+#' `nu` is fixed, not fitted. `B` (default [spreadRichardsB], `1 / spreadPowerLawGamma`) and the location (0) are fixed conventions, because
 #' they are confounded with the scale of the coefficients and the intercept. It does not use `gamma` or the calibration
 #' of [calibratePowerLaw()].
 #'
 #' @inheritParams powerLawLink
 #' @param lower The lower asymptote `L`, `0 <= L`; default [spreadProbFloor].
 #' @param nu The shape `nu >= 0`; default [spreadRichardsNu].
-#' @param B The slope; default `1 / spreadPowerLawGamma`.
+#' @param B The slope; default [spreadRichardsB].
 #' @return A numeric vector, one value per `x`.
 #' @export
-richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, B = 1 / spreadPowerLawGamma) {
+richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, B = spreadRichardsB) {
   e <- exp(-B * as.vector(x))
-  g <- function(nu, e) exp(-log1p(nu * e) / nu)
-  lower + (pc - lower) * if (length(nu) == 1L) (if (nu == 0) exp(-e) else g(nu, e)) else ifelse(nu == 0, exp(-e), g(nu, e))
+  nu <- rep_len(nu, length(e))
+  ## (1 + nu * e)^(1 / nu) is exp(log1p(nu * e) / nu); at nu = 0 that is exp(e), the Gompertz curve
+  lower + (pc - lower) * exp(-ifelse(nu == 0, e, log1p(nu * e) / nu))
+}
+
+#' Check the parameters of the links with a lower asymptote
+#'
+#' The one check of `lowerAsymptote` and `richardsNu`, used by `fireSense_spreadFit` for its parameters and by
+#' `fireSense_spreadPredict` for a ledger row. `lower` must be one number from 0 to [spreadProbFloor] with
+#' `"powerLawSmooth"` and `"richards"`; `nu` one number, 0 or more, with `"richards"`. Other links have nothing to check.
+#'
+#' @param link The spread link.
+#' @param lower,nu The `lowerAsymptote` and `richardsNu` to check; `NULL` is not a number.
+#' @return `TRUE`, invisibly; an error otherwise.
+#' @export
+checkLinkParams <- function(link, lower = NULL, nu = NULL) {
+  one <- function(v) is.numeric(v) && length(v) == 1L && is.finite(v)
+  if (any(link %in% spreadAsymptoteLinks) && !(one(lower) && lower >= 0 && lower <= spreadProbFloor))
+    stop("lowerAsymptote must be one number from 0 to ", spreadProbFloor, "; got ", format(lower), call. = FALSE)
+  if (any(link %in% "richards") && !(one(nu) && nu >= 0))
+    stop("richardsNu must be one number, 0 or more; got ", format(nu), call. = FALSE)
+  invisible(TRUE)
 }
 
 #' The parameters of a linear-predictor link, in the order of `spreadCpp(linkPars =)`
@@ -202,7 +222,7 @@ richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, 
 #' The parameter vector of one of [spreadLinearLinks], named as [spreadLinkParNames] says. It is what
 #' `SpaDES.tools::spreadCpp(link = link, linkPars = )` takes, and [linearLinkProb()] turns the same vector into `p`, so the
 #' R and the C++ link are given the same numbers. `"richards"` uses `lowerAsymptote`, `richardsNu` and its fixed
-#' `B = 1 / spreadPowerLawGamma`, and not `gamma`, `floor` or `shape`.
+#' `B = ` [spreadRichardsB], and not `gamma`, `floor` or `shape`.
 #'
 #' @param link One of [spreadLinearLinks].
 #' @param pc The percolation threshold (`maxAsymptote`).
@@ -213,7 +233,7 @@ richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, 
 linearLinkPars <- function(link, pc, gamma = spreadPowerLawGamma, floor = spreadProbFloor,
                            shape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu) {
   all <- c(pc = pc, gamma = gamma, floor = floor, shape = shape, lower = lowerAsymptote, nu = richardsNu,
-           B = 1 / spreadPowerLawGamma)
+           B = spreadRichardsB)
   all[spreadLinkParNames[[link]]]
 }
 

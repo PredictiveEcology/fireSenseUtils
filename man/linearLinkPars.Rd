@@ -30,5 +30,5 @@ A named numeric vector.
 The parameter vector of one of \link{spreadLinearLinks}, named as \link{spreadLinkParNames} says. It is what
 \code{SpaDES.tools::spreadCpp(link = link, linkPars = )} takes, and \code{\link[=linearLinkProb]{linearLinkProb()}} turns the same vector into \code{p}, so the
 R and the C++ link are given the same numbers. \code{"richards"} uses \code{lowerAsymptote}, \code{richardsNu} and its fixed
-\code{B = 1 / spreadPowerLawGamma}, and not \code{gamma}, \code{floor} or \code{shape}.
+\verb{B = } \link{spreadRichardsB}, and not \code{gamma}, \code{floor} or \code{shape}.
 }

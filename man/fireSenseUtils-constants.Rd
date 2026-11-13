@@ -27,6 +27,7 @@
 \alias{spreadFitLowerAsymptoteTxt}
 \alias{spreadFitRichardsNuTxt}
 \alias{spreadRichardsNu}
+\alias{spreadRichardsB}
 \alias{spreadLinearLinks}
 \alias{spreadPowerLawLinks}
 \alias{spreadAsymptoteLinks}
@@ -112,6 +113,7 @@ take: \code{"ceiling"} (the default: climate inside the logistic, under \code{ma
 \item \code{spreadPowerLawGamma}: \code{numeric(1)}. The default \code{gamma} of the \code{"powerLaw"} link, 1.9, from a percolation
 calibration on a uniform landscape. \code{fireSense_spreadFit} calibrates \code{gamma} on each ELF's own flammable map
 instead (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}), unless a number is given.
+\item \code{spreadRichardsB}: \code{numeric(1)}. The fixed slope \code{B} of the \code{"richards"} link, \code{1 / spreadPowerLawGamma}.
 \item \code{spreadPowerLawShape}: \code{numeric(1)}. The default \code{shape} of the \code{"powerLaw"} link, 1 (the exponential approach to
 \code{pc}); \code{fireSense_spreadFit}'s \code{powerLawShape}. Fixed, not fitted.
 \item \code{spreadFitPowerLawPc50Txt}, \code{spreadFitPowerLawR2Txt}: \code{character(1)} each. Names of the ledger columns that

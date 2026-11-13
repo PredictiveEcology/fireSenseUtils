@@ -74,6 +74,7 @@
 #'   - `spreadPowerLawGamma`: `numeric(1)`. The default `gamma` of the `"powerLaw"` link, 1.9, from a percolation
 #'     calibration on a uniform landscape. `fireSense_spreadFit` calibrates `gamma` on each ELF's own flammable map
 #'     instead ([calibratePowerLaw()]), unless a number is given.
+#'   - `spreadRichardsB`: `numeric(1)`. The fixed slope `B` of the `"richards"` link, `1 / spreadPowerLawGamma`.
 #'   - `spreadPowerLawShape`: `numeric(1)`. The default `shape` of the `"powerLaw"` link, 1 (the exponential approach to
 #'     `pc`); `fireSense_spreadFit`'s `powerLawShape`. Fixed, not fitted.
 #'   - `spreadFitPowerLawPc50Txt`, `spreadFitPowerLawR2Txt`: `character(1)` each. Names of the ledger columns that
@@ -90,7 +91,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -188,6 +189,9 @@ spreadLinkParNames <- list(powerLaw = c("pc", "gamma", "floor", "shape"),
 
 #' @export
 spreadPowerLawGamma <- 1.9
+
+#' @export
+spreadRichardsB <- 1 / spreadPowerLawGamma
 
 #' @export
 spreadPowerLawShape <- 1

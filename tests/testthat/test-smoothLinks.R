@@ -229,3 +229,21 @@ test_that("the parameters of the links can be one per x", {
   oneR <- function(i) richardsLink(x[i], pc[i], L[i], c(0, 0.5, 1, 2, 0, 0.5)[i])
   expect_identical(richardsLink(x, pc, L, c(0, 0.5, 1, 2, 0, 0.5)), vapply(seq_along(x), oneR, numeric(1)))
 })
+
+test_that("checkLinkParams() is the one check of lowerAsymptote and richardsNu", {
+  expect_true(checkLinkParams("richards", 0, 0))
+  expect_true(checkLinkParams("powerLawSmooth", spreadProbFloor))
+  expect_true(checkLinkParams("powerLaw", 5, -1))        # nothing to check
+  expect_true(checkLinkParams(NULL))
+  for (lk in c("powerLawSmooth", "richards")) for (bad in list(-0.01, 0.2, NA_real_, c(0, 0.1), NULL, "a"))
+    expect_error(checkLinkParams(lk, bad, 0.5), "lowerAsymptote must be")
+  for (bad in list(-1, NA_real_, NULL, c(1, 2)))
+    expect_error(checkLinkParams("richards", 0.1, bad), "richardsNu must be")
+  expect_identical(spreadRichardsB, 1 / spreadPowerLawGamma)
+  expect_identical(formals(richardsLink)$B, quote(spreadRichardsB))
+})
+
+test_that("spreadLinkParNames is spreadCpp()'s list of link parameters, names and order", {
+  skipUnlessSmoothLinks()
+  expect_identical(spreadLinkParNames, SpaDES.tools:::.spreadCppLinks)
+})

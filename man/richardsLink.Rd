@@ -9,7 +9,7 @@ richardsLink(
   pc,
   lower = spreadProbFloor,
   nu = spreadRichardsNu,
-  B = 1/spreadPowerLawGamma
+  B = spreadRichardsB
 )
 }
 \arguments{
@@ -21,7 +21,7 @@ richardsLink(
 
 \item{nu}{The shape \code{nu >= 0}; default \link{spreadRichardsNu}.}
 
-\item{B}{The slope; default \code{1 / spreadPowerLawGamma}.}
+\item{B}{The slope; default \link{spreadRichardsB}.}
 }
 \value{
 A numeric vector, one value per \code{x}.
@@ -29,7 +29,7 @@ A numeric vector, one value per \code{x}.
 \description{
 \code{p = lower + (pc - lower) / (1 + nu * exp(-B * x))^(1 / nu)}: a curve between the lower asymptote \code{lower} and \code{pc}.
 \code{nu = 0} is the Gompertz curve, \code{p = lower + (pc - lower) * exp(-exp(-B * x))}; \code{nu = 1} is the logistic.
-\code{nu} is fixed, not fitted. \code{B} (default \code{1 / spreadPowerLawGamma}) and the location (0) are fixed conventions, because
+\code{nu} is fixed, not fitted. \code{B} (default \link{spreadRichardsB}, \code{1 / spreadPowerLawGamma}) and the location (0) are fixed conventions, because
 they are confounded with the scale of the coefficients and the intercept. It does not use \code{gamma} or the calibration
 of \code{\link[=calibratePowerLaw]{calibratePowerLaw()}}.
 }
