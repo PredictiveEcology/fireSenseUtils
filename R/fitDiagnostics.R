@@ -220,10 +220,9 @@ profileCoefficients <- function(best, pop, fn = .objfunSpreadFit, reps = 10L, cl
   pts <- data.table::rbindlist(c(
     list(data.table::data.table(coef = "", at = NA_real_, isZero = FALSE)),
     lapply(coefs, function(cn) {
-      v <- if (cn %in% names(at)) as.numeric(at[[cn]])
-           else c(0, stats::quantile(pop[, cn], probsPop, names = FALSE))
-      data.table::data.table(coef = cn, at = v, isZero = if (cn %in% names(at)) v == 0
-                                                         else c(TRUE, rep(FALSE, length(probsPop))))
+      given <- cn %in% names(at)
+      v <- if (given) as.numeric(at[[cn]]) else c(0, stats::quantile(pop[, cn], probsPop, names = FALSE))
+      data.table::data.table(coef = cn, at = v, isZero = if (given) v == 0 else c(TRUE, rep(FALSE, length(probsPop))))
     })))
   jobs <- data.table::CJ(point = seq_len(nrow(pts)), rep = seq_len(reps))
   jobList <- lapply(seq_len(nrow(jobs)), function(i) {
