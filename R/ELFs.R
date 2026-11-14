@@ -21,9 +21,9 @@
 #' than other ecological zonation in mountains (which tend to follow elevation
 #' contours), and are each buffered (default 20km).
 #' @param x A polygon layer (`SpatVector` or `sf`) or gridded layer (`SpatRaster`)
-#' that maps the entire area of interest for the ELFs. If missing, it will try to use
-#' `scfmutils::prepInputsFireRegimePolys(type = "FRU")` if `scfmutils` is installed.
-#' Currently, only options with a column called `FRU` will work.
+#' that maps the entire area of interest for the ELFs; it only sets which cells are land, the ELFs
+#' themselves are (sub-)ecoprovinces. If missing, the national template the fireSense modules use,
+#' [ELFtemplateRaster()]`(destinationPath)`. A polygon layer needs a column called `FRU`.
 #' @param desiredBuffer The distance in `m` that the buffers should be. Default is `20000`.
 #' @param maxArea The area in `m^2` that will be split if the ecozones are
 #' larger than this. Default is `2.4e+11` which is about 500km x 500km plus the buffer.
@@ -57,10 +57,8 @@ makeELFs <- function(x, desiredBuffer = 20000,
 
 
   if (missing(x)) {
-    if (!requireNamespace("scfmutils")) stop("Please install PredictiveEcology/scfmutils ",
-                                        "or supply a x")
-    x <-
-      scfmutils::prepInputsFireRegimePolys(type = "FRU", destinationPath = destinationPath)
+    ## the template fireSense_ELFs (buildELFs()) and ELFsInStudyArea() pass, so these are the same ELFs
+    x <- ELFtemplateRaster(destinationPath)
   }
   digNFP <- reproducible::.robustDigest(x)
   if (is(x, "sf")) {
@@ -79,7 +77,7 @@ makeELFs <- function(x, desiredBuffer = 20000,
   
   # remove tiny NA holes --> this should not exist because this is coming from SCANFI files;
   #    but there were tiny NA slivers that were being magnified by the aggregate for ELFs.
-  # Raster-only: when `x` is (or defaults to) an sf of fire regime polygons there are no NA holes
+  # Raster-only: when `x` is an sf of fire regime polygons there are no NA holes
   # to fill, and focal() has no method for it -- `no method found for signature sf, data.frame`.
   if (is(x, "SpatRaster")) {
     x <- {

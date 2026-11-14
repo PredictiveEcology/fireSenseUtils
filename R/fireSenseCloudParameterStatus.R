@@ -32,11 +32,12 @@ fireSenseCloudParametersMap <-
   function(rasterize = FALSE, plot = TRUE,
            res = 5000, ...) {
     oo <- fireSenseCloudParameters(...)
+    destinationPath <- if ("destinationPath" %in% ...names()) list(...)$destinationPath else "."
     if (isTRUE(plot)) {
-      can <- scfmutils::prepInputsFireRegimePolys(type = "FRU")
-      templ <- terra::ext(can) |>
-        terra::rast(res = res, crs = can, vals = 1)
-      canRas <- terra::rasterize(can, templ)
+      ## Canada's land, from the template the ELFs are made from (1 = land, NA elsewhere), at `res`
+      can <- ELFtemplateRaster(destinationPath)
+      canRas <- terra::resample(can, terra::rast(terra::ext(can), res = res, crs = terra::crs(can)),
+                                method = "max")
     }
 
     if (isTRUE(rasterize)) {
@@ -48,15 +49,11 @@ fireSenseCloudParametersMap <-
     } else {
       oo <- sf::st_as_sf(oo[, 5:6])
       if (plot %in% TRUE) {
-        oo <- terra::project(terra::vect(oo), can)
+        oo <- terra::project(terra::vect(oo), canRas)
         # canV <- terra::vect(can)
         # canV <- terra::union(canV)
         canV2 <- terra::as.polygons(canRas)
         terra::plot(canV2, col = "transparent", main = "FireSense Fit completed; ELFs with labels")
-        if ("destinationPath" %in% ...names())
-          destinationPath <- list(...)$destinationPath
-        else
-          destinationPath <- "."
         ELFs <- makeELFs(destinationPath = destinationPath, singleSpatVector = TRUE)
 
         ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
