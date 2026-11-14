@@ -1,6 +1,7 @@
 # fireSenseUtils (development version)
 
 * `profileCoefficients(at = )`: a named list of the values to profile coefficients at, instead of 0 and the population's quantiles. A profile can then go past the fit's bounds, e.g. below the fuel coefficients' lower bound of 0, and needs no population for those coefficients (`pop = NULL`). Without `at` the profile is unchanged.
+* `phaseEvents(profiles = TRUE)`, and `runJob()` when `fireSense_spreadFit`'s `mode` has `"profile"`: the `"fit"` phase stops after the module's `profileFromLedger` event, since such a job never runs the fit.
 
 * `makeELFs()` without `x` builds the ELFs from `ELFtemplateRaster(destinationPath)`, the template the fireSense modules pass, so `plotELFs()` draws the same ELFs they use. `fireSenseCloudParametersMap()` draws Canada from the same template. scfmutils is no longer used.
 

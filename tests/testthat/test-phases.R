@@ -21,6 +21,9 @@ test_that("phase 'fit' stops after the fit, or after cross-validation when it va
   expect_identical(fit$.stopBefore, list(fireSense_dataPrepPredict = "getClimateRasters"))
   expect_identical(phaseEvents("fit", validates = TRUE)$.stopAfter,
                    list(fireSense_spreadFit = "crossValidate"))
+  ## a profile-only job (spreadFit mode "profile") never schedules `run`
+  expect_identical(phaseEvents("fit", profiles = TRUE)$.stopAfter,
+                   list(fireSense_spreadFit = "profileFromLedger"))
 })
 
 test_that("phaseEvents() matches the phase partially and rejects unknown ones", {
