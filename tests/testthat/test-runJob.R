@@ -69,6 +69,12 @@ test_that("a fit that validates stops after cross-validation", {
   expect_identical(calls$spades[[3]]$events, phaseEvents("fit", validates = FALSE))
 })
 
+test_that("a profile-only fit job stops after its profile", {
+  calls <- mockJob()
+  runJob(fakeSim(mode = "profile"), "6.6.1", phase = "fit")
+  expect_identical(calls$spades[[1]]$events$.stopAfter, list(fireSense_spreadFit = "profileFromLedger"))
+})
+
 test_that("an inputs job skips an ELF the fit queue has, and says why", {
   calls <- mockJob(skip = "the fit queue has claimed it")
   expect_message(out <- runJob(fakeSim(), "6.6.1", phase = "inputs", fitQueue = "fits.rds"),

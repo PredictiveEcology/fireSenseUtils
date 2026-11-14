@@ -4,13 +4,16 @@
 \alias{phaseEvents}
 \title{The \code{SpaDES.core} event barriers of a phase}
 \usage{
-phaseEvents(phase = fireSensePhases, validates = FALSE)
+phaseEvents(phase = fireSensePhases, validates = FALSE, profiles = FALSE)
 }
 \arguments{
 \item{phase}{One of \link{fireSensePhases}.}
 
 \item{validates}{Whether the spread fit validates (its \code{mode} contains \code{"validate"}, or a
 \code{heldOutFold} is set): the \code{"fit"} phase then stops after \code{crossValidate}, not after \code{run}.}
+
+\item{profiles}{Whether the spread fit only profiles its ledger fit (its \code{mode} contains \code{"profile"}): the
+\code{"fit"} phase then stops after \code{profileFromLedger}, as no \code{run} event is scheduled.}
 }
 \value{
 \code{NULL} for \code{"all"}; otherwise the \code{events} list (\code{.stopBefore}, \code{.stopAfter}) that

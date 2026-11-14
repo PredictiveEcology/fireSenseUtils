@@ -198,6 +198,10 @@ coefIdentifiability <- function(pop, lower, upper, zMin = 1) {
 #' @param reps Evaluations of each profile point.
 #' @param coefs The coefficients to profile; all covariate coefficients by default.
 #' @param probsPop Population quantiles to evaluate each coefficient at, besides 0.
+#' @param at `NULL`, or a named list of the values to evaluate coefficients at, e.g. `list(agb_pine = -20:20)`.
+#'   A coefficient named in it is evaluated at exactly those values, instead of at 0 and the population
+#'   quantiles, so a profile can go past the bounds the population was drawn in. `pop` is not used for those
+#'   coefficients, and may be `NULL` when every coefficient in `coefs` is in `at`.
 #'
 #' @return `profileCoefficients()`: a `data.table`, one row per coefficient x profile point: `coef`,
 #'   `at` (its value there; `isZero` marks the drop test), `mean` of the objective over `reps`, and
@@ -208,13 +212,18 @@ coefIdentifiability <- function(pop, lower, upper, zMin = 1) {
 #' @rdname fitDiagnostics
 profileCoefficients <- function(best, pop, fn = .objfunSpreadFit, reps = 10L, cl = NULL, seed = 1L,
                                 fnArgs = list(), coefs = covariateCoefs(names(best)),
-                                probsPop = c(0.05, 0.25, 0.50, 0.75, 0.95)) {
-  pop <- as.matrix(pop)
+                                probsPop = c(0.05, 0.25, 0.50, 0.75, 0.95), at = NULL) {
+  if (!all(names(at) %in% coefs))
+    stop("profileCoefficients(): `at` names coefficients not in `coefs`: ",
+         paste(setdiff(names(at), coefs), collapse = ", "))
+  if (!is.null(pop)) pop <- as.matrix(pop)
   pts <- data.table::rbindlist(c(
     list(data.table::data.table(coef = "", at = NA_real_, isZero = FALSE)),
-    lapply(coefs, function(cn) data.table::data.table(
-      coef = cn, at = c(0, stats::quantile(pop[, cn], probsPop, names = FALSE)),
-      isZero = c(TRUE, rep(FALSE, length(probsPop)))))))
+    lapply(coefs, function(cn) {
+      given <- cn %in% names(at)
+      v <- if (given) as.numeric(at[[cn]]) else c(0, stats::quantile(pop[, cn], probsPop, names = FALSE))
+      data.table::data.table(coef = cn, at = v, isZero = if (given) v == 0 else c(TRUE, rep(FALSE, length(probsPop))))
+    })))
   jobs <- data.table::CJ(point = seq_len(nrow(pts)), rep = seq_len(reps))
   jobList <- lapply(seq_len(nrow(jobs)), function(i) {
     par <- best
