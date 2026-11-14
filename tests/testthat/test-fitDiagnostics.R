@@ -182,6 +182,29 @@ test_that("profileCoefficients() pairs every point with the best member on the s
   expect_equal(ii$identified, c(TRUE, FALSE))
 })
 
+test_that("profileCoefficients(at = ) evaluates the given values, past the population's bounds", {
+  ## a coefficient bounded at 0 whose optimum is -2: the population (all >= 0) cannot show it, `at` can
+  fn <- function(par, target) sum((par - target)^2) + stats::rnorm(1, sd = 5)
+  target <- c(maxAsymptote = 0.26, a = 3, fuel = -2)
+  best <- c(maxAsymptote = 0.26, a = 3, fuel = 0.5)
+  pop <- rbind(best, best + c(0, 1, 1), best + c(0, -1, 0))
+  pr <- profileCoefficients(best = best, pop = pop, fn = fn, reps = 3L, fnArgs = list(target = target),
+                            at = list(fuel = c(-4, -2, 0, 2)))
+  expect_equal(pr[coef == "fuel"]$at, c(-4, -2, 0, 2))
+  expect_equal(pr[coef == "fuel"]$isZero, c(FALSE, FALSE, TRUE, FALSE))
+  ## paired seeds: delta is exact, (at + 2)^2 - 2.5^2
+  expect_equal(pr[coef == "fuel"]$delta, (c(-4, -2, 0, 2) + 2)^2 - 2.5^2)
+  expect_equal(pr[coef == "fuel"]$deltaSE, rep(0, 4))
+  ## `a` is not in `at`: 0 and the population quantiles, as before
+  expect_equal(nrow(pr[coef == "a"]), 6L)
+  ## with every coefficient in `at`, no population is needed
+  pr2 <- profileCoefficients(best = best, pop = NULL, fn = fn, reps = 2L, fnArgs = list(target = target),
+                             coefs = "fuel", at = list(fuel = c(-2, 0)))
+  expect_equal(pr2$coef, c("", "fuel", "fuel"))
+  expect_error(profileCoefficients(best = best, pop = pop, fn = fn, coefs = "a", at = list(fuel = 0)),
+               "not in `coefs`")
+})
+
 test_that("runDEoptim() profiles and simulates only when asked, on the re-score's arguments", {
   seen <- new.env()
   finalPop <- matrix(c(0.26, 1, 1, 0.5, 0.26, 1, 1, 0.7), nrow = 2, byrow = TRUE)

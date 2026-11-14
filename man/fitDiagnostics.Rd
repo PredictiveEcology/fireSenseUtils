@@ -44,7 +44,8 @@ profileCoefficients(
   seed = 1L,
   fnArgs = list(),
   coefs = covariateCoefs(names(best)),
-  probsPop = c(0.05, 0.25, 0.5, 0.75, 0.95)
+  probsPop = c(0.05, 0.25, 0.5, 0.75, 0.95),
+  at = NULL
 )
 
 identifiedInIsolation(ident, profile, seMult = 2)
@@ -97,6 +98,11 @@ replicated mean (\code{\link[=bestByReplicatedMean]{bestByReplicatedMean()}}).}
 \item{coefs}{The coefficients to profile; all covariate coefficients by default.}
 
 \item{probsPop}{Population quantiles to evaluate each coefficient at, besides 0.}
+
+\item{at}{\code{NULL}, or a named list of the values to evaluate coefficients at, e.g. \code{list(agb_pine = -20:20)}.
+A coefficient named in it is evaluated at exactly those values, instead of at 0 and the population
+quantiles, so a profile can go past the bounds the population was drawn in. \code{pop} is not used for those
+coefficients, and may be \code{NULL} when every coefficient in \code{coefs} is in \code{at}.}
 
 \item{ident}{The output of \code{coefIdentifiability()}.}
 
