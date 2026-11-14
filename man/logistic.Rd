@@ -69,7 +69,7 @@ wherever \code{logisticPars} may arrive without names, as inside the objective f
 \item{shape}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' curvature exponent \code{shape} (\code{\link[=powerLawLink]{powerLawLink()}}); default 1; not used by the other links.}
 
 \item{lowerAsymptote}{The lower asymptote \code{L} of the \code{"powerLawSmooth"} and \code{"richards"} links (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}},
-\code{\link[=richardsLink]{richardsLink()}}), \verb{0 <= L <= spreadProbFloor}; default \link{spreadProbFloor}; not used by the other links.}
+\code{\link[=richardsLink]{richardsLink()}}), \link{spreadLowerAsymptoteMin} \verb{<= L <= spreadProbFloor} (\code{\link[=checkLinkParams]{checkLinkParams()}}); default \link{spreadProbFloor}; not used by the other links.}
 
 \item{richardsNu}{The \code{"richards"} link's \code{nu} (\code{\link[=richardsLink]{richardsLink()}}); default \link{spreadRichardsNu}; not used by the other links.}
 }

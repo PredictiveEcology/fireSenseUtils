@@ -16,6 +16,6 @@ checkLinkParams(link, lower = NULL, nu = NULL)
 }
 \description{
 The one check of \code{lowerAsymptote} and \code{richardsNu}, used by \code{fireSense_spreadFit} for its parameters and by
-\code{fireSense_spreadPredict} for a ledger row. \code{lower} must be one number from 0 to \link{spreadProbFloor} with
+\code{fireSense_spreadPredict} for a ledger row. \code{lower} must be one number from \link{spreadLowerAsymptoteMin} to \link{spreadProbFloor} with
 \code{"powerLawSmooth"} and \code{"richards"}; \code{nu} one number, 0 or more, with \code{"richards"}. Other links have nothing to check.
 }

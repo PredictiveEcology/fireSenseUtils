@@ -205,7 +205,7 @@ those links.}
 used only with those links. Default 1.}
 
 \item{lowerAsymptote}{The lower asymptote \code{L} of the \code{"powerLawSmooth"} and \code{"richards"} links (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}},
-\code{\link[=richardsLink]{richardsLink()}}), fixed, not fitted, \verb{0 <= L <= spreadProbFloor}; default \link{spreadProbFloor}. The spread-probability
+\code{\link[=richardsLink]{richardsLink()}}), fixed, not fitted, \verb{spreadLowerAsymptoteMin <= L <= spreadProbFloor} (\code{\link[=checkLinkParams]{checkLinkParams()}}); default \link{spreadProbFloor}. The spread-probability
 gates use it as their lower bound with those links (\code{\link[=spreadLinkLower]{spreadLinkLower()}}).}
 
 \item{richardsNu}{The \code{"richards"} link's \code{nu}, fixed, not fitted; default \link{spreadRichardsNu}.}

@@ -159,7 +159,7 @@ utils::globalVariables(c(
 #' @param powerLawShape The `"powerLaw"` and `"powerLawSmooth"` links' curvature exponent `shape` ([powerLawLink()]), fixed, not fitted;
 #'   used only with those links. Default 1.
 #' @param lowerAsymptote The lower asymptote `L` of the `"powerLawSmooth"` and `"richards"` links ([powerLawSmoothLink()],
-#'   [richardsLink()]), fixed, not fitted, `0 <= L <= spreadProbFloor`; default [spreadProbFloor]. The spread-probability
+#'   [richardsLink()]), fixed, not fitted, `spreadLowerAsymptoteMin <= L <= spreadProbFloor` ([checkLinkParams()]); default [spreadProbFloor]. The spread-probability
 #'   gates use it as their lower bound with those links ([spreadLinkLower()]).
 #' @param richardsNu The `"richards"` link's `nu`, fixed, not fitted; default [spreadRichardsNu].
 #' @param climateRef `NULL` (default): the climate covariates are inside the logistic, under the

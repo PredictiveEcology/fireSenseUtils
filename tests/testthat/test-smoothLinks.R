@@ -3,6 +3,7 @@
 ## Fixtures (climFix, matOf, lp3, f, ...) are in helper-spreadLinkFixture.R; wlObjective() in helper-wholeLandscape.R.
 
 pcS <- 0.27
+Lm <- spreadLowerAsymptoteMin   # a lower asymptote is never below it (checkLinkParams())
 
 ## spreadCpp() with the links 2 and 3 (SpaDES.tools PR "powerLawSmooth" and "richards"); linkProbCpp() is its test hook
 skipUnlessSmoothLinks <- function() {
@@ -11,15 +12,15 @@ skipUnlessSmoothLinks <- function() {
                 exists("linkProbCpp", asNamespace("SpaDES.tools")), "SpaDES.tools without the links powerLawSmooth and richards")
 }
 
-test_that("with L = 0.13 both links give 0.13 at x = -50; with L = 0 both stay above 0; the power law is 0", {
+test_that("with L = 0.13 both links give 0.13 at x = -50; with L = the minimum both stay above 0; the power law is 0", {
   expect_identical(powerLawLink(-50, pcS, 1.9, f), 0)
   expect_equal(powerLawSmoothLink(-50, pcS, 1.9, f, lower = 0.13), 0.13)
   expect_equal(richardsLink(-50, pcS, lower = 0.13), 0.13)
-  expect_gt(powerLawSmoothLink(-50, pcS, 1.9, f, lower = 0), 0)
-  expect_gt(richardsLink(-50, pcS, lower = 0), 0)
+  expect_gt(powerLawSmoothLink(-50, pcS, 1.9, f, lower = Lm), 0)
+  expect_gt(richardsLink(-50, pcS, lower = Lm), 0)
   ## never below L, and it falls monotonically with x
   x <- seq(-60, 60, length.out = 241)
-  for (L in c(0, 0.05, 0.13)) {
+  for (L in c(Lm, 0.05, 0.13)) {
     ps <- powerLawSmoothLink(x, pcS, 1.9, f, lower = L)
     pr <- richardsLink(x, pcS, lower = L)
     expect_true(all(ps >= L) && all(pr >= L))
@@ -30,26 +31,26 @@ test_that("with L = 0.13 both links give 0.13 at x = -50; with L = 0 both stay a
 
 test_that("powerLawSmooth is the power law for x >= 0, continuous at 0, and the floor for L = floor", {
   x <- c(0, 1e-12, 0.01, 0.5, 2, 10, 100)
-  for (shape in c(0.4, 1, 2)) for (L in c(0, 0.07, 0.13)) {
+  for (shape in c(0.4, 1, 2)) for (L in c(Lm, 0.07, 0.13)) {
     expect_identical(powerLawSmoothLink(x, pcS, 1.9, f, shape, L), powerLawLink(x, pcS, 1.9, f, shape))
     expect_equal(powerLawSmoothLink(c(-1e-14, 0), pcS, 1.9, f, shape, L), c(f, f), tolerance = 1e-3)
   }
   expect_identical(powerLawSmoothLink(c(-100, -1, -1e-9), pcS, 1.9, f, 1, lower = f), rep(f, 3))
   ## the x < 0 side, by the formula
   x <- c(-0.5, -3)
-  expect_equal(powerLawSmoothLink(x, 0.25, 2, 0.13, 1, 0), 0.13 * exp(-((0.25 - 0.13) / 0.13) * abs(x) / 2))
+  expect_equal(powerLawSmoothLink(x, 0.25, 2, 0.13, 1, Lm), Lm + (0.13 - Lm) * exp(-((0.25 - 0.13) / (0.13 - Lm)) * abs(x) / 2))
   expect_equal(powerLawSmoothLink(x, 0.25, 2, 0.13, 2, 0.05),
                0.05 + 0.08 * exp(-((0.25 - 0.13) / 0.08) * (abs(x) / 2)^2))
   ## NA stays NA; a one-column matrix gives a plain vector
-  expect_identical(powerLawSmoothLink(c(NA, -1), pcS, 1.9, f, 1, 0)[1], NA_real_)
-  expect_identical(powerLawSmoothLink(matrix(c(-1, 1), ncol = 1), pcS, 1.9, f, 1, 0),
-                   powerLawSmoothLink(c(-1, 1), pcS, 1.9, f, 1, 0))
+  expect_identical(powerLawSmoothLink(c(NA, -1), pcS, 1.9, f, 1, Lm)[1], NA_real_)
+  expect_identical(powerLawSmoothLink(matrix(c(-1, 1), ncol = 1), pcS, 1.9, f, 1, Lm),
+                   powerLawSmoothLink(c(-1, 1), pcS, 1.9, f, 1, Lm))
 })
 
 test_that("richards: nu = 0 is Gompertz, a tiny nu is within 1e-6 of it, nu = 1 is the logistic", {
   x <- seq(-30, 30, length.out = 121)
   B <- 1 / spreadPowerLawGamma
-  for (L in c(0, 0.13)) {
+  for (L in c(Lm, 0.13)) {
     gomp <- L + (pcS - L) * exp(-exp(-B * x))
     expect_equal(richardsLink(x, pcS, L, 0), gomp)
     expect_lt(max(abs(richardsLink(x, pcS, L, 1e-8) - richardsLink(x, pcS, L, 0))), 1e-6)
@@ -86,9 +87,9 @@ test_that("both links go through logisticAll() and spreadProbFromCovs(), and the
                    spreadProbFromCovs(mat, lp3, b, f, link = "richards", lowerAsymptote = spreadProbFloor,
                                       richardsNu = spreadRichardsNu))
   ## the old links ignore the new arguments, bit for bit
-  expect_identical(spreadProbFromCovs(mat, lp3, b, f, link = "powerLaw", lowerAsymptote = 0, richardsNu = 3),
+  expect_identical(spreadProbFromCovs(mat, lp3, b, f, link = "powerLaw", lowerAsymptote = Lm, richardsNu = 3),
                    spreadProbFromCovs(mat, lp3, b, f, link = "powerLaw"))
-  expect_identical(spreadProbFromCovs(mat, lp3, b, f, lowerAsymptote = 0, richardsNu = 3), logisticAll(lp3, mat, b, f))
+  expect_identical(spreadProbFromCovs(mat, lp3, b, f, lowerAsymptote = Lm, richardsNu = 3), logisticAll(lp3, mat, b, f))
   ## climate outside the ceiling does not go with a linear-predictor link
   expect_error(spreadProbFromCovs(mat, lp3, b, f, link = "richards", climateRef = c(clim = 0.3)), "richards")
   expect_true(all(c("powerLawSmooth", "richards") %in% spreadLinkOptions))
@@ -96,13 +97,14 @@ test_that("both links go through logisticAll() and spreadProbFromCovs(), and the
   expect_identical(spreadFitRichardsNuTxt, "richardsNu_spread")
 })
 
-test_that("the R links are the C++ links double for double (spreadCpp's linkPars from linearLinkPars())", {
+test_that("the R links are the C++ links to within 1e-12 (spreadCpp's linkPars from linearLinkPars())", {
   skipUnlessSmoothLinks()
   x <- c(-1e3, -50, -20, -5, -1, -1e-8, 0, 1e-8, 0.3, 1, 5, 20, 1e3)
-  for (L in c(0, 0.13)) for (link in spreadLinearLinks) {
+  for (L in c(Lm, 0.13)) for (link in spreadLinearLinks) {
     pars <- linearLinkPars(link, 0.26, 1.9, 0.13, 0.4, L, 0.5)
     expect_identical(names(pars), spreadLinkParNames[[link]])
-    expect_identical(linearLinkProb(x, link, pars), SpaDES.tools:::linkProbCpp(match(link, spreadLinearLinks), x, pars))
+    ## to within 1e-12, not bit for bit: compilers and platforms differ in the last bit
+    expect_equal(linearLinkProb(x, link, pars), SpaDES.tools:::linkProbCpp(match(link, spreadLinearLinks), x, pars), tolerance = 1e-12)
   }
   expect_identical(linearLinkProb(c(-1, 2), "richards", rbind(linearLinkPars("richards", 0.26), linearLinkPars("richards", 0.26))),
                    richardsLink(c(-1, 2), 0.26))
@@ -113,26 +115,22 @@ test_that("the R links are the C++ links double for double (spreadCpp's linkPars
 ## on a landscape whose linear predictor is -20 everywhere.
 test_that("an escaped fire at x = -20 reaches its 9-cell minimum with the new links, and is stuck at 1 cell with powerLaw", {
   skipUnlessSmoothLinks()
-  size <- function(link, L, x = -20, jumpTries = 20, jumpMeanDist = 3, ...) {
+  size <- function(link, L, x = -20, nu = spreadRichardsNu, jumpTries = 20, jumpMeanDist = 3, ...) {
     s <- wlObjective(whole = TRUE, Nreps = 3L, seed = 2, returnSims = TRUE, link = link, lowerSpreadProb = f,
-                     lowerAsymptote = L, escapeMinPx = 9, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist, cov = function(pix) rep(x, length(pix)),
-                     gateRefusal = "simulate", ...)
+                     lowerAsymptote = L, richardsNu = nu, escapeMinPx = 9, jumpTries = jumpTries, jumpMeanDist = jumpMeanDist,
+                     cov = function(pix) rep(x, length(pix)), gateRefusal = "simulate", ...)
     s$sims$sim
   }
   expect_true(all(size("powerLaw", f) == 1))
-  for (L in c(0.13, 0)) {
-    expect_true(all(size("powerLawSmooth", L, x = if (L == 0) -9 else -20) >= 9))
-    expect_true(all(size("richards", L, x = if (L == 0) -9 else -20) >= 9))
-  }
-  ## at x = -20 and L = 0 p is positive for both (tiny for richards: 1e-9), so no cell is made unburnable
-  expect_gt(powerLawSmoothLink(-20, 0.4, 1.9, f, 1, 0), 0)
-  expect_gt(richardsLink(-20, 0.4, 0), 0)
+  for (L in c(0.13, Lm)) for (lk in c("powerLawSmooth", "richards")) expect_true(all(size(lk, L) >= 9))
+  ## Gompertz with the smallest lower asymptote, at a linear predictor far below any cell's
+  for (x in c(-20, -200)) expect_true(all(size("richards", Lm, x = x, nu = 0) >= 9))
 })
 
 test_that("on the whole landscape the new links burn the cells of the full spreadProb vector, to the bit", {
   skipUnlessSmoothLinks()
   closed <- function() { fx <- wlFixture(11L); data.table::set(fx$buf, NULL, c("edge", "open"), list(FALSE, FALSE)); fx }
-  for (link in c("powerLawSmooth", "richards")) for (L in c(0, 0.13)) {
+  for (link in c("powerLawSmooth", "richards")) for (L in c(Lm, 0.13)) {
     args <- list(yearSpreadSD = 0.5, escapeMinPx = 9, jumpTries = 20, jumpMeanDist = 3, link = link, lowerSpreadProb = f,
                  lowerAsymptote = L, returnSims = TRUE, returnBurned = TRUE, seed = 3, cov = function(pix) 0.5 + 1.5 * sin(pix))
     full <- do.call(wlObjective, c(list(fx = closed(), annPix = seq_len(3600L)), args))
@@ -143,19 +141,19 @@ test_that("on the whole landscape the new links burn the cells of the full sprea
 })
 
 test_that("the gates use the lower asymptote as their lower bound with the new links", {
-  expect_identical(fireSenseUtils:::spreadLinkLower("richards", 0.13, 0), 0)
+  expect_identical(fireSenseUtils:::spreadLinkLower("richards", 0.13, Lm), Lm)
   expect_identical(fireSenseUtils:::spreadLinkLower("powerLawSmooth", 0.13, 0.05), 0.05)
   expect_identical(fireSenseUtils:::spreadLinkLower("powerLaw", 0.13, 0.05), 0.13)
   expect_identical(fireSenseUtils:::spreadLinkLower(NULL, 0.13, 0.05), 0.13)
   skipUnlessSmoothLinks()
-  ## most pixels have x = 0, so p = 0.27 * exp(-1) = 0.099 (richards, L = 0): below the floor, but not below L
+  ## most pixels have x = 0, so p = 0.27 * exp(-1) = 0.099 (richards, nu = 0, L = the minimum): below the floor, but not below L
   par <- c(maxAsymptote = pcS, clim = 0, fuel = 0, youngAge = -1)
   g <- function(...) do.call(spreadProbGates, c(list(
     par = par, formulaToFit = formC, years = "2004", mutuallyExclusive = NULL, maxFireSpread = 0.28,
     lowerSpreadProb = f, lanscape1stQuantileThresh = 0.265, ...),
     climFix[c("annualDTx1000", "nonAnnualDTx1000", "historicalFires")]))
-  expect_true(g(link = "richards", lowerAsymptote = 0, richardsNu = 0)$medianOK)
-  expect_lt(richardsLink(0, pcS, 0, 0), f)        # so the floor as the gates' bound would refuse this year
+  expect_true(g(link = "richards", lowerAsymptote = Lm, richardsNu = 0)$medianOK)
+  expect_lt(richardsLink(0, pcS, Lm, 0), f)        # so the floor as the gates' bound would refuse this year
 })
 
 test_that("runDEoptim() passes lowerAsymptote and richardsNu to the fit and the re-score, only with the links that use them", {
@@ -191,8 +189,8 @@ test_that("runDEoptim() passes lowerAsymptote and richardsNu to the fit and the 
   expect_false(any(c("lowerAsymptote", "richardsNu") %in% seen$omit[[1]]))
   expect_false(any(c("powerLawGamma", "powerLawShape") %in% names(seen$rescore)))
   expect_true(all(c("powerLawGamma", "powerLawShape") %in% seen$omit[[1]]))
-  run(link = "powerLawSmooth", powerLawGamma = 2.2, lowerAsymptote = 0)
-  expect_identical(seen$rescore$lowerAsymptote, 0)
+  run(link = "powerLawSmooth", powerLawGamma = 2.2, lowerAsymptote = Lm)
+  expect_identical(seen$rescore$lowerAsymptote, Lm)
   expect_identical(seen$rescore$powerLawGamma, 2.2)
   expect_false("richardsNu" %in% names(seen$rescore))
   expect_true("richardsNu" %in% seen$omit[[1]])
@@ -210,7 +208,7 @@ test_that("spreadFitValidationData() and plotSpreadFitResponse() work with the n
   par <- c(maxAsymptote = pcS, clim = 1, fuel = 1.5, youngAge = -1)
   r <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
   fb <- lapply(climFix$historicalFires, function(h) dtC(pixelID = 1:nPixC, buffer = as.integer(1:nPixC <= 30), ids = 1L))
-  for (L in c(0, 0.13)) {
+  for (L in c(Lm, 0.13)) {
     d <- spreadFitValidationData(par, r, climFix$annualDTx1000, climFix$nonAnnualDTx1000, formC,
                                  climFix$historicalFires, fb, mutuallyExclusive = NULL, Nreps = 2L,
                                  link = "richards", lowerAsymptote = L, richardsNu = 0.5, seed = 1)
@@ -223,7 +221,7 @@ test_that("spreadFitValidationData() and plotSpreadFitResponse() work with the n
 
 test_that("the parameters of the links can be one per x", {
   x <- c(-3, -0.5, 0, 2, -8, 1)
-  pc <- c(0.25, 0.3, 0.25, 0.26, 0.3, 0.27); L <- c(0, 0.13, 0.05, 0.1, 0.02, 0)
+  pc <- c(0.25, 0.3, 0.25, 0.26, 0.3, 0.27); L <- c(Lm, 0.13, 0.05, 0.1, 0.02, Lm)
   one <- function(i) powerLawSmoothLink(x[i], pc[i], 1.9, 0.13, 1.5, L[i])
   expect_identical(powerLawSmoothLink(x, pc, 1.9, 0.13, 1.5, L), vapply(seq_along(x), one, numeric(1)))
   oneR <- function(i) richardsLink(x[i], pc[i], L[i], c(0, 0.5, 1, 2, 0, 0.5)[i])
@@ -231,11 +229,17 @@ test_that("the parameters of the links can be one per x", {
 })
 
 test_that("checkLinkParams() is the one check of lowerAsymptote and richardsNu", {
-  expect_true(checkLinkParams("richards", 0, 0))
+  expect_true(checkLinkParams("richards", Lm, 0))
+  expect_identical(Lm, 1e-3)
+  ## 0 would let a fire under minSize retry for about 1 / p generations
+  for (lk in c("powerLawSmooth", "richards")) {
+    expect_error(checkLinkParams(lk, 0, 0.5), "at least 0.001")
+    expect_error(checkLinkParams(lk, Lm / 2, 0.5), "minSize")
+  }
   expect_true(checkLinkParams("powerLawSmooth", spreadProbFloor))
   expect_true(checkLinkParams("powerLaw", 5, -1))        # nothing to check
   expect_true(checkLinkParams(NULL))
-  for (lk in c("powerLawSmooth", "richards")) for (bad in list(-0.01, 0.2, NA_real_, c(0, 0.1), NULL, "a"))
+  for (lk in c("powerLawSmooth", "richards")) for (bad in list(-0.01, 0.2, NA_real_, c(Lm, 0.1), NULL, "a"))
     expect_error(checkLinkParams(lk, bad, 0.5), "lowerAsymptote must be")
   for (bad in list(-1, NA_real_, NULL, c(1, 2)))
     expect_error(checkLinkParams("richards", 0.1, bad), "richardsNu must be")
