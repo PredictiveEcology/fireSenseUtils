@@ -50,3 +50,23 @@ mustFit <- function(doFit, hasLedgerFit, polygon = "", fitFileSuffix = NULL) {
          call. = FALSE)
   !hasFit
 }
+
+#' Will this job read the data prepared for a fit?
+#'
+#' The one rule `fireSense_dataPrepFit` and `fireSense_spreadFit` share for `skipUnusedFitPrep`: a job that only
+#' predicts from the ledger's fit does not need the spread covariates. A job needs them when it holds out a
+#' fold (`heldOutFold`), validates or profiles (`mode`), always fits (`doFit` TRUE), or fits when the ledger has
+#' no fit (`doFit` NA and no ledger fit, or not known). `doFit` FALSE never fits, so it does not.
+#'
+#' @param doFit `NA`, `TRUE` or `FALSE`, as returned by [resolveDoFit()].
+#' @param heldOutFold `NA` (default), `1L` or `2L`.
+#' @param mode character, `fireSense_spreadFit`'s `mode`; `NULL` if that module is not in the project.
+#' @param hasLedgerFit logical: does the ledger hold a fit for this polygon? `NA` (default): not known, so
+#'   `doFit = NA` may fit.
+#' @return logical, length one.
+#' @export
+fitDataNeeded <- function(doFit, heldOutFold = NA, mode = NULL, hasLedgerFit = NA) {
+  if (!isTRUE(is.na(heldOutFold)) || any(c("validate", "profile") %in% mode)) return(TRUE)
+  if (isFALSE(doFit)) return(FALSE)
+  isTRUE(doFit) || !isTRUE(hasLedgerFit)
+}

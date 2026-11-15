@@ -52,3 +52,15 @@ test_that("mustFit: doFit x ledger", {
 test_that("mustFit does not consult the ledger when doFit is TRUE", {
   expect_true(mustFit(TRUE, stop("consulted")))
 })
+
+test_that("fitDataNeeded: only a job that may fit, validate, profile or hold out a fold reads the fit data", {
+  expect_false(fitDataNeeded(FALSE))
+  expect_false(fitDataNeeded(FALSE, mode = "fit"))
+  expect_true(fitDataNeeded(TRUE))
+  expect_true(fitDataNeeded(NA))                          # ledger not known
+  expect_false(fitDataNeeded(NA, hasLedgerFit = TRUE))
+  expect_true(fitDataNeeded(NA, hasLedgerFit = FALSE))
+  expect_true(fitDataNeeded(FALSE, heldOutFold = 2L))
+  expect_true(fitDataNeeded(FALSE, mode = c("fit", "validate")))
+  expect_true(fitDataNeeded(FALSE, mode = "profile"))
+})
