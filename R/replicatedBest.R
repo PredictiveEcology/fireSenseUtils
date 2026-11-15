@@ -25,13 +25,38 @@ rescorePopulation <- function(pop, fn, reps = 10L, cl = NULL, seed = 1L, fnArgs 
   jobs <- data.table::CJ(member = seq_len(NROW(pop)), rep = seq_len(reps))
   jobList <- lapply(seq_len(NROW(jobs)), function(i)
     list(par = pop[jobs$member[i], ], seed = as.integer(seed) + i))
-  vals <- if (is.null(cl)) {
+  vals <- .runJobs(jobList, fn, fnArgs, cl)
+  jobs[, value := as.numeric(unlist(vals))]
+  jobs[]
+}
+
+#' @param reps Evaluations of each member, `rep` 1 to `reps`; evaluation `rep` of EVERY member uses seed
+#'   `seed + rep`, so members are compared on the same random numbers (`rescorePopulation()` gives each
+#'   evaluation its own seed).
+#'
+#' @return `scorePopulationTerms()`: a `data.table`, one row per member x rep: `member` (row of `pop`), `rep`,
+#'   and each term `fn` returns with `returnTerms = TRUE` (for [.objfunSpreadFit()]: `objective`, `adTest`,
+#'   `pitAD`, `yearArea`, `areaDist`, `crpsFire`, `crpsTotalArea`, `crpsTop10`, `crpsTopShare`, `nFires`), so
+#'   the terms can be re-weighted afterwards without simulating again.
+#' @export
+#' @rdname replicatedBest
+scorePopulationTerms <- function(pop, fn = .objfunSpreadFit, reps = 1L, cl = NULL, seed = 1L, fnArgs = list()) {
+  pop <- as.matrix(pop)
+  fnArgs$returnTerms <- TRUE
+  jobs <- data.table::CJ(member = seq_len(NROW(pop)), rep = seq_len(reps))
+  jobList <- lapply(seq_len(NROW(jobs)), function(i)
+    list(par = pop[jobs$member[i], ], seed = as.integer(seed) + jobs$rep[i]))
+  vals <- .runJobs(jobList, fn, fnArgs, cl)
+  cbind(jobs, data.table::as.data.table(do.call(rbind, vals)))
+}
+
+## Runs each job of `jobList` (`par`, `seed`), here or on the workers of `cl`
+.runJobs <- function(jobList, fn, fnArgs, cl = NULL) {
+  if (is.null(cl)) {
     lapply(jobList, .rescoreJob, fn = fn, fnArgs = fnArgs)
   } else {
     parallel::clusterApplyLB(cl, jobList, .rescoreJob, fn = fn, fnArgs = fnArgs)
   }
-  jobs[, value := as.numeric(unlist(vals))]
-  jobs[]
 }
 
 ## One evaluation, at namespace level so the workers receive it by reference, not with a caller's frame

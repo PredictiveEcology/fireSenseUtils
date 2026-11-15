@@ -2,10 +2,20 @@
 % Please edit documentation in R/replicatedBest.R
 \name{rescorePopulation}
 \alias{rescorePopulation}
+\alias{scorePopulationTerms}
 \alias{bestByReplicatedMean}
 \title{Re-score a population with replication, and pick the best members by their mean}
 \usage{
 rescorePopulation(pop, fn, reps = 10L, cl = NULL, seed = 1L, fnArgs = list())
+
+scorePopulationTerms(
+  pop,
+  fn = .objfunSpreadFit,
+  reps = 1L,
+  cl = NULL,
+  seed = 1L,
+  fnArgs = list()
+)
 
 bestByReplicatedMean(pop, scores, n = 5L)
 }
@@ -14,7 +24,9 @@ bestByReplicatedMean(pop, scores, n = 5L)
 
 \item{fn}{The objective function; called as \code{fn(par, ...)} with \code{fnArgs}.}
 
-\item{reps}{Evaluations per member.}
+\item{reps}{Evaluations of each member, \code{rep} 1 to \code{reps}; evaluation \code{rep} of EVERY member uses seed
+\code{seed + rep}, so members are compared on the same random numbers (\code{rescorePopulation()} gives each
+evaluation its own seed).}
 
 \item{cl}{A cluster from \code{\link[parallel:makeCluster]{parallel::makeCluster()}}, or \code{NULL} to evaluate here.}
 
@@ -28,6 +40,11 @@ bestByReplicatedMean(pop, scores, n = 5L)
 }
 \value{
 \code{rescorePopulation()}: a \code{data.table} with \code{member} (row of \code{pop}), \code{rep} and \code{value}.
+
+\code{scorePopulationTerms()}: a \code{data.table}, one row per member x rep: \code{member} (row of \code{pop}), \code{rep},
+and each term \code{fn} returns with \code{returnTerms = TRUE} (for \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}: \code{objective}, \code{adTest},
+\code{pitAD}, \code{yearArea}, \code{areaDist}, \code{crpsFire}, \code{crpsTotalArea}, \code{crpsTop10}, \code{crpsTopShare}, \code{nFires}), so
+the terms can be re-weighted afterwards without simulating again.
 
 \code{bestByReplicatedMean()}: a list with \code{params} (a \code{data.table}, one row per member, best
 first), \code{objFunVal} (their replicated means), \code{objFunValSD} and \code{member} (their rows in \code{pop}).
