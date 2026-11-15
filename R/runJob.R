@@ -14,18 +14,21 @@ fireSensePhases <- c("all", "inputs", "fit")
 #'   `heldOutFold` is set): the `"fit"` phase then stops after `crossValidate`, not after `run`.
 #' @param profiles Whether the spread fit only profiles its ledger fit (its `mode` contains `"profile"`): the
 #'   `"fit"` phase then stops after `profileFromLedger`, as no `run` event is scheduled.
+#' @param terms Likewise for a spread fit that only scores a pool of parameter vectors (its `mode` contains
+#'   `"terms"`): the `"fit"` phase stops after `termsFromPool`.
 #'
 #' @return `NULL` for `"all"`; otherwise the `events` list (`.stopBefore`, `.stopAfter`) that
 #'   `SpaDES.core::simInit()` takes.
 #'
 #' @export
-phaseEvents <- function(phase = fireSensePhases, validates = FALSE, profiles = FALSE) {
+phaseEvents <- function(phase = fireSensePhases, validates = FALSE, profiles = FALSE, terms = FALSE) {
   phase <- match.arg(phase)
   stopBeforeClimate <- list(fireSense_dataPrepPredict = "getClimateRasters")
   switch(phase,
          all = NULL,
          inputs = list(.stopBefore = c(list(fireSense_spreadFit = "run"), stopBeforeClimate)),
          fit = list(.stopAfter = list(fireSense_spreadFit = if (profiles) "profileFromLedger"
+                                                            else if (terms) "termsFromPool"
                                                             else if (validates) "crossValidate" else "run"),
                     .stopBefore = stopBeforeClimate))
 }
@@ -72,7 +75,8 @@ runJob <- function(sim, elf, phase = sim$params$fireSense_spreadFit$phase, fitQu
   validates <- "validate" %in% sim$params$fireSense_spreadFit$mode ||
     any(!is.na(sim$params$.globals$heldOutFold))
   copy <- reproducible::Copy(sim)
-  copy$events <- phaseEvents(phase, validates, profiles = "profile" %in% sim$params$fireSense_spreadFit$mode)
+  copy$events <- phaseEvents(phase, validates, profiles = "profile" %in% sim$params$fireSense_spreadFit$mode,
+                           terms = "terms" %in% sim$params$fireSense_spreadFit$mode)
 
   skip <- NULL
   if (phase == "inputs" && !is.na(fitQueue))

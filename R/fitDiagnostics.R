@@ -71,11 +71,7 @@ simulateFireSizes <- function(pop, fn = .objfunSpreadFit, fnArgs = list(), cl = 
   pop <- as.matrix(pop)
   fnArgs <- utils::modifyList(fnArgs, list(returnSims = TRUE, lanscape1stQuantileThresh = Inf))
   jobList <- lapply(seq_len(NROW(pop)), function(i) list(par = pop[i, ], seed = as.integer(seed)))
-  sims <- if (is.null(cl)) {
-    lapply(jobList, .rescoreJob, fn = fn, fnArgs = fnArgs)
-  } else {
-    parallel::clusterApplyLB(cl, jobList, .rescoreJob, fn = fn, fnArgs = fnArgs)
-  }
+  sims <- .runJobs(jobList, fn, fnArgs, cl)
   pSum <- lapply(sims, attr, "spreadProb")
   out <- data.table::rbindlist(lapply(seq_along(sims), function(i)
     data.table::data.table(member = i, sims[[i]])), use.names = TRUE)
@@ -231,11 +227,7 @@ profileCoefficients <- function(best, pop, fn = .objfunSpreadFit, reps = 10L, cl
     if (nzchar(pt$coef)) par[[pt$coef]] <- pt$at
     list(par = par, seed = as.integer(seed) + jobs$rep[i])
   })
-  vals <- if (is.null(cl)) {
-    lapply(jobList, .rescoreJob, fn = fn, fnArgs = fnArgs)
-  } else {
-    parallel::clusterApplyLB(cl, jobList, .rescoreJob, fn = fn, fnArgs = fnArgs)
-  }
+  vals <- .runJobs(jobList, fn, fnArgs, cl)
   jobs[, value := as.numeric(unlist(vals))]
   ref <- jobs[point == 1L, list(rep, refValue = value)]
   jobs <- ref[jobs, on = "rep"]

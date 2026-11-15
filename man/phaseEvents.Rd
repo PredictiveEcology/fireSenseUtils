@@ -4,7 +4,12 @@
 \alias{phaseEvents}
 \title{The \code{SpaDES.core} event barriers of a phase}
 \usage{
-phaseEvents(phase = fireSensePhases, validates = FALSE, profiles = FALSE)
+phaseEvents(
+  phase = fireSensePhases,
+  validates = FALSE,
+  profiles = FALSE,
+  terms = FALSE
+)
 }
 \arguments{
 \item{phase}{One of \link{fireSensePhases}.}
@@ -14,6 +19,9 @@ phaseEvents(phase = fireSensePhases, validates = FALSE, profiles = FALSE)
 
 \item{profiles}{Whether the spread fit only profiles its ledger fit (its \code{mode} contains \code{"profile"}): the
 \code{"fit"} phase then stops after \code{profileFromLedger}, as no \code{run} event is scheduled.}
+
+\item{terms}{Likewise for a spread fit that only scores a pool of parameter vectors (its \code{mode} contains
+\code{"terms"}): the \code{"fit"} phase stops after \code{termsFromPool}.}
 }
 \value{
 \code{NULL} for \code{"all"}; otherwise the \code{events} list (\code{.stopBefore}, \code{.stopAfter}) that

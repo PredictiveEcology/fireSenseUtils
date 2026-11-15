@@ -75,6 +75,12 @@ test_that("a profile-only fit job stops after its profile", {
   expect_identical(calls$spades[[1]]$events$.stopAfter, list(fireSense_spreadFit = "profileFromLedger"))
 })
 
+test_that("a terms-only fit job stops after its terms", {
+  calls <- mockJob()
+  runJob(fakeSim(mode = "terms"), "6.6.1", phase = "fit")
+  expect_identical(calls$spades[[1]]$events$.stopAfter, list(fireSense_spreadFit = "termsFromPool"))
+})
+
 test_that("an inputs job skips an ELF the fit queue has, and says why", {
   calls <- mockJob(skip = "the fit queue has claimed it")
   expect_message(out <- runJob(fakeSim(), "6.6.1", phase = "inputs", fitQueue = "fits.rds"),
