@@ -548,11 +548,13 @@ utils::globalVariables(c(
     if (is(adTest, "try-error")) {
       adTest <- 1e6L
     }
-    adTest <- adTest * if (identical(adWeight, "auto")) {
+    adRaw <- adTest
+    adW <- if (identical(adWeight, "auto")) {
       adWeightAuto(sum(vapply(historicalFiresAboveMin, nrow, integer(1))), sizeLik, weighted)
     } else {
       adWeight
     }
+    adTest <- adRaw * adW
     objFunRes <- objFunRes + adTest
     if (verbose > 1) {
       print(paste0("  ", Sys.getpid(), " adTest:", adTest, "; "))
@@ -561,35 +563,40 @@ utils::globalVariables(c(
   ## The rank-based AD term: each fitted fire's observed size ranked among its own replicates (pitMidRank()), and
   ## those ranks scored against Uniform(0, 1) (adUniform()). A replicate cut at an open buffer edge after it passed
   ## the observed size is larger whatever the buffer, so unlike the pooled adTest it does not depend on the buffer.
-  pitPart <- NA_real_
+  pitPart <- pitRaw <- pitW <- NA_real_
   if (isTRUE(doPitADTest)) {
     u <- unlist(pitList)
     pitPart <- if (length(u)) adUniform(u, Nreps) else 1e6L
-    pitPart <- pitPart * if (identical(adWeight, "auto")) {
+    pitRaw <- pitPart
+    pitW <- if (identical(adWeight, "auto")) {
       adWeightAuto(sum(vapply(historicalFiresAboveMin, nrow, integer(1))), sizeLik, weighted)
     } else {
       adWeight
     }
+    pitPart <- pitRaw * pitW
     objFunRes <- objFunRes + pitPart
     if (verbose > 1) {
       print(paste0("  ", Sys.getpid(), " pitAD:", pitPart, "; "))
     }
   }
   adPart <- if (isTRUE(doADTest)) adTest else NA_real_
+  if (!isTRUE(doADTest)) adRaw <- adW <- NA_real_
   nFitFires <- sum(vapply(historicalFiresAboveMin, nrow, integer(1)))
-  yearAreaTerm <- areaDistTerm <- NA_real_
+  yearAreaTerm <- areaDistTerm <- yearAreaRaw <- areaDistRaw <- yearAreaW <- areaDistW <- NA_real_
   if (isTRUE(doYearArea)) {
     ## every fit year is scored; one with no simulated totals (refused as too burny / not spread out) gets minLik
     fitYrs <- unlist(lrgSmallFireYears)
     obsYear <- vapply(historicalFiresAboveMin[fitYrs], function(x) sum(x$size), numeric(1))
-    yearAreaTerm <- yearAreaNLL(obsYear, yearAreaList, sizeLik = sizeLik, sizeLikDf = sizeLikDf) *
-      if (identical(yearAreaWeight, "auto")) nFitFires / length(fitYrs) else yearAreaWeight
+    yearAreaRaw <- yearAreaNLL(obsYear, yearAreaList, sizeLik = sizeLik, sizeLikDf = sizeLikDf)
+    yearAreaW <- if (identical(yearAreaWeight, "auto")) nFitFires / length(fitYrs) else yearAreaWeight
+    yearAreaTerm <- yearAreaRaw * yearAreaW
     objFunRes <- objFunRes + yearAreaTerm
   }
   if (isTRUE(doAreaDist)) {
     pooled <- pooledFireSizes(fireSizesList, yrsDoneList, historicalFiresAboveMin)
-    areaDistTerm <- areaWeightedCvM(pooled$simulated, pooled$observed) *
-      if (identical(areaDistWeight, "auto")) adWeightAuto(nFitFires, sizeLik, weighted) else areaDistWeight
+    areaDistRaw <- areaWeightedCvM(pooled$simulated, pooled$observed)
+    areaDistW <- if (identical(areaDistWeight, "auto")) adWeightAuto(nFitFires, sizeLik, weighted) else areaDistWeight
+    areaDistTerm <- areaDistRaw * areaDistW
     objFunRes <- objFunRes + areaDistTerm
   }
   if (verbose > 1 && (isTRUE(doYearArea) || isTRUE(doAreaDist)))
@@ -597,12 +604,20 @@ utils::globalVariables(c(
   if (length(objFunResList) > 1) {
     print(paste0(Sys.getpid(), "; FINISHED! ", Sys.time(), "; Objective Final: ", round(objFunRes, 0)))
   }
-  if (isTRUE(returnTerms))
+  if (isTRUE(returnTerms)) {
+    cr <- function(x) if (isTRUE(doCrps)) x else NA_real_
     return(c(objective = objFunRes, adTest = adPart, pitAD = pitPart, yearArea = yearAreaTerm,
-             areaDist = areaDistTerm, crpsFire = if (isTRUE(doCrps)) crpsFire else NA_real_,
-             crpsTotalArea = if (isTRUE(doCrps)) crpsTotal else NA_real_,
-             crpsTop10 = if (isTRUE(doCrps)) crpsTop else NA_real_,
-             crpsTopShare = if (isTRUE(doCrps)) crpsShare else NA_real_, nFires = nFitFires))
+             areaDist = areaDistTerm, crpsFire = cr(crpsFire), crpsTotalArea = cr(crpsTotal),
+             crpsTop10 = cr(crpsTop), crpsTopShare = cr(crpsShare), nFires = nFitFires,
+             ## for re-weighting: each term before its weight, and the weight the objective gave it, so that
+             ## `objective` is the sum over terms of weight * raw (a term that was not computed is NA)
+             crpsAnnualArea = cr(crpsAnn),
+             raw_adTest = adRaw, raw_pitAD = pitRaw, raw_yearArea = yearAreaRaw, raw_areaDist = areaDistRaw,
+             w_adTest = adW, w_pitAD = pitW, w_yearArea = yearAreaW, w_areaDist = areaDistW,
+             w_crpsFire = cr(crpsWeights$fire), w_crpsTotalArea = cr(crpsWeights$totalArea),
+             w_crpsTop10 = cr(crpsWeights$top10), w_crpsAnnualArea = cr(crpsWeights$annualArea),
+             w_crpsTopShare = cr(crpsWeights$topShare)))
+  }
   return(objFunRes)
 }
 

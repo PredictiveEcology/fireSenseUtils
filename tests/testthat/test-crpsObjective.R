@@ -187,3 +187,21 @@ test_that("the defaults leave the objective's value as it was before the CRPS op
   expect_equal(ob(tests = "adTest", yearAreaWeight = "auto", areaDistWeight = "auto",
                   gateRefusal = "minLik")[["objective"]], a[["objective"]])
 })
+
+test_that("returnTerms gives every term before its weight and the weight, so the objective can be re-weighted", {
+  sizes <- data.table::data.table(year = "2004", rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50))
+  w <- crpsWeightsDefault()
+  fit <- crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(annualArea = 3))
+  expect_equal(fit[["crpsAnnualArea"]], crpsAnnualArea(sizes, c(`2004` = 85), 2L))
+  expect_equal(fit[["w_adTest"]], w$adTest)
+  expect_equal(fit[["w_crpsAnnualArea"]], 3)
+  expect_equal(fit[["raw_adTest"]] * fit[["w_adTest"]], fit[["adTest"]])
+  expect_equal(fit[["raw_areaDist"]] * fit[["w_areaDist"]], fit[["areaDist"]])
+  ## the objective is the sum of weight x raw over the terms that were computed
+  raw <- c(adTest = fit[["raw_adTest"]], areaDist = fit[["raw_areaDist"]], crpsFire = fit[["crpsFire"]],
+           crpsTotalArea = fit[["crpsTotalArea"]], crpsTop10 = fit[["crpsTop10"]], crpsAnnualArea = fit[["crpsAnnualArea"]])
+  wt <- fit[paste0("w_", names(raw))]
+  expect_equal(fit[["objective"]], sum(raw * wt))
+  ## an annual-area weight of 0 leaves the term uncomputed
+  expect_true(is.na(crpsFit(tests = "crps", sizes = sizes)[["crpsAnnualArea"]]))
+})

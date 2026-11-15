@@ -30,16 +30,24 @@ rescorePopulation <- function(pop, fn, reps = 10L, cl = NULL, seed = 1L, fnArgs 
   jobs[]
 }
 
-#' @param reps Evaluations of each member, `rep` 1 to `reps`; evaluation `rep` of EVERY member uses seed
-#'   `seed + rep`, so members are compared on the same random numbers (`rescorePopulation()` gives each
-#'   evaluation its own seed).
+#' Every member's objective terms, on common random numbers
 #'
-#' @return `scorePopulationTerms()`: a `data.table`, one row per member x rep: `member` (row of `pop`), `rep`,
-#'   and each term `fn` returns with `returnTerms = TRUE` (for [.objfunSpreadFit()]: `objective`, `adTest`,
-#'   `pitAD`, `yearArea`, `areaDist`, `crpsFire`, `crpsTotalArea`, `crpsTop10`, `crpsTopShare`, `nFires`), so
-#'   the terms can be re-weighted afterwards without simulating again.
+#' Evaluates every row of `pop` `reps` times with `fn(returnTerms = TRUE)`: replicate `r` of EVERY member uses
+#' seed `seed + r`, so members are compared on the same random numbers ([rescorePopulation()] gives each
+#' evaluation its own seed and keeps only the total). The terms can then be re-weighted afterwards without
+#' simulating again.
+#'
+#' @inheritParams rescorePopulation
+#' @param reps Evaluations of each member, `rep` 1 to `reps`.
+#'
+#' @return a `data.table`, one row per member x rep: `member` (row of `pop`), `rep`, and what `fn` returns with
+#'   `returnTerms = TRUE`. For [.objfunSpreadFit()]: `objective`; `adTest`, `pitAD`, `yearArea` and `areaDist`
+#'   as the objective added them (WEIGHTED); `crpsFire`, `crpsTotalArea`, `crpsTop10`, `crpsAnnualArea` and
+#'   `crpsTopShare` unweighted; `nFires`; then, to re-weight, `raw_adTest`, `raw_pitAD`, `raw_yearArea` and
+#'   `raw_areaDist` (before their weights) and the weight of every term, `w_<term>`. `objective` is the sum over
+#'   terms of weight x unweighted value. A term that was not computed is `NA`: `crpsAnnualArea` and `crpsTopShare`
+#'   only when their `crpsWeights` are not 0.
 #' @export
-#' @rdname replicatedBest
 scorePopulationTerms <- function(pop, fn = .objfunSpreadFit, reps = 1L, cl = NULL, seed = 1L, fnArgs = list()) {
   pop <- as.matrix(pop)
   fnArgs$returnTerms <- TRUE
