@@ -45,8 +45,7 @@ rescorePopulation <- function(pop, fn, reps = 10L, cl = NULL, seed = 1L, fnArgs 
 #'   as the objective added them (WEIGHTED); `crpsFire`, `crpsTotalArea`, `crpsTop10`, `crpsAnnualArea` and
 #'   `crpsTopShare` unweighted; `nFires`; then, to re-weight, `raw_adTest`, `raw_pitAD`, `raw_yearArea` and
 #'   `raw_areaDist` (before their weights) and the weight of every term, `w_<term>`. `objective` is the sum over
-#'   terms of weight x unweighted value. A term that was not computed is `NA`: `crpsAnnualArea` and `crpsTopShare`
-#'   only when their `crpsWeights` are not 0.
+#'   terms of weight x unweighted value. A term the objective did not use is `NA` (`adTest`, `pitAD`, `yearArea` and `areaDist` when their tests are off); with `returnTerms`, `crpsAnnualArea` and `crpsTopShare` are computed even at weight 0, so they can be weighted up afterwards.
 #' @export
 scorePopulationTerms <- function(pop, fn = .objfunSpreadFit, reps = 1L, cl = NULL, seed = 1L, fnArgs = list()) {
   pop <- as.matrix(pop)

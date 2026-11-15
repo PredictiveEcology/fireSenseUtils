@@ -516,15 +516,16 @@ utils::globalVariables(c(
     objFunRes <- objFunRes + crpsWeights$fire * crpsFire + crpsWeights$totalArea * crpsTotal +
       crpsWeights$top10 * crpsTop
     crpsAnn <- NA_real_
-    if (!identical(as.numeric(crpsWeights$annualArea), 0)) { # each year's observed area, from the same fires
+    ## each year's observed area, from the same fires; with weight 0 it is only computed for returnTerms
+    if (isTRUE(returnTerms) || !identical(as.numeric(crpsWeights$annualArea), 0)) {
       obsYear <- vapply(historicalFiresAboveMin[fitYrs], function(x) sum(x$size), numeric(1))
       crpsAnn <- crpsAnnualArea(crpsSizes, obsYear, Nreps)
-      objFunRes <- objFunRes + crpsWeights$annualArea * crpsAnn
+      if (!identical(as.numeric(crpsWeights$annualArea), 0)) objFunRes <- objFunRes + crpsWeights$annualArea * crpsAnn
     }
     crpsShare <- NA_real_
-    if (!identical(as.numeric(crpsWeights$topShare), 0)) {
+    if (isTRUE(returnTerms) || !identical(as.numeric(crpsWeights$topShare), 0)) {
       crpsShare <- crpsTopShare(crpsSizes, obsSizes, Nreps)
-      objFunRes <- objFunRes + crpsWeights$topShare * crpsShare
+      if (!identical(as.numeric(crpsWeights$topShare), 0)) objFunRes <- objFunRes + crpsWeights$topShare * crpsShare
     }
     if (verbose > 1) {
       cuts <- do.call(rbind, cutList)
