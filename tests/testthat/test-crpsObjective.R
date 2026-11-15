@@ -89,7 +89,7 @@ test_that("crpsTopShare() is scale-free, scores a heavier observed tail, and is 
 })
 
 ## .objfunSpreadFit() with the per-year work mocked: one year, 2 fitted fires (25, 60 pixels), Nreps = 2
-crpsFit <- function(..., sizes = data.table::data.table(rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50))) {
+crpsFit <- function(..., sizes = data.table::data.table(rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50)), returnTerms = TRUE) {
   local_mocked_bindings(
     objFunInner = function(yr, ...) list(allFireSizes = sizes$N, crpsFire = 1.5, crpsSizes = sizes),
     .package = "fireSenseUtils")
@@ -100,7 +100,7 @@ crpsFit <- function(..., sizes = data.table::data.table(rep = c(1, 1, 2, 2), N =
     nonAnnualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
     historicalFires = list(`2004` = data.frame(size = c(25, 60), cells = 1:2, ids = 1:2)),
     fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400)),
-    Nreps = 2L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
+    Nreps = 2L, doAssertions = FALSE, verbose = 0, returnTerms = returnTerms, ...)
 }
 
 test_that("tests = \"crps\" is the weighted sum of its five terms, with no annual-area term", {
@@ -137,7 +137,7 @@ test_that("crpsWeights$annualArea adds the annual-area term to the objective, an
 test_that("crpsWeights$topShare adds the top-share term, returned as crpsTopShare, and 0 leaves it as it was", {
   sizes <- data.table::data.table(year = "2004", rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50))
   base <- crpsFit(tests = "crps", sizes = sizes)
-  expect_true(is.na(base[["crpsTopShare"]]))
+  expect_true(is.finite(base[["crpsTopShare"]]))   # returned for re-weighting, though its weight is 0
   expect_equal(crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(topShare = 0))[["objective"]],
                base[["objective"]])
   fit <- crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(topShare = 2))
@@ -186,4 +186,27 @@ test_that("the defaults leave the objective's value as it was before the CRPS op
   expect_equal(unname(b[c("objective", "adTest")]), c(0.435858506498095, 0.435858506498095), tolerance = 1e-10)
   expect_equal(ob(tests = "adTest", yearAreaWeight = "auto", areaDistWeight = "auto",
                   gateRefusal = "minLik")[["objective"]], a[["objective"]])
+})
+
+test_that("returnTerms gives every term before its weight and the weight, so the objective can be re-weighted", {
+  sizes <- data.table::data.table(year = "2004", rep = c(1, 1, 2, 2), N = c(20, 70, 30, 50))
+  w <- crpsWeightsDefault()
+  fit <- crpsFit(tests = "crps", sizes = sizes, crpsWeights = list(annualArea = 3))
+  expect_equal(fit[["crpsAnnualArea"]], crpsAnnualArea(sizes, c(`2004` = 85), 2L))
+  expect_equal(fit[["w_adTest"]], w$adTest)
+  expect_equal(fit[["w_crpsAnnualArea"]], 3)
+  expect_equal(fit[["raw_adTest"]] * fit[["w_adTest"]], fit[["adTest"]])
+  expect_equal(fit[["raw_areaDist"]] * fit[["w_areaDist"]], fit[["areaDist"]])
+  ## the objective is the sum of weight x raw over the terms that were computed
+  raw <- c(adTest = fit[["raw_adTest"]], areaDist = fit[["raw_areaDist"]], crpsFire = fit[["crpsFire"]],
+           crpsTotalArea = fit[["crpsTotalArea"]], crpsTop10 = fit[["crpsTop10"]], crpsAnnualArea = fit[["crpsAnnualArea"]])
+  wt <- fit[paste0("w_", names(raw))]
+  expect_equal(fit[["objective"]], sum(raw * wt))
+  ## at the default weights (0) the two optional terms are still returned, so they can be weighted up, and the
+  ## objective is the same number with or without returnTerms
+  d <- crpsFit(tests = "crps", sizes = sizes)
+  expect_true(is.finite(d[["crpsAnnualArea"]]) && is.finite(d[["crpsTopShare"]]))
+  expect_equal(d[["crpsAnnualArea"]], crpsAnnualArea(sizes, c(`2004` = 85), 2L))
+  expect_equal(d[["w_crpsTopShare"]], 0)
+  expect_identical(unname(d[["objective"]]), crpsFit(tests = "crps", sizes = sizes, returnTerms = FALSE))
 })

@@ -59,3 +59,33 @@ test_that("runDEoptim() re-scores the final population after the fit", {
 test_that("the ledger carries covMinMax_spread, which prediction needs to rescale covariates", {
   expect_true("covMinMax_spread" %in% spreadFitAdditionalColNamesTxt)
 })
+
+## scorePopulationTerms(): the objective's separate terms for every member, on common random numbers
+termsFn <- function(par, shift = 0, returnTerms = FALSE) {
+  e <- stats::rnorm(1)                          # the same draw for members given the same seed
+  if (isTRUE(returnTerms)) c(objective = par[["a"]] + e + shift, crpsFire = par[["a"]], crpsTotalArea = e)
+  else par[["a"]] + e + shift
+}
+
+test_that("scorePopulationTerms() returns one row per member x rep with the term columns", {
+  s <- scorePopulationTerms(pop, termsFn, reps = 3L, seed = 10L)
+  expect_identical(nrow(s), 18L)
+  expect_identical(names(s), c("member", "rep", "objective", "crpsFire", "crpsTotalArea"))
+  expect_equal(s[rep == 1L]$crpsFire, pop[, "a"])
+})
+
+test_that("scorePopulationTerms() gives every member the same seeds, reproducibly", {
+  s <- scorePopulationTerms(pop, termsFn, reps = 2L, seed = 10L)
+  expect_identical(s, scorePopulationTerms(pop, termsFn, reps = 2L, seed = 10L))
+  expect_identical(length(unique(s[rep == 1L]$crpsTotalArea)), 1L)   # common random numbers across members
+  expect_false(identical(s$crpsTotalArea[1:6], scorePopulationTerms(pop, termsFn, reps = 2L, seed = 11L)$crpsTotalArea[1:6]))
+  expect_identical(s$objective + 5, scorePopulationTerms(pop, termsFn, reps = 2L, seed = 10L, fnArgs = list(shift = 5))$objective)
+})
+
+test_that("scorePopulationTerms() runs on a cluster's workers", {
+  skip_on_cran()
+  cl <- parallel::makeCluster(2L)
+  on.exit(parallel::stopCluster(cl), add = TRUE)
+  expect_identical(scorePopulationTerms(pop, termsFn, reps = 2L, cl = cl, seed = 5L),
+                   scorePopulationTerms(pop, termsFn, reps = 2L, seed = 5L))
+})

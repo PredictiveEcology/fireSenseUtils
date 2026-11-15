@@ -24,6 +24,8 @@ test_that("phase 'fit' stops after the fit, or after cross-validation when it va
   ## a profile-only job (spreadFit mode "profile") never schedules `run`
   expect_identical(phaseEvents("fit", profiles = TRUE)$.stopAfter,
                    list(fireSense_spreadFit = "profileFromLedger"))
+  ## and one that only scores a pool (mode "terms") never schedules it either
+  expect_identical(phaseEvents("fit", terms = TRUE)$.stopAfter, list(fireSense_spreadFit = "termsFromPool"))
 })
 
 test_that("phaseEvents() matches the phase partially and rejects unknown ones", {
