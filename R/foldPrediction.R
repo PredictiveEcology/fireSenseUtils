@@ -50,7 +50,9 @@ foldMeanPrediction <- function(fit, newdata) {
 #' @examples
 #' escapeProbPerIgnition(0.3, c(0.01, 1, 5))
 escapeProbPerIgnition <- function(escapeMean, ignitionMean) {
+  n <- max(length(escapeMean), length(ignitionMean))
+  escapeMean <- rep_len(escapeMean, n)
+  ignitionMean <- rep_len(ignitionMean, n)
   escapeMean[is.na(escapeMean)] <- 0
-  ratio <- ifelse(ignitionMean > 0, -expm1(-ignitionMean) / ignitionMean, 1)
-  pmin(1, escapeMean * ratio)
+  pmin(1, ifelse(ignitionMean > 0, escapeMean * (-expm1(-ignitionMean)) / ignitionMean, escapeMean))
 }

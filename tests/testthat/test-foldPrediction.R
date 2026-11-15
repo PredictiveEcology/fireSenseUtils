@@ -26,4 +26,7 @@ test_that("escapeProbPerIgnition() keeps an ignited pixel's expected escapes and
   expect_identical(escapeProbPerIgnition(5, 0.01), 1)
   expect_identical(escapeProbPerIgnition(NA, 1), 0)
   expect_identical(escapeProbPerIgnition(c(0.3, 2), 0), c(0.3, 1))
+  ## byte-identical to fireSense_burn's drawEscapes() before it called this
+  e <- c(0.01, 0.37, 1.3); lam <- c(0.003, 0.7, 4.1)
+  expect_identical(escapeProbPerIgnition(e, lam), pmin(1, e * (-expm1(-lam)) / lam))
 })
