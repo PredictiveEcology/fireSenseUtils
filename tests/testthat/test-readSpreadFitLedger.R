@@ -74,10 +74,10 @@ test_that("'latest' replaces the shared ledger file by rename: a reader never se
   f <- list.files(d, pattern = "^fireSenseParams_latest_.*\\.rds$", full.names = TRUE)
   expect_length(f, 1)
   writeBin(raw(10), f)                                      # another job's partial write of the same name
-  inode <- function(x) system2("stat", c("-c", "%i", x), stdout = TRUE)
-  before <- inode(f)
+  old <- file.path(d, "old.bin")
+  file.link(f, old)
   out <- suppressMessages(readSpreadFitLedger("latest", "folder", domain, d))
-  expect_false(identical(inode(f), before))                 # a new file took the name; the old one was not rewritten
+  expect_length(readBin(old, "raw", 100), 10)               # replaced by a new file, not written into the old one
   expect_equal(out$objFunVal, 2)
   expect_identical(list.files(d, all.files = TRUE, pattern = "^\\.fireSenseParams_latest_"), character(0))
 })
