@@ -222,3 +222,33 @@ test_that("runDEoptim names the intercept a covariate, not a logistic parameter"
     objFunCoresInternal = 1L, covMinMax = NULL, maxFireSpread = 0.3, Nreps = 1L, .verbose = FALSE))
   expect_match(paste(msg, collapse = ""), "logistic: maxAsymptote; covariates: (Intercept), x", fixed = TRUE)
 })
+
+## assume a covariate; each is run with none.
+
+test_that("the objective's spreadProb with '~ 1' is the same constant at every pixel", {
+  skip_if_not_installed("SpaDES.tools")
+  par <- c(maxAsymptote = 0.27, `(Intercept)` = -0.7)
+  got <- spreadProbSeen(par, "~ 1", covCentre = spreadCovCentre(icptFix$annualDTx1000, icptFix$nonAnnualDTx1000, "~ 1"))
+  expect_equal(got[-1L][1:(nPixI - 1L)], rep(0.13 + (0.27 - 0.13) * plogis(-0.7), nPixI - 1L))
+})
+
+test_that("spreadCovCentre() of '~ 1' has no covariate to centre", {
+  expect_length(spreadCovCentre(icptFix$annualDTx1000, icptFix$nonAnnualDTx1000, "~ 1"), 0L)
+})
+
+test_that("the spread-out gate does not refuse a model with no covariate, whose spreadProb is constant", {
+  expect_false(spreadHasCovariates(spreadDesignCols("~ 1")))
+  expect_true(spreadHasCovariates(spreadDesignCols("~ 1 + cov1")))
+  flat <- rep(0.2, 100)
+  expect_true(spreadProbGateTest(flat, 0.27, 0.13, 0.28, 0.265, spreadOut = FALSE)$pass)
+  ## with covariates a flat landscape is still "not spread out enough"
+  expect_true(spreadProbGateTest(flat, 0.27, 0.13, 0.28, 0.265)$notSpread)
+  ## the other gates still apply: a median above the ceiling fails
+  expect_false(spreadProbGateTest(rep(0.5, 100), 0.27, 0.13, 0.28, 0.265, spreadOut = FALSE)$pass)
+  nullCentre <- spreadCovCentre(icptFix$annualDTx1000, icptFix$nonAnnualDTx1000, "~ 1")
+  g <- do.call(spreadProbGates, c(list(par = list(c(maxAsymptote = 0.27, `(Intercept)` = -0.7),
+                                                  c(maxAsymptote = 0.27, `(Intercept)` = 9)),
+                                       formulaToFit = "~ 1", covCentre = nullCentre), icptFix))
+  expect_identical(g$pass, c(TRUE, FALSE)) # a saturated intercept is still too burny / at the ceiling
+  expect_false(any(g$notSpread))
+})

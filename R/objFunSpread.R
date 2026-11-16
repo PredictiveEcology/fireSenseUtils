@@ -904,7 +904,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     medSPRight <- spreadOutEnough <- lowSPLowEnough <- TRUE # not run: "simulate" simulates every year
     if (runGates) {
       gate <- spreadProbGateTest(pGate, logisticPars[1], spreadLinkLower(link, lowerSpreadProb, lowerAsymptote), maxFireSpread,
-                                 lanscape1stQuantileThresh)
+                                 lanscape1stQuantileThresh, spreadOut = spreadHasCovariates(colsToUse))
       nonEdgeValues <- gate$nonEdgeValues
       summ <- gate$summ
       medSPRight <- gate$medianOK

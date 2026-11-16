@@ -178,14 +178,14 @@ with its raw value (the stored integer / 1000, before rescaling and mutual exclu
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 
-\code{plotSpreadFitValidation()}: a \code{ggplot}, one panel per covariate. Pixel-years are binned
+\code{plotSpreadFitValidation()}: a \code{ggplot}, one panel per covariate (\code{NULL} for a model with none, \code{~ 1}). Pixel-years are binned
 by quantiles of the covariate: all of them for climate covariates, only those where it is
 present (above its \code{covMinMax} minimum, else above 0) for the others, and one bin per value
 for covariates with two values or fewer. Each bin shows the observed burned share and the
 mean simulated burned share, at the bin's mean covariate value, with its number of
 pixel-years along the bottom.
 
-\code{plotSpreadFitResponse()}: a \code{ggplot}, one panel per covariate with more than two values.
+\code{plotSpreadFitResponse()}: a \code{ggplot}, one panel per covariate with more than two values (\code{NULL} when there is none).
 The line is \code{logit(p)} the fitted parameters give a "pure stand": that covariate alone, every
 other covariate absent (0 after rescaling: other fuels, youngAge, non-forest), and climate at
 its median. Behind it, the pixel-years' own predicted \code{logit(p)} (only where the covariate is
