@@ -1,5 +1,6 @@
 # fireSenseUtils (development version)
 
+* New `readYearEffects(ledgerFiles)`: the fitted year effects (`modelList$yearEffects`, from `fireSense_ignitionFit`) of national ignition ledgers as one long table, one row per ledger, ELF, process and year. It was written for `fireSense_yearEffects`; `fireSense_report` reads the year-effect prior sd with it too.
 * `readSpreadFitLedger(spreadFitFilename = "latest")` writes its `fireSenseParams_latest_<md5>.rds` with `reproducible::copyFile()`, which renames a temporary file into place, not by rewriting the file in place. Jobs starting together on one ELF no longer read a half-written file ("error reading from connection"). Needs reproducible >= 3.2.1.9088.
 * New `fitDataNeeded(doFit, heldOutFold, mode, hasLedgerFit)`: whether a job reads the data prepared for a spread fit. `fireSense_dataPrepFit` and `fireSense_spreadFit` use it for `skipUnusedFitPrep`.
 * `foldModels()` and `foldMeanPrediction()` (moved from `fireSense_ignitionPredict`): the fold models of an ignition or escape fit and the mean of their predictions, so `fireSense_ignitionFit` can predict its in-sample year totals exactly as `fireSense_ignitionPredict` predicts. `escapeProbPerIgnition()` (from `fireSense_burn`'s `drawEscapes()`): the chance that one ignition escapes, from the expected escapes of an ignited pixel.
