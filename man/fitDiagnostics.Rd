@@ -6,6 +6,7 @@
 \alias{combineSpreadProbSummaries}
 \alias{simulateFireSizes}
 \alias{scoreFireSizes}
+\alias{scoreFireSizesByYear}
 \alias{linkSaturation}
 \alias{coefIdentifiability}
 \alias{profileCoefficients}
@@ -30,6 +31,8 @@ scoreFireSizes(
   probs = c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99),
   largeFire = 174
 )
+
+scoreFireSizesByYear(sims)
 
 linkSaturation(sims, probsP = c(0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99))
 
@@ -138,6 +141,10 @@ observed total and \verb{top10Run_*} the same for the 10 largest fires (all fire
 \verb{_median}, \verb{_lo} and \verb{_hi} (the 2.5\% and 97.5\% quantiles) across runs, and \verb{_obsRank} the share
 of runs below the observed value (0.5: the observed value is typical; near 0 or 1: it is out of
 reach of single runs). \code{nRuns} is the number of runs.
+
+\code{scoreFireSizesByYear()}: a \code{data.table}, one row per year with a simulation: \code{yr}, \code{obs} (the
+observed area burned, in pixels), \code{simMedian} and the 2.5\% and 97.5\% quantiles \code{simLo} and \code{simHi} of the
+simulated area over runs (a run being one \code{member} x \code{rep}), to report annual-area bias and skill.
 
 \code{linkSaturation()}: a \code{data.table}, one row per member: \code{pixelYears}, \code{propAtCeiling}
 and the spread-probability quantiles \verb{p_*} (bin midpoints).

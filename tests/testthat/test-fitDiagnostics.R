@@ -141,6 +141,20 @@ test_that("scoreFireSizes() scores single runs: area and 10 largest fires, media
   expect_equal(c(p$areaRun_obsRank, p$top10Run_obsRank), c(0, 0))
 })
 
+test_that("scoreFireSizesByYear(): observed area per year, simulated median and 2.5-97.5% range over runs", {
+  d <- data.table::CJ(member = 1:2, rep = 1:3, yr = c("2001", "2002"), ids = 1:2)
+  d[, size := ifelse(yr == "2001", 10, 20) * ids]
+  d[, sim := size * rep]
+  d[yr == "2002" & rep == 3, sim := NA]
+  y <- scoreFireSizesByYear(d)
+  expect_identical(y$yr, c("2001", "2002"))
+  expect_equal(y$obs, c(30, 60))
+  expect_equal(y$simMedian, c(stats::median(30 * rep(1:3, 2)), stats::median(60 * rep(1:2, 2))))
+  expect_equal(y$simLo[1], stats::quantile(30 * rep(1:3, 2), 0.025, names = FALSE))
+  expect_equal(y$simHi[2], stats::quantile(60 * rep(1:2, 2), 0.975, names = FALSE))
+  expect_identical(fireSenseUtils::spreadFitInSampleSizesTxt, "inSampleSizes_spread")
+})
+
 test_that("coefIdentifiability() scores only covariates, and zPop is the median in population sd", {
   set.seed(1)
   pop <- cbind(maxAsymptote = 0.26, hillSlope1 = runif(200, 0.5, 1), inflectionPoint1 = 1,

@@ -86,6 +86,10 @@
 #'   - `spreadFitPowerLawPcMarginTxt`: `character(1)`. Name of the ledger column that holds the margin added to `p50`
 #'     for the upper bound of `p_c` ([powerLawPcBounds()]; `"powerLawPcMargin_spread"`), so the bounds a fit used can be
 #'     recovered.
+#'   - `spreadFitInSampleSizesTxt`: `character(1)`. Name of the ledger column that holds a fit's in-sample fire-size
+#'     validation (`"inSampleSizes_spread"`): a list of `sizes`, the one-row [scoreFireSizes()], and `byYear`,
+#'     [scoreFireSizesByYear()]; areas are in pixels. A fit without the diagnostics (a cross-validation fold, `simulateMembers = 0`)
+#'     writes no such column, and a row written before it has none.
 #'   - `spreadPowerLawPGrid`: `numeric`. The spread probabilities [calibratePowerLaw()] simulates by default.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
@@ -93,7 +97,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid
 NULL
 
 #' @export
@@ -206,6 +210,9 @@ spreadFitPowerLawPc50Txt <- "powerLawPc50_spread"
 
 #' @export
 spreadFitPowerLawR2Txt <- "powerLawR2_spread"
+
+#' @export
+spreadFitInSampleSizesTxt <- "inSampleSizes_spread"
 
 #' @export
 spreadFitPowerLawPcMarginTxt <- "powerLawPcMargin_spread"
