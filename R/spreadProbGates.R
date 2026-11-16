@@ -12,12 +12,14 @@
 #'   it (or within 2.5% of `lowerSpreadProb`) are "edge" values and are left out of the spread checks.
 #' @param lowerSpreadProb,maxFireSpread numeric; the median must be within them.
 #' @param lanscape1stQuantileThresh numeric; the first quartile of the non-edge values must be below this.
+#' @param spreadOut logical; `FALSE` skips the "spread out enough" check. A model with no covariate
+#'   (`~ 1`, see [spreadHasCovariates()]) gives every pixel the same spreadProb, which that check refuses.
 #' @return a list: `pass`; `burny` (first quartile too high, "Too burny a landscape"); `notSpread`
 #'   ((q90 - q10) / median <= 0.025, "Not spread out enough"); `medianOK`; and the `nonEdgeValues` and
 #'   their `summ`ary that the objective logs.
 #' @export
 spreadProbGateTest <- function(spreadProb, ceiling, lowerSpreadProb, maxFireSpread,
-                               lanscape1stQuantileThresh) {
+                               lanscape1stQuantileThresh, spreadOut = TRUE) {
   medSP <- median(spreadProb, na.rm = TRUE)
   ## Taken from the spreadProb column, not by scanning `cells`. `cells` is landscape-length and
   ## zero everywhere except this year's pixels (6.0M cells vs a median 41k pixels on ELF 5.3.1),
@@ -30,7 +32,7 @@ spreadProbGateTest <- function(spreadProb, ceiling, lowerSpreadProb, maxFireSpre
   sdSP <- diff(quantile(nonEdgeValues, c(0.1, 0.9)))
   if (is.na(sdSP)) sdSP <- 0
   medianOK <- medSP <= maxFireSpread & medSP >= lowerSpreadProb
-  spreadOutEnough <- sdSP / medSP > 0.025
+  spreadOutEnough <- !spreadOut || sdSP / medSP > 0.025
   summ <- summary(nonEdgeValues)
   lowSPLowEnough <- summ[2] < lanscape1stQuantileThresh
   list(pass = isTRUE(medianOK && spreadOutEnough && lowSPLowEnough),
@@ -313,7 +315,7 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
                                             powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
                                             lowerAsymptote = lowerAsymptote, richardsNu = richardsNu),
                          ps$logisticPars[1], spreadLinkLower(link, lowerSpreadProb, lowerAsymptote), maxFireSpread,
-                         lanscape1stQuantileThresh))
+                         lanscape1stQuantileThresh, spreadOut = spreadHasCovariates(colsToUse)))
     list(pass = all(vapply(g, `[[`, logical(1), "pass")),
          burny = any(vapply(g, `[[`, logical(1), "burny")),
          notSpread = any(vapply(g, `[[`, logical(1), "notSpread")),

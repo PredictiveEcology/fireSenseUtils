@@ -9,7 +9,8 @@ spreadProbGateTest(
   ceiling,
   lowerSpreadProb,
   maxFireSpread,
-  lanscape1stQuantileThresh
+  lanscape1stQuantileThresh,
+  spreadOut = TRUE
 )
 }
 \arguments{
@@ -21,6 +22,9 @@ it (or within 2.5\% of \code{lowerSpreadProb}) are "edge" values and are left ou
 \item{lowerSpreadProb, maxFireSpread}{numeric; the median must be within them.}
 
 \item{lanscape1stQuantileThresh}{numeric; the first quartile of the non-edge values must be below this.}
+
+\item{spreadOut}{logical; \code{FALSE} skips the "spread out enough" check. A model with no covariate
+(\code{~ 1}, see \code{\link[=spreadHasCovariates]{spreadHasCovariates()}}) gives every pixel the same spreadProb, which that check refuses.}
 }
 \value{
 a list: \code{pass}; \code{burny} (first quartile too high, "Too burny a landscape"); \code{notSpread}
