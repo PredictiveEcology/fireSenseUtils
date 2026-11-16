@@ -202,6 +202,17 @@ firePixelsByYear <- function(firePolys = NULL, fireRaster = NULL, template = NUL
   out[lengths(out) > 0]
 }
 
+#' Time since disturbance of every pixel, as the table [youngAgeAtYear()] reads
+#'
+#' @param tsd `SpatRaster` of time since disturbance at the data year (see [makeTSD()]).
+#' @return `data.table` with `pixelID` (the cell numbers) and `tsd`.
+#' @export
+#' @importFrom data.table data.table
+#' @importFrom terra ncell values
+tsdTable <- function(tsd) {
+  data.table(pixelID = seq_len(terra::ncell(tsd)), tsd = terra::values(tsd, mat = FALSE))
+}
+
 #' Stop unless non-forest can be `youngAge`
 #'
 #' `youngAge` is resolved for each fire year from time since disturbance ([youngAgeAtYear()]), which

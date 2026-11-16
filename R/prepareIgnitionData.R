@@ -420,11 +420,7 @@ prepare_FuelCovsCoarseByYear <- function(..., years, dataYear, nonForest_timeSin
                                          firePixelsByYear, cutoffForYoungAge, rasTemplate, fact) {
   covs <- fireSenseCovariatesCreate(..., nonForest_timeSinceDisturbance = nonForest_timeSinceDisturbance,
                                     cutoffForYoungAge = cutoffForYoungAge, youngAge = FALSE)
-  tsd <- data.table(pixelID = seq_len(terra::ncell(nonForest_timeSinceDisturbance)),
-                    tsd = terra::values(nonForest_timeSinceDisturbance, mat = FALSE))
-  covNames <- setdiff(names(covs), "pixelID")
-  fuelCols <- setdiff(covNames, c(grep("^nfLCC_", covNames, value = TRUE), treedWetlandTxt))
-  exclusive <- youngAgeExclusiveCols(covNames, fuelCols)[[youngAgeTxt]]
+  tsd <- tsdTable(nonForest_timeSinceDisturbance)
   static <- fuelCovsStatic(covs$pixelID, rasTemplate, fact)
   yearRasters <- lapply(years, function(yr) {
     covsYr <- copy(covs)
@@ -432,8 +428,7 @@ prepare_FuelCovsCoarseByYear <- function(..., years, dataYear, nonForest_timeSin
                             firePixelsByYear = firePixelsByYear,
                             cutoffForYoungAge = cutoffForYoungAge, pixelID = covsYr$pixelID)
     set(covsYr, NULL, youngAgeTxt, young)
-    whYoung <- which(young == 1L)
-    for (cn in exclusive) set(covsYr, whYoung, cn, if (cn %in% fuelCols) logMinB(0) else 0)
+    clearYoungAge(covsYr)
     fuelCovsToCoarse(covsYr, rasTemplate = rasTemplate, fact = fact, static = static)
   })
   names(yearRasters) <- years

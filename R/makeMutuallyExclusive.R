@@ -52,3 +52,24 @@ youngAgeExclusiveCols <- function(covNames, fuelCols = character()) {
   cols <- setdiff(unique(c(fuelCols, spreadIndicatorCols(covNames))), youngAgeTxt)
   stats::setNames(list(cols), youngAgeTxt)
 }
+
+#' Clear fuel, non-forest land cover and treed wetland where `youngAge` is 1
+#'
+#' What `fireSenseCovariatesCreate(youngAge = TRUE)` does for one year, for a table made with
+#' `youngAge = FALSE` whose `youngAge` was then resolved for the year with [youngAgeAtYear()]: the columns
+#' of [youngAgeExclusiveCols()] are set to 0, fuel biomass (every column that is not `nfLCC_*`,
+#' `treedWetland` or `youngAge`) to `logMinB(0)`, the value a pixel without that fuel has. It works on the
+#' covariates as they are built (fuel on the log scale), whatever scale a model later uses.
+#'
+#' @param covs `data.table` of `pixelID`, the covariates and `youngAge` (0/1). Changed by reference.
+#' @return `covs`.
+#' @export
+#' @importFrom data.table set
+clearYoungAge <- function(covs) {
+  covNames <- setdiff(names(covs), c("pixelID", youngAgeTxt))
+  fuelCols <- setdiff(covNames, c(grep("^nfLCC_", covNames, value = TRUE), treedWetlandTxt))
+  whYoung <- which(covs[[youngAgeTxt]] == 1L)
+  for (cn in youngAgeExclusiveCols(covNames, fuelCols)[[youngAgeTxt]])
+    set(covs, whYoung, cn, if (cn %in% fuelCols) logMinB(0) else 0)
+  covs
+}
