@@ -36,9 +36,12 @@ spreadFitFilenameFor <- function(fireYears, suffix = "") {
 spreadFitFileTag <- "_linearFuel_esc50_20260925"
 
 #' @description
-#' `latestSpreadFits()` returns, for every polygon, its rows from the newest ledger file that has it:
-#' the one whose suffix has the latest date ([ledgerFileOrder()]). Files are read newest first; with `polygonIDs`, reading stops once
-#' all of them are found. Each file is read with [reproducible::CacheGeoRead()] into
+#' `latestSpreadFits()` returns, for every polygon, its newest row in the ledger files: the one with
+#' the latest `writtenAt` (stamped by [reproducible::CacheGeoWrite()]). A row written before that stamp
+#' existed has its file's date instead: the date in the file's suffix ([ledgerFileOrder()]), else older
+#' than any dated file; ties go by the file's modified time. No row is newer than its file was last
+#' modified, so files are read newest-modified first; with `polygonIDs`, reading stops once each has a
+#' row newer than the next file. Each file is read with [reproducible::CacheGeoRead()] into
 #' `destinationPath`: downloaded only if it changed on Drive, and from the local copy when Drive
 #' cannot be reached. The folder's file list is saved there too, and used when Drive cannot be
 #' reached (a compute node with no internet).

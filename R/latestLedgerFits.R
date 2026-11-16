@@ -4,7 +4,7 @@
 #'
 #' @param cloudFolderID,destinationPath,polygonIDs As in [latestSpreadFits()].
 #' @param filePrefix,fileTag,suffix The ledger files are those named `<filePrefix>*<fileTag><suffix>.rds`;
-#'   with `suffix = ""`, every `<filePrefix>*<fileTag>*.rds`, whatever its suffix ([ledgerFileOrder()]).
+#'   with `suffix = ""`, every `<filePrefix>*<fileTag>*.rds`, whatever its suffix.
 #' @param caller Name of the calling function, for messages.
 #' @param attrName Name of the attribute that records the file each polygon came from.
 #' @return As [latestSpreadFits()].
@@ -40,22 +40,36 @@
             cloudFolderID)
     return(NULL)
   }
-  files <- files[ledgerFileOrder(files$name, files$modifiedTime, fileTag), ]
+  ## The newest row of each polygon: by its `writtenAt` (reproducible::CacheGeoWrite() stamps it); a row
+  ## from before the stamp by its file's date as ledgerFileOrder() gives it (the date in the suffix, else
+  ## older than any dated file; then the file's modified time). No row is newer than its file's ceiling,
+  ## the later of its modified time and its suffix date, so files are read by ceiling, newest first, and
+  ## reading stops once every polygon asked for has a row newer than the next file's ceiling.
+  modified <- .ledgerTime(files$modifiedTime)
+  nameDate <- .ledgerNameDate(files$name, fileTag)
+  ceiling <- pmax(modified, ifelse(is.na(nameDate), -Inf, nameDate))
+  read <- order(ceiling, modified, decreasing = TRUE)
 
-  rows <- list()
-  from <- character()                              # polygonID -> file
-  for (fname in files$name) {
+  best <- list()                                   # polygonID -> list(file, row, key, tie)
+  for (k in read) {
+    if (!is.null(polygonIDs) && all(as.character(polygonIDs) %in% names(best)) &&
+        all(vapply(best[as.character(polygonIDs)], `[[`, numeric(1), "key") > ceiling[k]))
+      break
+    fname <- files$name[k]
     ledger <- reproducible::CacheGeoLedger(fname, remote = cloudFolderID, destinationPath = destinationPath)
     ledger <- as.data.frame(reproducible::CacheGeoRead(ledger, area = NULL))
+    stamp <- if ("writtenAt" %in% names(ledger)) as.numeric(ledger$writtenAt) else rep(NA_real_, NROW(ledger))
+    key <- ifelse(is.na(stamp), if (is.na(nameDate[k])) -Inf else nameDate[k], stamp)
     ids <- as.character(ledger[[polygonIDTxt]])
-    new <- !ids %in% names(from)
-    if (any(new)) {
-      rows[[fname]] <- ledger[new, , drop = FALSE]
-      from <- c(from, setNames(rep(fname, length(unique(ids[new]))), unique(ids[new])))
+    for (i in seq_along(ids)) {
+      b <- best[[ids[i]]]
+      if (is.null(b) || key[i] > b$key || (key[i] == b$key && modified[k] > b$tie))
+        best[[ids[i]]] <- list(file = fname, row = ledger[i, , drop = FALSE], key = key[i], tie = modified[k])
     }
-    if (!is.null(polygonIDs) && all(as.character(polygonIDs) %in% names(from)))
-      break
   }
+  from <- vapply(best, `[[`, character(1), "file")
+  rows <- lapply(split(best, factor(from, levels = unique(from))), function(b)
+    do.call(rbind, unname(lapply(b, `[[`, "row"))))
   if (!length(rows))
     return(NULL)
   out <- if (length(rows) == 1L) {
@@ -90,9 +104,23 @@
 #' @return Integer: the order of `names`, newest first.
 #' @export
 ledgerFileOrder <- function(names, modifiedTime, fileTag) {
+  date <- .ledgerNameDate(names, fileTag)
+  order(ifelse(is.na(date), -Inf, date), as.character(modifiedTime), decreasing = TRUE)
+}
+
+## The last 8-digit `yyyymmdd` in the suffix after `fileTag`, as seconds (midnight UTC); NA if none
+.ledgerNameDate <- function(names, fileTag) {
   suffix <- sub("\\.rds$", "", vapply(strsplit(names, fileTag, fixed = TRUE), function(x)
     if (length(x) > 1L) x[length(x)] else "", character(1)))
   date <- vapply(regmatches(suffix, gregexpr("[0-9]{8}", suffix)), function(d)
-    if (length(d)) d[length(d)] else "00000000", character(1))
-  order(date, as.character(modifiedTime), decreasing = TRUE)
+    if (length(d)) d[length(d)] else NA_character_, character(1))
+  as.numeric(as.POSIXct(date, format = "%Y%m%d", tz = "UTC"))
+}
+
+## Drive's modifiedTime ("2026-10-29T10:00:00.123Z", or a date) as seconds
+.ledgerTime <- function(x) {
+  t <- as.POSIXct(sub("Z$", "", x), format = "%Y-%m-%dT%H:%M:%OS", tz = "UTC")
+  day <- is.na(t)
+  t[day] <- as.POSIXct(x[day], format = "%Y-%m-%d", tz = "UTC")
+  as.numeric(t)
 }
