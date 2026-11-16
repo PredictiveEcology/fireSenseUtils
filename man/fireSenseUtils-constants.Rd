@@ -38,6 +38,7 @@
 \alias{spreadFitPowerLawPc50Txt}
 \alias{spreadFitPowerLawR2Txt}
 \alias{spreadFitPowerLawPcMarginTxt}
+\alias{spreadFitInSampleSizesTxt}
 \alias{spreadPowerLawPGrid}
 \alias{yearSpreadSDTxt}
 \alias{fireSpreadSDTxt}
@@ -126,6 +127,10 @@ half the fires run away, to compare with the fitted \code{p_c}) and the \code{R2
 \item \code{spreadFitPowerLawPcMarginTxt}: \code{character(1)}. Name of the ledger column that holds the margin added to \code{p50}
 for the upper bound of \code{p_c} (\code{\link[=powerLawPcBounds]{powerLawPcBounds()}}; \code{"powerLawPcMargin_spread"}), so the bounds a fit used can be
 recovered.
+\item \code{spreadFitInSampleSizesTxt}: \code{character(1)}. Name of the ledger column that holds a fit's in-sample fire-size
+validation (\code{"inSampleSizes_spread"}): a list of \code{sizes}, the one-row \code{\link[=scoreFireSizes]{scoreFireSizes()}}, and \code{byYear},
+\code{\link[=scoreFireSizesByYear]{scoreFireSizesByYear()}}. A fit without the diagnostics (a cross-validation fold, \code{simulateMembers = 0})
+writes no such column, and a row written before it has none.
 \item \code{spreadPowerLawPGrid}: \code{numeric}. The spread probabilities \code{\link[=calibratePowerLaw]{calibratePowerLaw()}} simulates by default.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently

@@ -137,6 +137,20 @@ scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0
   out[]
 }
 
+#' @return `scoreFireSizesByYear()`: a `data.table`, one row per year with a simulation: `yr`, `obs` (the
+#'   observed area burned, in pixels), `simMedian` and the 2.5% and 97.5% quantiles `simLo` and `simHi` of the
+#'   simulated area over runs (a run being one `member` x `rep`), to report annual-area bias and skill.
+#' @export
+#' @rdname fitDiagnostics
+scoreFireSizesByYear <- function(sims) {
+  d <- data.table::as.data.table(sims)
+  d <- d[!is.na(sim)]
+  obs <- d[!duplicated(data.table::data.table(yr, ids)), list(obs = sum(size)), by = "yr"]
+  area <- d[, list(area = sum(sim)), by = c("yr", "member", "rep")]
+  merge(obs, area[, list(simMedian = stats::median(area), simLo = stats::quantile(area, 0.025, names = FALSE),
+                         simHi = stats::quantile(area, 0.975, names = FALSE)), by = "yr"], by = "yr")
+}
+
 #' @param probsP Quantiles of spread probability to report.
 #' @return `linkSaturation()`: a `data.table`, one row per member: `pixelYears`, `propAtCeiling`
 #'   and the spread-probability quantiles `p_*` (bin midpoints).

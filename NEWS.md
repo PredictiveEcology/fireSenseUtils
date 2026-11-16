@@ -1,5 +1,6 @@
 # fireSenseUtils (development version)
 
+* New `scoreFireSizesByYear()` (observed area burned per year, with the median and 2.5-97.5% range of simulated area over runs) and the ledger column name `spreadFitInSampleSizesTxt` (`"inSampleSizes_spread"`), where `fireSense_spreadFit` stores a fit's in-sample fire-size validation (`scoreFireSizes()` and `scoreFireSizesByYear()`).
 * `readSpreadFitLedger(spreadFitFilename = "latest")` writes its `fireSenseParams_latest_<md5>.rds` with `reproducible::copyFile()`, which renames a temporary file into place, not by rewriting the file in place. Jobs starting together on one ELF no longer read a half-written file ("error reading from connection"). Needs reproducible >= 3.2.1.9088.
 * New `fitDataNeeded(doFit, heldOutFold, mode, hasLedgerFit)`: whether a job reads the data prepared for a spread fit. `fireSense_dataPrepFit` and `fireSense_spreadFit` use it for `skipUnusedFitPrep`.
 * `foldModels()` and `foldMeanPrediction()` (moved from `fireSense_ignitionPredict`): the fold models of an ignition or escape fit and the mean of their predictions, so `fireSense_ignitionFit` can predict its in-sample year totals exactly as `fireSense_ignitionPredict` predicts. `escapeProbPerIgnition()` (from `fireSense_burn`'s `drawEscapes()`): the chance that one ignition escapes, from the expected escapes of an ignited pixel.
