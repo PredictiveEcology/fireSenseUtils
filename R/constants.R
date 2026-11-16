@@ -88,7 +88,7 @@
 #'     recovered.
 #'   - `spreadFitInSampleSizesTxt`: `character(1)`. Name of the ledger column that holds a fit's in-sample fire-size
 #'     validation (`"inSampleSizes_spread"`): a list of `sizes`, the one-row [scoreFireSizes()], and `byYear`,
-#'     [scoreFireSizesByYear()]. A fit without the diagnostics (a cross-validation fold, `simulateMembers = 0`)
+#'     [scoreFireSizesByYear()]; areas are in pixels. A fit without the diagnostics (a cross-validation fold, `simulateMembers = 0`)
 #'     writes no such column, and a row written before it has none.
 #'   - `spreadPowerLawPGrid`: `numeric`. The spread probabilities [calibratePowerLaw()] simulates by default.
 #'

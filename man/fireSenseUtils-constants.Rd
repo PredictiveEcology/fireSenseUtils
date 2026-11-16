@@ -129,7 +129,7 @@ for the upper bound of \code{p_c} (\code{\link[=powerLawPcBounds]{powerLawPcBoun
 recovered.
 \item \code{spreadFitInSampleSizesTxt}: \code{character(1)}. Name of the ledger column that holds a fit's in-sample fire-size
 validation (\code{"inSampleSizes_spread"}): a list of \code{sizes}, the one-row \code{\link[=scoreFireSizes]{scoreFireSizes()}}, and \code{byYear},
-\code{\link[=scoreFireSizesByYear]{scoreFireSizesByYear()}}. A fit without the diagnostics (a cross-validation fold, \code{simulateMembers = 0})
+\code{\link[=scoreFireSizesByYear]{scoreFireSizesByYear()}}; areas are in pixels. A fit without the diagnostics (a cross-validation fold, \code{simulateMembers = 0})
 writes no such column, and a row written before it has none.
 \item \code{spreadPowerLawPGrid}: \code{numeric}. The spread probabilities \code{\link[=calibratePowerLaw]{calibratePowerLaw()}} simulates by default.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column

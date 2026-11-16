@@ -106,15 +106,12 @@ scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0
   d <- d[!is.na(sim)]
   sp <- function(x, y) stats::cor(x, y, method = "spearman")
   fire <- d[, list(obs = size[1], sim = mean(sim)), by = c("yr", "ids")]
-  yrRep <- d[, list(area = sum(sim)), by = c("yr", "member", "rep")]
   top10 <- function(x) sum(utils::head(sort(x, decreasing = TRUE), 10))
   run <- d[, {
     obs <- size[!duplicated(data.table::data.table(yr, ids))] # each fire once
     list(area = sum(sim) / sum(obs), top10 = top10(sim) / top10(obs))
   }, by = c("member", "rep")]
-  yr <- merge(fire[, list(obs = sum(obs)), by = "yr"],
-              yrRep[, list(sim = mean(area), lo = stats::quantile(area, 0.05),
-                           hi = stats::quantile(area, 0.95)), by = "yr"], by = "yr")
+  yr <- yearAreas(d, fire, mean, c(0.05, 0.95))
   out <- data.table::data.table(
     years = nrow(yr), fires = nrow(fire), memberYearsNotSimulated = nNo,
     fireBias = mean(log10(fire$sim / fire$obs)), fireRMSE = sqrt(mean(log10(fire$sim / fire$obs)^2)),
@@ -145,10 +142,19 @@ scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0
 scoreFireSizesByYear <- function(sims) {
   d <- data.table::as.data.table(sims)
   d <- d[!is.na(sim)]
-  obs <- d[!duplicated(data.table::data.table(yr, ids)), list(obs = sum(size)), by = "yr"]
-  area <- d[, list(area = sum(sim)), by = c("yr", "member", "rep")]
-  merge(obs, area[, list(simMedian = stats::median(area), simLo = stats::quantile(area, 0.025, names = FALSE),
-                         simHi = stats::quantile(area, 0.975, names = FALSE)), by = "yr"], by = "yr")
+  fire <- d[, list(obs = size[1], sim = mean(sim)), by = c("yr", "ids")]
+  yr <- yearAreas(d, fire, stats::median, c(0.025, 0.975))
+  data.table::setnames(yr, c("sim", "lo", "hi"), c("simMedian", "simLo", "simHi"))
+  yr[]
+}
+
+## Per year: the observed area (each fire once, from `fire`) and the simulated area of a run (member x rep):
+## its `center` and `probs` quantiles over runs. `d` has no NA `sim`.
+yearAreas <- function(d, fire, center, probs) {
+  yrRep <- d[, list(area = sum(sim)), by = c("yr", "member", "rep")]
+  merge(fire[, list(obs = sum(obs)), by = "yr"],
+        yrRep[, list(sim = center(area), lo = stats::quantile(area, probs[1], names = FALSE),
+                     hi = stats::quantile(area, probs[2], names = FALSE)), by = "yr"], by = "yr")
 }
 
 #' @param probsP Quantiles of spread probability to report.
