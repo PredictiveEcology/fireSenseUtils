@@ -39,9 +39,12 @@ ignitionFitFilePrefix <- "fireSenseIgnitionParams_"
 ignitionFitFileTag <- "_xgboostPoisson_20261013"
 
 #' @description
-#' `latestIgnitionFits()` returns, for every polygon, its rows from the newest ledger file that has it:
-#' the one whose suffix has the latest date ([ledgerFileOrder()]). Files are read newest first; with `polygonIDs`, reading stops once
-#' all of them are found. Files are read, also with no internet, as [latestSpreadFits()] reads them.
+#' `latestIgnitionFits()` returns, for every polygon, its newest row in the ledger files: the one with
+#' the latest `writtenAt` (stamped by [reproducible::CacheGeoWrite()]). A row written before that stamp
+#' existed has its file's date instead: the date in the file's suffix ([ledgerFileOrder()]), else older
+#' than any dated file; ties go by the file's modified time. No row is newer than its file was last
+#' modified, so files are read newest-modified first; with `polygonIDs`, reading stops once each has a
+#' row newer than the next file. Files are read, also with no internet, as [latestSpreadFits()] reads them.
 #'
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [ignitionFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.

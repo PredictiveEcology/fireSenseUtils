@@ -45,13 +45,13 @@ test_that("each polygon comes from the newest file that has it; other models' fi
   expect_s3_class(sf::st_as_sf(out), "sf")                        # still a ledger CacheGeo can read
 })
 
-test_that("reading stops at the first file that has every polygon asked for", {
+test_that("reading stops once each polygon asked for has a row newer than the next file", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
-                                                      ledger = ledgerRows("4.3", 1)),
+                                                      ledger = ledgerRows("4.3", 1, "2026-09-20 09:00")),
     "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-24T10:00:00Z",
-                                                      ledger = ledgerRows("4.1", 2))))
+                                                      ledger = ledgerRows("4.1", 2, "2026-09-24 09:00"))))
   out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
   expect_identical(drive$downloads, "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds")
@@ -69,8 +69,8 @@ test_that("no matching file gives NULL", {
 test_that("each ledger file is read with reproducible::CacheGeoRead() from the Drive folder into destinationPath", {
   d <- withr::local_tempdir()
   nm <- "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds"
-  drive <- fakeDrive(list(a = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.3", 1)),
-                          b = list(modified = "2026-09-24T10:00:00Z", ledger = ledgerRows("4.1", 2))) |>
+  drive <- fakeDrive(list(a = list(modified = "2026-09-20T10:00:00Z", ledger = ledgerRows("4.3", 1, "2026-09-20")),
+                          b = list(modified = "2026-09-24T10:00:00Z", ledger = ledgerRows("4.1", 2, "2026-09-24"))) |>
                        setNames(c("fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds", nm)))
   out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
@@ -105,15 +105,53 @@ test_that("\"latest\" reads every suffix, newest date in the suffix first; a suf
   expect_identical(val("4.1"), 29)      # 20261029 beats 20261024, whatever the modified times
   expect_identical(val("5.1"), 24)
   expect_identical(val("7.1"), 1)       # undated files: the later modified first
-  expect_identical(drive$downloads, c(gpsc, bufI, prod, test81))   # no polygonIDs: every file
+  ## files are read by modified time (no row is newer than its file), and the date in the suffix
+  ## when that is later; no polygonIDs: every file
+  expect_identical(drive$downloads, c(bufI, prod, gpsc, test81))
   ## reading stops once every ELF asked for is found
   drive$downloads <- character()
   out <- latestSpreadFits("folder", d, polygonIDs = c("4.1", "5.1"))
-  expect_identical(drive$downloads, c(gpsc, bufI))
+  ## gpsc's ceiling (its 2026-10-29 modified time) is after 4.1's row in bufI (20261024), so it is
+  ## read; test81's (2026-10-15) is before every row kept, so reading stops there
+  expect_identical(drive$downloads, c(bufI, prod, gpsc))
   ## a suffix reads only its own files
   out <- latestSpreadFits("folder", d, suffix = "_boundfix_rep81")
   expect_setequal(out$polygonID, c("4.1", "5.1", "7.1"))
   expect_identical(unique(out$objFunVal), 81)
+})
+
+## A file's date is when its campaign was named, not when each of its fits was written: a fit added
+## later to an older campaign's file lost to an older fit in a newer-named file. reproducible's
+## CacheGeoWrite() now stamps each row with writtenAt.
+test_that("each polygon's newest row by writtenAt wins, whatever its file's name; unstamped rows by the file's date", {
+  d <- withr::local_tempdir()
+  old <- spreadFitFilenameFor(1986:2024, "_crps_20261028")
+  new <- spreadFitFilenameFor(1986:2024, "_gpscCause_20261101")
+  legacy <- spreadFitFilenameFor(1986:2024, "_prod20261021")
+  drive <- fakeDrive(setNames(list(
+    ## an older campaign's file, with a refit of 4.1 added on 2026-11-05
+    list(modified = "2026-11-05T10:00:00Z",
+         ledger = rbind(ledgerRows("4.1", 5, "2026-11-05 09:00"), ledgerRows("5.1", 28, "2026-10-28 09:00"))),
+    list(modified = "2026-11-01T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1"), c(1, 1), "2026-11-01 09:00")),
+    ## written before the stamp: its rows date from 20261021
+    list(modified = "2026-10-21T10:00:00Z", ledger = ledgerRows(c("4.1", "5.1", "7.1"), c(21, 21, 21)))),
+    c(old, new, legacy)))
+  out <- latestSpreadFits("folder", d)
+  val <- function(id) out$objFunVal[out$polygonID == id]
+  expect_identical(val("4.1"), 5)       # the refit, though its file's name is older
+  expect_identical(val("5.1"), 1)       # 2026-11-01 beats 2026-10-28, in the same two files
+  expect_identical(val("7.1"), 21)      # only in the unstamped file
+  expect_identical(unname(attr(out, "spreadFitFiles")[c("4.1", "5.1", "7.1")]), c(old, new, legacy))
+
+  ## asked for 4.1 only: its row (2026-11-05) is newer than the next file, so one file is read
+  drive$downloads <- character()
+  out <- latestSpreadFits("folder", d, polygonIDs = "4.1")
+  expect_identical(drive$downloads, old)
+  expect_identical(val("4.1"), 5)
+  ## 7.1's row has no stamp and the date 20261021, before the next file's modified time: all are read
+  drive$downloads <- character()
+  latestSpreadFits("folder", d, polygonIDs = "7.1")
+  expect_identical(drive$downloads, c(old, new, legacy))
 })
 
 test_that("ledgerFileOrder(): the last 8-digit date of the suffix, undated last, then modified time", {

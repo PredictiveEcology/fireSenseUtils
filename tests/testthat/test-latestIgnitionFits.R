@@ -40,13 +40,13 @@ test_that("each polygon comes from the newest file that has it; other models' fi
   expect_s3_class(sf::st_as_sf(out), "sf")                        # still a ledger CacheGeo can read
 })
 
-test_that("reading stops at the first file that has every polygon asked for", {
+test_that("reading stops once each polygon asked for has a row newer than the next file", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds" = list(modified = "2026-09-20T10:00:00Z",
-                                                      ledger = ledgerRows("4.3", 1)),
+                                                      ledger = ledgerRows("4.3", 1, "2026-09-20 09:00")),
     "fireSenseIgnitionParams_1985-2025_xgboostPoisson_20261013.rds" = list(modified = "2026-09-24T10:00:00Z",
-                                                      ledger = ledgerRows("4.1", 2))))
+                                                      ledger = ledgerRows("4.1", 2, "2026-09-24 09:00"))))
   out <- latestIgnitionFits("folder", d, polygonIDs = "4.1")
   expect_identical(out$polygonID, "4.1")
   expect_identical(drive$downloads, "fireSenseIgnitionParams_1985-2025_xgboostPoisson_20261013.rds")
@@ -124,11 +124,15 @@ test_that("\"latest\" reads every suffix, newest date in the suffix first; a suf
   expect_identical(val("4.1"), 29)      # 20261029 beats 20261024, whatever the modified times
   expect_identical(val("5.1"), 24)
   expect_identical(val("7.1"), 1)       # undated files: the later modified first
-  expect_identical(drive$downloads, c(gpsc, bufI, prod, test81))   # no polygonIDs: every file
+  ## files are read by modified time (no row is newer than its file), and the date in the suffix
+  ## when that is later; no polygonIDs: every file
+  expect_identical(drive$downloads, c(bufI, prod, gpsc, test81))
   ## reading stops once every ELF asked for is found
   drive$downloads <- character()
   out <- latestIgnitionFits("folder", d, polygonIDs = c("4.1", "5.1"))
-  expect_identical(drive$downloads, c(gpsc, bufI))
+  ## gpsc's ceiling (its 2026-10-29 modified time) is after 4.1's row in bufI (20261024), so it is
+  ## read; test81's (2026-10-15) is before every row kept, so reading stops there
+  expect_identical(drive$downloads, c(bufI, prod, gpsc))
   ## a suffix reads only its own files
   out <- latestIgnitionFits("folder", d, suffix = "_boundfix_rep81")
   expect_setequal(out$polygonID, c("4.1", "5.1", "7.1"))

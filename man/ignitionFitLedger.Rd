@@ -44,9 +44,12 @@ for a multi-ELF study area. With \code{ignitionFitFilename = "latest"} those mod
 functions instead of one named file. Parallel to the spread-fit ledger helpers
 (\code{spreadFitFilenameFor()}, \code{latestSpreadFits()}).
 
-\code{latestIgnitionFits()} returns, for every polygon, its rows from the newest ledger file that has it:
-the one whose suffix has the latest date (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}). Files are read newest first; with \code{polygonIDs}, reading stops once
-all of them are found. Files are read, also with no internet, as \code{\link[=latestSpreadFits]{latestSpreadFits()}} reads them.
+\code{latestIgnitionFits()} returns, for every polygon, its newest row in the ledger files: the one with
+the latest \code{writtenAt} (stamped by \code{\link[reproducible:CacheGeoWrite]{reproducible::CacheGeoWrite()}}). A row written before that stamp
+existed has its file's date instead: the date in the file's suffix (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}), else older
+than any dated file; ties go by the file's modified time. No row is newer than its file was last
+modified, so files are read newest-modified first; with \code{polygonIDs}, reading stops once each has a
+row newer than the next file. Files are read, also with no internet, as \code{\link[=latestSpreadFits]{latestSpreadFits()}} reads them.
 }
 \details{
 \code{ignitionFitFileTag} marks the files whose fits use the current model: xgboost Poisson
