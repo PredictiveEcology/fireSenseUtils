@@ -10,10 +10,11 @@ firePixelsByYear(firePolys = NULL, fireRaster = NULL, template = NULL)
 \item{firePolys}{list named by year (\code{"year2001"}) of \code{SpatVector}s, or \code{NULL} entries for years
 without fires.}
 
-\item{fireRaster}{\code{SpatRaster} whose values are fire years; an alternative to \code{firePolys}. It
-holds one fire per pixel, so earlier fires on the same pixel are not seen.}
+\item{fireRaster}{\code{SpatRaster} whose values are fire years; an alternative to \code{firePolys}, used
+when both are given. It holds one fire per pixel, so earlier fires on the same pixel are not seen.}
 
-\item{template}{\code{SpatRaster} giving the pixels; required with \code{firePolys}.}
+\item{template}{\code{SpatRaster} giving the pixels; required with \code{firePolys}. Given with \code{fireRaster},
+it must have the same geometry (stops otherwise).}
 }
 \value{
 list named by year (\code{"2001"}) of integer \code{pixelID}s; years with no burned pixel are

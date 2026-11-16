@@ -60,3 +60,29 @@ test_that("firePixelsByYear: pixel IDs burned in each year, from polygons or a f
   expect_equal(out2[["2001"]], c(1L, 4L))
   expect_equal(out2[["2003"]], 3L)
 })
+
+test_that("firePixelsByYear: a fireRaster of another geometry than the template stops", {
+  fr <- terra::rast(nrows = 2, ncols = 2, vals = c(2001, NA, 2002, NA))
+  expect_identical(firePixelsByYear(fireRaster = fr, template = fr), list(`2001` = 1L, `2002` = 3L))
+  expect_error(firePixelsByYear(fireRaster = fr, template = terra::rast(nrows = 3, ncols = 3)), "geometry|extent|compare")
+  ## the raster is used when both are given
+  expect_identical(firePixelsByYear(firePolys = list(year2005 = NULL), fireRaster = fr, template = fr),
+                   list(`2001` = 1L, `2002` = 3L))
+})
+
+test_that("stopIfNonForestCannotBeYoung stops unless TRUE", {
+  expect_error(stopIfNonForestCannotBeYoung(FALSE), "not supported")
+  expect_silent(stopIfNonForestCannotBeYoung(TRUE))
+})
+
+test_that("tsdTable has one row per cell; clearYoungAge clears fuel to logMinB(0) and indicators to 0 where young", {
+  expect_identical(tsdTable(terra::rast(nrows = 2, ncols = 2, vals = c(1, NA, 3, 4))),
+                   data.table::data.table(pixelID = 1:4, tsd = c(1, NA, 3, 4)))
+  covs <- data.table::data.table(pixelID = 1:3, class1 = c(8, 8, 8), nfLCC_grass = c(1, 1, 0),
+                                 treedWetland = c(1, 0, 1), MDC = c(5, 5, 5), youngAge = c(1L, 0L, 1L))
+  out <- clearYoungAge(data.table::copy(covs))
+  expect_identical(out$class1, c(logMinB(0), 8, logMinB(0)))
+  expect_identical(out$nfLCC_grass, c(0, 1, 0))
+  expect_identical(out$treedWetland, c(0, 0, 0))
+  expect_identical(out$youngAge, c(1L, 0L, 1L))
+})
