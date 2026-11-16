@@ -176,9 +176,10 @@ youngAgeAtYear <- function(tsd, dataYear, year, firePixelsByYear = list(),
 #'
 #' @param firePolys list named by year (`"year2001"`) of `SpatVector`s, or `NULL` entries for years
 #'   without fires.
-#' @param fireRaster `SpatRaster` whose values are fire years; an alternative to `firePolys`. It
-#'   holds one fire per pixel, so earlier fires on the same pixel are not seen.
-#' @param template `SpatRaster` giving the pixels; required with `firePolys`.
+#' @param fireRaster `SpatRaster` whose values are fire years; an alternative to `firePolys`, used
+#'   when both are given. It holds one fire per pixel, so earlier fires on the same pixel are not seen.
+#' @param template `SpatRaster` giving the pixels; required with `firePolys`. Given with `fireRaster`,
+#'   it must have the same geometry (stops otherwise).
 #'
 #' @return list named by year (`"2001"`) of integer `pixelID`s; years with no burned pixel are
 #'   absent.
@@ -187,6 +188,7 @@ youngAgeAtYear <- function(tsd, dataYear, year, firePixelsByYear = list(),
 #' @importFrom terra rasterize values
 firePixelsByYear <- function(firePolys = NULL, fireRaster = NULL, template = NULL) {
   if (!is.null(fireRaster)) {
+    if (!is.null(template)) terra::compareGeom(fireRaster, template, stopOnError = TRUE)
     v <- terra::values(fireRaster, mat = FALSE)
     return(split(which(!is.na(v)), v[!is.na(v)]))
   }
@@ -198,6 +200,24 @@ firePixelsByYear <- function(firePolys = NULL, fireRaster = NULL, template = NUL
   })
   names(out) <- gsub("[^0-9]", "", names(firePolys))
   out[lengths(out) > 0]
+}
+
+#' Stop unless non-forest can be `youngAge`
+#'
+#' `youngAge` is resolved for each fire year from time since disturbance ([youngAgeAtYear()]), which
+#' covers forest and non-forest pixels alike, so the mode where non-forest is never young is not
+#' available, in the spread fit, the ignition fit and the hindcasts that follow them.
+#'
+#' @param nonForestCanBeYoungAge the `nonForestCanBeYoungAge` parameter.
+#' @return `NULL`, invisibly.
+#' @export
+stopIfNonForestCannotBeYoung <- function(nonForestCanBeYoungAge) {
+  if (!isTRUE(nonForestCanBeYoungAge)) {
+    stop("nonForestCanBeYoungAge = FALSE is not supported: youngAge is resolved for each fire year ",
+         "from time since disturbance, which treats forest and non-forest pixels alike. ",
+         "Set nonForestCanBeYoungAge = TRUE.", call. = FALSE)
+  }
+  invisible(NULL)
 }
 
 #' Iteratively calculate `youngAge` column in FS covariates

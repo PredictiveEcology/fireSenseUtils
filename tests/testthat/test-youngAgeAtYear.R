@@ -60,3 +60,17 @@ test_that("firePixelsByYear: pixel IDs burned in each year, from polygons or a f
   expect_equal(out2[["2001"]], c(1L, 4L))
   expect_equal(out2[["2003"]], 3L)
 })
+
+test_that("firePixelsByYear: a fireRaster of another geometry than the template stops", {
+  fr <- terra::rast(nrows = 2, ncols = 2, vals = c(2001, NA, 2002, NA))
+  expect_identical(firePixelsByYear(fireRaster = fr, template = fr), list(`2001` = 1L, `2002` = 3L))
+  expect_error(firePixelsByYear(fireRaster = fr, template = terra::rast(nrows = 3, ncols = 3)), "geometry|extent|compare")
+  ## the raster is used when both are given
+  expect_identical(firePixelsByYear(firePolys = list(year2005 = NULL), fireRaster = fr, template = fr),
+                   list(`2001` = 1L, `2002` = 3L))
+})
+
+test_that("stopIfNonForestCannotBeYoung stops unless TRUE", {
+  expect_error(stopIfNonForestCannotBeYoung(FALSE), "not supported")
+  expect_silent(stopIfNonForestCannotBeYoung(TRUE))
+})
