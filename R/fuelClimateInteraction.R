@@ -1,3 +1,5 @@
+utils::globalVariables(c("climBurn", "simMedian"))
+
 #' Does fuel act differently in hot, dry years? A post-fit test of fuel x climate interactions
 #'
 #' A spread model is additive in the logit of the spread probability: a fuel term has the same effect in every
@@ -113,7 +115,7 @@ standardise <- function(v) (v - mean(v)) / stats::sd(v)
 
 ## least squares coefficients; NA where the design is rank deficient (a bootstrap draw of too few years)
 olsCoef <- function(X, y) {
-  f <- .lm.fit(X, y)
+  f <- stats::.lm.fit(X, y)
   if (f$rank < ncol(X)) rep(NA_real_, ncol(X)) else f$coefficients
 }
 
