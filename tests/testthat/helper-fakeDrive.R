@@ -32,10 +32,11 @@ fakeDrive <- function(files, env = parent.frame()) {
   store
 }
 
-ledgerRows <- function(ids, value) {
+ledgerRows <- function(ids, value, writtenAt = NULL) {
   geom <- sf::st_sfc(lapply(seq_along(ids), function(i) sf::st_polygon(list(rbind(
     c(i, 0), c(i + 1, 0), c(i + 1, 1), c(i, 1), c(i, 0))))))
   df <- data.frame(polygonID = ids, objFunVal = value)
   df$geometry <- geom
+  if (!is.null(writtenAt)) df$writtenAt <- rep(as.POSIXct(writtenAt, tz = "UTC"), length.out = length(ids))
   df
 }

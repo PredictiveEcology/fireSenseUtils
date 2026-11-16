@@ -42,9 +42,12 @@ fireSense_spreadFit writes each fit as a row of an \code{rds} file in a Google D
 (its \code{spreadFitGoogleDriveFolder}); fireSense_ELFs and fireSense_dataPrepFit read them.
 With \code{spreadFitFilename = "latest"} those modules use these functions instead of one named file.
 
-\code{latestSpreadFits()} returns, for every polygon, its rows from the newest ledger file that has it:
-the one whose suffix has the latest date (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}). Files are read newest first; with \code{polygonIDs}, reading stops once
-all of them are found. Each file is read with \code{\link[reproducible:CacheGeoRead]{reproducible::CacheGeoRead()}} into
+\code{latestSpreadFits()} returns, for every polygon, its newest row in the ledger files: the one with
+the latest \code{writtenAt} (stamped by \code{\link[reproducible:CacheGeoWrite]{reproducible::CacheGeoWrite()}}). A row written before that stamp
+existed has its file's date instead: the date in the file's suffix (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}), else older
+than any dated file; ties go by the file's modified time. No row is newer than its file was last
+modified, so files are read newest-modified first; with \code{polygonIDs}, reading stops once each has a
+row newer than the next file. Each file is read with \code{\link[reproducible:CacheGeoRead]{reproducible::CacheGeoRead()}} into
 \code{destinationPath}: downloaded only if it changed on Drive, and from the local copy when Drive
 cannot be reached. The folder's file list is saved there too, and used when Drive cannot be
 reached (a compute node with no internet).
