@@ -32,7 +32,7 @@ climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
     out <- data.table(pixelID = integer(), year = factor())
     if (!is.null(pairs)) {
       out <- unique(pairs[, c("pixelID", "year")])
-      out$year <- factor(out$year)
+      out$year <- factor(out$year, levels = sort(unique(out$year)))
     }
     return(out[])
   }

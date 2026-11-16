@@ -64,4 +64,11 @@ test_that("climateRasterToDataTable with no raster (a '~ 1' spread model) has no
   # the join that builds a year's spread covariates keeps every pixel of the year
   fbl <- data.table::rbindlist(Index, idcol = "year")
   expect_identical(nrow(out[fbl, on = c("year", "pixelID"), nomatch = NULL]), 3L)
+
+  # `year` is the factor the non-empty path gives (the layer names are its levels), so joins behave the same
+  r <- terra::rast(nrows = 2, ncols = 2, nlyr = 2, vals = 1:8)
+  names(r) <- names(Index)
+  withClim <- climateRasterToDataTable(list(CMD = r), Index = Index)
+  expect_identical(class(out$year), class(withClim$year))
+  expect_identical(levels(out$year), levels(withClim$year))
 })
