@@ -27,7 +27,8 @@ readSpreadFitLedger <- function(spreadFitFilename, cloudFolderID, domain, destin
     on.exit(unlink(tf), add = TRUE)
     saveRDS(latest, tf)
     spreadFitFilename <- paste0("fireSenseParams_latest_", substr(tools::md5sum(tf), 1, 12), ".rds")
-    file.copy(tf, file.path(destinationPath, spreadFitFilename), overwrite = TRUE)
+    ## jobs starting together write the same name and read it at once: copyFile() renames a temporary file into place
+    reproducible::copyFile(tf, file.path(destinationPath, spreadFitFilename))
     cloudFolderID <- NULL
     purge <- FALSE                                   # local, with nothing to download it from
   }
