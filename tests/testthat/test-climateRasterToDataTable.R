@@ -47,3 +47,21 @@ test_that("climateRasterToDataTable with Index returns the full result's rows fo
   # a plain vector of pixelIDs still keeps those pixels in every year
   expect_equal(nrow(climateRasterToDataTable(rasters, Index = c(3L, 7L))), 6L)
 })
+
+test_that("climateRasterToDataTable with no raster (a '~ 1' spread model) has no climate column", {
+  noClim <- list()
+  out <- climateRasterToDataTable(noClim)
+  expect_s3_class(out, "data.table")
+  expect_identical(names(out), c("pixelID", "year"))
+  expect_identical(nrow(out), 0L)
+
+  Index <- list(year1985 = data.table::data.table(pixelID = c(3L, 7L)),
+                year1986 = data.table::data.table(pixelID = 7L))
+  out <- climateRasterToDataTable(noClim, Index = Index)
+  expect_identical(names(out), c("pixelID", "year"))
+  expect_identical(nrow(out), 3L)
+
+  # the join that builds a year's spread covariates keeps every pixel of the year
+  fbl <- data.table::rbindlist(Index, idcol = "year")
+  expect_identical(nrow(out[fbl, on = c("year", "pixelID"), nomatch = NULL]), 3L)
+})
