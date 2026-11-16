@@ -214,3 +214,38 @@ test_that("spreadFitValidationData() on the whole landscape splits a fitted fire
   expect_equal(unname(attr(dUnnamed, "spreadFitValidation")$covPars), unname(inp$par[c("clim", "youngAge", "agb")]))
   expect_equal(dUnnamed$p, d$p)
 })
+
+## The null model, "~ 1": an intercept and no covariate, so every pixel has the same spread probability.
+test_that("the objective scores a '~ 1' parameter set, not the fail value, and the validation data has no covariate", {
+  skip_if_not_installed("SpaDES.tools")
+  inp <- toyValidationInputs()
+  inp$formulaToFit <- "~ 1"
+  inp$par <- c(maxAsymptote = 0.26, `(Intercept)` = -0.4)
+  inp$covMinMax <- NULL
+  set.seed(123); v <- callObjective(inp)
+  expect_true(is.finite(v))
+  expect_lt(v, 1e6) # the gates refused every year before: the fail value
+  set.seed(3)
+  d <- spreadFitValidationData(
+    par = inp$par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
+    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
+    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
+    covMinMax = NULL, mutuallyExclusive = NULL, covCentre = list(), Nreps = 2L)
+  info <- attr(d, "spreadFitValidation")
+  expect_length(info$covariates, 0L)
+  expect_true(info$intercept)
+  expect_equal(unique(d$p), 0.13 + (0.26 - 0.13) * plogis(-0.4), tolerance = 1e-6)
+})
+
+test_that("the validation plots of a '~ 1' fit have no covariate panel: they are NULL, not an error", {
+  skip_if_not_installed("SpaDES.tools")
+  inp <- toyValidationInputs()
+  set.seed(3)
+  d <- spreadFitValidationData(
+    par = c(maxAsymptote = 0.26, `(Intercept)` = -0.4), landscape = inp$landscape,
+    annualDTx1000 = inp$annualDTx1000, nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = "~ 1",
+    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
+    covMinMax = NULL, mutuallyExclusive = NULL, covCentre = list(), Nreps = 2L)
+  expect_null(plotSpreadFitValidation(d))
+  expect_null(plotSpreadFitResponse(d))
+})
