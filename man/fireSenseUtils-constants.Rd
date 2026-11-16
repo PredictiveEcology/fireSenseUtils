@@ -39,6 +39,7 @@
 \alias{spreadFitPowerLawR2Txt}
 \alias{spreadFitPowerLawPcMarginTxt}
 \alias{spreadFitInSampleSizesTxt}
+\alias{spreadFitInteractionTestTxt}
 \alias{spreadPowerLawPGrid}
 \alias{spreadClimateTxt}
 \alias{spreadClimateOptions}
@@ -137,6 +138,10 @@ recovered.
 validation (\code{"inSampleSizes_spread"}): a list of \code{sizes}, the one-row \code{\link[=scoreFireSizes]{scoreFireSizes()}}, and \code{byYear},
 \code{\link[=scoreFireSizesByYear]{scoreFireSizesByYear()}}; areas are in pixels. A fit without the diagnostics (a cross-validation fold, \code{simulateMembers = 0})
 writes no such column, and a row written before it has none.
+\item \code{spreadFitInteractionTestTxt}: \code{character(1)}. Name of the ledger column that holds a fit's fuel x climate
+interaction test (\code{"interactionTest_spread"}): the list \code{\link[=fuelClimateInteractionTest]{fuelClimateInteractionTest()}} returns. A fit
+without the in-sample simulations (a cross-validation fold, \code{simulateMembers = 0}), or with no climate or
+fuel covariate, writes no such column, and a row written before it has none.
 \item \code{spreadPowerLawPGrid}: \code{numeric}. The spread probabilities \code{\link[=calibratePowerLaw]{calibratePowerLaw()}} simulates by default.
 \item \code{spreadClimateTxt}: \code{character(1)}. Name of the ledger column that holds where a fit put climate
 (\code{"spreadClimate"}): one of \code{spreadClimateOptions}. A row without it (written before it existed) is

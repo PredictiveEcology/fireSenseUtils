@@ -90,6 +90,10 @@
 #'     validation (`"inSampleSizes_spread"`): a list of `sizes`, the one-row [scoreFireSizes()], and `byYear`,
 #'     [scoreFireSizesByYear()]; areas are in pixels. A fit without the diagnostics (a cross-validation fold, `simulateMembers = 0`)
 #'     writes no such column, and a row written before it has none.
+#'   - `spreadFitInteractionTestTxt`: `character(1)`. Name of the ledger column that holds a fit's fuel x climate
+#'     interaction test (`"interactionTest_spread"`): the list [fuelClimateInteractionTest()] returns. A fit
+#'     without the in-sample simulations (a cross-validation fold, `simulateMembers = 0`), or with no climate or
+#'     fuel covariate, writes no such column, and a row written before it has none.
 #'   - `spreadPowerLawPGrid`: `numeric`. The spread probabilities [calibratePowerLaw()] simulates by default.
 #'   - `spreadClimateTxt`: `character(1)`. Name of the ledger column that holds where a fit put climate
 #'     (`"spreadClimate"`): one of `spreadClimateOptions`. A row without it (written before it existed) is
@@ -113,7 +117,7 @@
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadFitInteractionTestTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt
 NULL
 
 #' @export
@@ -247,6 +251,9 @@ spreadFitPowerLawR2Txt <- "powerLawR2_spread"
 
 #' @export
 spreadFitInSampleSizesTxt <- "inSampleSizes_spread"
+
+#' @export
+spreadFitInteractionTestTxt <- "interactionTest_spread"
 
 #' @export
 spreadFitPowerLawPcMarginTxt <- "powerLawPcMargin_spread"
