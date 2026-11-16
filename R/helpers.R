@@ -516,6 +516,16 @@ spreadDesignCols <- function(formulaToFit) {
 #' @rdname spreadDesignCols
 spreadCovCols <- function(colsToUse) setdiff(colsToUse, spreadInterceptTxt)
 
+#' Does the spread model have a covariate?
+#'
+#' `FALSE` for the null model, the formula `~ 1`: an intercept and nothing else, so every pixel has the
+#' same spreadProb.
+#'
+#' @param colsToUse character; the design columns, from [spreadDesignCols()].
+#' @return logical(1).
+#' @export
+spreadHasCovariates <- function(colsToUse) length(spreadCovCols(colsToUse)) > 0L
+
 #' Names of the arguments that are `NULL`, to give to `Cache(omitArgs =)`
 #'
 #' An argument added to a cached call changes its key even when it is `NULL`. Omitting it while it is

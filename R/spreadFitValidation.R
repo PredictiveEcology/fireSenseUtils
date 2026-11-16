@@ -145,7 +145,7 @@ validationTheme <- function() {
 #' @param covariates The covariates to plot; all of the formula's by default.
 #' @param title Plot title; a default is used when `NULL`.
 #'
-#' @return `plotSpreadFitValidation()`: a `ggplot`, one panel per covariate. Pixel-years are binned
+#' @return `plotSpreadFitValidation()`: a `ggplot`, one panel per covariate (`NULL` for a model with none, `~ 1`). Pixel-years are binned
 #'   by quantiles of the covariate: all of them for climate covariates, only those where it is
 #'   present (above its `covMinMax` minimum, else above 0) for the others, and one bin per value
 #'   for covariates with two values or fewer. Each bin shows the observed burned share and the
@@ -156,6 +156,7 @@ validationTheme <- function() {
 plotSpreadFitValidation <- function(d, nBins = 10L, covariates = NULL, title = NULL) {
   info <- validationInfo(d)
   covs <- if (is.null(covariates)) info$covariates else covariates
+  if (!length(covs)) return(NULL) # a model with no covariate (`~ 1`) has no panel
   binned <- rbindlist(lapply(covs, function(cn) {
     kind <- covariateKind(d, cn, info)
     keep <- presentRows(d, cn, kind, info)
@@ -201,7 +202,7 @@ plotSpreadFitValidation <- function(d, nBins = 10L, covariates = NULL, title = N
 
 #' @param bins Number of hexagons (or squares, without \pkg{hexbin}) across each panel.
 #'
-#' @return `plotSpreadFitResponse()`: a `ggplot`, one panel per covariate with more than two values.
+#' @return `plotSpreadFitResponse()`: a `ggplot`, one panel per covariate with more than two values (`NULL` when there is none).
 #'   The line is `logit(p)` the fitted parameters give a "pure stand": that covariate alone, every
 #'   other covariate absent (0 after rescaling: other fuels, youngAge, non-forest), and climate at
 #'   its median. Behind it, the pixel-years' own predicted `logit(p)` (only where the covariate is
@@ -215,6 +216,7 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
   kinds <- vapply(covs, covariateKind, character(1), d = d, info = info)
   covs <- covs[kinds != "indicator"]
   kinds <- kinds[kinds != "indicator"]
+  if (!length(covs)) return(NULL) # a model with no covariate (`~ 1`) has no curve
   allCovs <- info$covariates
   toUsed <- function(cn, v) {
     mm <- info$covMinMax[[cn]]
