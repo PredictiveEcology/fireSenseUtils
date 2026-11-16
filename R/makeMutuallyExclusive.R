@@ -67,7 +67,7 @@ youngAgeExclusiveCols <- function(covNames, fuelCols = character()) {
 #' @importFrom data.table set
 clearYoungAge <- function(covs) {
   covNames <- setdiff(names(covs), c("pixelID", youngAgeTxt))
-  fuelCols <- setdiff(covNames, c(grep("^nfLCC_", covNames, value = TRUE), treedWetlandTxt))
+  fuelCols <- spreadFuelCols(covNames) # covNames has no youngAge
   whYoung <- which(covs[[youngAgeTxt]] == 1L)
   for (cn in youngAgeExclusiveCols(covNames, fuelCols)[[youngAgeTxt]])
     set(covs, whYoung, cn, if (cn %in% fuelCols) logMinB(0) else 0)

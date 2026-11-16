@@ -1337,7 +1337,9 @@ sizeLikT <- function(size, N, df) {
 #' @param colsToUse Optional. If this is supplied, it must be a character vector indicating
 #'   the column names to use in `shortAnnDTx1000`, i.e., it must include everything, 
 #'   annual or nonAnnual, that will be used. It may start with `spreadInterceptTxt` (see
-#'   [spreadDesignCols()]): that column is made here, as 1s, after rescaling and centring.
+#'   [spreadDesignCols()]): that column is made here, as 1s, after rescaling and centring. An interaction
+#'   (`"a:b"`) is made here too, as the product of `a` and `b` after rescaling and the mutually exclusive
+#'   step and before centring, so fitting and prediction form it identically.
 #'
 #' @inheritParams logisticAll
 #'
@@ -1393,9 +1395,13 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
   }
   # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
   covCols <- spreadCovCols(colsToUse) # the intercept, if any, is not a covariate
-  for (cn2 in covCols) {
+  for (cn2 in spreadSourceCols(colsToUse)) {
     set(shortAnnDTx1000, NULL, cn2, shortAnnDTx1000[[cn2]] / 1000)
   }
+  ## An interaction is the product of its covariates on the 0-1 scale, after rescaling and the mutually
+  ## exclusive step (where youngAge cleared a fuel, the product is 0), so it is 0-1 and is asserted, centred
+  ## (with its own mean) and multiplied by its coefficient like the covariates it comes from.
+  spreadAddInteractions(shortAnnDTx1000, colsToUse)
   
   # rename because it is no longer x1000
   shortAnnDT <- shortAnnDTx1000

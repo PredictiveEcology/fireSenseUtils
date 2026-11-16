@@ -214,8 +214,10 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
   info <- validationInfo(d)
   covs <- if (is.null(covariates)) info$covariates else covariates
   kinds <- vapply(covs, covariateKind, character(1), d = d, info = info)
-  covs <- covs[kinds != "indicator"]
-  kinds <- kinds[kinds != "indicator"]
+  ## an interaction has no curve of its own: it is in each of its covariates' curves, below
+  show <- kinds != "indicator" & !covs %in% spreadInteractionCols(covs)
+  covs <- covs[show]
+  kinds <- kinds[show]
   if (!length(covs)) return(NULL) # a model with no covariate (`~ 1`) has no curve
   allCovs <- info$covariates
   toUsed <- function(cn, v) {
@@ -251,6 +253,8 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
     mat <- matrix(base, nrow = length(grid), ncol = length(allCovs), byrow = TRUE,
                   dimnames = list(NULL, allCovs))
     mat[, cn] <- toUsed(cn, grid)
+    ## an interaction is the product of its covariates, on the scale the design has them (before centring)
+    mat <- as.matrix(spreadAddInteractions(data.table::as.data.table(mat), allCovs))[, allCovs, drop = FALSE]
     mat <- sweep(mat, 2L, centre)
     cur[[cn]] <- data.table(covariate = cn, value = grid, logitP = logitP(mat))
   }

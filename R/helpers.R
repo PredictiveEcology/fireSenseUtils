@@ -498,7 +498,8 @@ paramsSeparate <- function(par, parsModel) {
 #' (`~ 1 + a + b`; the module formulas are `~ 0 + ...` and have none). The intercept is a column of 1s that
 #' `spreadProbFromIntegerCovs()` adds after rescaling and centring, so it is multiplied by its
 #' coefficient like every covariate, and `paramsSeparate(par, length(spreadDesignCols(f)))` finds it as
-#' the first covariate coefficient. [spreadCovCols()] drops it.
+#' the first covariate coefficient. [spreadCovCols()] drops it. A term of the form `a:b` is an interaction of two
+#' covariates ([spreadInteractionCols()]): it has its own coefficient, after the main effects.
 #'
 #' @param formulaToFit The spread formula, a character string or a formula; `NULL` gives no columns.
 #' @return A character vector.
@@ -515,6 +516,38 @@ spreadDesignCols <- function(formulaToFit) {
 #' @export
 #' @rdname spreadDesignCols
 spreadCovCols <- function(colsToUse) setdiff(colsToUse, spreadInterceptTxt)
+
+#' @return `spreadInteractionCols()`: the columns of `colsToUse` that are interactions, `"a:b"` (a term the
+#'   formula has as `a:b`). `spreadProbFromIntegerCovs()` makes each as the product of its two covariates
+#'   after they are rescaled and made mutually exclusive, so a pixel where `youngAge` cleared a fuel has 0 for
+#'   that fuel's interaction too; the product is then centred like every other covariate, with its own mean.
+#' @export
+#' @rdname spreadDesignCols
+spreadInteractionCols <- function(colsToUse) grep(":", colsToUse, fixed = TRUE, value = TRUE)
+
+#' @return `spreadSourceCols()`: the covariates that are columns of the data: those of `colsToUse` that are
+#'   not interactions, and the covariates the interactions multiply (even when the formula has no main effect
+#'   for them). These are the columns that are rescaled and divided by 1000.
+#' @export
+#' @rdname spreadDesignCols
+spreadSourceCols <- function(colsToUse) {
+  ic <- spreadInteractionCols(colsToUse)
+  unique(c(setdiff(spreadCovCols(colsToUse), ic), unlist(strsplit(ic, ":", fixed = TRUE))))
+}
+
+#' @param DT a `data.table` that has the columns `spreadSourceCols(colsToUse)`, rescaled to 0-1 (not
+#'   centred). Changed by reference.
+#' @return `spreadAddInteractions()`: `DT`, with a column for each of `spreadInteractionCols(colsToUse)`, the
+#'   product of the two columns it is named for.
+#' @export
+#' @rdname spreadDesignCols
+spreadAddInteractions <- function(DT, colsToUse) {
+  for (ic in spreadInteractionCols(colsToUse)) {
+    parts <- strsplit(ic, ":", fixed = TRUE)[[1]]
+    set(DT, NULL, ic, DT[[parts[1]]] * DT[[parts[2]]])
+  }
+  DT
+}
 
 #' Does the spread model have a covariate?
 #'

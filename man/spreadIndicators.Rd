@@ -2,10 +2,13 @@
 % Please edit documentation in R/covariateRanges.R
 \name{spreadIndicatorCols}
 \alias{spreadIndicatorCols}
+\alias{spreadFuelCols}
 \alias{spreadIndicatorRanges}
 \title{Indicator covariates of the spread model}
 \usage{
 spreadIndicatorCols(covNames)
+
+spreadFuelCols(covNames)
 
 spreadIndicatorRanges(covNames)
 }
@@ -15,6 +18,8 @@ spreadIndicatorRanges(covNames)
 \value{
 \code{spreadIndicatorCols()}: the names among \code{covNames} that are indicators.
 \code{spreadIndicatorRanges()}: a named list, \code{c(0, 1)} for each of them.
+
+\code{spreadFuelCols()}: the names among \code{covNames} that are not indicators, i.e. fuel biomass.
 }
 \description{
 The covariates that are 0 or 1: \code{youngAge}, the non-forest land-cover groups (\verb{nfLCC_*}) and the
