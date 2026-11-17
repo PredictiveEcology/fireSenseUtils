@@ -1,4 +1,4 @@
-## fuelClimateInteractionTest(): a post-fit test of fuel x climate interactions in the fit's own fires,
+## fuelClimateInteractionScreen(): a post-fit screen of fuel x climate interactions in the fit's own fires,
 ## on toy fires whose size is planted to depend on the interaction, or not.
 
 ## 30 fire years (1986-2015), 3 fires a year of 10 pixels each; the vegetation tables are of data years 1985
@@ -40,10 +40,10 @@ toyInteractionFit <- function(interaction, seed = 11L, nfGroups = FALSE) {
        formulaToFit = if (nfGroups) "~ CMD + dom + youngAge + nfLCC_1 + nfLCC_2" else "~ CMD + dom + youngAge")
 }
 
-runInteractionTest <- function(fit, ...) do.call(fuelClimateInteractionTest, c(fit, list(...)))
+runInteractionScreen <- function(fit, ...) do.call(fuelClimateInteractionScreen, c(fit, list(...)))
 
 test_that("a planted fuel x climate interaction is found: positive coefficient, leave-one-year-out improves", {
-  r <- runInteractionTest(toyInteractionFit(0.6), nBoot = 199L)
+  r <- runInteractionScreen(toyInteractionFit(0.6), nBoot = 199L)
   expect_identical(r$climate, "CMD")
   expect_identical(r$nYears, 30L)
   x <- r$terms[r$terms$fuel == "dom" & r$terms$at == "burn" & r$terms$response == "logSize", ]
@@ -56,7 +56,7 @@ test_that("a planted fuel x climate interaction is found: positive coefficient, 
 })
 
 test_that("without a planted interaction, none is found", {
-  r <- runInteractionTest(toyInteractionFit(0), nBoot = 199L)
+  r <- runInteractionScreen(toyInteractionFit(0), nBoot = 199L)
   x <- r$terms[r$terms$fuel == "dom" & r$terms$at == "burn" & r$terms$response == "logSize", ]
   expect_lt(x$bIntLo, 0)
   expect_gt(x$bIntHi, 0)
@@ -66,7 +66,7 @@ test_that("without a planted interaction, none is found", {
 
 test_that("the model side is tested too: the simulated size, and the residual obs / sim", {
   fit <- toyInteractionFit(0.6)
-  r <- runInteractionTest(fit, nBoot = 99L)
+  r <- runInteractionScreen(fit, nBoot = 99L)
   t <- r$terms[r$terms$fuel == "dom" & r$terms$at == "burn", ]
   expect_setequal(t$response, c("logSize", "logSim", "resid"))
   expect_gt(t$bIntMedian[t$response == "logSim"], 0.3)         # the toy simulation copies the observed size
@@ -77,7 +77,7 @@ test_that("the model side is tested too: the simulated size, and the residual ob
 })
 
 test_that("a term is reported per fuel covariate, at the burned pixels and at the start pixel, plus the non-forest share", {
-  r <- runInteractionTest(toyInteractionFit(0.6, nfGroups = TRUE), nBoot = 49L)
+  r <- runInteractionScreen(toyInteractionFit(0.6, nfGroups = TRUE), nBoot = 49L)
   expect_setequal(r$terms$fuel, c("dom", "youngAge", "nfLCC_1", "nfLCC_2", "nonForest"))
   expect_setequal(r$terms$at, c("burn", "start"))
   expect_setequal(names(r$terms), c("fuel", "at", "response", "nFires", "nYears", "bClimMedian", "bFuelMedian",
@@ -89,10 +89,10 @@ test_that("a term is reported per fuel covariate, at the burned pixels and at th
 test_that("the result is the same for the same seed, differs for another, and leaves the session's random numbers alone", {
   fit <- toyInteractionFit(0.6)
   set.seed(5); before <- runif(1); set.seed(5)
-  a <- runInteractionTest(fit, nBoot = 49L, seed = 3L)
+  a <- runInteractionScreen(fit, nBoot = 49L, seed = 3L)
   expect_identical(runif(1), before)
-  expect_identical(a, runInteractionTest(fit, nBoot = 49L, seed = 3L))
-  expect_false(identical(a$terms$bIntLo, runInteractionTest(fit, nBoot = 49L, seed = 4L)$terms$bIntLo))
+  expect_identical(a, runInteractionScreen(fit, nBoot = 49L, seed = 3L))
+  expect_false(identical(a$terms$bIntLo, runInteractionScreen(fit, nBoot = 49L, seed = 4L)$terms$bIntLo))
 })
 
 test_that("a fire year reads the vegetation table of the data year strictly before it", {
@@ -107,17 +107,59 @@ test_that("a fire year reads the vegetation table of the data year strictly befo
   expect_equal(f$burn_dom[f$year > 2000], level[f$year > 2000] + 5)
 })
 
+test_that("the climate is the base variable: a _yr/_dev split counts as one climate, its _yr term the year's value", {
+  fit <- toyInteractionFit(0.6)
+  plain <- do.call(fuelClimateFires, fit[c("sims", "annualDTx1000", "nonAnnualDTx1000", "fireBufferedListDT", "formulaToFit")])
+  split <- fit
+  set.seed(3)
+  split$annualDTx1000 <- lapply(fit$annualDTx1000, function(a) {
+    yr <- stats::median(a$CMD); dev <- rnorm(nrow(a), 0, 100)
+    data.frame(pixelID = a$pixelID, CMD_yr = yr, CMD_dev = round(dev))
+  })
+  split$formulaToFit <- "~ CMD_dev + CMD_yr + dom + youngAge"           # either term first: the same climate
+  f <- do.call(fuelClimateFires, split[c("sims", "annualDTx1000", "nonAnnualDTx1000", "fireBufferedListDT", "formulaToFit")])
+  expect_identical(attr(f, "climate"), "CMD")
+  expect_equal(f$climYear, plain$climYear)                              # the ELF median is the same number
+  want <- vapply(seq_len(nrow(f)), function(i) {                           # the burned pixels' median of _yr + _dev
+    a <- split$annualDTx1000[[f$yr[i]]]; b <- split$fireBufferedListDT[[f$yr[i]]]
+    px <- b$pixelID[b$ids == f$ids[i]]
+    stats::median(a$CMD_yr[px] + a$CMD_dev[px]) / 1000
+  }, numeric(1))
+  expect_equal(f$climBurn, want)
+  r <- runInteractionScreen(split, nBoot = 49L)
+  expect_identical(r$climate, "CMD")
+  expect_gt(r$terms$bIntMedian[r$terms$fuel == "dom" & r$terms$at == "burn" & r$terms$response == "logSize"], 0)
+})
+
+test_that("a name with a colon (an interaction term of the formula) is neither a climate nor a fuel", {
+  fit <- toyInteractionFit(0.6)
+  with <- modifyList(fit, list(formulaToFit = "~ CMD + dom + youngAge + CMD:dom + dom:youngAge"))
+  a <- runInteractionScreen(fit, nBoot = 49L)
+  b <- runInteractionScreen(with, nBoot = 49L)
+  expect_identical(b, a)
+  expect_identical(attr(do.call(fuelClimateFires, with[names(fit)]), "climate"), "CMD")
+  expect_null(runInteractionScreen(modifyList(fit, list(formulaToFit = "~ CMD + CMD:dom")), nBoot = 9L))
+})
+
+test_that("scoreFireSizes(), scoreFireSizesByYear() and the screen share one per-fire table", {
+  d <- data.table::data.table(yr = "year2001", member = 1L, rep = 1:3, ids = 7L, initialLocus = 5L, size = 10, sim = c(4, 8, 30))
+  expect_equal(perFireSizes(d)$sim, 14)
+  expect_equal(perFireSizes(d, stats::median)$sim, 8)
+  expect_identical(perFireSizes(d)$initialLocus, 5L)
+  expect_false("initialLocus" %in% names(perFireSizes(d[, !"initialLocus"])))
+})
+
 test_that("no test without a climate covariate, without a fuel covariate, with under 4 years, or with nBoot = 0", {
   fit <- toyInteractionFit(0.6)
-  expect_null(runInteractionTest(modifyList(fit, list(formulaToFit = "~ dom + youngAge")), nBoot = 9L))
-  expect_null(runInteractionTest(modifyList(fit, list(formulaToFit = "~ CMD")), nBoot = 9L))
-  expect_null(runInteractionTest(modifyList(fit, list(formulaToFit = "~ 1")), nBoot = 9L))
+  expect_null(runInteractionScreen(modifyList(fit, list(formulaToFit = "~ dom + youngAge")), nBoot = 9L))
+  expect_null(runInteractionScreen(modifyList(fit, list(formulaToFit = "~ CMD")), nBoot = 9L))
+  expect_null(runInteractionScreen(modifyList(fit, list(formulaToFit = "~ 1")), nBoot = 9L))
   few <- fit
   few$sims <- fit$sims[fit$sims$yr %in% c("year1986", "year1987", "year1988"), ]
-  expect_null(runInteractionTest(few, nBoot = 9L))
-  expect_null(runInteractionTest(fit, nBoot = 0L))
+  expect_null(runInteractionScreen(few, nBoot = 9L))
+  expect_null(runInteractionScreen(fit, nBoot = 0L))
 })
 
 test_that("the ledger column name", {
-  expect_identical(fireSenseUtils::spreadFitInteractionTestTxt, "interactionTest_spread")
+  expect_identical(fireSenseUtils::spreadFitInteractionScreenTxt, "interactionScreen_spread")
 })
