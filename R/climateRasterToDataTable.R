@@ -7,12 +7,15 @@
 #' of `Index` are read from the rasters, not every cell, so a large raster is never made into a table.
 #' `NULL` (the default) returns every cell.
 #'
+#' With no raster (a spread model with no climate variable, `~ 1`) the table has no climate column: its
+#' `pixelID` and `year` are those of `Index` (none, if `Index` is not a list), so the joins that follow still work.
+#'
 #' @return a long-layout `data.table` of climate values in each pixel and year, at full precision: the
 #' x1000 integer storage ([toX1000()]) is where they are rounded, as `fireSense_spreadPredict` does, so a
 #' value is stored as the same integer in the fit and in the prediction
 #'
 #' @export
-#' @importFrom data.table as.data.table melt.data.table merge.data.table rbindlist setnames
+#' @importFrom data.table as.data.table data.table melt.data.table merge.data.table rbindlist setnames
 #' @importFrom terra as.data.frame
 #' @rdname climateRasterToDataTable
 climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
@@ -24,6 +27,14 @@ climateRasterToDataTable <- function(historicalClimateRasters, Index = NULL) {
     cells <- unique(pairs$pixelID)
   } else if (!is.null(Index)) {
     cells <- unique(Index)
+  }
+  if (!length(historicalClimateRasters)) {
+    out <- data.table(pixelID = integer(), year = factor())
+    if (!is.null(pairs)) {
+      out <- unique(pairs[, c("pixelID", "year")])
+      out$year <- factor(out$year, levels = sort(unique(out$year)))
+    }
+    return(out[])
   }
   wideClimate <- lapply(historicalClimateRasters, function(r) {
     if (is.null(cells)) {

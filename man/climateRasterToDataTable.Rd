@@ -13,7 +13,10 @@ climateRasterToDataTable(historicalClimateRasters, Index = NULL)
 names, e.g. \code{year1990}), each with a column \code{pixelID}: the fire buffer indices, so only those
 year-and-pixel pairs are returned; or a vector of \code{pixelID}s kept in every year. Only the cells
 of \code{Index} are read from the rasters, not every cell, so a large raster is never made into a table.
-\code{NULL} (the default) returns every cell.}
+\code{NULL} (the default) returns every cell.
+
+With no raster (a spread model with no climate variable, \code{~ 1}) the table has no climate column: its
+\code{pixelID} and \code{year} are those of \code{Index} (none, if \code{Index} is not a list), so the joins that follow still work.}
 }
 \value{
 a long-layout \code{data.table} of climate values in each pixel and year, at full precision: the
