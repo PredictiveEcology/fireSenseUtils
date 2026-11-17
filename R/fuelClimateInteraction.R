@@ -1,5 +1,8 @@
 utils::globalVariables(c("climBurn", "simMedian"))
 
+## fewer years than this have no bootstrap over years worth reading
+interactionMinYears <- 4L
+
 #' Does fuel act differently in hot, dry years? A post-fit test of fuel x climate interactions
 #'
 #' A spread model is additive in the logit of the spread probability: a fuel term has the same effect in every
@@ -42,9 +45,9 @@ utils::globalVariables(c("climBurn", "simMedian"))
 #' @rdname fuelClimateInteraction
 fuelClimateInteractionTest <- function(sims, annualDTx1000, nonAnnualDTx1000, fireBufferedListDT, formulaToFit,
                                        nBoot = 999L, seed = 1L) {
-  if (!isTRUE(nBoot > 0)) return(NULL)
+  if (!isTRUE(nBoot > 0) || data.table::uniqueN(sims$yr[!is.na(sims$sim)]) < interactionMinYears) return(NULL)
   fires <- fuelClimateFires(sims, annualDTx1000, nonAnnualDTx1000, fireBufferedListDT, formulaToFit)
-  if (is.null(fires) || data.table::uniqueN(fires$year) < 4L) return(NULL)
+  if (is.null(fires)) return(NULL)
   withr::local_seed(seed)
   fuels <- sub("^burn_", "", grep("^burn_", names(fires), value = TRUE))
   responses <- list(logSize = log(fires$obs), logSim = log(fires$simMedian),
@@ -54,7 +57,7 @@ fuelClimateInteractionTest <- function(sims, annualDTx1000, nonAnnualDTx1000, fi
       fv <- fires[[paste0(at, "_", fuel)]]
       keep <- which(stats::complete.cases(fires$climYear, fv, fires$obs, fires$simMedian))
       ix <- split(seq_along(keep), fires$year[keep])
-      if (length(ix) < 4L || stats::sd(fv[keep]) == 0 || stats::sd(fires$climYear[keep]) == 0) return(NULL)
+      if (length(ix) < interactionMinYears || stats::sd(fv[keep]) == 0 || stats::sd(fires$climYear[keep]) == 0) return(NULL)
       draws <- replicate(nBoot, sample.int(length(ix), replace = TRUE), simplify = FALSE)
       cz <- standardise(fires$climYear[keep]); fz <- standardise(fv[keep])
       sp <- spearmanByClimate(responses$logSize[keep], fv[keep], fires$climYear[keep], fires$year[keep], nBoot)
