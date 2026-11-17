@@ -1367,7 +1367,7 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     tableYears <- as.integer(names(nonAnnualDTx1000))
     whKeep <- match(dataYearBefore(tableYears, yr), tableYears)
     shortAnnDTx1000 <- nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]
-    covsInTable <- intersect(spreadCovCols(colsToUse), names(nonAnnualDTx1000[[whKeep]]))
+    covsInTable <- intersect(spreadSourceCols(colsToUse), names(nonAnnualDTx1000[[whKeep]])) # incl. an interaction's covariates
     nNA <- sum(!stats::complete.cases(shortAnnDTx1000[, covsInTable, with = FALSE]))
     if (nNA > 0L) {
       stop("fire year ", yr, " has ", nNA, " pixel(s) without covariates in vegetation table \"",

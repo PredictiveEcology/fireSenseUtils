@@ -122,3 +122,15 @@ test_that("spreadFitValidationData() has the interaction's probability; the resp
   expect_equal(a$logitP, stats::qlogis(0.13 + 0.13 / (1 + exp(-eta))))
   expect_no_error(ggplot2::ggplot_build(g))
 })
+
+test_that("a pixel without a covariate that only an interaction uses stops the design, as for a main effect", {
+  ann <- dtC(pixelID = 1:3, clim = c(100L, 400L, 700L))
+  nonAnn <- list(`2000` = dtC(pixelID = 1:3, fuel = c(200L, NA, 800L)))
+  run <- function(cols) spreadProbFromIntegerCovs(NULL, data.table::copy(ann), nonAnn, nonAnnualIndex(nonAnn), 2005,
+                                                  covMinMax = NULL, mutuallyExclusive = NULL, colsToUse = cols,
+                                                  doAssertions = FALSE, logisticPars = c(0.2, 1, 1), covPars = rep(1, length(cols)),
+                                                  maxFireSpread = 0.28, lowerSpreadProb = 0.1)
+  expect_error(run(c("clim", "clim:fuel")), "without covariates")
+  expect_error(run(c("clim", "fuel", "clim:fuel")), "without covariates")
+  expect_no_error(run("clim"))
+})
