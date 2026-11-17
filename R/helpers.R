@@ -519,15 +519,16 @@ spreadCovCols <- function(colsToUse) setdiff(colsToUse, spreadInterceptTxt)
 
 #' @return `spreadInteractionCols()`: the columns of `colsToUse` that are interactions, `"a:b"` (a term the
 #'   formula has as `a:b`). `spreadProbFromIntegerCovs()` makes each as the product of its two covariates
-#'   after they are rescaled and made mutually exclusive, so a pixel where `youngAge` cleared a fuel has 0 for
-#'   that fuel's interaction too; the product is then centred like every other covariate, with its own mean.
+#'   after they are rescaled, made mutually exclusive and centred, so each main effect is the slope where the
+#'   other covariate is at its mean; where `youngAge` cleared a fuel, that fuel's interactions are 0. The
+#'   product is not centred again.
 #' @export
 #' @rdname spreadDesignCols
 spreadInteractionCols <- function(colsToUse) grep(":", colsToUse, fixed = TRUE, value = TRUE)
 
 #' @return `spreadSourceCols()`: the covariates that are columns of the data: those of `colsToUse` that are
 #'   not interactions, and the covariates the interactions multiply (even when the formula has no main effect
-#'   for them). These are the columns that are rescaled and divided by 1000.
+#'   for them). These are the columns that are rescaled, divided by 1000 and centred (`spreadCovCentre()`).
 #' @export
 #' @rdname spreadDesignCols
 spreadSourceCols <- function(colsToUse) {
@@ -535,16 +536,19 @@ spreadSourceCols <- function(colsToUse) {
   unique(c(setdiff(spreadCovCols(colsToUse), ic), unlist(strsplit(ic, ":", fixed = TRUE))))
 }
 
-#' @param DT a `data.table` that has the columns `spreadSourceCols(colsToUse)`, rescaled to 0-1 (not
-#'   centred). Changed by reference.
+#' @param DT a `data.table` that has the columns `spreadSourceCols(colsToUse)`, rescaled to 0-1 and centred.
+#'   Changed by reference.
+#' @param cleared a named list (by interaction), the rows of `DT` where the interaction is 0:
+#'   `mutuallyExclusiveRows()`.
 #' @return `spreadAddInteractions()`: `DT`, with a column for each of `spreadInteractionCols(colsToUse)`, the
-#'   product of the two columns it is named for.
+#'   product of the two columns it is named for, 0 on the rows in `cleared`.
 #' @export
 #' @rdname spreadDesignCols
-spreadAddInteractions <- function(DT, colsToUse) {
+spreadAddInteractions <- function(DT, colsToUse, cleared = list()) {
   for (ic in spreadInteractionCols(colsToUse)) {
     parts <- strsplit(ic, ":", fixed = TRUE)[[1]]
     set(DT, NULL, ic, DT[[parts[1]]] * DT[[parts[2]]])
+    if (length(cleared[[ic]])) set(DT, cleared[[ic]], ic, 0)
   }
   DT
 }

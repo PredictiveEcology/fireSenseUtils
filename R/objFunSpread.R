@@ -1394,20 +1394,16 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     )
   }
   # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
-  covCols <- spreadCovCols(colsToUse) # the intercept, if any, is not a covariate
-  for (cn2 in spreadSourceCols(colsToUse)) {
+  srcCols <- spreadSourceCols(colsToUse) # the data columns: the covariates, and those an interaction multiplies
+  for (cn2 in srcCols) {
     set(shortAnnDTx1000, NULL, cn2, shortAnnDTx1000[[cn2]] / 1000)
   }
-  ## An interaction is the product of its covariates on the 0-1 scale, after rescaling and the mutually
-  ## exclusive step (where youngAge cleared a fuel, the product is 0), so it is 0-1 and is asserted, centred
-  ## (with its own mean) and multiplied by its coefficient like the covariates it comes from.
-  spreadAddInteractions(shortAnnDTx1000, colsToUse)
   
   # rename because it is no longer x1000
   shortAnnDT <- shortAnnDTx1000
 
   if (doAssertions) {
-    assertCovariateRange(shortAnnDT, covCols)
+    assertCovariateRange(shortAnnDT, intersect(srcCols, spreadCovCols(colsToUse))) # the intercept is not a covariate
     if (logisticPars[1] > maxFireSpread) {
       warning(
         "The first parameter of the logistic is > ", maxFireSpread, ".",
@@ -1416,14 +1412,22 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     }
   }
 
+  ## Where an interaction's fuel was cleared (youngAge is non-zero), the interaction is 0: the rows are found
+  ## now, before centring, from the columns makeMutuallyExclusive() used
+  cleared <- mutuallyExclusiveRows(shortAnnDT, mutuallyExclusive, colsToUse)
+
   ## Centre last: after the mutual-exclusivity step, whose 0 means "this pixel does not have this
   ## cover" only on the uncentred scale, and after the range assertion, which centred (negative)
   ## values would fail. Fitting and prediction both pass through here, so both centre identically.
   if (!is.null(covCentre)) {
-    for (cn in intersect(names(covCentre), covCols)) {
+    for (cn in intersect(names(covCentre), srcCols)) {
       set(shortAnnDT, NULL, cn, shortAnnDT[[cn]] - covCentre[[cn]])
     }
   }
+
+  ## An interaction is the product of its two centred covariates (so each main effect is the slope at the mean
+  ## of the other covariate), 0 where its fuel was cleared; it is not centred again.
+  spreadAddInteractions(shortAnnDT, colsToUse, cleared)
 
   ## The intercept is a constant 1, added last so it is never rescaled, centred or asserted on.
   if (spreadInterceptTxt %in% colsToUse) set(shortAnnDT, NULL, spreadInterceptTxt, 1)

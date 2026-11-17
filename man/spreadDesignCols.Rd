@@ -16,15 +16,18 @@ spreadInteractionCols(colsToUse)
 
 spreadSourceCols(colsToUse)
 
-spreadAddInteractions(DT, colsToUse)
+spreadAddInteractions(DT, colsToUse, cleared = list())
 }
 \arguments{
 \item{formulaToFit}{The spread formula, a character string or a formula; \code{NULL} gives no columns.}
 
 \item{colsToUse}{A character vector from \code{spreadDesignCols()}.}
 
-\item{DT}{a \code{data.table} that has the columns \code{spreadSourceCols(colsToUse)}, rescaled to 0-1 (not
-centred). Changed by reference.}
+\item{DT}{a \code{data.table} that has the columns \code{spreadSourceCols(colsToUse)}, rescaled to 0-1 and centred.
+Changed by reference.}
+
+\item{cleared}{a named list (by interaction), the rows of \code{DT} where the interaction is 0:
+\code{mutuallyExclusiveRows()}.}
 }
 \value{
 A character vector.
@@ -34,15 +37,16 @@ A character vector.
 
 \code{spreadInteractionCols()}: the columns of \code{colsToUse} that are interactions, \code{"a:b"} (a term the
 formula has as \code{a:b}). \code{spreadProbFromIntegerCovs()} makes each as the product of its two covariates
-after they are rescaled and made mutually exclusive, so a pixel where \code{youngAge} cleared a fuel has 0 for
-that fuel's interaction too; the product is then centred like every other covariate, with its own mean.
+after they are rescaled, made mutually exclusive and centred, so each main effect is the slope where the
+other covariate is at its mean; where \code{youngAge} cleared a fuel, that fuel's interactions are 0. The
+product is not centred again.
 
 \code{spreadSourceCols()}: the covariates that are columns of the data: those of \code{colsToUse} that are
 not interactions, and the covariates the interactions multiply (even when the formula has no main effect
-for them). These are the columns that are rescaled and divided by 1000.
+for them). These are the columns that are rescaled, divided by 1000 and centred (\code{spreadCovCentre()}).
 
 \code{spreadAddInteractions()}: \code{DT}, with a column for each of \code{spreadInteractionCols(colsToUse)}, the
-product of the two columns it is named for.
+product of the two columns it is named for, 0 on the rows in \code{cleared}.
 }
 \description{
 The terms of the formula, preceded by \code{spreadInterceptTxt} when the formula has an intercept

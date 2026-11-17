@@ -80,7 +80,7 @@ spreadCovCentre <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMi
                             mutuallyExclusive = list("youngAge" = c("class", "nf"))) {
   colsToUse <- spreadDesignCols(formulaToFit)
   if (!spreadInterceptTxt %in% colsToUse) return(NULL)
-  spreadCovMeans(annualDTx1000, nonAnnualDTx1000, spreadCovCols(colsToUse), covMinMax, mutuallyExclusive)
+  spreadCovMeans(annualDTx1000, nonAnnualDTx1000, spreadSourceCols(colsToUse), covMinMax, mutuallyExclusive)
 }
 
 ## The mean of each of `covCols` over every pixel-year of `annualDTx1000`, on the scale the objective's

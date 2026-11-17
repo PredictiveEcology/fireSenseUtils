@@ -254,8 +254,9 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
                   dimnames = list(NULL, allCovs))
     mat[, cn] <- toUsed(cn, grid)
     ## an interaction is the product of its covariates, on the scale the design has them (before centring)
-    mat <- as.matrix(spreadAddInteractions(data.table::as.data.table(mat), allCovs))[, allCovs, drop = FALSE]
     mat <- sweep(mat, 2L, centre)
+    ## an interaction is the product of its centred covariates (an interaction's own centre is 0)
+    mat <- as.matrix(spreadAddInteractions(data.table::as.data.table(mat), allCovs))[, allCovs, drop = FALSE]
     cur[[cn]] <- data.table(covariate = cn, value = grid, logitP = logitP(mat))
   }
   pts <- rbindlist(pts)
