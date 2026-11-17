@@ -86,3 +86,36 @@ climateSplitRanges <- function(ranges) {
                                paste0(names(ranges), climateSplitDevSuffix)))
   c(ranges, derived[setdiff(names(derived), names(ranges))])
 }
+
+#' The pixels a year's climate median is taken over
+#'
+#' The one choice of reference pixels for [splitSpreadClimate()], in the fit and in the prediction: the ELF's
+#' burnable (flammable) pixels. The fit gives its `burnablePixels` (from the data year's `landcoverDT`, already
+#' flammable); the prediction gives the rows of its covariate table with `flammableRTM`, so a non-flammable row is
+#' not in the median, and `elfPixels`, the ELF's own cells, so neither is a neighbour's blend-zone row.
+#'
+#' @param pixelID integer; candidate pixels (cells).
+#' @param flammableRTM optional `SpatRaster`; only its cells equal to 1 are kept.
+#' @param elfPixels optional integer; only these cells are kept (`NULL`: all).
+#' @return the kept `pixelID`s.
+#' @export
+climateSplitRefPixels <- function(pixelID, flammableRTM = NULL, elfPixels = NULL) {
+  if (!is.null(flammableRTM))
+    pixelID <- pixelID[terra::values(flammableRTM, mat = FALSE)[pixelID] %in% 1]
+  if (!is.null(elfPixels)) pixelID <- pixelID[pixelID %in% elfPixels]
+  pixelID
+}
+
+#' The ELF of each cell of `rasterToMatchLargeELF`
+#'
+#' The one lookup of the ELF labels: a categorical raster gives its category labels (the second column of its
+#' levels), any other raster its values as text. `unique()` of the result is the set of ELFs a raster labels.
+#'
+#' @param r a one-layer `SpatRaster`.
+#' @return character, one label per cell in cell order (`NA` where the cell is).
+#' @export
+elfCellLabels <- function(r) {
+  v <- terra::values(r, mat = FALSE)
+  lv <- terra::levels(r)[[1]]
+  if (is.data.frame(lv) && NCOL(lv) >= 2) as.character(lv[[2]][match(v, lv[[1]])]) else as.character(v)
+}

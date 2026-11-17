@@ -69,3 +69,33 @@ test_that("a split fit's climate variable is found from its parameter names (spr
   expect_identical(out[["6.6.2"]]$theseClimVars, "CMD")
   expect_identical(out[["6.6.2"]]$theseClimVarsNoUnderscore, "CMD")
 })
+
+test_that("the reference pixels are the flammable ones of the ELF: neither non-flammable nor blend-zone rows", {
+  flam <- terra::rast(nrows = 2, ncols = 5, vals = c(1, 1, 1, 0, 1, 1, NA, 1, 1, 1))
+  expect_identical(climateSplitRefPixels(1:10), 1:10)
+  expect_identical(climateSplitRefPixels(1:10, flam), c(1L, 2L, 3L, 5L, 6L, 8L, 9L, 10L))
+  expect_identical(climateSplitRefPixels(1:10, flam, elfPixels = c(2L, 4L, 7L, 8L, 9L)), c(2L, 8L, 9L))
+})
+
+test_that("a year's terms for the pixels of the fit equal those of a prediction table with extra rows, once filtered", {
+  flam <- terra::rast(nrows = 1, ncols = 6, vals = c(1, 1, 1, 1, 0, 1))
+  clim <- c(10, 20, 30, 40, 1000, 50)                      # cell 5 cannot burn and has an extreme value
+  burnable <- c(1L, 2L, 3L, 4L, 6L)                        # what the fit has (its data year's landcoverDT)
+  fit <- data.table::data.table(pixelID = 1:2, CMD = clim[1:2])
+  splitSpreadClimate(fit, "CMD", data.table::data.table(CMD = clim[burnable]))
+  tab <- data.table::data.table(pixelID = 1:6, CMD = clim)  # a prediction table that holds the extra row
+  keep <- climateSplitRefPixels(tab$pixelID, flam)
+  expect_identical(keep, burnable)
+  pred <- data.table::copy(tab)
+  splitSpreadClimate(pred, "CMD", tab[tab$pixelID %in% keep, "CMD", with = FALSE])
+  expect_identical(pred$CMD_yr[1:2], fit$CMD_yr)
+  expect_identical(pred$CMD_dev[1:2], fit$CMD_dev)
+  expect_identical(fit$CMD_yr, rep(30, 2))
+})
+
+test_that("elfCellLabels() gives a categorical raster's labels and a plain raster's values", {
+  r <- terra::rast(nrows = 1, ncols = 4, vals = c(2, 1, 2, NA))
+  expect_identical(elfCellLabels(r), c("2", "1", "2", NA))
+  levels(r) <- data.frame(id = 1:2, ELFind = c("A", "B"))
+  expect_identical(elfCellLabels(r), c("B", "A", "B", NA))
+})
