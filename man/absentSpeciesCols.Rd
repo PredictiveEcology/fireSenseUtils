@@ -26,7 +26,9 @@ biomass or cover; \code{logMinB(0)} for fuel stored as log biomass.}
 \value{
 \code{speciesCovCols()}: the names among \code{covNames} that are species covariates.
 
-\code{absentSpeciesCols()}: the species covariates among \code{features} that are not in \code{covNames}.
+\code{absentSpeciesCols()}: the species covariates among \code{features} that are not in \code{covNames}, but
+none (\code{character(0)}) when \code{covNames} has a species covariate that is not in \code{features}: that is a renamed or
+merged class, not an absent species, and the model does not match the covariates.
 
 \code{addAbsentSpeciesCols()}: \code{dt}, or a copy with a column of \code{value} for each of
 \code{absentSpeciesCols(features, names(dt))}. A message names the added columns. \code{dt} is not changed.
@@ -41,7 +43,8 @@ is 0 (or, for fuel on the log scale, \code{logMinB(0)}; see \code{value}). Any o
 \code{speciesCovCols()} names the species covariates among \code{covNames}: the fuel columns
 (\code{\link[=spreadFuelCols]{spreadFuelCols()}}: everything that is not an indicator) that are not climate variables
 (\code{\link[=climateNAnames]{climateNAnames()}} names, with or without underscores), lightning (\verb{lightning*}), interaction terms (\code{a:b}),
-\code{pixelID} or \code{year}.
+\code{pixelID} or \code{year}. Drought indices (\code{droughtIndexPattern}: \code{CMD}, \code{MDC}, also in \code{cumMDC}) are climate too, whether or not
+\code{climateData} lists them.
 A column that is none of these is taken to be a species, so a covariate of another kind must be named
 here before a model uses it.
 }

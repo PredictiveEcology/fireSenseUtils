@@ -8,7 +8,8 @@
 #' `speciesCovCols()` names the species covariates among `covNames`: the fuel columns
 #' ([spreadFuelCols()]: everything that is not an indicator) that are not climate variables
 #' ([climateNAnames()] names, with or without underscores), lightning (`lightning*`), interaction terms (`a:b`),
-#' `pixelID` or `year`.
+#' `pixelID` or `year`. Drought indices (`droughtIndexPattern`: `CMD`, `MDC`, also in `cumMDC`) are climate too, whether or not
+#' `climateData` lists them.
 #' A column that is none of these is taken to be a species, so a covariate of another kind must be named
 #' here before a model uses it.
 #'
@@ -20,14 +21,20 @@ speciesCovCols <- function(covNames) {
   climate <- getFromNamespace(".allowedClimateVars", ns = asNamespace("climateData"))
   isClimate <- gsub("_", "", covNames) %in% gsub("_", "", climate)
   fuel <- spreadFuelCols(covNames[!isClimate])
-  setdiff(fuel, c("pixelID", yearTxt, spreadInteractionCols(fuel), grep("^lightning", fuel, value = TRUE)))
+  setdiff(fuel, c("pixelID", yearTxt, spreadInteractionCols(fuel), grep("^lightning", fuel, value = TRUE),
+                  grep(droughtIndexPattern, fuel, value = TRUE)))
 }
 
 #' @param features Character vector: the columns a model needs (see [foldFeatureNames()]).
-#' @return `absentSpeciesCols()`: the species covariates among `features` that are not in `covNames`.
+#' @return `absentSpeciesCols()`: the species covariates among `features` that are not in `covNames`, but
+#'   none (`character(0)`) when `covNames` has a species covariate that is not in `features`: that is a renamed or
+#'   merged class, not an absent species, and the model does not match the covariates.
 #' @export
 #' @rdname absentSpeciesCols
-absentSpeciesCols <- function(features, covNames) intersect(setdiff(features, covNames), speciesCovCols(features))
+absentSpeciesCols <- function(features, covNames) {
+  if (length(setdiff(speciesCovCols(covNames), features))) return(character())
+  intersect(setdiff(features, covNames), speciesCovCols(features))
+}
 
 #' @param dt A `data.table` of covariates.
 #' @param value What an absent species is, in the units of `dt` (and before any rescaling or centring, so

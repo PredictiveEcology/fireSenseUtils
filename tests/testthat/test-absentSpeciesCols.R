@@ -14,7 +14,7 @@ test_that("foldFeatureNames() are the features the fold models were trained with
 })
 
 test_that("speciesCovCols() leaves out climate, indicators, interactions and bookkeeping columns", {
-  expect_identical(speciesCovCols(c("pixelID", "year", "CMD", "CMDsm", "Tmax_sm", "lightning", "lightningDays", "cumMDC", "youngAge", "nfLCC_1_2",
+  expect_identical(speciesCovCols(c("pixelID", "year", "CMD", "CMDsm", "MDC", "Tmax_sm", "lightning", "lightningDays", "cumMDC", "youngAge", "nfLCC_1_2",
                                     "treedWetland", "Pinu_con", "Abie_ama", "dom_agb_Pice_mar", "treedWetland_agb",
                                     "CMD:dom_agb_Pice_mar")),
                    c("Pinu_con", "Abie_ama", "dom_agb_Pice_mar", "treedWetland_agb"))
@@ -44,4 +44,11 @@ test_that("predictions with an absent species added as 0 equal those with an exp
   added <- suppressMessages(addAbsentSpeciesCols(cur, foldFeatureNames(f$fit)))
   expect_equal(foldMeanPrediction(f$fit, as.matrix(added[, c("CMD", "Pinu_con", "youngAge")])),
                foldMeanPrediction(f$fit, as.matrix(explicit[, c("CMD", "Pinu_con", "youngAge")])))
+})
+
+test_that("a renamed or merged species class is not an absent species: unseen species column means no zero-fill", {
+  expect_identical(absentSpeciesCols(c("CMD", "Pinu_con"), c("CMD", "youngAge")), "Pinu_con")
+  expect_identical(absentSpeciesCols(c("CMD", "Pinu_con"), c("CMD", "Pinu_new")), character())
+  dt <- data.table::data.table(pixelID = 1:2, CMD = 1, Pinu_new = 2)
+  expect_identical(addAbsentSpeciesCols(dt, c("CMD", "Pinu_con")), dt)
 })

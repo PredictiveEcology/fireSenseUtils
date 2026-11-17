@@ -127,6 +127,10 @@ treedWetlandTxt <- "treedWetland"
 #' @export
 treedWetlandAgbTxt <- "treedWetland_agb"
 
+#' Regular expression matching the drought-index covariate names (`CMD`, `CMD_sm`, `MDC`, `cumMDC`)
+#' @export
+droughtIndexPattern <- "CMD|MDC"
+
 #' @export
 ignitionsTxt <- "ignitions"
 
