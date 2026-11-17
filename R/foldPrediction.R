@@ -56,3 +56,9 @@ escapeProbPerIgnition <- function(escapeMean, ignitionMean) {
   escapeMean[is.na(escapeMean)] <- 0
   pmin(1, ifelse(ignitionMean > 0, escapeMean * (-expm1(-ignitionMean)) / ignitionMean, escapeMean))
 }
+
+#' @return `foldFeatureNames()`: the features the fold models were trained with (their `variable.names()`),
+#'   without repeats.
+#' @export
+#' @rdname foldPrediction
+foldFeatureNames <- function(fit) unique(unlist(lapply(foldModels(fit), stats::variable.names)))

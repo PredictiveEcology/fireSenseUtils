@@ -3,11 +3,14 @@
 \name{foldModels}
 \alias{foldModels}
 \alias{foldMeanPrediction}
+\alias{foldFeatureNames}
 \title{The fold models of an ignition or escape fit, and their mean prediction}
 \usage{
 foldModels(fit)
 
 foldMeanPrediction(fit, newdata)
+
+foldFeatureNames(fit)
 }
 \arguments{
 \item{fit}{A \code{fireSense_IgnitionFitted} or \code{fireSense_EscapeFitted}: a list with \code{modelList$model}.}
@@ -21,6 +24,9 @@ contains \code{"Fold"}). It stops if there are none.
 
 \code{foldMeanPrediction()}: numeric, one per row of \code{newdata}: the mean over the fold models of
 \code{predict(model, newdata)}, each floored at 0 (an expected count).
+
+\code{foldFeatureNames()}: the features the fold models were trained with (their \code{variable.names()}),
+without repeats.
 }
 \description{
 \code{fireSense_ignitionFit} fits one xgboost model per cross-validation fold and stores them in
