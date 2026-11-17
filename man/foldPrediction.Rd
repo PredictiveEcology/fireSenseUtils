@@ -5,19 +5,21 @@
 \alias{foldMeanPrediction}
 \title{The fold models of an ignition or escape fit, and their mean prediction}
 \usage{
-foldModels(fit)
+foldModels(fit, mustExist = TRUE)
 
 foldMeanPrediction(fit, newdata)
 }
 \arguments{
 \item{fit}{A \code{fireSense_IgnitionFitted} or \code{fireSense_EscapeFitted}: a list with \code{modelList$model}.}
 
+\item{mustExist}{If \code{TRUE} (default), stop when \code{fit} has no fold model; if \code{FALSE}, return an empty list.}
+
 \item{newdata}{The covariates to predict, prepared as for the fit (standardised with its
 \code{scaleData} when it was fitted with \code{rescaleVars}).}
 }
 \value{
 \code{foldModels()}: the list of fold models (the elements of \code{fit$modelList$model} whose name
-contains \code{"Fold"}). It stops if there are none.
+contains \code{"Fold"}).
 
 \code{foldMeanPrediction()}: numeric, one per row of \code{newdata}: the mean over the fold models of
 \code{predict(model, newdata)}, each floored at 0 (an expected count).

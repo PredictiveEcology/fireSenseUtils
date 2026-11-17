@@ -7,16 +7,18 @@
 #'
 #' @param fit A `fireSense_IgnitionFitted` or `fireSense_EscapeFitted`: a list with `modelList$model`.
 #'
+#' @param mustExist If `TRUE` (default), stop when `fit` has no fold model; if `FALSE`, return an empty list.
+#'
 #' @return `foldModels()`: the list of fold models (the elements of `fit$modelList$model` whose name
-#'   contains `"Fold"`). It stops if there are none.
+#'   contains `"Fold"`).
 #' @export
 #' @rdname foldPrediction
-foldModels <- function(fit) {
+foldModels <- function(fit, mustExist = TRUE) {
   mods <- fit$modelList$model
   modsOnly <- mods[grep("Fold", names(mods))]
-  if (is.null(modsOnly) || !length(modsOnly))
+  if (mustExist && !length(modsOnly))
     stop("the fit has no fold models (elements named 'Fold*' in modelList$model)")
-  modsOnly
+  if (is.null(modsOnly)) list() else modsOnly
 }
 
 #' @param newdata The covariates to predict, prepared as for the fit (standardised with its
@@ -88,9 +90,7 @@ xgbFeatureNames <- function(cols) {
 #' @export
 #' @rdname storedFitProblem
 foreignObjectives <- function(fitted) {
-  boosters <- fitted$modelList$model
-  boosters <- boosters[grep("^Fold", names(boosters))]
-  obj <- xgbObjective(boosters)
+  obj <- xgbObjective(foldModels(fitted, mustExist = FALSE))
   obj[is.na(obj)] <- "unknown"
   unique(obj[obj != ignitionObjectiveTxt])
 }
@@ -105,8 +105,7 @@ foreignObjectives <- function(fitted) {
 #' @export
 #' @rdname storedFitProblem
 storedFitProblem <- function(fitted, covariates) {
-  boosters <- fitted$modelList$model
-  boosters <- boosters[grep("^Fold", names(boosters))]
+  boosters <- foldModels(fitted, mustExist = FALSE)
   if (!length(boosters))
     return("there is no stored model")
   foreign <- foreignObjectives(fitted)
