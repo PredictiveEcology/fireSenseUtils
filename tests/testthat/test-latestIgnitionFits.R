@@ -144,3 +144,8 @@ test_that("ledgerFileOrder(): the last 8-digit date of the suffix, undated last,
   m <- c("2026-11-03", "2026-11-01", "2026-11-04", "2026-11-05", "2026-11-02")
   expect_identical(n[ledgerFileOrder(n, m, "_xgboostPoisson_20261013")], n[c(5, 2, 3, 4, 1)])
 })
+
+test_that("latestIgnitionFits() and latestSpreadFits() stop clearly without a Drive folder", {
+  expect_error(latestIgnitionFits(NULL, destinationPath = tempdir()), "latestIgnitionFits\\(\\): `cloudFolderID` is NULL")
+  expect_error(latestSpreadFits(NULL, destinationPath = tempdir()), "latestSpreadFits\\(\\): `cloudFolderID` is NULL")
+})
