@@ -3,27 +3,56 @@
 \name{spreadDesignCols}
 \alias{spreadDesignCols}
 \alias{spreadCovCols}
+\alias{spreadInteractionCols}
+\alias{spreadSourceCols}
+\alias{spreadAddInteractions}
 \title{The columns of the spread model's design, in the order of its coefficients}
 \usage{
 spreadDesignCols(formulaToFit)
 
 spreadCovCols(colsToUse)
+
+spreadInteractionCols(colsToUse)
+
+spreadSourceCols(colsToUse)
+
+spreadAddInteractions(DT, colsToUse, cleared = list())
 }
 \arguments{
 \item{formulaToFit}{The spread formula, a character string or a formula; \code{NULL} gives no columns.}
 
 \item{colsToUse}{A character vector from \code{spreadDesignCols()}.}
+
+\item{DT}{a \code{data.table} that has the columns \code{spreadSourceCols(colsToUse)}, rescaled to 0-1 and centred.
+Changed by reference.}
+
+\item{cleared}{a named list (by interaction), the rows of \code{DT} where the interaction is 0:
+\code{mutuallyExclusiveRows()}.}
 }
 \value{
 A character vector.
 
 \code{spreadCovCols()}: \code{colsToUse} without the intercept, i.e. the columns that are covariates
 (rescaled, centred, and in \code{covMinMax}).
+
+\code{spreadInteractionCols()}: the columns of \code{colsToUse} that are interactions, \code{"a:b"} (a term the
+formula has as \code{a:b}). \code{spreadProbFromIntegerCovs()} makes each as the product of its two covariates
+after they are rescaled, made mutually exclusive and centred, so each main effect is the slope where the
+other covariate is at its mean; where \code{youngAge} cleared a fuel, that fuel's interactions are 0. The
+product is not centred again.
+
+\code{spreadSourceCols()}: the covariates that are columns of the data: those of \code{colsToUse} that are
+not interactions, and the covariates the interactions multiply (even when the formula has no main effect
+for them). These are the columns that are rescaled, divided by 1000 and centred (\code{spreadCovCentre()}).
+
+\code{spreadAddInteractions()}: \code{DT}, with a column for each of \code{spreadInteractionCols(colsToUse)}, the
+product of the two columns it is named for, 0 on the rows in \code{cleared}.
 }
 \description{
 The terms of the formula, preceded by \code{spreadInterceptTxt} when the formula has an intercept
 (\code{~ 1 + a + b}; the module formulas are \code{~ 0 + ...} and have none). The intercept is a column of 1s that
 \code{spreadProbFromIntegerCovs()} adds after rescaling and centring, so it is multiplied by its
 coefficient like every covariate, and \code{paramsSeparate(par, length(spreadDesignCols(f)))} finds it as
-the first covariate coefficient. \code{\link[=spreadCovCols]{spreadCovCols()}} drops it.
+the first covariate coefficient. \code{\link[=spreadCovCols]{spreadCovCols()}} drops it. A term of the form \code{a:b} is an interaction of two
+covariates (\code{\link[=spreadInteractionCols]{spreadInteractionCols()}}): it has its own coefficient, after the main effects.
 }

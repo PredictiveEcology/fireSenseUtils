@@ -325,8 +325,8 @@ fuelCovsToCoarse <- function(covs, rasTemplate, fact, static = NULL) {
     static <- fuelCovsStatic(covs$pixelID, rasTemplate, fact, cells = cells)
   if (length(static$noCovs)) {
     noCover <- data.table(pixelID = static$noCovs)
-    indicators <- spreadIndicatorCols(covNames)
-    for (cn in covNames) set(noCover, NULL, cn, if (cn %in% indicators) 0 else logMinB(0))
+    fuel <- spreadFuelCols(covNames)
+    for (cn in covNames) set(noCover, NULL, cn, if (cn %in% fuel) logMinB(0) else 0)
     covs <- rbindlist(list(covs, noCover), use.names = TRUE)
   }
   coarse <- terra::aggregate(SpaDES.tools::rastFromDF(covs, rasTemplate = rasTemplate),

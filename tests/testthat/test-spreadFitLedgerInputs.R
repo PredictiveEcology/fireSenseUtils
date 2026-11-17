@@ -71,3 +71,15 @@ test_that("spreadFitLedgerInputLists() gives the five per-ELF lists, named by po
   expect_identical(lists$sppEquivs[["4.2.3"]], out[["4.2.3"]]$sppEquiv)
   expect_identical(lists$missingLCCgroupList, list(`4.2.2` = "nf_A", `4.2.3` = "nf_B", `4.2.1` = "nf_C"))
 })
+
+test_that("spreadFitLedgerInputs() ignores interaction coefficients when finding the climate variables", {
+  ledger <- threeRowLedger()
+  pars <- ledger$params[[1]]
+  pars[["CMD:class1"]] <- -0.2
+  pars[["CMD:class2"]] <- -0.2
+  ledger$params[[1]] <- pars
+  out <- suppressWarnings(suppressMessages(
+    spreadFitLedgerInputs(ledger, sppEquivCol = "LandR", fuelClassCol = "FuelClass", studyArea = NULL)))
+  expect_identical(out[["4.2.2"]]$theseClimVars, "CMD")
+  expect_identical(out[["4.2.2"]]$theseClimVarsNoUnderscore, "CMD")
+})

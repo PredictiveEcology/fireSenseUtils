@@ -68,7 +68,9 @@ is non-zero.}
 \item{colsToUse}{Optional. If this is supplied, it must be a character vector indicating
 the column names to use in \code{shortAnnDTx1000}, i.e., it must include everything,
 annual or nonAnnual, that will be used. It may start with \code{spreadInterceptTxt} (see
-\code{\link[=spreadDesignCols]{spreadDesignCols()}}): that column is made here, as 1s, after rescaling and centring.}
+\code{\link[=spreadDesignCols]{spreadDesignCols()}}): that column is made here, as 1s, after rescaling and centring. An interaction
+(\code{"a:b"}) is made here too, as the product of \code{a} and \code{b} after rescaling and the mutually exclusive
+step and before centring, so fitting and prediction form it identically.}
 
 \item{doAssertions}{Logical. If \code{TRUE}, the default, the function will test a few minor things
 for consistency. This should be set to \code{FALSE} for operational situations, as the assertions

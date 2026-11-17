@@ -25,7 +25,7 @@ f <- 0.13
 
 ## objFunInner() for one year, the real covariate pipeline and link; spreadCpp() hands back the spreadProb it got
 spreadProbSeenC <- function(par, yr, climateRef = NULL, yearSpreadSD = 0, lanscape1stQuantileThresh = Inf,
-                            maxFireSpread = 0.28, ...) {
+                            maxFireSpread = 0.28, form = formC, ...) {
   seen <- new.env()
   seen$reached <- FALSE
   local_mocked_bindings(
@@ -34,7 +34,7 @@ spreadProbSeenC <- function(par, yr, climateRef = NULL, yearSpreadSD = 0, lansca
       seen$sp <- a$spreadProb; seen$reached <- TRUE
       dtC(initialLocus = a$loci, indices = a$loci, id = seq_along(a$loci), active = FALSE)
     }, .package = "SpaDES.tools", .env = parent.frame())
-  colsToUse <- spreadDesignCols(formC)
+  colsToUse <- spreadDesignCols(form)
   p <- fireSenseUtils:::splitSpreadPar(par)$par
   out <- fireSenseUtils:::objFunInner(
     yr = yr, annDTx1000 = data.table::copy(climFix$annualDTx1000[[yr]]), par = p, parsModel = length(colsToUse),

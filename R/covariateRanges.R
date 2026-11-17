@@ -34,6 +34,11 @@ spreadIndicatorCols <- function(covNames) {
   c(grep("^nfLCC_", covNames, value = TRUE), intersect(c(treedWetlandTxt, youngAgeTxt), covNames))
 }
 
+#' @return `spreadFuelCols()`: the names among `covNames` that are not indicators, i.e. fuel biomass.
+#' @export
+#' @rdname spreadIndicators
+spreadFuelCols <- function(covNames) setdiff(covNames, spreadIndicatorCols(covNames))
+
 #' @export
 #' @rdname spreadIndicators
 spreadIndicatorRanges <- function(covNames) {

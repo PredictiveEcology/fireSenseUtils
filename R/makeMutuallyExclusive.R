@@ -33,6 +33,31 @@ makeMutuallyExclusive <- function(dt, mutuallyExclusiveCols = list("youngAge" = 
   dt
 }
 
+#' Rows where an interaction is cleared by mutual exclusivity
+#'
+#' The rows of `dt` where `makeMutuallyExclusive()` zeroes a covariate of an interaction `a:b` of
+#' `colsToUse` (the same patterns, matched anchored to the start of the column name, and the same rows: where
+#' the key column is non-zero). The interaction is 0 there, whatever centring did to its covariates.
+#'
+#' @param dt a `data.table` with the key columns (e.g. `youngAge`), before centring.
+#' @param mutuallyExclusiveCols as for [makeMutuallyExclusive()]; `NULL` clears nothing.
+#' @param colsToUse the design columns, from [spreadDesignCols()].
+#' @return a named list, by interaction, of row indices (`integer(0)` when none).
+#' @export
+mutuallyExclusiveRows <- function(dt, mutuallyExclusiveCols, colsToUse) {
+  ic <- spreadInteractionCols(colsToUse)
+  stats::setNames(lapply(strsplit(ic, ":", fixed = TRUE), function(parts) {
+    rows <- integer(0)
+    for (cov1 in names(mutuallyExclusiveCols)) {
+      hit <- any(vapply(parts, function(cn) cn != cov1 &&
+                          any(vapply(mutuallyExclusiveCols[[cov1]], function(g) grepl(paste0("^", g), cn), logical(1))),
+                        logical(1)))
+      if (hit) rows <- union(rows, which(dt[[cov1]] != 0))
+    }
+    rows
+  }), ic)
+}
+
 #' Columns `youngAge` is mutually exclusive with
 #'
 #' `youngAge` is mutually exclusive with every other non-climate spread covariate: wherever it is
@@ -67,7 +92,7 @@ youngAgeExclusiveCols <- function(covNames, fuelCols = character()) {
 #' @importFrom data.table set
 clearYoungAge <- function(covs) {
   covNames <- setdiff(names(covs), c("pixelID", youngAgeTxt))
-  fuelCols <- setdiff(covNames, c(grep("^nfLCC_", covNames, value = TRUE), treedWetlandTxt))
+  fuelCols <- spreadFuelCols(covNames) # covNames has no youngAge
   whYoung <- which(covs[[youngAgeTxt]] == 1L)
   for (cn in youngAgeExclusiveCols(covNames, fuelCols)[[youngAgeTxt]])
     set(covs, whYoung, cn, if (cn %in% fuelCols) logMinB(0) else 0)

@@ -1337,7 +1337,9 @@ sizeLikT <- function(size, N, df) {
 #' @param colsToUse Optional. If this is supplied, it must be a character vector indicating
 #'   the column names to use in `shortAnnDTx1000`, i.e., it must include everything, 
 #'   annual or nonAnnual, that will be used. It may start with `spreadInterceptTxt` (see
-#'   [spreadDesignCols()]): that column is made here, as 1s, after rescaling and centring.
+#'   [spreadDesignCols()]): that column is made here, as 1s, after rescaling and centring. An interaction
+#'   (`"a:b"`) is made here too, as the product of `a` and `b` after rescaling and the mutually exclusive
+#'   step and before centring, so fitting and prediction form it identically.
 #'
 #' @inheritParams logisticAll
 #'
@@ -1365,7 +1367,7 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     tableYears <- as.integer(names(nonAnnualDTx1000))
     whKeep <- match(dataYearBefore(tableYears, yr), tableYears)
     shortAnnDTx1000 <- nonAnnualDTx1000[[whKeep]][annDTx1000, on = "pixelID"]
-    covsInTable <- intersect(spreadCovCols(colsToUse), names(nonAnnualDTx1000[[whKeep]]))
+    covsInTable <- intersect(spreadSourceCols(colsToUse), names(nonAnnualDTx1000[[whKeep]])) # incl. an interaction's covariates
     nNA <- sum(!stats::complete.cases(shortAnnDTx1000[, covsInTable, with = FALSE]))
     if (nNA > 0L) {
       stop("fire year ", yr, " has ", nNA, " pixel(s) without covariates in vegetation table \"",
@@ -1392,8 +1394,8 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     )
   }
   # mat <- as.matrix(shortAnnDTx1000[, ..colsToUse]) / 1000
-  covCols <- spreadCovCols(colsToUse) # the intercept, if any, is not a covariate
-  for (cn2 in covCols) {
+  srcCols <- spreadSourceCols(colsToUse) # the data columns: the covariates, and those an interaction multiplies
+  for (cn2 in srcCols) {
     set(shortAnnDTx1000, NULL, cn2, shortAnnDTx1000[[cn2]] / 1000)
   }
   
@@ -1401,7 +1403,7 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
   shortAnnDT <- shortAnnDTx1000
 
   if (doAssertions) {
-    assertCovariateRange(shortAnnDT, covCols)
+    assertCovariateRange(shortAnnDT, intersect(srcCols, spreadCovCols(colsToUse))) # the intercept is not a covariate
     if (logisticPars[1] > maxFireSpread) {
       warning(
         "The first parameter of the logistic is > ", maxFireSpread, ".",
@@ -1410,14 +1412,22 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     }
   }
 
+  ## Where an interaction's fuel was cleared (youngAge is non-zero), the interaction is 0: the rows are found
+  ## now, before centring, from the columns makeMutuallyExclusive() used
+  cleared <- mutuallyExclusiveRows(shortAnnDT, mutuallyExclusive, colsToUse)
+
   ## Centre last: after the mutual-exclusivity step, whose 0 means "this pixel does not have this
   ## cover" only on the uncentred scale, and after the range assertion, which centred (negative)
   ## values would fail. Fitting and prediction both pass through here, so both centre identically.
   if (!is.null(covCentre)) {
-    for (cn in intersect(names(covCentre), covCols)) {
+    for (cn in intersect(names(covCentre), srcCols)) {
       set(shortAnnDT, NULL, cn, shortAnnDT[[cn]] - covCentre[[cn]])
     }
   }
+
+  ## An interaction is the product of its two centred covariates (so each main effect is the slope at the mean
+  ## of the other covariate), 0 where its fuel was cleared; it is not centred again.
+  spreadAddInteractions(shortAnnDT, colsToUse, cleared)
 
   ## The intercept is a constant 1, added last so it is never rescaled, centred or asserted on.
   if (spreadInterceptTxt %in% colsToUse) set(shortAnnDT, NULL, spreadInterceptTxt, 1)
