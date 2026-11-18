@@ -114,7 +114,7 @@ test_that("a suffix goes after the model tag; \"\" is the production name", {
   expect_identical(spreadFitFilenameFor(1986:2024, ""), spreadFitFilenameFor(1986:2024))
 })
 
-test_that("\"latest\" reads every suffix, newest date in the suffix first; a suffix reads only its own files", {
+test_that("\"latest\" reads every file, newest date in the suffix first", {
   d <- withr::local_tempdir()
   prod <- spreadFitFilenameFor(1986:2024)                                  # no suffix: no date, oldest
   test81 <- spreadFitFilenameFor(1986:2024, "_boundfix_rep81")             # no date in the suffix either
@@ -141,10 +141,6 @@ test_that("\"latest\" reads every suffix, newest date in the suffix first; a suf
   ## gpsc's ceiling (its 2026-10-29 modified time) is after 4.1's row in bufI (20261024), so it is
   ## read; test81's (2026-10-15) is before every row kept, so reading stops there
   expect_identical(drive$downloads, c(bufI, prod, gpsc))
-  ## a suffix reads only its own files
-  out <- latestSpreadFits("folder", d, suffix = "_boundfix_rep81")
-  expect_setequal(out$polygonID, c("4.1", "5.1", "7.1"))
-  expect_identical(unique(out$objFunVal), 81)
 })
 
 ## A file's date is when its campaign was named, not when each of its fits was written: a fit added

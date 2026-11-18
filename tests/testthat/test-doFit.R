@@ -44,8 +44,6 @@ test_that("mustFit: doFit x ledger", {
   expect_error(mustFit(FALSE, FALSE, polygon = "9.9"), "polygon 9\\.9.*doFit")
   ## the message says FALSE is the default and how to fit
   expect_error(mustFit(FALSE, FALSE, polygon = "9.9"), "the default.*doFit = NA.*doFit = TRUE")
-  ## ... and names the ledger it searched
-  expect_error(mustFit(FALSE, FALSE, polygon = "9.9", fitFileSuffix = "_x"), "polygon 9\\.9 in the ledger with fitFileSuffix \"_x\"")
   expect_error(mustFit(FALSE, FALSE, polygon = NULL), "polygon <none>")
 })
 

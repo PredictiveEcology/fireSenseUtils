@@ -3,8 +3,8 @@
 #' The one implementation behind [latestSpreadFits()] and [latestIgnitionFits()].
 #'
 #' @param cloudFolderID,destinationPath,polygonIDs As in [latestSpreadFits()].
-#' @param filePrefix,fileTag,suffix The ledger files are those named `<filePrefix>*.rds`; with a `suffix`, only
-#'   `<filePrefix>*<suffix>.rds`. `fileTag` is the model tag in the file names, used to date them
+#' @param filePrefix,fileTag The ledger files are those named `<filePrefix>*.rds`. `fileTag` is the model tag in the
+#'   file names, used to date them
 #'   ([ledgerFileOrder()]) and by `rowProblem` for rows that record no model.
 #' @param caller Name of the calling function, for messages.
 #' @param attrName Name of the attribute that records the file each polygon came from.
@@ -17,7 +17,7 @@
 ## The link of a Google Drive file, as recorded in reproducible's download ledger and used to download it.
 .driveFileUrl <- function(id) paste0("https://drive.google.com/file/d/", id)
 
-.latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, suffix = "", caller, attrName,
+.latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, caller, attrName,
                               rowProblem = NULL) {
   if (is.null(cloudFolderID))
     stop(caller, "(): `cloudFolderID` is NULL. The newest fits are found by listing a Google Drive folder; ",
@@ -38,12 +38,12 @@
     readRDS(listing)
   })
   ## Every ledger file of the prefix, whatever its model: each row says what model it is, and `rowProblem` keeps
-  ## the ones this run can use. A suffix reads only its own files. drive_ls() is not recursive: files in a
+  ## the ones this run can use (one file is read by naming it, not here). drive_ls() is not recursive: files in a
   ## subfolder (the "testing" folder) are never listed.
   esc <- function(x) gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", x)
-  files <- files[grepl(paste0("^", filePrefix, ".*", if (nzchar(suffix)) esc(suffix), "\\.rds$"), files$name), ]
+  files <- files[grepl(paste0("^", esc(filePrefix), ".*\\.rds$"), files$name), ]
   if (!NROW(files)) {
-    message(caller, "(): no ", filePrefix, "*", if (nzchar(suffix)) suffix, ".rds file in ", cloudFolderID)
+    message(caller, "(): no ", filePrefix, "*.rds file in ", cloudFolderID)
     return(NULL)
   }
   ## The newest row of each polygon: by its `writtenAt` (reproducible::CacheGeoWrite() stamps it); a row

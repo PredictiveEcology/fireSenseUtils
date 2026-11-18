@@ -14,15 +14,17 @@ latestIgnitionFits(
   cloudFolderID = ignitionFitLedgerFolder(),
   destinationPath,
   polygonIDs = NULL,
-  suffix = "",
   escapeDefinition = NULL
 )
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
 
-\item{suffix}{A suffix reads only the files named with it; \code{""} (default) reads every ledger file.
-See \code{ignitionFitFilenameFor()}.}
+\item{suffix}{Text put after the model tag in the file name, to name an experiment's ledger file, e.g.
+\code{"_bufIndep20261024"} (ending with the date of the fits orders the file among others for \code{"latest"}, for rows
+written before \code{writtenAt}). A run reads or writes such a file by naming it (\code{spreadFitFilename},
+\code{ignitionFitFilename}); \code{"latest"} reads every ledger file of the folder. Experiment files go in the folder's
+\code{"testing"} subfolder (\code{spreadFitLedgerFolder(testing = TRUE)}), which \code{"latest"} over the main folder never reads.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=ignitionFitLedgerFolder]{ignitionFitLedgerFolder()}}.}
 
