@@ -4,40 +4,55 @@ test_that("ignitionFitFilenameFor() names a fit by its fire years and the model 
   expect_error(ignitionFitFilenameFor(NA), "no years")
 })
 
-test_that("a file with the old Tweedie tag \"_xgboost\" is not a ledger file; the Poisson tag is", {
+test_that("a row fitted with another objective is skipped, whatever its file's name", {
+  ## the old Tweedie fits ("_xgboost" files) are found by their models, not by the tag in the file name
+  skip_if_not_installed("xgboost")
+  withModels <- function(ids, value, objective, writtenAt) {
+    r <- ledgerRows(ids, value, writtenAt)
+    fit <- storedFit(objective)
+    r$fireSense_IgnitionFitted <- I(rep(list(fit), length(ids)))
+    r$fireSense_EscapeFitted <- I(rep(list(fit), length(ids)))
+    r
+  }
   d <- withr::local_tempdir()
-  drive <- fakeDrive(list(
+  fakeDrive(list(
     "fireSenseIgnitionParams_1985-2025_xgboost.rds" = list(modified = "2026-10-12T10:00:00Z",
-                                                      ledger = ledgerRows(c("4.1", "5.1"), c(9, 9))),
+                                                      ledger = withModels(c("4.1", "5.1"), c(9, 9), "reg:tweedie", "2026-10-12")),
     "fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds" = list(modified = "2026-09-01T10:00:00Z",
-                                                      ledger = ledgerRows("4.1", 1))))
-  out <- latestIgnitionFits("folder", d)
-  expect_identical(out$polygonID, "4.1")
-  expect_identical(out$objFunVal, 1)
-  expect_identical(drive$downloads, "fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds")
-  ## and the old tag's pattern does not match the new name
-  oldPattern <- paste0("^", fireSenseUtils:::ignitionFitFilePrefix, ".*_xgboost\\.rds$")
-  expect_false(grepl(oldPattern, ignitionFitFilenameFor(1985:2024)))
-  expect_true(grepl(oldPattern, "fireSenseIgnitionParams_1985-2025_xgboost.rds"))
+                                                      ledger = withModels("4.1", 1, "count:poisson", "2026-09-01")),
+    "fireSenseIgnitionParams_myLabel.rds" = list(modified = "2026-10-13T10:00:00Z",
+                                                      ledger = withModels("6.1", 2, "count:poisson", "2026-10-13"))))
+  expect_message(out <- latestIgnitionFits("folder", d),
+                 "skipped the fit of 4.1 in fireSenseIgnitionParams_1985-2025_xgboost.rds: its IgnitionFitted model was fitted with reg:tweedie")
+  expect_setequal(out$polygonID, c("4.1", "6.1"))                 # 5.1 has only a Tweedie fit
+  expect_identical(out$objFunVal[out$polygonID == "4.1"], 1)
+  expect_identical(attr(out, "ignitionFitFiles")[["6.1"]], "fireSenseIgnitionParams_myLabel.rds")
 })
 
-test_that("each polygon comes from the newest file that has it; other models' files are ignored", {
+test_that("each polygon comes from the newest file that has it", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds" = list(modified = "2026-09-20T10:00:00Z",
                                                       ledger = ledgerRows(c("4.1", "4.3"), c(1, 1))),
     "fireSenseIgnitionParams_1985-2025_xgboostPoisson_20261013.rds" = list(modified = "2026-09-24T10:00:00Z",
-                                                      ledger = ledgerRows("4.1", 2)),
-    ## an older model's file: has 5.1, but must never be read
-    "fireSenseIgnitionParams_1985-2024.rds" = list(modified = "2026-09-25T10:00:00Z",
-                                           ledger = ledgerRows(c("4.1", "5.1"), c(9, 9)))))
+                                                      ledger = ledgerRows("4.1", 2))))
   out <- latestIgnitionFits("folder", d)
   expect_setequal(out$polygonID, c("4.1", "4.3"))
   expect_identical(out$objFunVal[out$polygonID == "4.1"], 2)      # the newer file's fit
   expect_identical(out$objFunVal[out$polygonID == "4.3"], 1)
   expect_identical(attr(out, "ignitionFitFiles")[["4.3"]], "fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds")
-  expect_false("fireSenseIgnitionParams_1985-2024.rds" %in% drive$downloads)
   expect_s3_class(sf::st_as_sf(out), "sf")                        # still a ledger CacheGeo can read
+})
+
+test_that("a row fitted under another escape definition is skipped when the run gives its own", {
+  d <- withr::local_tempdir()
+  esc <- function(ids, value, size, writtenAt) cbind(ledgerRows(ids, value, writtenAt), as.data.frame(escapeDefinition(size)))
+  fakeDrive(list(
+    "fireSenseIgnitionParams_a.rds" = list(modified = "2026-10-01T10:00:00Z", ledger = esc("4.1", 1, 50, "2026-10-01")),
+    "fireSenseIgnitionParams_b.rds" = list(modified = "2026-11-01T10:00:00Z", ledger = esc("4.1", 2, 100, "2026-11-01"))))
+  expect_message(out <- latestIgnitionFits("folder", d, escapeDefinition = escapeDefinition(50)), "the escape definition")
+  expect_identical(out$objFunVal, 1)
+  expect_identical(suppressMessages(latestIgnitionFits("folder", d))$objFunVal, 2)
 })
 
 test_that("reading stops once each polygon asked for has a row newer than the next file", {

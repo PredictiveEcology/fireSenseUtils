@@ -3,6 +3,8 @@
 \name{spreadFitFilenameFor}
 \alias{spreadFitFilenameFor}
 \alias{spreadFitFileTag}
+\alias{spreadFuelScale}
+\alias{spreadFitFuelScaleTxt}
 \alias{latestSpreadFits}
 \title{The shared SpreadFit ledger files}
 \usage{
@@ -10,24 +12,32 @@ spreadFitFilenameFor(fireYears, suffix = "")
 
 spreadFitFileTag
 
+spreadFuelScale
+
+spreadFitFuelScaleTxt
+
 latestSpreadFits(
   cloudFolderID = spreadFitLedgerFolder(),
   destinationPath,
   polygonIDs = NULL,
-  suffix = ""
+  suffix = "",
+  escapeDefinition = NULL
 )
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
 
-\item{suffix}{A suffix reads only the files named with it; \code{""} (default) reads every file of the
-model tag, whatever its suffix. See \code{spreadFitFilenameFor()}.}
+\item{suffix}{A suffix reads only the files named with it; \code{""} (default) reads every ledger file.
+See \code{spreadFitFilenameFor()}.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=spreadFitLedgerFolder]{spreadFitLedgerFolder()}}.}
 
 \item{destinationPath}{Local folder for the downloaded files.}
 
 \item{polygonIDs}{Optional. The polygons (ELF ids) wanted; \code{NULL} reads every file.}
+
+\item{escapeDefinition}{This run's \code{\link[=escapeDefinition]{escapeDefinition()}} (e.g. \code{\link[=escapeDefinitionOf]{escapeDefinitionOf()}}): rows fitted under
+another are skipped. \code{NULL} (default): not checked.}
 }
 \value{
 \code{spreadFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
@@ -42,7 +52,16 @@ fireSense_spreadFit writes each fit as a row of an \code{rds} file in a Google D
 (its \code{spreadFitGoogleDriveFolder}); fireSense_ELFs and fireSense_dataPrepFit read them.
 With \code{spreadFitFilename = "latest"} those modules use these functions instead of one named file.
 
-\code{latestSpreadFits()} returns, for every polygon, its newest row in the ledger files: the one with
+\code{spreadFuelScale} is the scale of the fuel covariates of the spread model (\code{\link[=fuelLogToLinear]{fuelLogToLinear()}});
+fireSense_spreadFit records it in each ledger row (column \code{spreadFitFuelScaleTxt}). With the escape
+definition the row also records (\code{\link[=escapeDefinition]{escapeDefinition()}}), it is what prediction must apply as the fit did, so
+\code{\link[=latestSpreadFits]{latestSpreadFits()}} skips a row whose fuel scale or escape definition differs from this run's. A row written
+before the fuel scale was recorded counts as \code{spreadFuelScale} when its file carries \code{spreadFitFileTag}, and is
+skipped otherwise. A change of model is then recorded by the fit itself: \code{spreadFitFileTag} is no longer
+changed by hand, and only dates the files written before.
+
+\code{latestSpreadFits()} returns, for every polygon, its newest usable row in the ledger files (any file of the
+folder; rows of another fuel scale or escape definition are skipped, see \code{spreadFuelScale}): the one with
 the latest \code{writtenAt} (stamped by \code{\link[reproducible:CacheGeoWrite]{reproducible::CacheGeoWrite()}}). A row written before that stamp
 existed has its file's date instead: the date in the file's suffix (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}), else older
 than any dated file; ties go by the file's modified time. No row is newer than its file was last
@@ -58,6 +77,6 @@ linear scale (\code{\link[=fuelLogToLinear]{fuelLogToLinear()}}), escaped fires 
 objective with the annual-area and area-distribution terms. The date (2026-09-25) is when
 this model started, i.e. the model version. Files with an older tag (\code{"_linearFuel_esc50"}:
 the same model before it was dated; \code{"_linearFuel"}: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
-fireSense_spreadPredict would apply wrongly, so \code{"latest"} never reads them.
-A fit made under a new model needs a new tag, so the old files drop out of \code{"latest"}.
+fireSense_spreadPredict would apply wrongly; their rows record no fuel scale, so \code{"latest"} skips them
+(see \code{spreadFuelScale}).
 }

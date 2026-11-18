@@ -9,8 +9,8 @@
 #' objective with the annual-area and area-distribution terms. The date (2026-09-25) is when
 #' this model started, i.e. the model version. Files with an older tag (`"_linearFuel_esc50"`:
 #' the same model before it was dated; `"_linearFuel"`: 1-pixel escape; none: log fuel) hold fits of an earlier model, which
-#' fireSense_spreadPredict would apply wrongly, so `"latest"` never reads them.
-#' A fit made under a new model needs a new tag, so the old files drop out of `"latest"`.
+#' fireSense_spreadPredict would apply wrongly; their rows record no fuel scale, so `"latest"` skips them
+#' (see `spreadFuelScale`).
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
 #' @param suffix Text put after the model tag in the file name, e.g. `"_bufIndep20261024"`; end it with
@@ -36,7 +36,42 @@ spreadFitFilenameFor <- function(fireYears, suffix = "") {
 spreadFitFileTag <- "_linearFuel_esc50_20260925"
 
 #' @description
-#' `latestSpreadFits()` returns, for every polygon, its newest row in the ledger files: the one with
+#' `spreadFuelScale` is the scale of the fuel covariates of the spread model ([fuelLogToLinear()]);
+#' fireSense_spreadFit records it in each ledger row (column `spreadFitFuelScaleTxt`). With the escape
+#' definition the row also records ([escapeDefinition()]), it is what prediction must apply as the fit did, so
+#' [latestSpreadFits()] skips a row whose fuel scale or escape definition differs from this run's. A row written
+#' before the fuel scale was recorded counts as `spreadFuelScale` when its file carries `spreadFitFileTag`, and is
+#' skipped otherwise. A change of model is then recorded by the fit itself: `spreadFitFileTag` is no longer
+#' changed by hand, and only dates the files written before.
+#' @export
+#' @rdname spreadFitLedger
+spreadFuelScale <- "linear"
+
+#' @export
+#' @rdname spreadFitLedger
+spreadFitFuelScaleTxt <- "fuelScale"
+
+## Why this run cannot use a SpreadFit ledger row of `file`, or NULL. `escape`: the run's escapeDefinition(), or NULL.
+.spreadRowProblem <- function(row, file, escape = NULL) {
+  scale <- if (spreadFitFuelScaleTxt %in% names(row)) as.character(row[[spreadFitFuelScaleTxt]][[1]])
+  if (is.null(scale) || is.na(scale)) {
+    if (!grepl(spreadFitFileTag, file, fixed = TRUE))
+      return(paste0("its row records no fuel scale and its file is not of the model '", spreadFitFileTag, "'"))
+  } else if (!identical(scale, spreadFuelScale)) {
+    return(paste0("its fuel covariates are on the ", scale, " scale, not ", spreadFuelScale))
+  }
+  .escapeProblem(row, escape)
+}
+
+## checkEscapeDefinition() as a reason (NULL when the row agrees or records none)
+.escapeProblem <- function(row, escape) {
+  if (is.null(escape)) return(NULL)
+  tryCatch({checkEscapeDefinition(row, escape); NULL}, error = function(e) conditionMessage(e))
+}
+
+#' @description
+#' `latestSpreadFits()` returns, for every polygon, its newest usable row in the ledger files (any file of the
+#' folder; rows of another fuel scale or escape definition are skipped, see `spreadFuelScale`): the one with
 #' the latest `writtenAt` (stamped by [reproducible::CacheGeoWrite()]). A row written before that stamp
 #' existed has its file's date instead: the date in the file's suffix ([ledgerFileOrder()]), else older
 #' than any dated file; ties go by the file's modified time. No row is newer than its file was last
@@ -49,8 +84,10 @@ spreadFitFileTag <- "_linearFuel_esc50_20260925"
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [spreadFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
-#' @param suffix A suffix reads only the files named with it; `""` (default) reads every file of the
-#'   model tag, whatever its suffix. See `spreadFitFilenameFor()`.
+#' @param suffix A suffix reads only the files named with it; `""` (default) reads every ledger file.
+#'   See `spreadFitFilenameFor()`.
+#' @param escapeDefinition This run's [escapeDefinition()] (e.g. [escapeDefinitionOf()]): rows fitted under
+#'   another are skipped. `NULL` (default): not checked.
 #'
 #' @return `latestSpreadFits()`: the ledger rows, in the form fireSense_spreadFit writes them
 #'   (a `data.frame` with a `geometry` column), or `NULL` when no file matches. Attribute
@@ -58,7 +95,8 @@ spreadFitFileTag <- "_linearFuel_esc50_20260925"
 #' @export
 #' @rdname spreadFitLedger
 latestSpreadFits <- function(cloudFolderID = spreadFitLedgerFolder(), destinationPath, polygonIDs = NULL,
-                             suffix = "") {
+                             suffix = "", escapeDefinition = NULL) {
   .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = "fireSenseParams_",
-                    fileTag = spreadFitFileTag, suffix = suffix, caller = "latestSpreadFits", attrName = "spreadFitFiles")
+                    fileTag = spreadFitFileTag, suffix = suffix, caller = "latestSpreadFits", attrName = "spreadFitFiles",
+                    rowProblem = function(row, file) .spreadRowProblem(row, file, escapeDefinition))
 }

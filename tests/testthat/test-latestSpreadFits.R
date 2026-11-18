@@ -4,7 +4,7 @@ test_that("spreadFitFilenameFor() names a fit by its fire years and the model ta
   expect_error(spreadFitFilenameFor(NA), "no years")
 })
 
-test_that("files without the dated model tag are not ledger files; suffixed ones with it are", {
+test_that("rows that record no fuel scale count only in files of the dated model tag", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseParams_1985-2024_linearFuel_esc50.rds" = list(modified = "2026-10-12T10:00:00Z",
@@ -13,36 +13,63 @@ test_that("files without the dated model tag are not ledger files; suffixed ones
                                                       ledger = ledgerRows(c("4.1", "6.1"), c(8, 8))),
     "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-01T10:00:00Z",
                                                       ledger = ledgerRows("4.1", 1))))
-  out <- latestSpreadFits("folder", d)
+  expect_message(out <- latestSpreadFits("folder", d),
+                 "skipped the fit of 5.1 in fireSenseParams_1985-2024_linearFuel_esc50.rds: its row records no fuel scale")
   ## both have no date in their suffix: the later modified is read first
   expect_setequal(out$polygonID, c("4.1", "6.1"))
   expect_identical(out$objFunVal[out$polygonID == "4.1"], 8)
-  expect_false("fireSenseParams_1985-2024_linearFuel_esc50.rds" %in% drive$downloads)
-  oldPattern <- "^fireSenseParams_.*_linearFuel_esc50\\.rds$"
-  expect_false(grepl(oldPattern, spreadFitFilenameFor(1985:2024)))
+  expect_false("fireSenseParams_1985-2024_linearFuel_esc50.rds" %in% attr(out, "spreadFitFiles"))
 })
 
-test_that("each polygon comes from the newest file that has it; other models' files are ignored", {
+test_that("each polygon comes from its newest usable row; other models' rows are skipped", {
   d <- withr::local_tempdir()
   drive <- fakeDrive(list(
     "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-20T10:00:00Z",
                                                       ledger = ledgerRows(c("4.1", "4.3"), c(1, 1))),
     "fireSenseParams_1985-2025_linearFuel_esc50_20260925.rds" = list(modified = "2026-09-24T10:00:00Z",
                                                       ledger = ledgerRows("4.1", 2)),
-    ## log fuel: newest of all, and has 5.1, but must never be read
+    ## log fuel: newest of all, and has 5.1, but its rows are never used
     "fireSenseParams_1985-2024.rds" = list(modified = "2026-09-25T10:00:00Z",
                                            ledger = ledgerRows(c("4.1", "5.1"), c(9, 9))),
-    ## the previous model (linear fuel, 1-pixel escape): has 6.1, but must never be read either
+    ## the previous model (linear fuel, 1-pixel escape): has 6.1, but its rows are never used either
     "fireSenseParams_1985-2024_linearFuel.rds" = list(modified = "2026-09-25T11:00:00Z",
                                                       ledger = ledgerRows(c("4.1", "6.1"), c(8, 8)))))
-  out <- latestSpreadFits("folder", d)
+  out <- suppressMessages(latestSpreadFits("folder", d))
   expect_setequal(out$polygonID, c("4.1", "4.3"))
-  expect_identical(out$objFunVal[out$polygonID == "4.1"], 2)      # the newer file's fit
+  expect_identical(out$objFunVal[out$polygonID == "4.1"], 2)      # the newer usable file's fit
   expect_identical(out$objFunVal[out$polygonID == "4.3"], 1)
   expect_identical(attr(out, "spreadFitFiles")[["4.3"]], "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds")
-  expect_false("fireSenseParams_1985-2024.rds" %in% drive$downloads)
-  expect_false("fireSenseParams_1985-2024_linearFuel.rds" %in% drive$downloads)
   expect_s3_class(sf::st_as_sf(out), "sf")                        # still a ledger CacheGeo can read
+})
+
+test_that("a row's recorded model decides, not its file's name: fuel scale and escape definition", {
+  ## the file-name tag was kept by hand; a row now says what model it is (spreadFuelScale, escapeDefinition())
+  d <- withr::local_tempdir()
+  rows <- function(ids, value, scale, size = 50, writtenAt) {
+    r <- ledgerRows(ids, value, writtenAt)
+    r[[spreadFitFuelScaleTxt]] <- scale
+    cbind(r, as.data.frame(escapeDefinition(size)))
+  }
+  fakeDrive(list(
+    "fireSenseParams_1985-2024_linearFuel_esc50_20260925.rds" = list(modified = "2026-10-01T10:00:00Z",
+                                                      ledger = rows(c("4.1", "5.1", "6.1"), 1, "linear", writtenAt = "2026-10-01")),
+    ## a new label, no tag: usable, because its rows record the model
+    "fireSenseParams_myExperiment.rds" = list(modified = "2026-11-01T10:00:00Z",
+                                                      ledger = rows("4.1", 2, "linear", writtenAt = "2026-11-01")),
+    "fireSenseParams_logFuelTrial.rds" = list(modified = "2026-11-02T10:00:00Z",
+                                                      ledger = rows("5.1", 3, "log", writtenAt = "2026-11-02")),
+    "fireSenseParams_esc100.rds" = list(modified = "2026-11-03T10:00:00Z",
+                                                      ledger = rows("6.1", 4, "linear", size = 100, writtenAt = "2026-11-03"))))
+  msgs <- testthat::capture_messages(out <- latestSpreadFits("folder", d, escapeDefinition = escapeDefinition(50)))
+  val <- function(id) out$objFunVal[out$polygonID == id]
+  expect_identical(val("4.1"), 2)
+  expect_identical(val("5.1"), 1)       # the newer log-fuel fit is skipped
+  expect_identical(val("6.1"), 1)       # the newer 100 ha fit is skipped
+  expect_true(any(grepl("5.1 in fireSenseParams_logFuelTrial.rds: its fuel covariates are on the log scale", msgs)))
+  expect_true(any(grepl("6.1 in fireSenseParams_esc100.rds: the escape definition", msgs)))
+  ## without a definition to compare, the escape size is not checked
+  unchecked <- suppressMessages(latestSpreadFits("folder", d))
+  expect_identical(unchecked$objFunVal[unchecked$polygonID == "6.1"], 4)
 })
 
 test_that("reading stops once each polygon asked for has a row newer than the next file", {
