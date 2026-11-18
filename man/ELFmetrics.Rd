@@ -19,7 +19,8 @@ readELFmetrics(
 
 \item{path}{Folder(s) searched, with their subfolders, for the files.}
 
-\item{fireYears, suffix}{The fire years and ledger suffix of the current fits; see \code{\link[=spreadFitFilenameFor]{spreadFitFilenameFor()}}.}
+\item{fireYears, suffix}{With a \code{suffix}, only the ledger files of these fire years and this suffix are current;
+see \code{\link[=spreadFitFilenameFor]{spreadFitFilenameFor()}}. \code{""} (default): the newest files of the current model, whatever their suffix.}
 
 \item{current}{If \code{TRUE} (default), drop the runs made with other fits.}
 }
@@ -36,9 +37,12 @@ runs, so runs on different machines never write over each other.
 }
 \details{
 \code{readELFmetrics()} reads the files under \code{path}. With \code{current = TRUE}, it keeps only the runs made with the
-current fits, those in \code{\link[=spreadFitFilenameFor]{spreadFitFilenameFor()}} and \code{\link[=ignitionFitFilenameFor]{ignitionFitFilenameFor()}} of \code{fireYears} and \code{suffix}:
-a run made with an older fit describes that fit, not the current one. This relies on a refit always going to
-a new ledger file (a new \code{suffix}), never replacing a row of the current one.
+current fits: a run made with an older fit describes that fit, not the current one. The current fits of an
+ELF are, as with \code{"latest"}, the newest: among the ELF's runs whose files are of the current model
+(\link{spreadFitFileTag}, \link{ignitionFitFileTag}), those whose files are newest by the date in their suffix
+(\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}; a run over several ELFs, with several files, by its oldest). With a \code{suffix}, only the
+files \code{\link[=spreadFitFilenameFor]{spreadFitFilenameFor()}} and \code{\link[=ignitionFitFilenameFor]{ignitionFitFilenameFor()}} give for \code{fireYears} and \code{suffix} count, so one
+experiment's runs can be read. This relies on a refit always going to a new ledger file, never replacing a row.
 }
 \examples{
 \dontrun{
