@@ -49,6 +49,9 @@ test_that("readELFmetrics() keeps each ELF's runs made with its newest fits, wha
   expect_setequal(m$runName, c("14.1_a", "6.2_b"))
   ## a suffix pins one experiment's files
   expect_identical(suppressMessages(readELFmetrics(d, fireYears = yrs, suffix = "_gpscCause_20261029"))$runName, "14.1_a")
+  ## a run whose files are not known (NA: fireSense_summary before it could read them) is never current
+  writeRun(d, "9.3_a", "9.3", spreadFitFilenameFor(yrs, "_gpscCause_20261029"), NA_character_)
+  expect_false("9.3_a" %in% suppressMessages(readELFmetrics(d, fireYears = yrs))$runName)
 })
 
 test_that("readELFmetrics() returns NULL when there is no file", {
