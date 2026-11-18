@@ -14,20 +14,24 @@ latestIgnitionFits(
   cloudFolderID = ignitionFitLedgerFolder(),
   destinationPath,
   polygonIDs = NULL,
-  suffix = ""
+  suffix = "",
+  escapeDefinition = NULL
 )
 }
 \arguments{
 \item{fireYears}{The fire years the fit used; only the first and last matter.}
 
-\item{suffix}{A suffix reads only the files named with it; \code{""} (default) reads every file of the
-model tag, whatever its suffix. See \code{ignitionFitFilenameFor()}.}
+\item{suffix}{A suffix reads only the files named with it; \code{""} (default) reads every ledger file.
+See \code{ignitionFitFilenameFor()}.}
 
 \item{cloudFolderID}{The Google Drive folder (url or id) holding the ledger files; default \code{\link[=ignitionFitLedgerFolder]{ignitionFitLedgerFolder()}}.}
 
 \item{destinationPath}{Local folder for the downloaded files.}
 
 \item{polygonIDs}{Optional. The polygons (ELF ids) wanted; \code{NULL} reads every file.}
+
+\item{escapeDefinition}{This run's \code{\link[=escapeDefinition]{escapeDefinition()}}: rows fitted under another (recorded since
+fireSense_ignitionFit records it) are skipped. \code{NULL} (default): not checked.}
 }
 \value{
 \code{ignitionFitFilenameFor()}: the file name a fit over \code{fireYears} is written to,
@@ -44,7 +48,8 @@ for a multi-ELF study area. With \code{ignitionFitFilename = "latest"} those mod
 functions instead of one named file. Parallel to the spread-fit ledger helpers
 (\code{spreadFitFilenameFor()}, \code{latestSpreadFits()}).
 
-\code{latestIgnitionFits()} returns, for every polygon, its newest row in the ledger files: the one with
+\code{latestIgnitionFits()} returns, for every polygon, its newest usable row in the ledger files (any file of the
+folder; rows fitted with another objective or escape definition are skipped): the one with
 the latest \code{writtenAt} (stamped by \code{\link[reproducible:CacheGeoWrite]{reproducible::CacheGeoWrite()}}). A row written before that stamp
 existed has its file's date instead: the date in the file's suffix (\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}), else older
 than any dated file; ties go by the file's modified time. No row is newer than its file was last
@@ -52,10 +57,10 @@ modified, so files are read newest-modified first; with \code{polygonIDs}, readi
 row newer than the next file. Files are read, also with no internet, as \code{\link[=latestSpreadFits]{latestSpreadFits()}} reads them.
 }
 \details{
-\code{ignitionFitFileTag} marks the files whose fits use the current model: xgboost Poisson
-ignition and escape fits (\code{fireSense_IgnitionFit}'s \code{modelAlgorithm = "xgboost"} with objective
-\code{count:poisson}). The date is the model version. A fit made under a new model needs a new tag,
-so the old files drop out of \code{"latest"}; files with an older tag, e.g. \code{"_xgboost"} (Tweedie
-fits), are never read.
+\code{ignitionFitFileTag} is in the names of the files written since xgboost Poisson ignition and escape fits
+(\code{fireSense_IgnitionFit}'s \code{modelAlgorithm = "xgboost"} with objective \code{count:poisson}) began, and dates them.
+It no longer decides which files \code{"latest"} reads: \code{\link[=latestIgnitionFits]{latestIgnitionFits()}} reads every file and skips each
+row whose models were fitted with another objective (e.g. the Tweedie fits of \code{"_xgboost"} files) or under
+another escape definition, so a change of model is seen in the fits themselves, not in a tag kept by hand.
 The tag names the objective (\link{ignitionObjectiveTxt}); a test fails if the objective changes and the tag does not.
 }

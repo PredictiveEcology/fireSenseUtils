@@ -9,7 +9,8 @@ readSpreadFitLedger(
   cloudFolderID,
   domain,
   destinationPath,
-  fitFileSuffix = ""
+  fitFileSuffix = "",
+  escapeDefinition = NULL
 )
 }
 \arguments{
@@ -23,6 +24,9 @@ readSpreadFitLedger(
 
 \item{fitFileSuffix}{With \code{"latest"}, only ledger files with this suffix are read; see
 \code{fireSenseUtils::spreadFitFilenameFor()}.}
+
+\item{escapeDefinition}{With \code{"latest"}, the run's \code{\link[=escapeDefinition]{escapeDefinition()}}: rows fitted under another are skipped
+(see \code{latestSpreadFits()}). \code{NULL} (default): not checked.}
 }
 \value{
 What \code{CacheGeo()} returns: the ledger rows within \code{domain}, or \code{NULL}.

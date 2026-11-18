@@ -3,17 +3,22 @@
 #' The one implementation behind [latestSpreadFits()] and [latestIgnitionFits()].
 #'
 #' @param cloudFolderID,destinationPath,polygonIDs As in [latestSpreadFits()].
-#' @param filePrefix,fileTag,suffix The ledger files are those named `<filePrefix>*<fileTag><suffix>.rds`;
-#'   with `suffix = ""`, every `<filePrefix>*<fileTag>*.rds`, whatever its suffix.
+#' @param filePrefix,fileTag,suffix The ledger files are those named `<filePrefix>*.rds`; with a `suffix`, only
+#'   `<filePrefix>*<suffix>.rds`. `fileTag` is the model tag in the file names, used to date them
+#'   ([ledgerFileOrder()]) and by `rowProblem` for rows that record no model.
 #' @param caller Name of the calling function, for messages.
 #' @param attrName Name of the attribute that records the file each polygon came from.
+#' @param rowProblem `NULL`, or `function(row, file)` returning `NULL` when a ledger row (one-row `data.frame`) of
+#'   `file` can be used by this run, else why not (a string). Unusable rows are skipped: each polygon gets its
+#'   newest usable row, and a message names the newer rows skipped and why.
 #' @return As [latestSpreadFits()].
 #' @keywords internal
 #' @noRd
 ## The link of a Google Drive file, as recorded in reproducible's download ledger and used to download it.
 .driveFileUrl <- function(id) paste0("https://drive.google.com/file/d/", id)
 
-.latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, suffix = "", caller, attrName) {
+.latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, suffix = "", caller, attrName,
+                              rowProblem = NULL) {
   if (is.null(cloudFolderID))
     stop(caller, "(): `cloudFolderID` is NULL. The newest fits are found by listing a Google Drive folder; ",
          "to read a local ledger, name its file (the module's ledger filename parameter).", call. = FALSE)
@@ -32,15 +37,13 @@
     message(caller, "(): Google Drive cannot be reached; using the file list saved ", file.mtime(listing))
     readRDS(listing)
   })
-  ## The tag is followed directly by the suffix. A suffix reads only its own files; "" (the default) reads
-  ## every file of the model tag, whatever its suffix, newest by the date in its suffix (ledgerFileOrder()).
-  ## drive_ls() is not recursive: files in a subfolder (the "testing" folder) are never listed.
+  ## Every ledger file of the prefix, whatever its model: each row says what model it is, and `rowProblem` keeps
+  ## the ones this run can use. A suffix reads only its own files. drive_ls() is not recursive: files in a
+  ## subfolder (the "testing" folder) are never listed.
   esc <- function(x) gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", x)
-  files <- files[grepl(paste0("^", filePrefix, ".*", esc(fileTag), if (nzchar(suffix)) esc(suffix) else ".*",
-                              "\\.rds$"), files$name), ]
+  files <- files[grepl(paste0("^", filePrefix, ".*", if (nzchar(suffix)) esc(suffix), "\\.rds$"), files$name), ]
   if (!NROW(files)) {
-    message(caller, "(): no ", filePrefix, "*", fileTag, if (nzchar(suffix)) suffix else "*", ".rds file in ",
-            cloudFolderID)
+    message(caller, "(): no ", filePrefix, "*", if (nzchar(suffix)) suffix, ".rds file in ", cloudFolderID)
     return(NULL)
   }
   ## The newest row of each polygon: by its `writtenAt` (reproducible::CacheGeoWrite() stamps it); a row
@@ -54,6 +57,7 @@
   read <- order(ceiling, modified, decreasing = TRUE)
 
   best <- list()                                   # polygonID -> list(file, row, key, tie)
+  skipped <- list()                                # newer rows rowProblem() rejected
   for (k in read) {
     if (!is.null(polygonIDs) && all(as.character(polygonIDs) %in% names(best)) &&
         all(vapply(best[as.character(polygonIDs)], `[[`, numeric(1), "key") > ceiling[k]))
@@ -66,9 +70,20 @@
     ids <- as.character(ledger[[polygonIDTxt]])
     for (i in seq_along(ids)) {
       b <- best[[ids[i]]]
-      if (is.null(b) || key[i] > b$key || (key[i] == b$key && modified[k] > b$tie))
-        best[[ids[i]]] <- list(file = fname, row = ledger[i, , drop = FALSE], key = key[i], tie = modified[k])
+      if (is.null(b) || key[i] > b$key || (key[i] == b$key && modified[k] > b$tie)) {
+        why <- if (!is.null(rowProblem)) rowProblem(ledger[i, , drop = FALSE], fname)
+        if (is.null(why))
+          best[[ids[i]]] <- list(file = fname, row = ledger[i, , drop = FALSE], key = key[i], tie = modified[k])
+        else
+          skipped[[length(skipped) + 1L]] <- list(id = ids[i], file = fname, key = key[i], why = why)
+      }
     }
+  }
+  ## the rows skipped that are newer than the one used (or with none used): a newer fit this run cannot use
+  for (sk in skipped) {
+    b <- best[[sk$id]]
+    if (is.null(b) || sk$key > b$key)
+      message(caller, "(): skipped the fit of ", sk$id, " in ", sk$file, ": ", sk$why)
   }
   from <- vapply(best, `[[`, character(1), "file")
   rows <- lapply(split(best, factor(from, levels = unique(from))), function(b)

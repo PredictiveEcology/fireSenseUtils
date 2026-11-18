@@ -7,20 +7,14 @@
 \usage{
 ELFmetricsFilename(runName)
 
-readELFmetrics(
-  path,
-  fireYears = defaultFireYears(),
-  suffix = "",
-  current = TRUE
-)
+readELFmetrics(path, files = NULL, current = TRUE)
 }
 \arguments{
 \item{runName}{The run's \code{.runName}.}
 
 \item{path}{Folder(s) searched, with their subfolders, for the files.}
 
-\item{fireYears, suffix}{With a \code{suffix}, only the ledger files of these fire years and this suffix are current;
-see \code{\link[=spreadFitFilenameFor]{spreadFitFilenameFor()}}. \code{""} (default): the newest files of the current model, whatever their suffix.}
+\item{files}{\code{NULL} (default), or the ledger file names (spread and ignition) whose runs are current.}
 
 \item{current}{If \code{TRUE} (default), drop the runs made with other fits.}
 }
@@ -38,11 +32,11 @@ runs, so runs on different machines never write over each other.
 \details{
 \code{readELFmetrics()} reads the files under \code{path}. With \code{current = TRUE}, it keeps only the runs made with the
 current fits: a run made with an older fit describes that fit, not the current one. The current fits of an
-ELF are, as with \code{"latest"}, the newest: among the ELF's runs whose files are of the current model
-(\link{spreadFitFileTag}, \link{ignitionFitFileTag}), those whose files are newest by the date in their suffix
-(\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}; a run over several ELFs, with several files, by its oldest). With a \code{suffix}, only the
-files \code{\link[=spreadFitFilenameFor]{spreadFitFilenameFor()}} and \code{\link[=ignitionFitFilenameFor]{ignitionFitFilenameFor()}} give for \code{fireYears} and \code{suffix} count, so one
-experiment's runs can be read. This relies on a refit always going to a new ledger file, never replacing a row.
+ELF are, as with \code{"latest"}, the newest: among the ELF's runs, those whose fits were written last, by
+\code{spreadFitWrittenAt} and \code{ignitionFitWrittenAt} (when the run's fits were written; a run over several ELFs is
+as old as its oldest fit), or, for a metrics file without them, by the date in the ledger file names
+(\code{\link[=ledgerFileOrder]{ledgerFileOrder()}}; none is oldest). With \code{files}, only runs whose ledger files are all among them count, so
+one experiment's runs can be read. This relies on a refit always being a new ledger row, never replacing one.
 }
 \examples{
 \dontrun{

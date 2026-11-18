@@ -15,12 +15,15 @@
 #' @param cloudFolderID The Google Drive folder holding the ledger files.
 #' @param domain The study area, an `sf` object.
 #' @param destinationPath Where the ledger files are downloaded.
+#' @param escapeDefinition With `"latest"`, the run's [escapeDefinition()]: rows fitted under another are skipped
+#'   (see `latestSpreadFits()`). `NULL` (default): not checked.
 #' @return What `CacheGeo()` returns: the ledger rows within `domain`, or `NULL`.
 #' @export
-readSpreadFitLedger <- function(spreadFitFilename, cloudFolderID, domain, destinationPath, fitFileSuffix = "") {
+readSpreadFitLedger <- function(spreadFitFilename, cloudFolderID, domain, destinationPath, fitFileSuffix = "",
+                                escapeDefinition = NULL) {
   purge <- 7                                         # download the named file again: it changes on Drive
   if (identical(spreadFitFilename, "latest")) {
-    latest <- latestSpreadFits(cloudFolderID, destinationPath, suffix = fitFileSuffix)
+    latest <- latestSpreadFits(cloudFolderID, destinationPath, suffix = fitFileSuffix, escapeDefinition = escapeDefinition)
     if (is.null(latest))
       return(NULL)
     tf <- tempfile(fileext = ".rds")

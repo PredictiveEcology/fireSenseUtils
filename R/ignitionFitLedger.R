@@ -6,11 +6,11 @@
 #' functions instead of one named file. Parallel to the spread-fit ledger helpers
 #' (`spreadFitFilenameFor()`, `latestSpreadFits()`).
 #'
-#' `ignitionFitFileTag` marks the files whose fits use the current model: xgboost Poisson
-#' ignition and escape fits (`fireSense_IgnitionFit`'s `modelAlgorithm = "xgboost"` with objective
-#' `count:poisson`). The date is the model version. A fit made under a new model needs a new tag,
-#' so the old files drop out of `"latest"`; files with an older tag, e.g. `"_xgboost"` (Tweedie
-#' fits), are never read.
+#' `ignitionFitFileTag` is in the names of the files written since xgboost Poisson ignition and escape fits
+#' (`fireSense_IgnitionFit`'s `modelAlgorithm = "xgboost"` with objective `count:poisson`) began, and dates them.
+#' It no longer decides which files `"latest"` reads: [latestIgnitionFits()] reads every file and skips each
+#' row whose models were fitted with another objective (e.g. the Tweedie fits of `"_xgboost"` files) or under
+#' another escape definition, so a change of model is seen in the fits themselves, not in a tag kept by hand.
 #' The tag names the objective ([ignitionObjectiveTxt]); a test fails if the objective changes and the tag does not.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
@@ -39,7 +39,8 @@ ignitionFitFilePrefix <- "fireSenseIgnitionParams_"
 ignitionFitFileTag <- "_xgboostPoisson_20261013"
 
 #' @description
-#' `latestIgnitionFits()` returns, for every polygon, its newest row in the ledger files: the one with
+#' `latestIgnitionFits()` returns, for every polygon, its newest usable row in the ledger files (any file of the
+#' folder; rows fitted with another objective or escape definition are skipped): the one with
 #' the latest `writtenAt` (stamped by [reproducible::CacheGeoWrite()]). A row written before that stamp
 #' existed has its file's date instead: the date in the file's suffix ([ledgerFileOrder()]), else older
 #' than any dated file; ties go by the file's modified time. No row is newer than its file was last
@@ -49,8 +50,10 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [ignitionFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
-#' @param suffix A suffix reads only the files named with it; `""` (default) reads every file of the
-#'   model tag, whatever its suffix. See `ignitionFitFilenameFor()`.
+#' @param suffix A suffix reads only the files named with it; `""` (default) reads every ledger file.
+#'   See `ignitionFitFilenameFor()`.
+#' @param escapeDefinition This run's [escapeDefinition()]: rows fitted under another (recorded since
+#'   fireSense_ignitionFit records it) are skipped. `NULL` (default): not checked.
 #'
 #' @return `latestIgnitionFits()`: the ledger rows, in the form fireSense_IgnitionFit writes them
 #'   (a `data.frame` with a `geometry` column), or `NULL` when no file matches. Attribute
@@ -58,7 +61,21 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #' @export
 #' @rdname ignitionFitLedger
 latestIgnitionFits <- function(cloudFolderID = ignitionFitLedgerFolder(), destinationPath, polygonIDs = NULL,
-                              suffix = "") {
+                              suffix = "", escapeDefinition = NULL) {
   .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = ignitionFitFilePrefix,
-                    fileTag = ignitionFitFileTag, suffix = suffix, caller = "latestIgnitionFits", attrName = "ignitionFitFiles")
+                    fileTag = ignitionFitFileTag, suffix = suffix, caller = "latestIgnitionFits", attrName = "ignitionFitFiles",
+                    rowProblem = function(row, file) .ignitionRowProblem(row, escapeDefinition))
+}
+
+## Why this run cannot use an ignition ledger row, or NULL: a model fitted with another objective than
+## ignitionObjectiveTxt (from the models alone, so also for files of an older model), or another escape definition.
+## Whether its features are among the run's covariates is checked where they are known (storedFitProblem()).
+.ignitionRowProblem <- function(row, escape = NULL) {
+  for (col in ignitionFitAdditionalColNamesTxt) {
+    foreign <- if (col %in% names(row)) foreignObjectives(row[[col]][[1]])
+    if (length(foreign))
+      return(paste0("its ", sub("^fireSense_", "", col), " model was fitted with ", paste(foreign, collapse = ", "),
+                    ", not ", ignitionObjectiveTxt))
+  }
+  .escapeProblem(row, escape)
 }
