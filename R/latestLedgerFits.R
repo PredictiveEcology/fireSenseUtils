@@ -14,6 +14,9 @@
 .driveFileUrl <- function(id) paste0("https://drive.google.com/file/d/", id)
 
 .latestLedgerFits <- function(cloudFolderID, destinationPath, polygonIDs, filePrefix, fileTag, suffix = "", caller, attrName) {
+  if (is.null(cloudFolderID))
+    stop(caller, "(): `cloudFolderID` is NULL. The newest fits are found by listing a Google Drive folder; ",
+         "to read a local ledger, name its file (the module's ledger filename parameter).", call. = FALSE)
   ## Which ledger files exist, newest first. Each listing is saved beside the local copies, so a run
   ## with no internet (a compute node) picks the same files; CacheGeoRead() then reads each one,
   ## from Drive if it changed, else (or offline) from the local copy.

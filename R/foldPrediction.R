@@ -7,16 +7,18 @@
 #'
 #' @param fit A `fireSense_IgnitionFitted` or `fireSense_EscapeFitted`: a list with `modelList$model`.
 #'
+#' @param mustExist If `TRUE` (default), stop when `fit` has no fold model; if `FALSE`, return an empty list.
+#'
 #' @return `foldModels()`: the list of fold models (the elements of `fit$modelList$model` whose name
-#'   contains `"Fold"`). It stops if there are none.
+#'   contains `"Fold"`).
 #' @export
 #' @rdname foldPrediction
-foldModels <- function(fit) {
+foldModels <- function(fit, mustExist = TRUE) {
   mods <- fit$modelList$model
   modsOnly <- mods[grep("Fold", names(mods))]
-  if (is.null(modsOnly) || !length(modsOnly))
+  if (mustExist && !length(modsOnly))
     stop("the fit has no fold models (elements named 'Fold*' in modelList$model)")
-  modsOnly
+  if (is.null(modsOnly)) list() else modsOnly
 }
 
 #' @param newdata The covariates to predict, prepared as for the fit (standardised with its
@@ -55,4 +57,65 @@ escapeProbPerIgnition <- function(escapeMean, ignitionMean) {
   ignitionMean <- rep_len(ignitionMean, n)
   escapeMean[is.na(escapeMean)] <- 0
   pmin(1, ifelse(ignitionMean > 0, escapeMean * (-expm1(-ignitionMean)) / ignitionMean, escapeMean))
+}
+
+#' The features of an ignition or escape fit, and whether a stored fit can predict
+#'
+#' `fireSense_ignitionFit` gives xgboost every covariate column except `pixelID`, `year`,
+#' [coreFractionTxt], the `yearChar*` columns and the responses ([ignitionsTxt], [escapesTxt]), in
+#' alphabetical order (`xgbFeatureNames()`). A fit stored in the ledger records the features it was trained on
+#' (its fold boosters' `variable.names()`); if the covariates have changed since (e.g. non-forest land-cover
+#' groups merged into one), `predict()` fails on the missing columns. `fireSense_ignitionFit` checks this
+#' before reusing a stored fit, against the covariates it would fit with; `fireSense_ignitionPredict` checks it
+#' before predicting, against the covariates it predicts with, so the check holds when no fit data were
+#' prepared.
+#'
+#' @param cols Character vector of the column names of the covariates.
+#'
+#' @return `xgbFeatureNames()`: character vector.
+#' @export
+#' @rdname storedFitProblem
+xgbFeatureNames <- function(cols) {
+  cols <- setdiff(cols, c("pixelID", "year", coreFractionTxt))
+  cols <- grep("yearChar", cols, invert = TRUE, value = TRUE)
+  sort(grep(paste0(ignitionsTxt, "|", escapesTxt), cols, value = TRUE, invert = TRUE))
+}
+
+#' @param fitted A stored `fireSense_IgnitionFitted` or `fireSense_EscapeFitted`: a list with
+#'   `modelList$model`, or `NULL`.
+#'
+#' @return `foreignObjectives()`: the objectives of the fold boosters that differ from
+#'   [ignitionObjectiveTxt] (empty when all match); `"unknown"` stands for a booster whose objective cannot
+#'   be read ([xgbObjective()]).
+#' @export
+#' @rdname storedFitProblem
+foreignObjectives <- function(fitted) {
+  obj <- xgbObjective(foldModels(fitted, mustExist = FALSE))
+  obj[is.na(obj)] <- "unknown"
+  unique(obj[obj != ignitionObjectiveTxt])
+}
+
+#' @param covariates The covariates the stored fit would predict (or be refitted) with: a `data.frame`, or
+#'   anything with `colnames()`.
+#'
+#' @return `storedFitProblem()`: `NULL` when `fitted` has fold boosters, all fitted with
+#'   [ignitionObjectiveTxt], whose features are all among `xgbFeatureNames(colnames(covariates))`; otherwise
+#'   one string saying why not (no model; the objectives; the missing features, and the covariates the model
+#'   does not use), for the caller's message.
+#' @export
+#' @rdname storedFitProblem
+storedFitProblem <- function(fitted, covariates) {
+  boosters <- foldModels(fitted, mustExist = FALSE)
+  if (!length(boosters))
+    return("there is no stored model")
+  foreign <- foreignObjectives(fitted)
+  if (length(foreign))
+    return(paste0("it was fitted with objective ", paste(foreign, collapse = ", "), ", not ", ignitionObjectiveTxt))
+  stored <- unique(unlist(lapply(boosters, stats::variable.names)))
+  current <- xgbFeatureNames(colnames(covariates))
+  missingNow <- setdiff(stored, current)
+  if (length(missingNow))
+    return(paste0("it uses features absent from the current covariates (", paste(missingNow, collapse = ", "),
+                  "); current covariates not in the model: ", paste(setdiff(current, stored), collapse = ", ")))
+  NULL
 }

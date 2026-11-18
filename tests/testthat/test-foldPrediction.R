@@ -15,6 +15,8 @@ test_that("foldMeanPrediction() is the mean of the fold models' predictions, flo
   m <- f$fit$modelList$model
   expect_equal(foldMeanPrediction(f$fit, f$x), (predict(m$Fold1, f$x) + predict(m$Fold2, f$x)) / 2)
   expect_error(foldModels(list(modelList = list(model = list(rocs = list())))), "no fold models")
+  expect_length(foldModels(list(modelList = list(model = list(rocs = list()))), mustExist = FALSE), 0)
+  expect_length(foldModels(NULL, mustExist = FALSE), 0)
 })
 
 test_that("escapeProbPerIgnition() keeps an ignited pixel's expected escapes and caps at 1", {
