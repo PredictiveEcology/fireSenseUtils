@@ -105,9 +105,11 @@ logisticAll <- function(logisticPars, mat, covPars, lowerSpreadProb, link = NULL
   if (is.null(link) && "upperTail1" %in% names(logisticPars)) link <- "logistic3pUpper"
   if (!is.null(link)) {
     link <- match.arg(link, c("logistic3pUpper", spreadLinearLinks))
-    if (link %in% spreadLinearLinks)
-      return(linearLinkProb(mat %*% covPars, link, linearLinkPars(link, logisticPars[[1L]], gamma, lowerSpreadProb,
-                                                                  shape, lowerAsymptote, richardsNu)))
+    if (link %in% spreadLinearLinks) {
+      inputs <- spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, powerLawGamma = gamma,
+                                 powerLawShape = shape, lowerAsymptote = lowerAsymptote, richardsNu = richardsNu)
+      return(linearLinkProb(inputs$x, link, inputs$pars))
+    }
     return(logistic3pUpper(mat %*% covPars, logisticPars, par1 = lowerSpreadProb))
   }
   if (length(logisticPars) == 4) {
@@ -238,6 +240,20 @@ linearLinkPars <- function(link, pc, gamma = spreadPowerLawGamma, floor = spread
   all <- c(pc = pc, gamma = gamma, floor = floor, shape = shape, lower = lowerAsymptote, nu = richardsNu,
            B = spreadRichardsB)
   all[spreadLinkParNames[[link]]]
+}
+
+#' Link parameters of cells that cannot burn
+#'
+#' `n` rows of valid parameters for `link` (`pc = floor = lower = 0`, so `p = 0`), named as [spreadLinkParNames] says: what
+#' `SpaDES.tools::spreadCpp(linkPars = )` is given for a cell with no linear predictor, as it accepts no `NA` row.
+#'
+#' @param link One of [spreadLinearLinks].
+#' @param n The number of rows.
+#' @return A numeric matrix with `n` rows and the columns of [spreadLinkParNames] for `link`.
+#' @export
+unburnableLinkPars <- function(link, n = 1L) {
+  pars <- linearLinkPars(link, pc = 0, gamma = 1, floor = 0, shape = 1, lowerAsymptote = 0, richardsNu = 0)
+  matrix(pars, nrow = n, ncol = length(pars), byrow = TRUE, dimnames = list(NULL, names(pars)))
 }
 
 #' Spread probability from the linear predictor, for a link of [spreadLinearLinks]

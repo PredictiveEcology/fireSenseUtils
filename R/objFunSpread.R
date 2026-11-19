@@ -168,7 +168,11 @@ utils::globalVariables(c(
 #'   logistic of the other covariates; see [spreadProbFromCovs()], which computes both links. The year
 #'   effect (`fitYearSpreadSD`) is added on the same logit, after climate. The gates
 #'   ([spreadProbGateTest()]) and the saturation summary are then applied to `p0`, the spread probability
-#'   at the reference climate, not to `p`.
+#'   at the reference climate, not to `p`. With a power-law `link` and `powerLawPc50`, climate is in the ceiling
+#'   instead: it moves `pc` toward `powerLawPc50`, never past it ([spreadLinkInputs()]).
+#' @param powerLawPc50 `NULL` (default), or the landscape's runaway threshold ([calibratePowerLaw()]). With `climateRef` and
+#'   a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
+#'   fuel linear predictor. Ignored without `climateRef`.
 #'
 #' @param returnSims If `TRUE`, return the simulated fires instead of the objective value: a
 #'   `data.table` with one row per fire year x fire x replicate -- `yr`, `rep`, `initialLocus`, `ids`,
@@ -282,6 +286,7 @@ utils::globalVariables(c(
                              adWeight = "auto",
                              link = NULL,
                              climateRef = NULL,
+                             powerLawPc50 = NULL,
                              powerLawGamma = spreadPowerLawGamma,
                              powerLawShape = spreadPowerLawShape,
                              lowerAsymptote = spreadProbFloor,
@@ -430,7 +435,7 @@ utils::globalVariables(c(
         doMADTest = doMADTest, doADTest = doADTest || doAreaDist, doPitADTest = doPitADTest,
         cells = cells,
         covCentre = covCentre,
-        link = link, climateRef = climateRef,
+        link = link, climateRef = climateRef, powerLawPc50 = powerLawPc50,
         powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
         lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
         returnSims = returnSims, returnBurned = returnBurned, stopCutFires = isTRUE(penaliseRunaways),
@@ -766,7 +771,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
                         powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
                         richardsNu = spreadRichardsNu, doCrps = FALSE, gateRefusal = "minLik",
-                        wholeLandscape = FALSE) {
+                        wholeLandscape = FALSE, powerLawPc50 = NULL) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -782,16 +787,17 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
     yr, annDTx1000, nonAnnualDTx1000, indexNonAnnual, covMinMax, mutuallyExclusive, colsToUse,
     doAssertions, logisticPars, covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre
   )
-  linearPredictor <- function(mat) as.vector(mat %*% covPars)
   ## a link of spreadLinearLinks maps the linear predictor to p with these parameters (also spreadCpp()'s linkPars)
   linearLink <- any(link %in% spreadLinearLinks)
-  linkPars <- if (linearLink) linearLinkPars(link, logisticPars[[1L]], powerLawGamma, lowerSpreadProb, powerLawShape,
-                                             lowerAsymptote, richardsNu)
   ## wholeLandscape: every fire spreads on all the pixels of annDTx1000, with spreadProb computed per cell reached
   whole <- isTRUE(wholeLandscape)
   checkFireSpreadSD(fireSpreadSD > 0, whole)
   shortAnnDT <- covsOfYear(annDTx1000, nonAnnualDTx1000, doAssertions)
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
+  ## the linear predictor and link parameters of the year; with climateRef and a power-law link (climate in the
+  ## ceiling) the parameters are per pixel
+  linkIn <- if (linearLink) spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
+                                             powerLawGamma, powerLawShape, lowerAsymptote, richardsNu)
   ## The gates only skip hopeless parameter sets (gateRefusal = "minLik"); under "simulate" they never run, and
   ## the plots leave out their panel.
   runGates <- !identical(gateRefusal, "simulate")
@@ -799,17 +805,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   ## cell reached, so the column is only for them
   needP <- runGates || isTRUE(returnSims) || SpaDES.core::anyPlotting(plot.it)
   if (!whole || needP)
-    set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
-                                                           climateRef = climateRef, powerLawGamma = powerLawGamma,
-                                                           powerLawShape = powerLawShape,
-                                                           lowerAsymptote = lowerAsymptote, richardsNu = richardsNu))
+    set(shortAnnDT, NULL, "spreadProb", if (linearLink) linearLinkProb(linkIn$x, link, linkIn$pars) else
+      spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = climateRef))
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
   ## years that carry the climate signal. Without climateRef it is spreadProb itself, as always.
   pGate <- if (!needP) NULL else if (is.null(climateRef)) shortAnnDT$spreadProb else
     as.numeric(spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = climateRef,
-                                  climateAtRef = TRUE))
+                                  climateAtRef = TRUE, powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
+                                  lowerAsymptote = lowerAsymptote, richardsNu = richardsNu, powerLawPc50 = powerLawPc50))
   pSummary <- if (isTRUE(returnSims)) spreadProbSummary(pGate, ceiling = logisticPars[1])
   ## Initialised here, not inside the branch below, because the function returns
   ## it unconditionally. With no test selected -- which is how the module's
@@ -991,9 +996,16 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## cells burned are those of the full probability vector, without building one per replicate.
         ## The arithmetic is that of the R link (linearLinkProb()), so the doubles are the same.
         lpCrop <- rep(NA_real_, crop$ncell)
-        lpCrop[crop$toCrop(shortAnnDT$pixelID)] <- linearPredictor(mat)
+        lpCrop[crop$toCrop(shortAnnDT$pixelID)] <- linkIn$x
         spreadLink <- link
-        spreadLinkPars <- linkPars
+        spreadLinkPars <- linkIn$pars
+        if (is.matrix(spreadLinkPars)) {
+          ## per-cell parameters (climate in the ceiling): one row per cell of the crop; cells off the year's
+          ## pixels have no lp, so no fire reaches them, and get parameters that cannot burn
+          cropPars <- unburnableLinkPars(link, crop$ncell)
+          cropPars[crop$toCrop(shortAnnDT$pixelID), ] <- spreadLinkPars
+          spreadLinkPars <- cropPars
+        }
       } else {
         spreadProbCrop <- numeric(crop$ncell)
         spreadProbCrop[crop$toCrop(shortAnnDT$pixelID)] <- shortAnnDT$spreadProb
@@ -1028,8 +1040,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
       ## linear predictor x and p follows from it (p cannot pass p_c, so no year percolates).
       if (yearSpreadSD > 0 && !whole) {
         pixCrop <- crop$toCrop(shortAnnDT$pixelID)
-        lp <- if (linearLink) linearPredictor(mat) else stats::qlogis(shortAnnDT$spreadProb)
-        toP <- if (linearLink) function(z) linearLinkProb(z, link, linkPars) else stats::plogis
+        lp <- if (linearLink) linkIn$x else stats::qlogis(shortAnnDT$spreadProb)
+        toP <- if (linearLink) function(z) linearLinkProb(z, link, linkIn$pars) else stats::plogis
         lociCrop <- crop$toCrop(loci)
       }
       spreadState <- lapply(seq_len(Nreps), function(i) {

@@ -15,7 +15,8 @@ spreadProbFromCovs(
   powerLawGamma = spreadPowerLawGamma,
   powerLawShape = spreadPowerLawShape,
   lowerAsymptote = spreadProbFloor,
-  richardsNu = spreadRichardsNu
+  richardsNu = spreadRichardsNu,
+  powerLawPc50 = NULL
 )
 }
 \arguments{
@@ -39,6 +40,9 @@ and a gate on \code{p} would refuse the years that carry the climate signal. Ign
 
 \item{lowerAsymptote, richardsNu}{The lower asymptote of \code{"powerLawSmooth"} and \code{"richards"}, and the \code{nu} of
 \code{"richards"} (\code{\link[=logisticAll]{logisticAll()}}); used only with those links.}
+
+\item{powerLawPc50}{The landscape's runaway threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}); with \code{climateRef} and a power-law link
+it puts climate in the ceiling (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}). Needed then, ignored otherwise.}
 }
 \value{
 A one-column numeric matrix, one value per row of \code{mat} (as \code{\link[=logisticAll]{logisticAll()}}).
@@ -69,9 +73,10 @@ same logit afterwards, so climate and the year effect act together after the fue
 climate coefficient (\verb{>= 0}, from \code{fireSense_spreadFit}'s bounds) is unchanged.
 \item \code{link = "powerLaw"} (\code{spreadLink = "powerLaw"}): \code{p = pc - (pc - f) * exp(-sign(x) * abs(x / powerLawGamma)^powerLawShape)}, with \code{pc}
 (\code{logisticPars[1]}) fitted (\code{\link[=powerLawLink]{powerLawLink()}}). The year effect \code{eps_Y} is added to \code{x}, not to the logit of \code{p}.
-Not combined with \code{climateRef}.
+With \code{climateRef} and \code{powerLawPc50}, climate moves \code{pc} instead (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}); without \code{powerLawPc50} that
+combination stops.
 \item \code{link = "powerLawSmooth"} (\code{spreadLink = "powerLawSmooth"}): the same for \code{x >= 0}; for \code{x < 0}, \code{p} falls from \code{f} to
-the lower asymptote \code{lowerAsymptote}, never below it (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}). Not combined with \code{climateRef}.
+the lower asymptote \code{lowerAsymptote}, never below it (\code{\link[=powerLawSmoothLink]{powerLawSmoothLink()}}). With \code{climateRef} as for \code{"powerLaw"}.
 \item \code{link = "richards"} (\code{spreadLink = "richards"}): \code{p = L + (pc - L) / (1 + nu * exp(-B * x))^(1 / nu)}, with \code{L} the
 \code{lowerAsymptote}, \code{nu} the \code{richardsNu} and \code{B} fixed (\code{\link[=richardsLink]{richardsLink()}}). It does not use \code{powerLawGamma}.
 Not combined with \code{climateRef}.

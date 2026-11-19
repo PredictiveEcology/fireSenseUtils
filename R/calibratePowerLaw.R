@@ -105,12 +105,14 @@ calibratePowerLaw <- function(flammable, pGrid = spreadPowerLawPGrid, nFires = 4
 #'
 #' @param p50 The calibrated threshold.
 #' @param margin Added to `p50` for the upper bound.
+#' @param climateCeiling `TRUE` when climate moves `pc` toward `p50` ([spreadLinkInputs()]): the upper bound is then
+#'   `p50` itself, else a wet year (climate below its reference) would raise `pc` past `p50`. Default `FALSE`.
 #' @return `c(lower, upper)` for the `maxAsymptote` slot.
 #' @export
-powerLawPcBounds <- function(p50, margin = 0.005) {
+powerLawPcBounds <- function(p50, margin = 0.005, climateCeiling = FALSE) {
   outer <- spreadPowerLawPcBounds
   if (!(length(p50) == 1L && is.finite(p50) && p50 > outer[1L] && p50 <= outer[2L]))
     stop("powerLawPcBounds(): the calibrated p50 (", format(p50), ") is outside spreadPowerLawPcBounds (",
          paste(outer, collapse = " to "), ")")
-  c(outer[1L], min(p50 + margin, outer[2L]))
+  c(outer[1L], min(p50 + if (isTRUE(climateCeiling)) 0 else margin, outer[2L]))
 }

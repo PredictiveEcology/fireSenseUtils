@@ -168,9 +168,10 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 #'   climate coefficient (`>= 0`, from `fireSense_spreadFit`'s bounds) is unchanged.
 #' * `link = "powerLaw"` (`spreadLink = "powerLaw"`): `p = pc - (pc - f) * exp(-sign(x) * abs(x / powerLawGamma)^powerLawShape)`, with `pc`
 #'   (`logisticPars[1]`) fitted ([powerLawLink()]). The year effect `eps_Y` is added to `x`, not to the logit of `p`.
-#'   Not combined with `climateRef`.
+#'   With `climateRef` and `powerLawPc50`, climate moves `pc` instead ([spreadLinkInputs()]); without `powerLawPc50` that
+#'   combination stops.
 #' * `link = "powerLawSmooth"` (`spreadLink = "powerLawSmooth"`): the same for `x >= 0`; for `x < 0`, `p` falls from `f` to
-#'   the lower asymptote `lowerAsymptote`, never below it ([powerLawSmoothLink()]). Not combined with `climateRef`.
+#'   the lower asymptote `lowerAsymptote`, never below it ([powerLawSmoothLink()]). With `climateRef` as for `"powerLaw"`.
 #' * `link = "richards"` (`spreadLink = "richards"`): `p = L + (pc - L) / (1 + nu * exp(-B * x))^(1 / nu)`, with `L` the
 #'   `lowerAsymptote`, `nu` the `richardsNu` and `B` fixed ([richardsLink()]). It does not use `powerLawGamma`.
 #'   Not combined with `climateRef`.
@@ -185,6 +186,8 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 #' @param powerLawShape The `"powerLaw"` and `"powerLawSmooth"` links' curvature exponent `shape`; used only with those links.
 #' @param lowerAsymptote,richardsNu The lower asymptote of `"powerLawSmooth"` and `"richards"`, and the `nu` of
 #'   `"richards"` ([logisticAll()]); used only with those links.
+#' @param powerLawPc50 The landscape's runaway threshold ([calibratePowerLaw()]); with `climateRef` and a power-law link
+#'   it puts climate in the ceiling ([spreadLinkInputs()]). Needed then, ignored otherwise.
 #' @param climateAtRef Logical. With `climateRef`, `TRUE` returns `p0`, the spread probability with climate
 #'   held at its reference: what the ceiling applies to. The objective's gates and its saturation summary
 #'   look at `p0`, because under this link a dry year legitimately takes the landscape past `maxFireSpread`
@@ -194,23 +197,91 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link = NULL, climateRef = NULL,
                                climateAtRef = FALSE, powerLawGamma = spreadPowerLawGamma,
                                powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
-                               richardsNu = spreadRichardsNu) {
+                               richardsNu = spreadRichardsNu, powerLawPc50 = NULL) {
+  if (any(link %in% spreadLinearLinks)) {
+    inputs <- spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
+                               powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, climateAtRef)
+    return(linearLinkProb(inputs$x, link, inputs$pars))
+  }
   if (is.null(climateRef) || !length(climateRef))
+    ## no climate to take out of the ceiling: the link of the whole linear predictor
     return(logisticAll(logisticPars, mat = mat, covPars, lowerSpreadProb, link = link, gamma = powerLawGamma,
                       shape = powerLawShape, lowerAsymptote = lowerAsymptote, richardsNu = richardsNu))
-  if (any(link %in% spreadLinearLinks))
-    stop("spreadProbFromCovs(): `climateRef` (climate outside the ceiling) cannot be combined with link = \"", link, "\"")
-  climCols <- names(climateRef)
-  if (is.null(climCols) || !all(climCols %in% colnames(mat)))
-    stop("spreadProbFromCovs(): every name of `climateRef` must be a column of `mat`; climateRef: ",
-         paste(climCols, collapse = ", "), "; columns: ", paste(colnames(mat), collapse = ", "))
-  isClim <- colnames(mat) %in% climCols
-  p0 <- logisticAll(logisticPars, mat = mat[, !isClim, drop = FALSE], covPars[!isClim], lowerSpreadProb,
+  split <- spreadClimateSplit(mat, climateRef, covPars, shift = !isTRUE(climateAtRef))
+  p0 <- logisticAll(logisticPars, mat = mat[, !split$isClim, drop = FALSE], covPars[!split$isClim], lowerSpreadProb,
                     link = link)
   if (isTRUE(climateAtRef)) return(p0)
+  stats::plogis(stats::qlogis(p0) + split$shift)
+}
+
+## The climate split of a design matrix: which columns of `mat` are climate (the names of `climateRef`), the
+## reference value of each, and the climate term `sum(beta_clim * (climate - climateRef))` of each row. Used by
+## spreadProbFromCovs() (climate outside the ceiling, on the logit) and spreadLinkInputs() (climate moves the
+## power-law ceiling). `shift = FALSE` leaves the term out (`NULL`).
+spreadClimateSplit <- function(mat, climateRef, covPars, shift = TRUE) {
+  climCols <- names(climateRef)
+  if (is.null(climCols) || !all(climCols %in% colnames(mat)))
+    stop("every name of `climateRef` must be a column of `mat`; climateRef: ",
+         paste(climCols, collapse = ", "), "; columns: ", paste(colnames(mat), collapse = ", "), call. = FALSE)
+  isClim <- colnames(mat) %in% climCols
   ref <- unlist(climateRef)[colnames(mat)[isClim]]
-  shift <- (mat[, isClim, drop = FALSE] - rep(ref, each = nrow(mat))) %*% covPars[isClim]
-  stats::plogis(stats::qlogis(p0) + shift)
+  list(isClim = isClim, ref = ref,
+       shift = if (shift) (mat[, isClim, drop = FALSE] - rep(ref, each = nrow(mat))) %*% covPars[isClim])
+}
+
+#' The linear predictor and the link parameters of a spread link of [spreadLinearLinks]
+#'
+#' What [spreadProbFromCovs()] turns into `p` with [linearLinkProb()], and what the objective gives
+#' `SpaDES.tools::spreadCpp()` (`x` as the linear predictor, `pars` as `linkPars`). Without `climateRef`, `x = mat %*% covPars`
+#' and `pars` is the vector [linearLinkPars()] with `pc = logisticPars[1]`.
+#'
+#' With `climateRef` (climate in the ceiling; `spreadClimate = "ceiling"` in `fireSense_spreadFit`) and a power-law link
+#' ([spreadPowerLawLinks]) climate moves the percolation threshold `pc` toward the landscape's own runaway threshold
+#' `powerLawPc50` ([calibratePowerLaw()]), never past it. With `shift = sum(beta_clim * (climate - climateRef))` over
+#' the climate columns of `mat`, `pc = max(p50 - (p50 - pc0) * exp(-shift), lowerSpreadProb)` and `x` is the linear
+#' predictor of every other column. At the reference climate `pc = pc0 = logisticPars[1]`; `log(p50 - pc)` is linear in
+#' climate, so log mean fire size is too. `pars` is then a matrix, one row per row of `mat`.
+#'
+#' @inheritParams spreadProbFromCovs
+#' @param logisticPars,covPars,lowerSpreadProb As for [spreadProbFromCovs()].
+#' @param link One of [spreadLinearLinks].
+#' @param powerLawPc50 The landscape's runaway threshold `p50` ([calibratePowerLaw()]); needed, finite, with `climateRef`.
+#' @param climateAtRef Logical. With `climateRef`, `TRUE` returns the inputs at the reference climate: `x` of the
+#'   non-climate columns and the vector `pars` with `pc = pc0`.
+#' @return A list: `x`, a numeric vector, one per row of `mat`; `pars`, a named vector as [linearLinkPars()] gives, or with
+#'   `climateRef` a matrix with one row per row of `mat` and the columns [spreadLinkParNames] gives for `link`.
+#' @export
+spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = NULL, powerLawPc50 = NULL,
+                             powerLawGamma = spreadPowerLawGamma, powerLawShape = spreadPowerLawShape,
+                             lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu, climateAtRef = FALSE) {
+  if (!any(link %in% spreadLinearLinks))
+    stop("spreadLinkInputs(): `link` must be one of ", paste(dQuote(spreadLinearLinks, FALSE), collapse = ", "),
+         "; got ", dQuote(link, FALSE), call. = FALSE)
+  pc0 <- logisticPars[[1L]]
+  pars <- linearLinkPars(link, pc0, powerLawGamma, lowerSpreadProb, powerLawShape, lowerAsymptote, richardsNu)
+  if (is.null(climateRef) || !length(climateRef))
+    return(list(x = as.vector(mat %*% covPars), pars = pars))
+  if (!any(link %in% spreadPowerLawLinks))
+    stop("spreadLinkInputs(): climate in the ceiling (`climateRef`) needs a power-law link (",
+         paste(dQuote(spreadPowerLawLinks, FALSE), collapse = ", "), "); got ", dQuote(link, FALSE), call. = FALSE)
+  if (!(length(powerLawPc50) == 1L && is.finite(powerLawPc50)))
+    stop("spreadLinkInputs(): climate in the ceiling (`climateRef`) needs a finite `powerLawPc50`", call. = FALSE)
+  if (pc0 > powerLawPc50)
+    stop("spreadLinkInputs(): the fitted pc (", format(pc0), ") is above `powerLawPc50` (", format(powerLawPc50),
+         "); with climate in the ceiling bound it by powerLawPcBounds(climateCeiling = TRUE)", call. = FALSE)
+  split <- spreadClimateSplit(mat, climateRef, covPars, shift = !isTRUE(climateAtRef))
+  x <- as.vector(mat[, !split$isClim, drop = FALSE] %*% covPars[!split$isClim])
+  ## the climate columns left out: p at the reference climate, with pc = pc0
+  if (isTRUE(climateAtRef)) return(list(x = x, pars = pars))
+  pars <- matrix(pars, nrow = nrow(mat), ncol = length(pars), byrow = TRUE, dimnames = list(NULL, names(pars)))
+  pars[, "pc"] <- pmax(powerLawPc50 - (powerLawPc50 - pc0) * exp(-as.vector(split$shift)), lowerSpreadProb)
+  ## a row with no climate (or no covariate) gives NA, and spreadCpp() accepts no NA parameter: it cannot burn
+  bad <- is.na(x) | rowSums(is.na(pars)) > 0
+  if (any(bad)) {
+    x[bad] <- NA_real_
+    pars[bad, ] <- unburnableLinkPars(link, sum(bad))
+  }
+  list(x = x, pars = pars)
 }
 
 #' Split `par` as the objective does: drop the trailing random-effect sds (`fireSpreadSD`, then `yearSpreadSD`) and
@@ -271,7 +342,7 @@ effectiveMinFireSize <- function(minFireSize, escapeMinPx) {
 #' @param annualDTx1000,nonAnnualDTx1000,historicalFires,covMinMax,mutuallyExclusive,covCentre,link,climateRef,maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape
 #'   As in [.objfunSpreadFit()] (`landscape` is needed only with `escapeSizeHa`). With `climateRef` the gates
 #'   test the spread probability at the reference climate, as the objective does ([spreadProbFromCovs()]).
-#' @param powerLawGamma,powerLawShape,lowerAsymptote,richardsNu As in [.objfunSpreadFit()].
+#' @param powerLawGamma,powerLawShape,lowerAsymptote,richardsNu,powerLawPc50 As in [.objfunSpreadFit()].
 #' @param formulaToFit character; the spread formula, as in the objective.
 #' @param years character; the years to test. Default: the objective's first block.
 #' @param doAssertions logical; as in the objective.
@@ -285,7 +356,8 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
                             lanscape1stQuantileThresh = 0.265, minFireSize = 2, escapeSizeHa = NULL,
                             landscape = NULL, years = NULL, doAssertions = FALSE, climateRef = NULL,
                             powerLawGamma = spreadPowerLawGamma, powerLawShape = spreadPowerLawShape,
-                            lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu) {
+                            lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu,
+                            powerLawPc50 = NULL) {
   data.table::setDTthreads(1)
   formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
   colsToUse <- spreadDesignCols(formulaToFit)
@@ -313,7 +385,8 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
       spreadProbGateTest(spreadProbFromCovs(cv, ps$logisticPars, ps$covPars, lowerSpreadProb, link,
                                             climateRef = climateRef, climateAtRef = TRUE,
                                             powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
-                                            lowerAsymptote = lowerAsymptote, richardsNu = richardsNu),
+                                            lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
+                                            powerLawPc50 = powerLawPc50),
                          ps$logisticPars[1], spreadLinkLower(link, lowerSpreadProb, lowerAsymptote), maxFireSpread,
                          lanscape1stQuantileThresh, spreadOut = spreadHasCovariates(colsToUse)))
     list(pass = all(vapply(g, `[[`, logical(1), "pass")),

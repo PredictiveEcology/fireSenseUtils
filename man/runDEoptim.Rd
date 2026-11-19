@@ -66,6 +66,7 @@ runDEoptim(
   covCentre = NULL,
   convergence = NULL,
   climateRef = NULL,
+  powerLawPc50 = NULL,
   powerLawGamma = spreadPowerLawGamma,
   powerLawShape = spreadPowerLawShape,
   lowerAsymptote = spreadProbFloor,
@@ -257,6 +258,10 @@ fit that stopped early resumes from its cached generations and continues under a
 diagnostics: \code{NULL} (default) keeps climate under the \code{maxAsymptote} ceiling, and the call and its cache
 key are what they were; a named numeric (\code{\link[=spreadClimateRef]{spreadClimateRef()}}) takes climate outside the ceiling
 (\code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}).}
+
+\item{powerLawPc50}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} with \code{climateRef}: \code{NULL} (default), or the landscape's runaway
+threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}), which with a power-law \code{link} puts climate in the ceiling (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}).
+\code{NULL} leaves the call and its cache key as they were.}
 
 \item{powerLawGamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the
 fit and the re-score. Used only with those links; with any other link it is left out of the cache

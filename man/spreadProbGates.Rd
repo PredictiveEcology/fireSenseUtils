@@ -26,7 +26,8 @@ spreadProbGates(
   powerLawGamma = spreadPowerLawGamma,
   powerLawShape = spreadPowerLawShape,
   lowerAsymptote = spreadProbFloor,
-  richardsNu = spreadRichardsNu
+  richardsNu = spreadRichardsNu,
+  powerLawPc50 = NULL
 )
 }
 \arguments{
@@ -42,7 +43,7 @@ test the spread probability at the reference climate, as the objective does (\co
 
 \item{doAssertions}{logical; as in the objective.}
 
-\item{powerLawGamma, powerLawShape, lowerAsymptote, richardsNu}{As in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.}
+\item{powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, powerLawPc50}{As in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.}
 }
 \value{
 for one \code{par}, a list of logicals \code{pass} (every tested year passes), \code{burny} and \code{notSpread}

@@ -36,6 +36,7 @@
   adWeight = "auto",
   link = NULL,
   climateRef = NULL,
+  powerLawPc50 = NULL,
   powerLawGamma = spreadPowerLawGamma,
   powerLawShape = spreadPowerLawShape,
   lowerAsymptote = spreadProbFloor,
@@ -196,7 +197,12 @@ outside the ceiling, \code{p = plogis(qlogis(p0) + beta_clim * (climate - climat
 logistic of the other covariates; see \code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}, which computes both links. The year
 effect (\code{fitYearSpreadSD}) is added on the same logit, after climate. The gates
 (\code{\link[=spreadProbGateTest]{spreadProbGateTest()}}) and the saturation summary are then applied to \code{p0}, the spread probability
-at the reference climate, not to \code{p}.}
+at the reference climate, not to \code{p}. With a power-law \code{link} and \code{powerLawPc50}, climate is in the ceiling
+instead: it moves \code{pc} toward \code{powerLawPc50}, never past it (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}).}
+
+\item{powerLawPc50}{\code{NULL} (default), or the landscape's runaway threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}). With \code{climateRef} and
+a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
+fuel linear predictor. Ignored without \code{climateRef}.}
 
 \item{powerLawGamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
 those links.}
