@@ -3,14 +3,6 @@
 ## spreadProb computed by spreadCpp() only on the cells a fire reaches (link = "powerLaw"). See
 ## helper-wholeLandscape.R.
 
-## the buffer of wlFixture() with its edge columns saying no pixel is open: the buffered objective on the whole
-## landscape's tables then spreads every fire on the whole landscape with a full spreadProb vector (the reference)
-closedBuffer <- function(side = 11L) {
-  fx <- wlFixture(side)
-  data.table::set(fx$buf, NULL, c("edge", "open"), list(FALSE, FALSE))
-  fx
-}
-
 test_that("on the whole landscape the fires burn the cells of the full spreadProb vector, to the bit", {
   skip_if_not_installed("SpaDES.tools")
   for (args in list(list(), list(yearSpreadSD = 0.5), list(yearSpreadSD = 0.5, escapeMinPx = 9, jumpTries = 20,

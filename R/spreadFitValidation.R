@@ -32,7 +32,7 @@
 #'   probability, without the per-year random effect), and one column per covariate of the formula
 #'   with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 #'   `attr(, "spreadFitValidation")` holds what the plots need: the parameters, `covMinMax`,
-#'   `covCentre`, `lowerSpreadProb`, `link`, `climateRef`, `powerLawGamma`, `powerLawShape`, `lowerAsymptote`, `richardsNu`, `Nreps`, the names of the covariates and of the
+#'   `covCentre`, `lowerSpreadProb`, `link`, `climateRef`, `powerLawPc50`, `powerLawGamma`, `powerLawShape`, `lowerAsymptote`, `richardsNu`, `Nreps`, the names of the covariates and of the
 #'   annual (climate) ones, and `yearsNotSimulated` -- years the objective declined to simulate,
 #'   which have no rows.
 #'
@@ -45,7 +45,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                     maxFireSpread = spreadProbCeiling, link = NULL, fitYearSpreadSD = NULL,
                                     fitFireSpreadSD = NULL, wholeLandscape = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
                                     powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
-                                    richardsNu = spreadRichardsNu, seed = NULL, ...) {
+                                    richardsNu = spreadRichardsNu, seed = NULL, powerLawPc50 = NULL, ...) {
   if (!is.null(seed)) withr::local_seed(seed)
   objArgs <- utils::modifyList(
     list(lanscape1stQuantileThresh = Inf, doAssertions = FALSE, verbose = 0),
@@ -57,7 +57,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
     covMinMax = covMinMax, mutuallyExclusive = mutuallyExclusive, covCentre = covCentre,
     Nreps = Nreps, lowerSpreadProb = lowerSpreadProb, maxFireSpread = maxFireSpread, link = link,
     fitYearSpreadSD = fitYearSpreadSD, fitFireSpreadSD = fitFireSpreadSD, wholeLandscape = wholeLandscape,
-    climateRef = climateRef, powerLawGamma = powerLawGamma,
+    climateRef = climateRef, powerLawPc50 = powerLawPc50, powerLawGamma = powerLawGamma,
     powerLawShape = powerLawShape, lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
     returnBurned = TRUE), objArgs))
   burned <- attr(sims, "burned")
@@ -77,7 +77,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                       mutuallyExclusive, colsToUse, FALSE, pp$logisticPars,
                                       pp$covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre)
     p <- as.numeric(spreadProbFromCovs(as.matrix(used[, ..colsToUse]), pp$logisticPars, pp$covPars,
-                                       lowerSpreadProb, link = link, climateRef = climateRef,
+                                       lowerSpreadProb, link = link, climateRef = climateRef, powerLawPc50 = powerLawPc50,
                                        powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
                                        lowerAsymptote = lowerAsymptote, richardsNu = richardsNu))
     raw <- spreadProbFromIntegerCovs(NULL, ann, nonAnnualDTx1000, indexNonAnnual, y, NULL, NULL,
@@ -101,7 +101,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
   data.table::setattr(out, "spreadFitValidation", list(
     logisticPars = pp$logisticPars, covPars = pp$covPars,
     covMinMax = if (!is.null(covMinMax)) as.list(covMinMax), covCentre = covCentre,
-    lowerSpreadProb = lowerSpreadProb, link = link, climateRef = climateRef, powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
+    lowerSpreadProb = lowerSpreadProb, link = link, climateRef = climateRef, powerLawPc50 = powerLawPc50, powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
     lowerAsymptote = lowerAsymptote, richardsNu = richardsNu, Nreps = Nreps, covariates = covCols,
     intercept = spreadInterceptTxt %in% colsToUse,
     climateCols = intersect(covCols, names(annualDTx1000[[1]])),
@@ -232,7 +232,7 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
     ## covPars has the intercept's coefficient first when the fit has one; it multiplies a column of 1s
     if (isTRUE(info$intercept)) mat <- cbind(1, mat)
     stats::qlogis(as.numeric(spreadProbFromCovs(mat, info$logisticPars, info$covPars, info$lowerSpreadProb,
-                                                link = info$link, climateRef = info$climateRef,
+                                                link = info$link, climateRef = info$climateRef, powerLawPc50 = info$powerLawPc50,
                                                 powerLawGamma = info$powerLawGamma,
                                                 powerLawShape = if (is.null(info$powerLawShape)) spreadPowerLawShape else info$powerLawShape,
                                                 lowerAsymptote = if (is.null(info$lowerAsymptote)) spreadProbFloor else info$lowerAsymptote,

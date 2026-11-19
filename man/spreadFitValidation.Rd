@@ -30,6 +30,7 @@ spreadFitValidationData(
   lowerAsymptote = spreadProbFloor,
   richardsNu = spreadRichardsNu,
   seed = NULL,
+  powerLawPc50 = NULL,
   ...
 )
 
@@ -135,7 +136,8 @@ outside the ceiling, \code{p = plogis(qlogis(p0) + beta_clim * (climate - climat
 logistic of the other covariates; see \code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}, which computes both links. The year
 effect (\code{fitYearSpreadSD}) is added on the same logit, after climate. The gates
 (\code{\link[=spreadProbGateTest]{spreadProbGateTest()}}) and the saturation summary are then applied to \code{p0}, the spread probability
-at the reference climate, not to \code{p}.}
+at the reference climate, not to \code{p}. With a power-law \code{link} and \code{powerLawPc50}, climate is in the ceiling
+instead: it moves \code{pc} toward \code{powerLawPc50}, never past it (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}).}
 
 \item{powerLawGamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
 those links.}
@@ -151,6 +153,10 @@ gates use it as their lower bound with those links (\code{\link[=spreadLinkLower
 
 \item{seed}{If not \code{NULL}, the simulations run with this seed and the session's random number
 stream is restored afterwards.}
+
+\item{powerLawPc50}{\code{NULL} (default), or the landscape's runaway threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}). With \code{climateRef} and
+a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
+fuel linear predictor. Ignored without \code{climateRef}.}
 
 \item{...}{Further arguments to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, e.g. \code{escapeSizeHa}, \code{jumpTries},
 \code{jumpMeanDist}: give it what the fit was given. The objective's gates on implausible
@@ -174,7 +180,7 @@ of the fire year), \code{pixelID}, \code{observed} (1 if the pixel is inside an 
 probability, without the per-year random effect), and one column per covariate of the formula
 with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 \code{attr(, "spreadFitValidation")} holds what the plots need: the parameters, \code{covMinMax},
-\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawGamma}, \code{powerLawShape}, \code{lowerAsymptote}, \code{richardsNu}, \code{Nreps}, the names of the covariates and of the
+\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawPc50}, \code{powerLawGamma}, \code{powerLawShape}, \code{lowerAsymptote}, \code{richardsNu}, \code{Nreps}, the names of the covariates and of the
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 

@@ -114,6 +114,9 @@ deoptimPopulationSize <- function(nParams) {
 #'   diagnostics: `NULL` (default) keeps climate under the `maxAsymptote` ceiling, and the call and its cache
 #'   key are what they were; a named numeric ([spreadClimateRef()]) takes climate outside the ceiling
 #'   ([spreadProbFromCovs()]).
+#' @param powerLawPc50 Passed to [.objfunSpreadFit()] with `climateRef`: `NULL` (default), or the landscape's runaway
+#'   threshold ([calibratePowerLaw()]), which with a power-law `link` puts climate in the ceiling ([spreadLinkInputs()]).
+#'   `NULL` leaves the call and its cache key as they were.
 #' @param powerLawGamma The `"powerLaw"` and `"powerLawSmooth"` links' `gamma` ([powerLawLink()]), passed to [.objfunSpreadFit()] in the
 #'   fit and the re-score. Used only with those links; with any other link it is left out of the cache
 #'   keys ([powerLawOmitArgs()]) and the re-score's arguments, so they are what they were.
@@ -273,6 +276,7 @@ runDEoptim <- function(landscape,
                        covCentre = NULL,
                        convergence = NULL,
                        climateRef = NULL,
+                       powerLawPc50 = NULL,
                        powerLawGamma = spreadPowerLawGamma,
                        powerLawShape = spreadPowerLawShape,
                        lowerAsymptote = spreadProbFloor,
@@ -373,6 +377,7 @@ runDEoptim <- function(landscape,
       covMinMax = covMinMax,
       covCentre = covCentre,
       climateRef = climateRef,
+      powerLawPc50 = powerLawPc50,
       powerLawGamma = powerLawGamma,
       powerLawShape = powerLawShape,
       lowerAsymptote = lowerAsymptote,
@@ -418,7 +423,7 @@ runDEoptim <- function(landscape,
     omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link, powerLawShape),
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
                  omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
-                              convergence = convergence, climateRef = climateRef, wholeLandscape = wholeLandscapeArg,
+                              convergence = convergence, climateRef = climateRef, powerLawPc50 = powerLawPc50, wholeLandscape = wholeLandscapeArg,
                               fitFireSpreadSD = fitFireSpreadSDArg)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
@@ -449,6 +454,7 @@ runDEoptim <- function(landscape,
   ## NULL adds nothing, so the cached re-score keeps its key
   rescoreArgs$covCentre <- covCentre
   rescoreArgs$climateRef <- climateRef
+  rescoreArgs$powerLawPc50 <- powerLawPc50
   omitted <- powerLawOmitArgs(link, powerLawShape)
   for (nm in setdiff(c("powerLawGamma", "powerLawShape", "lowerAsymptote", "richardsNu"), omitted))
     rescoreArgs[[nm]] <- get(nm)

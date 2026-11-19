@@ -4,12 +4,15 @@
 \alias{powerLawPcBounds}
 \title{Per-ELF bounds of \code{p_c} for the \code{"powerLaw"} link}
 \usage{
-powerLawPcBounds(p50, margin = 0.005)
+powerLawPcBounds(p50, margin = 0.005, climateCeiling = FALSE)
 }
 \arguments{
 \item{p50}{The calibrated threshold.}
 
 \item{margin}{Added to \code{p50} for the upper bound.}
+
+\item{climateCeiling}{\code{TRUE} when climate moves \code{pc} toward \code{p50} (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}): the upper bound is then
+\code{p50} itself, else a wet year (climate below its reference) would raise \code{pc} past \code{p50}. Default \code{FALSE}.}
 }
 \value{
 \code{c(lower, upper)} for the \code{maxAsymptote} slot.
