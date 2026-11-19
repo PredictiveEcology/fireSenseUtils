@@ -14,12 +14,11 @@
 #' The tag names the objective ([ignitionObjectiveTxt]); a test fails if the objective changes and the tag does not.
 #'
 #' @param fireYears The fire years the fit used; only the first and last matter.
-#' @param suffix Text put after the model tag in the file name, e.g. `"_bufIndep20261024"`; end it with
-#'   the date of the fits (`yyyymmdd`), which orders the files for `"latest"`. A run with a suffix writes,
-#'   and `"latest"` reads, only files with that suffix. With `""` (the default) `"latest"` reads every file
-#'   of the model tag in the folder, newest date first. Experiment fits go in the folder's `"testing"`
-#'   subfolder (`spreadFitLedgerFolder(testing = TRUE)`), which `"latest"` over the main folder never reads. The same `fitFileSuffix` parameter
-#'   of `fireSense_spreadFit` and `fireSense_ignitionFit` sets it for both ledgers.
+#' @param suffix Text put after the model tag in the file name, to name an experiment's ledger file, e.g.
+#'   `"_bufIndep20261024"` (ending with the date of the fits orders the file among others for `"latest"`, for rows
+#'   written before `writtenAt`). A run reads or writes such a file by naming it (`spreadFitFilename`,
+#'   `ignitionFitFilename`); `"latest"` reads every ledger file of the folder. Experiment files go in the folder's
+#'   `"testing"` subfolder (`spreadFitLedgerFolder(testing = TRUE)`), which `"latest"` over the main folder never reads.
 #'
 #' @return `ignitionFitFilenameFor()`: the file name a fit over `fireYears` is written to,
 #'   e.g. `"fireSenseIgnitionParams_1985-2024_xgboostPoisson_20261013.rds"` (then `suffix`).
@@ -50,8 +49,6 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #' @param cloudFolderID The Google Drive folder (url or id) holding the ledger files; default [ignitionFitLedgerFolder()].
 #' @param destinationPath Local folder for the downloaded files.
 #' @param polygonIDs Optional. The polygons (ELF ids) wanted; `NULL` reads every file.
-#' @param suffix A suffix reads only the files named with it; `""` (default) reads every ledger file.
-#'   See `ignitionFitFilenameFor()`.
 #' @param escapeDefinition This run's [escapeDefinition()]: rows fitted under another (recorded since
 #'   fireSense_ignitionFit records it) are skipped. `NULL` (default): not checked.
 #'
@@ -61,9 +58,9 @@ ignitionFitFileTag <- "_xgboostPoisson_20261013"
 #' @export
 #' @rdname ignitionFitLedger
 latestIgnitionFits <- function(cloudFolderID = ignitionFitLedgerFolder(), destinationPath, polygonIDs = NULL,
-                              suffix = "", escapeDefinition = NULL) {
+                              escapeDefinition = NULL) {
   .latestLedgerFits(cloudFolderID, destinationPath, polygonIDs, filePrefix = ignitionFitFilePrefix,
-                    fileTag = ignitionFitFileTag, suffix = suffix, caller = "latestIgnitionFits", attrName = "ignitionFitFiles",
+                    fileTag = ignitionFitFileTag, caller = "latestIgnitionFits", attrName = "ignitionFitFiles",
                     rowProblem = function(row, file) .ignitionRowProblem(row, escapeDefinition))
 }
 

@@ -34,17 +34,15 @@ resolveDoFit <- function(doFit = NA, refitExisting = NA, stopIfNoPreRunFit = NA,
 #' @param hasLedgerFit logical: does the ledger hold a usable fit for this polygon? Evaluated
 #'   lazily, only when `doFit` is not `TRUE`, so a forced fit never consults the ledger.
 #' @param polygon the polygon identifier, for the error message.
-#' @param fitFileSuffix the module's `fitFileSuffix` parameter, i.e., which ledger was searched, for the
-#'   error message. `NULL` (default) leaves it out of the message.
 #' @return `TRUE` to fit, `FALSE` to use the ledger's fit. Stops when `doFit` is `FALSE` and the
 #'   ledger has no usable fit.
 #' @export
-mustFit <- function(doFit, hasLedgerFit, polygon = "", fitFileSuffix = NULL) {
+mustFit <- function(doFit, hasLedgerFit, polygon = "") {
   if (isTRUE(doFit)) return(TRUE)
   hasFit <- isTRUE(hasLedgerFit)
   if (!hasFit && isFALSE(doFit))
     stop("There is no usable stored fit for polygon ", if (length(polygon)) polygon[1] else "<none>",
-         " in the ledger", if (!is.null(fitFileSuffix)) paste0(" with fitFileSuffix \"", fitFileSuffix, "\""),
+         " in the ledger",
          ", and `doFit` is FALSE (the default: never fit, only predict from a stored fit). ",
          "To fit it, set `doFit = NA` (fit only when there is no stored fit) or `doFit = TRUE` (always fit).",
          call. = FALSE)
