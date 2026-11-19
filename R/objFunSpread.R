@@ -796,7 +796,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
   ## the linear predictor and link parameters of the year; with climateRef and a power-law link (climate in the
   ## ceiling) the parameters are per pixel
-  linkIn <- if (linearLink && (whole || yearSpreadSD > 0)) spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
+  linkIn <- if (linearLink) spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
                                              powerLawGamma, powerLawShape, lowerAsymptote, richardsNu)
   ## The gates only skip hopeless parameter sets (gateRefusal = "minLik"); under "simulate" they never run, and
   ## the plots leave out their panel.
@@ -805,11 +805,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   ## cell reached, so the column is only for them
   needP <- runGates || isTRUE(returnSims) || SpaDES.core::anyPlotting(plot.it)
   if (!whole || needP)
-    set(shortAnnDT, NULL, "spreadProb", spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link,
-                                                           climateRef = climateRef, powerLawGamma = powerLawGamma,
-                                                           powerLawShape = powerLawShape,
-                                                           lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
-                                                           powerLawPc50 = powerLawPc50))
+    set(shortAnnDT, NULL, "spreadProb", if (linearLink) linearLinkProb(linkIn$x, link, linkIn$pars) else
+      spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = climateRef))
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
@@ -1005,9 +1002,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         if (is.matrix(spreadLinkPars)) {
           ## per-cell parameters (climate in the ceiling): one row per cell of the crop; cells off the year's
           ## pixels have no lp, so no fire reaches them, and get parameters that cannot burn
-          unburnable <- linearLinkPars(link, 0, powerLawGamma, 0, powerLawShape, 0, richardsNu)
-          cropPars <- matrix(unburnable, nrow = crop$ncell, ncol = length(unburnable), byrow = TRUE,
-                             dimnames = list(NULL, names(unburnable)))
+          cropPars <- unburnableLinkPars(link, crop$ncell)
           cropPars[crop$toCrop(shortAnnDT$pixelID), ] <- spreadLinkPars
           spreadLinkPars <- cropPars
         }

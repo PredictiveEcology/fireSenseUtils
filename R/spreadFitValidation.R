@@ -264,7 +264,9 @@ plotSpreadFitResponse <- function(d, covariates = NULL, bins = 40L, title = NULL
   lv <- intersect(covs, unique(cur$covariate))
   set(pts, NULL, "covariate", factor(pts$covariate, levels = lv))
   set(cur, NULL, "covariate", factor(cur$covariate, levels = lv))
-  limits <- stats::qlogis(c(spreadLinkLower(info$link, info$lowerSpreadProb, info$lowerAsymptote), info$logisticPars[[1]]))
+  ## with climate in the ceiling the ceiling is p50, which pc approaches; else the fitted pc
+  ceiling <- if (length(info$climateRef) && !is.null(info$powerLawPc50)) info$powerLawPc50 else info$logisticPars[[1]]
+  limits <- stats::qlogis(c(spreadLinkLower(info$link, info$lowerSpreadProb, info$lowerAsymptote), ceiling))
   limits <- limits[is.finite(limits)]
   geomBins <- if (requireNamespace("hexbin", quietly = TRUE)) ggplot2::geom_hex else ggplot2::geom_bin_2d
   if (is.null(title)) title <- "Model response curves: what the fitted model predicts, not how well it fits"

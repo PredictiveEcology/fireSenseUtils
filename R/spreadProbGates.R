@@ -198,15 +198,15 @@ spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link
                                climateAtRef = FALSE, powerLawGamma = spreadPowerLawGamma,
                                powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
                                richardsNu = spreadRichardsNu, powerLawPc50 = NULL) {
-  if (is.null(climateRef) || !length(climateRef))
-    ## no climate to take out of the ceiling: the link of the whole linear predictor
-    return(logisticAll(logisticPars, mat = mat, covPars, lowerSpreadProb, link = link, gamma = powerLawGamma,
-                      shape = powerLawShape, lowerAsymptote = lowerAsymptote, richardsNu = richardsNu))
   if (any(link %in% spreadLinearLinks)) {
     inputs <- spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
                                powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, climateAtRef)
     return(linearLinkProb(inputs$x, link, inputs$pars))
   }
+  if (is.null(climateRef) || !length(climateRef))
+    ## no climate to take out of the ceiling: the link of the whole linear predictor
+    return(logisticAll(logisticPars, mat = mat, covPars, lowerSpreadProb, link = link, gamma = powerLawGamma,
+                      shape = powerLawShape, lowerAsymptote = lowerAsymptote, richardsNu = richardsNu))
   split <- spreadClimateSplit(mat, climateRef, covPars, shift = !isTRUE(climateAtRef))
   p0 <- logisticAll(logisticPars, mat = mat[, !split$isClim, drop = FALSE], covPars[!split$isClim], lowerSpreadProb,
                     link = link)
@@ -266,12 +266,21 @@ spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, 
          paste(dQuote(spreadPowerLawLinks, FALSE), collapse = ", "), "); got ", dQuote(link, FALSE), call. = FALSE)
   if (!(length(powerLawPc50) == 1L && is.finite(powerLawPc50)))
     stop("spreadLinkInputs(): climate in the ceiling (`climateRef`) needs a finite `powerLawPc50`", call. = FALSE)
+  if (pc0 > powerLawPc50)
+    stop("spreadLinkInputs(): the fitted pc (", format(pc0), ") is above `powerLawPc50` (", format(powerLawPc50),
+         "); with climate in the ceiling bound it by powerLawPcBounds(climateCeiling = TRUE)", call. = FALSE)
   split <- spreadClimateSplit(mat, climateRef, covPars, shift = !isTRUE(climateAtRef))
   x <- as.vector(mat[, !split$isClim, drop = FALSE] %*% covPars[!split$isClim])
   ## the climate columns left out: p at the reference climate, with pc = pc0
   if (isTRUE(climateAtRef)) return(list(x = x, pars = pars))
   pars <- matrix(pars, nrow = nrow(mat), ncol = length(pars), byrow = TRUE, dimnames = list(NULL, names(pars)))
   pars[, "pc"] <- pmax(powerLawPc50 - (powerLawPc50 - pc0) * exp(-as.vector(split$shift)), lowerSpreadProb)
+  ## a row with no climate (or no covariate) gives NA, and spreadCpp() accepts no NA parameter: it cannot burn
+  bad <- is.na(x) | rowSums(is.na(pars)) > 0
+  if (any(bad)) {
+    x[bad] <- NA_real_
+    pars[bad, ] <- unburnableLinkPars(link, sum(bad))
+  }
   list(x = x, pars = pars)
 }
 

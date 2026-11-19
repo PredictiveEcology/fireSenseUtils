@@ -98,3 +98,39 @@ test_that("the objective gives the same p on the whole landscape and in its buff
   ref0 <- do.call(wlObjective, utils::modifyList(c(list(whole = TRUE), args), list(clim = function(pix) rep(0.5, length(pix)))))
   expect_gt(mean(hot$sims$sim), mean(ref0$sims$sim))
 })
+
+test_that("rows with no climate cannot burn, and the parameters of such cells come from one helper", {
+  mat <- matOf("2005")
+  mat[c(3, 7), "clim"] <- NA
+  for (link in spreadPowerLawLinks) {
+    inputs <- spreadLinkInputs(mat, lp3, b, f, link, ref, p50)
+    expect_false(anyNA(inputs$pars))
+    expect_true(all(is.na(inputs$x[c(3, 7)])))
+    expect_identical(inputs$pars[c(3, 7), , drop = FALSE], unburnableLinkPars(link, 2L))
+    expect_false(anyNA(inputs$x[-c(3, 7)]))
+    expect_true(all(is.na(spreadProbFromCovs(mat, lp3, b, f, link = link, climateRef = ref, powerLawPc50 = p50)[c(3, 7)])))
+  }
+  u <- unburnableLinkPars("powerLawSmooth", 3L)
+  expect_identical(dim(u), c(3L, length(spreadLinkParNames$powerLawSmooth)))
+  expect_identical(colnames(u), spreadLinkParNames$powerLawSmooth)
+  expect_true(all(u[, c("pc", "floor", "lower")] == 0))
+  expect_equal(linearLinkProb(c(1, -1, 5), "powerLawSmooth", u), c(0, 0, 0))
+})
+
+test_that("pc0 above p50 stops in ceiling mode", {
+  expect_error(spreadLinkInputs(matOf("2004"), c(0.35, 1, 1), b, f, "powerLaw", ref, p50), "powerLawPcBounds\\(climateCeiling = TRUE\\)")
+})
+
+test_that("the response plot's dashed ceiling is p50 in ceiling mode, with climate curves that stay below it", {
+  par <- c(0.2, clim = 1.5, fuel = 3, youngAge = -1)
+  r <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+  fb <- lapply(climFix$historicalFires, function(h) dtC(pixelID = 1:nPixC, buffer = as.integer(1:nPixC <= 30), ids = 1L))
+  d <- spreadFitValidationData(par, r, climFix$annualDTx1000, climFix$nonAnnualDTx1000, formC,
+                               climFix$historicalFires, fb, mutuallyExclusive = NULL, Nreps = 2L, link = "powerLaw",
+                               powerLawGamma = 1.5, climateRef = c(clim = 0.3), powerLawPc50 = p50, seed = 1)
+  expect_identical(attr(d, "spreadFitValidation")$powerLawPc50, p50)
+  expect_lte(max(d$p), p50)
+  g <- plotSpreadFitResponse(d)
+  hl <- Filter(function(l) inherits(l$geom, "GeomHline"), g$layers)[[1]]
+  expect_equal(hl$data$yintercept[2], qlogis(p50))
+})
