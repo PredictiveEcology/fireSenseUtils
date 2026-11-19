@@ -219,3 +219,27 @@ test_that("the validation plots of a '~ 1' fit have no covariate panel: they are
   expect_null(plotSpreadFitValidation(d))
   expect_null(plotSpreadFitResponse(d))
 })
+
+## ELF 7.1 (2026-11-19): a fit with every pixel near its ceiling, which the objective's "spread out enough" gate
+## refuses, though the fit itself ran with gateRefusal = "simulate". The validation refused every year, so its
+## table had no rows and plotSpreadFitValidation() stopped with "object 'observed' not found".
+test_that("spreadFitValidationData() simulates years the gates would refuse, and an empty table plots as NULL", {
+  skip_if_not_installed("SpaDES.tools")
+  inp <- toyValidationInputs()
+  inp$par[c("clim", "youngAge", "agb")] <- 0 # one spread probability everywhere: not spread out enough
+  run <- function(...) spreadFitValidationData(
+    par = inp$par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
+    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
+    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
+    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive, Nreps = 2L, seed = 1L, ...)
+  d <- run()
+  expect_identical(attr(d, "spreadFitValidation")$yearsNotSimulated, character(0))
+  expect_identical(nrow(d), sum(vapply(inp$fireBufferedListDT, nrow, integer(1))))
+  expect_s3_class(plotSpreadFitValidation(d), "ggplot")
+  ## with the gates asked for, every year is refused: no rows, and no figure rather than an error
+  dNone <- run(gateRefusal = "minLik")
+  expect_setequal(attr(dNone, "spreadFitValidation")$yearsNotSimulated, names(inp$fireBufferedListDT))
+  expect_identical(nrow(dNone), 0L)
+  expect_null(plotSpreadFitValidation(dNone))
+  expect_null(plotSpreadFitResponse(dNone))
+})

@@ -160,7 +160,8 @@ fuel linear predictor. Ignored without \code{climateRef}.}
 
 \item{...}{Further arguments to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, e.g. \code{escapeSizeHa}, \code{jumpTries},
 \code{jumpMeanDist}: give it what the fit was given. The objective's gates on implausible
-landscapes are lifted (\code{lanscape1stQuantileThresh = Inf}) unless given here.}
+landscapes are lifted (\code{gateRefusal = "simulate"}, \code{lanscape1stQuantileThresh = Inf}) unless
+given here, so every fire year is simulated with the fitted parameters.}
 
 \item{d}{The output of \code{spreadFitValidationData()}.}
 
@@ -184,7 +185,8 @@ with its raw value (the stored integer / 1000, before rescaling and mutual exclu
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 
-\code{plotSpreadFitValidation()}: a \code{ggplot}, one panel per covariate (\code{NULL} for a model with none, \code{~ 1}). Pixel-years are binned
+\code{plotSpreadFitValidation()}: a \code{ggplot}, one panel per covariate (\code{NULL} for a model with none, \code{~ 1},
+or for a table with no pixel-years). Pixel-years are binned
 by quantiles of the covariate: all of them for climate covariates, only those where it is
 present (above its \code{covMinMax} minimum, else above 0) for the others, and one bin per value
 for covariates with two values or fewer. Each bin shows the observed burned share and the
