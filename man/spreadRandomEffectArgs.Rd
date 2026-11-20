@@ -9,12 +9,16 @@ spreadRandomEffectArgs(lower, wholeLandscape = FALSE)
 \arguments{
 \item{lower}{Named lower bounds of the fit, as \code{runDEoptim(lower = )}.}
 
-\item{wholeLandscape}{As in \code{runDEoptim()}: \code{fireSpreadSD} needs \code{TRUE} (an error otherwise).}
+\item{wholeLandscape}{As in \code{runDEoptim()}: \code{fireSpreadSD} needs \code{TRUE} (an error otherwise).
+
+The same holds for \code{activationIntercept} (\link{activationInterceptTxt}, \code{spreadClimate = "activation"}), which must come
+right before them.}
 }
 \value{
 A list of \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} arguments: \code{fitYearSpreadSD} (logical) and, only when \code{lower} has
-\code{fireSpreadSD}, \code{fitFireSpreadSD = TRUE}. A fit without the per-fire effect does not get that argument, so its
-cache keys are those it had before the effect existed.
+\code{fireSpreadSD}, \code{fitFireSpreadSD = TRUE}, and only when it has \code{activationIntercept}, \code{fitActivationIntercept = TRUE}.
+A fit without the per-fire effect (or the activation) does not get that argument, so its cache keys are those it had
+before the argument existed.
 }
 \description{
 A spread fit fits a random effect when its bounds name it: \code{fireSpreadSD} and \code{yearSpreadSD}

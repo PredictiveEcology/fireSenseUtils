@@ -50,6 +50,8 @@
   runawayBufferMultiple = NULL,
   fitYearSpreadSD = NULL,
   fitFireSpreadSD = NULL,
+  fitActivationIntercept = NULL,
+  pcAtP50 = NULL,
   verbose = 2,
   crpsWeights = NULL,
   gateRefusal = c("minLik", "simulate"),
@@ -60,7 +62,8 @@
 \arguments{
 \item{par}{parameters: the logistic parameters (\code{maxAsymptote} first, then \code{upperTail1} if the link has
 one; without \code{hillSlope1} and \code{inflectionPoint1}, which are fixed at 1 -- see \code{fixLogisticPars()}), then the covariate coefficients (the intercept's first, when
-the formula has one -- see \code{\link[=spreadDesignCols]{spreadDesignCols()}}), and optionally
+the formula has one -- see \code{\link[=spreadDesignCols]{spreadDesignCols()}}), then \code{activationIntercept} with \code{fitActivationIntercept} (which has no
+\code{maxAsymptote}), and optionally
 \code{fireSpreadSD} (see \code{fitFireSpreadSD}) and \code{yearSpreadSD} last (see \code{fitYearSpreadSD}), in that order.}
 
 \item{landscape}{A \code{SpatRaster} with extent, resolution, and projection (crs) used for
@@ -202,7 +205,7 @@ instead: it moves \code{pc} toward \code{powerLawPc50}, never past it (\code{\li
 
 \item{powerLawPc50}{\code{NULL} (default), or the landscape's runaway threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}). With \code{climateRef} and
 a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
-fuel linear predictor. Ignored without \code{climateRef}.}
+fuel linear predictor. Without \code{climateRef} it is used only as the fixed \code{maxAsymptote} of \code{pcAtP50}.}
 
 \item{powerLawGamma}{The \code{"powerLaw"} and \code{"powerLawSmooth"} links' \code{gamma} (\code{\link[=powerLawLink]{powerLawLink()}}), fixed, not fitted; used only with
 those links.}
@@ -265,6 +268,18 @@ the year's draw), so fires of one year can differ in how readily they spread. On
 \code{wholeLandscape = TRUE} (an error otherwise, when the sd is above 0). \code{sd = 0} draws no random numbers, so
 the objective is exactly the one without it. \code{NULL} (default): \code{TRUE} when \code{par} is named and includes
 \code{fireSpreadSD}. DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly.}
+
+\item{fitActivationIntercept}{If \code{TRUE}, \code{spreadClimate = "activation"} (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}): the element of \code{par}
+right before the random-effect sds is \code{activationIntercept} (\link{activationInterceptTxt}), the linear predictor at the
+reference climate, and \code{maxAsymptote} is not in \code{par} (it is \code{powerLawPc50}, \code{\link[=splitSpreadPar]{splitSpreadPar()}}). Fuel then sets each
+pixel's ceiling and climate, with the year and fire effects, is the linear predictor; the gates and the saturation
+summary look at \code{p}. Needs \code{climateRef}, \code{powerLawPc50} and \code{link = "powerLawSmooth"} with
+\code{lowerAsymptote = lowerSpreadProb}. \code{NULL} (default): \code{TRUE} when \code{par} is named and has \code{activationIntercept}.
+DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly (\code{\link[=spreadRandomEffectArgs]{spreadRandomEffectArgs()}}).}
+
+\item{pcAtP50}{\code{NULL} (default) or \code{TRUE}: \code{maxAsymptote} (p_c of a power-law \code{link}) is not fitted and not in
+\code{par}; it is \code{powerLawPc50} (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}, \code{\link[=splitSpreadPar]{splitSpreadPar()}}). A named \code{par} that has
+\code{maxAsymptote} (a ledger row's) keeps it. The activation (\code{fitActivationIntercept}) implies it.}
 
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 

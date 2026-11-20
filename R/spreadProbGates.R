@@ -192,15 +192,20 @@ spreadClimateRef <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covM
 #'   held at its reference: what the ceiling applies to. The objective's gates and its saturation summary
 #'   look at `p0`, because under this link a dry year legitimately takes the landscape past `maxFireSpread`
 #'   and a gate on `p` would refuse the years that carry the climate signal. Ignored without `climateRef`.
+#' @param activationIntercept `NULL` (default), or with `climateRef`, `powerLawPc50` and `link = "powerLawSmooth"` the
+#'   fitted intercept of `spreadClimate = "activation"`: fuel sets each pixel's ceiling and climate is the linear
+#'   predictor ([spreadLinkInputs()]).
 #' @return A one-column numeric matrix, one value per row of `mat` (as [logisticAll()]).
 #' @export
 spreadProbFromCovs <- function(mat, logisticPars, covPars, lowerSpreadProb, link = NULL, climateRef = NULL,
                                climateAtRef = FALSE, powerLawGamma = spreadPowerLawGamma,
                                powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
-                               richardsNu = spreadRichardsNu, powerLawPc50 = NULL) {
-  if (any(link %in% spreadLinearLinks)) {
+                               richardsNu = spreadRichardsNu, powerLawPc50 = NULL, activationIntercept = NULL) {
+  ## an activation with another link is refused there
+  if (any(link %in% spreadLinearLinks) || !is.null(activationIntercept)) {
     inputs <- spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
-                               powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, climateAtRef)
+                               powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, climateAtRef,
+                               activationIntercept)
     return(linearLinkProb(inputs$x, link, inputs$pars))
   }
   if (is.null(climateRef) || !length(climateRef))
@@ -240,23 +245,38 @@ spreadClimateSplit <- function(mat, climateRef, covPars, shift = TRUE) {
 #' `powerLawPc50` ([calibratePowerLaw()]), never past it. With `shift = sum(beta_clim * (climate - climateRef))` over
 #' the climate columns of `mat`, `pc = max(p50 - (p50 - pc0) * exp(-shift), lowerSpreadProb)` and `x` is the linear
 #' predictor of every other column. At the reference climate `pc = pc0 = logisticPars[1]`; `log(p50 - pc)` is linear in
-#' climate, so log mean fire size is too. `pars` is then a matrix, one row per row of `mat`.
+#' climate. `pars` is then a matrix, one row per row of `mat`.
+#'
+#' With `activationIntercept` as well (`spreadClimate = "activation"` in `fireSense_spreadFit`) the roles are swapped:
+#' fuel sets each pixel's own ceiling and climate is the linear predictor. With `eta` the linear predictor of the
+#' non-climate columns (the intercept, fuels, youngAge, non-forest, ...) and `f` = `lowerSpreadProb`,
+#' `pc = f + (p50 - f) * plogis(eta)`, so `pc <= p50`, and `x = activationIntercept + shift`. `pc0` is not used
+#' (`logisticPars[1]`, which the objective sets to `p50`, [splitSpreadPar()]). Above the floor every pixel's
+#' `p - f = (pc - f) * (1 - exp(-(x / gamma)^shape))`, so the ratio of `p - f` between two pixels of a year is the ratio of
+#' their `plogis(eta)`, whatever the climate. It needs `"powerLawSmooth"` with `lowerAsymptote = lowerSpreadProb`
+#' ([checkLinkParams()]).
 #'
 #' @inheritParams spreadProbFromCovs
 #' @param logisticPars,covPars,lowerSpreadProb As for [spreadProbFromCovs()].
 #' @param link One of [spreadLinearLinks].
 #' @param powerLawPc50 The landscape's runaway threshold `p50` ([calibratePowerLaw()]); needed, finite, with `climateRef`.
 #' @param climateAtRef Logical. With `climateRef`, `TRUE` returns the inputs at the reference climate: `x` of the
-#'   non-climate columns and the vector `pars` with `pc = pc0`.
+#'   non-climate columns and the vector `pars` with `pc = pc0`; with `activationIntercept`, `x = activationIntercept`.
+#' @param activationIntercept `NULL` (default), or the fitted `x` at the reference climate of `spreadClimate =
+#'   "activation"` ([activationInterceptTxt]); needs `climateRef`.
 #' @return A list: `x`, a numeric vector, one per row of `mat`; `pars`, a named vector as [linearLinkPars()] gives, or with
 #'   `climateRef` a matrix with one row per row of `mat` and the columns [spreadLinkParNames] gives for `link`.
 #' @export
 spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = NULL, powerLawPc50 = NULL,
                              powerLawGamma = spreadPowerLawGamma, powerLawShape = spreadPowerLawShape,
-                             lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu, climateAtRef = FALSE) {
+                             lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu, climateAtRef = FALSE,
+                             activationIntercept = NULL) {
   if (!any(link %in% spreadLinearLinks))
     stop("spreadLinkInputs(): `link` must be one of ", paste(dQuote(spreadLinearLinks, FALSE), collapse = ", "),
          "; got ", dQuote(link, FALSE), call. = FALSE)
+  activation <- !is.null(activationIntercept)
+  if (activation && (is.null(climateRef) || !length(climateRef)))
+    stop("spreadLinkInputs(): `activationIntercept` (spreadClimate = 'activation') needs `climateRef`", call. = FALSE)
   pc0 <- logisticPars[[1L]]
   pars <- linearLinkPars(link, pc0, powerLawGamma, lowerSpreadProb, powerLawShape, lowerAsymptote, richardsNu)
   if (is.null(climateRef) || !length(climateRef))
@@ -266,15 +286,28 @@ spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, 
          paste(dQuote(spreadPowerLawLinks, FALSE), collapse = ", "), "); got ", dQuote(link, FALSE), call. = FALSE)
   if (!(length(powerLawPc50) == 1L && is.finite(powerLawPc50)))
     stop("spreadLinkInputs(): climate in the ceiling (`climateRef`) needs a finite `powerLawPc50`", call. = FALSE)
-  if (pc0 > powerLawPc50)
+  if (activation) {
+    if (!(length(activationIntercept) == 1L && is.finite(activationIntercept)))
+      stop("spreadLinkInputs(): `activationIntercept` must be one finite number; got ", format(activationIntercept),
+           call. = FALSE)
+    checkLinkParams(link, lowerAsymptote, richardsNu, activation = TRUE, floor = lowerSpreadProb)
+  } else if (pc0 > powerLawPc50)
     stop("spreadLinkInputs(): the fitted pc (", format(pc0), ") is above `powerLawPc50` (", format(powerLawPc50),
          "); with climate in the ceiling bound it by powerLawPcBounds(climateCeiling = TRUE)", call. = FALSE)
   split <- spreadClimateSplit(mat, climateRef, covPars, shift = !isTRUE(climateAtRef))
-  x <- as.vector(mat[, !split$isClim, drop = FALSE] %*% covPars[!split$isClim])
+  ## the linear predictor of the non-climate columns: x of the ceiling, eta (the fuel potential) of the activation
+  lpOther <- as.vector(mat[, !split$isClim, drop = FALSE] %*% covPars[!split$isClim])
   ## the climate columns left out: p at the reference climate, with pc = pc0
-  if (isTRUE(climateAtRef)) return(list(x = x, pars = pars))
+  if (isTRUE(climateAtRef) && !activation) return(list(x = lpOther, pars = pars))
   pars <- matrix(pars, nrow = nrow(mat), ncol = length(pars), byrow = TRUE, dimnames = list(NULL, names(pars)))
-  pars[, "pc"] <- pmax(powerLawPc50 - (powerLawPc50 - pc0) * exp(-as.vector(split$shift)), lowerSpreadProb)
+  if (activation) {
+    x <- activationIntercept + if (isTRUE(climateAtRef)) numeric(nrow(mat)) else as.vector(split$shift)
+    ## a pixel with no fuel term (NA) gives NA here, and is made unburnable below
+    pars[, "pc"] <- lowerSpreadProb + (powerLawPc50 - lowerSpreadProb) * stats::plogis(lpOther)
+  } else {
+    x <- lpOther
+    pars[, "pc"] <- pmax(powerLawPc50 - (powerLawPc50 - pc0) * exp(-as.vector(split$shift)), lowerSpreadProb)
+  }
   ## a row with no climate (or no covariate) gives NA, and spreadCpp() accepts no NA parameter: it cannot burn
   bad <- is.na(x) | rowSums(is.na(pars)) > 0
   if (any(bad)) {
@@ -286,10 +319,23 @@ spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, 
 
 #' Split `par` as the objective does: drop the trailing random-effect sds (`fireSpreadSD`, then `yearSpreadSD`) and
 #' insert the fixed `hillSlope1` and `inflectionPoint1`
+#'
+#' With `fitActivationIntercept` (`spreadClimate = "activation"`) the parameter before the sds is
+#' `activationIntercept` ([activationInterceptTxt]), taken out too, and `maxAsymptote` is not fitted: `powerLawPc50` is
+#' put first unless a named `par` has `maxAsymptote` (a ledger row's, written with it). It is the ceiling of every
+#' pixel's `p` in that mode, so whatever reads `logisticPars[1]` as the ceiling (the gates, the saturation summary)
+#' reads `p50`. With `pcAtP50` (`fireSense_spreadFit`'s `powerLawPcAtP50`) `maxAsymptote` is not fitted either, and is
+#' `powerLawPc50` in the same way.
+#' @param fitActivationIntercept `NULL` (default): `TRUE` when `par` is named and has `activationIntercept`.
+#' @param pcAtP50 `NULL` or `FALSE` (default): `maxAsymptote` is in `par`, unless `fitActivationIntercept`. `TRUE`: it is
+#'   not, and `powerLawPc50` takes its place.
+#' @return A list: `par`, `yearSpreadSD`, `fireSpreadSD` and `activationIntercept` (`NULL` without it).
 #' @keywords internal
-splitSpreadPar <- function(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL) {
+splitSpreadPar <- function(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL, fitActivationIntercept = NULL,
+                           powerLawPc50 = NULL, pcAtP50 = NULL) {
   if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
   if (is.null(fitFireSpreadSD)) fitFireSpreadSD <- fireSpreadSDTxt %in% names(par)
+  if (is.null(fitActivationIntercept)) fitActivationIntercept <- activationInterceptTxt %in% names(par)
   sds <- c(fireSpreadSD = 0, yearSpreadSD = 0)
   trailing <- spreadRandomEffectTxt[c(isTRUE(fitFireSpreadSD), isTRUE(fitYearSpreadSD))]
   n <- length(trailing)
@@ -299,8 +345,26 @@ splitSpreadPar <- function(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL) 
     sds[trailing] <- unname(utils::tail(par, n))
     par <- utils::head(par, -n)
   }
+  activationIntercept <- NULL
+  if (isTRUE(fitActivationIntercept)) {
+    if (!is.null(names(par)) && !identical(utils::tail(names(par), 1L), activationInterceptTxt))
+      stop("`", activationInterceptTxt, "` must come right before the random-effect sds, after the covariates")
+    activationIntercept <- unname(utils::tail(par, 1L))
+    par <- utils::head(par, -1L)
+  }
+  ## maxAsymptote not fitted (the activation, or pc fixed at p50): p50 in its place
+  if (isTRUE(fitActivationIntercept) || isTRUE(pcAtP50)) {
+    maxAsymptote <- logisticParamNames[["3p"]][[1L]]
+    if (is.null(names(par)) || !maxAsymptote %in% names(par)) {
+      if (!(length(powerLawPc50) == 1L && is.finite(powerLawPc50)))
+        stop("`maxAsymptote` is not fitted (", if (isTRUE(fitActivationIntercept)) "spreadClimate = 'activation'" else "pcAtP50",
+             "): it needs a finite `powerLawPc50`")
+      par <- c(stats::setNames(unname(powerLawPc50), if (!is.null(names(par))) maxAsymptote), par)
+    }
+  }
   ## hillSlope1 and inflectionPoint1 are fixed at 1, not fitted -- see fixLogisticPars() for why.
-  list(par = fixLogisticPars(par), yearSpreadSD = sds[["yearSpreadSD"]], fireSpreadSD = sds[["fireSpreadSD"]])
+  list(par = fixLogisticPars(par), yearSpreadSD = sds[["yearSpreadSD"]], fireSpreadSD = sds[["fireSpreadSD"]],
+       activationIntercept = activationIntercept)
 }
 
 #' The observed fires of each year, at or above `minFireSize`, one row per cell; years left with none
@@ -342,7 +406,9 @@ effectiveMinFireSize <- function(minFireSize, escapeMinPx) {
 #' @param annualDTx1000,nonAnnualDTx1000,historicalFires,covMinMax,mutuallyExclusive,covCentre,link,climateRef,maxFireSpread,lowerSpreadProb,lanscape1stQuantileThresh,minFireSize,escapeSizeHa,landscape
 #'   As in [.objfunSpreadFit()] (`landscape` is needed only with `escapeSizeHa`). With `climateRef` the gates
 #'   test the spread probability at the reference climate, as the objective does ([spreadProbFromCovs()]).
-#' @param powerLawGamma,powerLawShape,lowerAsymptote,richardsNu,powerLawPc50 As in [.objfunSpreadFit()].
+#' @param powerLawGamma,powerLawShape,lowerAsymptote,richardsNu,powerLawPc50 As in [.objfunSpreadFit()]. A `par` with
+#'   `activationIntercept` ([activationInterceptTxt]) is a set of `spreadClimate = "activation"`, gated on `p`.
+#' @param pcAtP50 As in [.objfunSpreadFit()].
 #' @param formulaToFit character; the spread formula, as in the objective.
 #' @param years character; the years to test. Default: the objective's first block.
 #' @param doAssertions logical; as in the objective.
@@ -357,7 +423,7 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
                             landscape = NULL, years = NULL, doAssertions = FALSE, climateRef = NULL,
                             powerLawGamma = spreadPowerLawGamma, powerLawShape = spreadPowerLawShape,
                             lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu,
-                            powerLawPc50 = NULL) {
+                            powerLawPc50 = NULL, pcAtP50 = NULL) {
   data.table::setDTthreads(1)
   formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
   colsToUse <- spreadDesignCols(formulaToFit)
@@ -372,21 +438,23 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
   indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
   single <- !is.list(par)
   pars <- if (single) list(par) else par
-  pars <- lapply(pars, function(p) splitSpreadPar(p)$par)
-  firstLogistic <- paramsSeparate(pars[[1]], parsModel)
+  pars <- lapply(pars, splitSpreadPar, powerLawPc50 = powerLawPc50, pcAtP50 = pcAtP50)
+  firstLogistic <- paramsSeparate(pars[[1]]$par, parsModel)
   ## covariates do not depend on par: prepare each year once
   covs <- lapply(years, function(yr) as.matrix(
     spreadProbCovsOfYear(yr, annualDTx1000[[yr]], nonAnnualDTx1000, indexNonAnnual, covMinMax,
                          mutuallyExclusive, colsToUse, doAssertions, firstLogistic$logisticPars,
                          firstLogistic$covPars, maxFireSpread, lowerSpreadProb, covCentre = covCentre)[, ..colsToUse]))
-  res <- lapply(pars, function(p) {
-    ps <- paramsSeparate(p, parsModel)
+  res <- lapply(pars, function(sp) {
+    ps <- paramsSeparate(sp$par, parsModel)
+    ## as the objective: p at the reference climate, except with the activation, whose climate moves every pixel
+    ## below its own ceiling, never past p50: the gates see p
     g <- lapply(covs, function(cv)
       spreadProbGateTest(spreadProbFromCovs(cv, ps$logisticPars, ps$covPars, lowerSpreadProb, link,
-                                            climateRef = climateRef, climateAtRef = TRUE,
+                                            climateRef = climateRef, climateAtRef = is.null(sp$activationIntercept),
                                             powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
                                             lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
-                                            powerLawPc50 = powerLawPc50),
+                                            powerLawPc50 = powerLawPc50, activationIntercept = sp$activationIntercept),
                          ps$logisticPars[1], spreadLinkLower(link, lowerSpreadProb, lowerAsymptote), maxFireSpread,
                          lanscape1stQuantileThresh, spreadOut = spreadHasCovariates(colsToUse)))
     list(pass = all(vapply(g, `[[`, logical(1), "pass")),
@@ -398,4 +466,25 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
   data.frame(pass = vapply(res, `[[`, logical(1), "pass"), burny = vapply(res, `[[`, logical(1), "burny"),
              notSpread = vapply(res, `[[`, logical(1), "notSpread"),
              medianOK = vapply(res, `[[`, logical(1), "medianOK"))
+}
+
+#' The share of dud years of a `spreadClimate = "activation"` fit
+#'
+#' With the activation, `x = activationIntercept + climate term + eps_Y`, and with the `"powerLawSmooth"` link at the
+#' floor every pixel is at the floor when `x < 0`. At the reference climate a year is such a "dud" when its draw
+#' `eps_Y ~ N(0, yearSpreadSD^2)` is below `-activationIntercept`: a share `pnorm(-activationIntercept / yearSpreadSD)`.
+#' A large share means the year effect acts as an on/off switch (Fable review H1); `fireSense_spreadFit` stores it in
+#' the ledger row ([spreadFitDudYearShareTxt]) and reports it, so a fit can be judged on it.
+#'
+#' @param params A `data.frame` or named numeric vector of parameter sets, with `activationIntercept`
+#'   ([activationInterceptTxt]) and, if the year effect was fitted, `yearSpreadSD`.
+#' @return A numeric vector, one per set: 0 without a year effect (or with sd 0) and a non-negative intercept, 1 with a
+#'   negative one.
+#' @export
+activationDudYearShare <- function(params) {
+  p <- as.list(params)
+  a <- p[[activationInterceptTxt]]
+  if (is.null(a)) stop("activationDudYearShare(): `params` has no '", activationInterceptTxt, "'", call. = FALSE)
+  sd <- if (is.null(p[[yearSpreadSDTxt]])) rep(0, length(a)) else p[[yearSpreadSDTxt]]
+  ifelse(sd > 0, stats::pnorm(-a / sd), as.numeric(a < 0))
 }
