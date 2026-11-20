@@ -91,13 +91,23 @@
 #'     [scoreFireSizesByYear()]; areas are in pixels. A fit without the diagnostics (a cross-validation fold, `simulateMembers = 0`)
 #'     writes no such column, and a row written before it has none.
 #'   - `spreadPowerLawPGrid`: `numeric`. The spread probabilities [calibratePowerLaw()] simulates by default.
+#'   - `spreadClimateTxt`: `character(1)`. Name of the ledger column that holds where a fit put climate
+#'     (`"spreadClimate"`): one of `spreadClimateOptions`. A row without it (written before it existed) is
+#'     `"ceiling"` when it has `"climateRef_spread"` and a power-law `"spreadLink"`, else `"predictor"`.
+#'   - `spreadClimateOptions`: `character`. The values of `fireSense_spreadFit`'s `spreadClimate`: `"predictor"`
+#'     (climate in the linear predictor with the fuels), `"ceiling"` (climate moves the power-law ceiling,
+#'     [spreadLinkInputs()]) and `"activation"` (fuel sets each pixel's ceiling, climate is the linear predictor).
+#'   - `activationInterceptTxt`: `character(1)`. Name of the parameter of `spreadClimate = "activation"` that is
+#'     the linear predictor at the reference climate (`"activationIntercept"`); in `lower`/`upper` and in a ledger
+#'     row's `params` it comes right after the covariate coefficients, before the random-effect sds.
+#'   - `spreadActivationInterceptBounds`: `numeric(2)`. Its default bounds, `c(-10, 10)`.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds
 NULL
 
 #' @export
@@ -169,6 +179,18 @@ spreadFitPowerLawShapeTxt <- "powerLawShape_spread"
 
 #' @export
 spreadLinkOptions <- c("ceiling", "climateOutside", "powerLaw", "powerLawSmooth", "richards")
+
+#' @export
+spreadClimateTxt <- "spreadClimate"
+
+#' @export
+spreadClimateOptions <- c("predictor", "ceiling", "activation")
+
+#' @export
+activationInterceptTxt <- "activationIntercept"
+
+#' @export
+spreadActivationInterceptBounds <- c(-10, 10)
 
 #' @export
 spreadFitLowerAsymptoteTxt <- "lowerAsymptote_spread"

@@ -91,7 +91,9 @@ deoptimPopulationSize <- function(nParams) {
 #'   If named and including `yearSpreadSD` (which must be last), the per-year random effect (a seasonal departure) of
 #'   [.objfunSpreadFit()] (`fitYearSpreadSD`) is fitted, in the fit and in the re-score. Likewise `fireSpreadSD`, the
 #'   per-fire random effect (`fitFireSpreadSD`; needs `wholeLandscape = TRUE`), which comes just before
-#'   `yearSpreadSD`, or last without it. A fit without `fireSpreadSD` keeps its cache keys.
+#'   `yearSpreadSD`, or last without it. A fit without `fireSpreadSD` keeps its cache keys. With `activationIntercept`
+#'   ([activationInterceptTxt]), right before them and without `maxAsymptote`, the fit is `spreadClimate = "activation"`
+#'   (`fitActivationIntercept` of [.objfunSpreadFit()]); it needs `climateRef` and `powerLawPc50`.
 #'
 #' @param upper Numeric vector. Upper bounds for the parameters being optimized.
 #'   Passed to [DEoptim::DEoptim].
@@ -356,6 +358,7 @@ runDEoptim <- function(landscape,
   reArgs <- spreadRandomEffectArgs(lower, wholeLandscape)
   fitYearSpreadSD <- reArgs$fitYearSpreadSD
   fitFireSpreadSDArg <- reArgs$fitFireSpreadSD
+  fitActivationInterceptArg <- reArgs$fitActivationIntercept # NULL without it: the call and its key are what they were
 
   ## clusterSetup() digested the objects it shipped once; the fit, its re-score, profile and simulated members
   ## all run the objective on them
@@ -402,6 +405,7 @@ runDEoptim <- function(landscape,
       link = link,
       fitYearSpreadSD = fitYearSpreadSD,
       fitFireSpreadSD = fitFireSpreadSDArg,
+      fitActivationIntercept = fitActivationInterceptArg,
       escapeSizeHa = escapeSizeHa,
       jumpTries = jumpTries,
       jumpMeanDist = jumpMeanDist,
@@ -424,7 +428,7 @@ runDEoptim <- function(landscape,
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
                  omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
                               convergence = convergence, climateRef = climateRef, powerLawPc50 = powerLawPc50, wholeLandscape = wholeLandscapeArg,
-                              fitFireSpreadSD = fitFireSpreadSDArg)),
+                              fitFireSpreadSD = fitFireSpreadSDArg, fitActivationIntercept = fitActivationInterceptArg)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -462,6 +466,7 @@ runDEoptim <- function(landscape,
   rescoreArgs$crpsWeights <- crpsWeights
   rescoreArgs$wholeLandscape <- wholeLandscapeArg
   rescoreArgs$fitFireSpreadSD <- fitFireSpreadSDArg
+  rescoreArgs$fitActivationIntercept <- fitActivationInterceptArg
   if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)

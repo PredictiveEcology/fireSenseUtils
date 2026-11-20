@@ -20,7 +20,8 @@ utils::globalVariables(c(
 #'
 #' @param par parameters: the logistic parameters (`maxAsymptote` first, then `upperTail1` if the link has
 #'   one; without `hillSlope1` and `inflectionPoint1`, which are fixed at 1 -- see `fixLogisticPars()`), then the covariate coefficients (the intercept's first, when
-#'   the formula has one -- see [spreadDesignCols()]), and optionally
+#'   the formula has one -- see [spreadDesignCols()]), then `activationIntercept` with `fitActivationIntercept` (which has no
+#'   `maxAsymptote`), and optionally
 #'   `fireSpreadSD` (see `fitFireSpreadSD`) and `yearSpreadSD` last (see `fitYearSpreadSD`), in that order.
 #'
 #' @param landscape A `SpatRaster` with extent, resolution, and projection (crs) used for
@@ -173,6 +174,13 @@ utils::globalVariables(c(
 #' @param powerLawPc50 `NULL` (default), or the landscape's runaway threshold ([calibratePowerLaw()]). With `climateRef` and
 #'   a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
 #'   fuel linear predictor. Ignored without `climateRef`.
+#' @param fitActivationIntercept If `TRUE`, `spreadClimate = "activation"` ([spreadLinkInputs()]): the element of `par`
+#'   right before the random-effect sds is `activationIntercept` ([activationInterceptTxt]), the linear predictor at the
+#'   reference climate, and `maxAsymptote` is not in `par` (it is `powerLawPc50`, [splitSpreadPar()]). Fuel then sets each
+#'   pixel's ceiling and climate, with the year and fire effects, is the linear predictor; the gates and the saturation
+#'   summary look at `p`. Needs `climateRef`, `powerLawPc50` and `link = "powerLawSmooth"` with
+#'   `lowerAsymptote = lowerSpreadProb`. `NULL` (default): `TRUE` when `par` is named and has `activationIntercept`.
+#'   DEoptim passes `par` unnamed, so `runDEoptim()` sets it explicitly ([spreadRandomEffectArgs()]).
 #'
 #' @param returnSims If `TRUE`, return the simulated fires instead of the objective value: a
 #'   `data.table` with one row per fire year x fire x replicate -- `yr`, `rep`, `initialLocus`, `ids`,
@@ -300,6 +308,7 @@ utils::globalVariables(c(
                              runawayBufferMultiple = NULL,
                              fitYearSpreadSD = NULL,
                              fitFireSpreadSD = NULL,
+                             fitActivationIntercept = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              crpsWeights = NULL,
@@ -318,7 +327,7 @@ utils::globalVariables(c(
   if (isTRUE(returnBurned)) returnSims <- TRUE
   ## the per-year random effect's sd, fitted as the LAST element of `par`
   ## and hillSlope1 and inflectionPoint1 are fixed at 1, not fitted -- see fixLogisticPars() for why.
-  parSplit <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD)
+  parSplit <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD, fitActivationIntercept, powerLawPc50)
   par <- parSplit$par
   yearSpreadSD <- parSplit$yearSpreadSD
   fireSpreadSD <- parSplit$fireSpreadSD
@@ -436,6 +445,7 @@ utils::globalVariables(c(
         cells = cells,
         covCentre = covCentre,
         link = link, climateRef = climateRef, powerLawPc50 = powerLawPc50,
+        activationIntercept = parSplit$activationIntercept,
         powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
         lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
         returnSims = returnSims, returnBurned = returnBurned, stopCutFires = isTRUE(penaliseRunaways),
@@ -771,7 +781,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
                         doYearArea = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
                         powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
                         richardsNu = spreadRichardsNu, doCrps = FALSE, gateRefusal = "minLik",
-                        wholeLandscape = FALSE, powerLawPc50 = NULL) {
+                        wholeLandscape = FALSE, powerLawPc50 = NULL, activationIntercept = NULL) {
   if (isTRUE(plot.it)) plot.it <- "screen"
 
   # needed because data.table objects were recovered from disk
@@ -795,9 +805,10 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   shortAnnDT <- covsOfYear(annDTx1000, nonAnnualDTx1000, doAssertions)
   mat <- as.matrix(shortAnnDT[, ..colsToUse])
   ## the linear predictor and link parameters of the year; with climateRef and a power-law link (climate in the
-  ## ceiling) the parameters are per pixel
-  linkIn <- if (linearLink) spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
-                                             powerLawGamma, powerLawShape, lowerAsymptote, richardsNu)
+  ## ceiling, or the activation) the parameters are per pixel. An activation with another link stops there.
+  linkIn <- if (linearLink || !is.null(activationIntercept)) spreadLinkInputs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef, powerLawPc50,
+                                             powerLawGamma, powerLawShape, lowerAsymptote, richardsNu,
+                                             activationIntercept = activationIntercept)
   ## The gates only skip hopeless parameter sets (gateRefusal = "minLik"); under "simulate" they never run, and
   ## the plots leave out their panel.
   runGates <- !identical(gateRefusal, "simulate")
@@ -810,8 +821,9 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
   ## What the gates and the saturation summary look at. With climate outside the ceiling (climateRef) it is
   ## p0, the spread probability at the reference climate: the part the ceiling applies to. A dry year
   ## legitimately takes p past maxFireSpread under that link, and a gate on p would refuse exactly the
-  ## years that carry the climate signal. Without climateRef it is spreadProb itself, as always.
-  pGate <- if (!needP) NULL else if (is.null(climateRef)) shortAnnDT$spreadProb else
+  ## years that carry the climate signal. Without climateRef it is spreadProb itself, as always, and so with the
+  ## activation: its climate moves each pixel below its own ceiling, never past p50 (= logisticPars[1] then).
+  pGate <- if (!needP) NULL else if (is.null(climateRef) || !is.null(activationIntercept)) shortAnnDT$spreadProb else
     as.numeric(spreadProbFromCovs(mat, logisticPars, covPars, lowerSpreadProb, link, climateRef = climateRef,
                                   climateAtRef = TRUE, powerLawGamma = powerLawGamma, powerLawShape = powerLawShape,
                                   lowerAsymptote = lowerAsymptote, richardsNu = richardsNu, powerLawPc50 = powerLawPc50))
@@ -1570,19 +1582,28 @@ areaWeightedCvM <- function(sim, obs) {
 #' @param lower Named lower bounds of the fit, as `runDEoptim(lower = )`.
 #' @param wholeLandscape As in `runDEoptim()`: `fireSpreadSD` needs `TRUE` (an error otherwise).
 #'
+#' The same holds for `activationIntercept` ([activationInterceptTxt], `spreadClimate = "activation"`), which must come
+#' right before them.
+#'
 #' @return A list of [.objfunSpreadFit()] arguments: `fitYearSpreadSD` (logical) and, only when `lower` has
-#'   `fireSpreadSD`, `fitFireSpreadSD = TRUE`. A fit without the per-fire effect does not get that argument, so its
-#'   cache keys are those it had before the effect existed.
+#'   `fireSpreadSD`, `fitFireSpreadSD = TRUE`, and only when it has `activationIntercept`, `fitActivationIntercept = TRUE`.
+#'   A fit without the per-fire effect (or the activation) does not get that argument, so its cache keys are those it had
+#'   before the argument existed.
 #' @export
 spreadRandomEffectArgs <- function(lower, wholeLandscape = FALSE) {
   reTerms <- intersect(spreadRandomEffectTxt, names(lower))
   if (length(reTerms) && !identical(utils::tail(names(lower), length(reTerms)), reTerms))
     stop("runDEoptim: `", paste(reTerms, collapse = "` then `"), "` must be the last element",
          if (length(reTerms) > 1) "s", " of `lower` and `upper`")
+  fitActivationIntercept <- activationInterceptTxt %in% names(lower)
+  if (fitActivationIntercept &&
+      !identical(utils::tail(names(lower), length(reTerms) + 1L)[1L], activationInterceptTxt))
+    stop("runDEoptim: `", activationInterceptTxt, "` must come right before the random-effect sds in `lower` and `upper`")
   fitFireSpreadSD <- fireSpreadSDTxt %in% names(lower)
   checkFireSpreadSD(fitFireSpreadSD, wholeLandscape)
   out <- list(fitYearSpreadSD = yearSpreadSDTxt %in% names(lower))
   if (fitFireSpreadSD) out$fitFireSpreadSD <- TRUE
+  if (fitActivationIntercept) out$fitActivationIntercept <- TRUE
   out
 }
 

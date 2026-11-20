@@ -5,10 +5,25 @@
 \title{Split \code{par} as the objective does: drop the trailing random-effect sds (\code{fireSpreadSD}, then \code{yearSpreadSD}) and
 insert the fixed \code{hillSlope1} and \code{inflectionPoint1}}
 \usage{
-splitSpreadPar(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL)
+splitSpreadPar(
+  par,
+  fitYearSpreadSD = NULL,
+  fitFireSpreadSD = NULL,
+  fitActivationIntercept = NULL,
+  powerLawPc50 = NULL
+)
+}
+\arguments{
+\item{fitActivationIntercept}{\code{NULL} (default): \code{TRUE} when \code{par} is named and has \code{activationIntercept}.}
+}
+\value{
+A list: \code{par}, \code{yearSpreadSD}, \code{fireSpreadSD} and \code{activationIntercept} (\code{NULL} without it).
 }
 \description{
-Split \code{par} as the objective does: drop the trailing random-effect sds (\code{fireSpreadSD}, then \code{yearSpreadSD}) and
-insert the fixed \code{hillSlope1} and \code{inflectionPoint1}
+With \code{fitActivationIntercept} (\code{spreadClimate = "activation"}) the parameter before the sds is
+\code{activationIntercept} (\link{activationInterceptTxt}), taken out too, and \code{maxAsymptote} is not fitted: \code{powerLawPc50} is
+put first unless a named \code{par} has \code{maxAsymptote} (a ledger row's, written with it). It is the ceiling of every
+pixel's \code{p} in that mode, so whatever reads \code{logisticPars[1]} as the ceiling (the gates, the saturation summary)
+reads \code{p50}.
 }
 \keyword{internal}

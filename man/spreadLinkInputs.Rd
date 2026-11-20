@@ -16,7 +16,8 @@ spreadLinkInputs(
   powerLawShape = spreadPowerLawShape,
   lowerAsymptote = spreadProbFloor,
   richardsNu = spreadRichardsNu,
-  climateAtRef = FALSE
+  climateAtRef = FALSE,
+  activationIntercept = NULL
 )
 }
 \arguments{
@@ -40,7 +41,9 @@ scale of \code{mat} (\code{\link[=spreadClimateRef]{spreadClimateRef()}}). Every
 \code{"richards"} (\code{\link[=logisticAll]{logisticAll()}}); used only with those links.}
 
 \item{climateAtRef}{Logical. With \code{climateRef}, \code{TRUE} returns the inputs at the reference climate: \code{x} of the
-non-climate columns and the vector \code{pars} with \code{pc = pc0}.}
+non-climate columns and the vector \code{pars} with \code{pc = pc0}; with \code{activationIntercept}, \code{x = activationIntercept}.}
+
+\item{activationIntercept}{\code{NULL} (default), or the fitted \code{x} at the reference climate of \code{spreadClimate = "activation"} (\link{activationInterceptTxt}); needs \code{climateRef}.}
 }
 \value{
 A list: \code{x}, a numeric vector, one per row of \code{mat}; \code{pars}, a named vector as \code{\link[=linearLinkPars]{linearLinkPars()}} gives, or with
@@ -57,5 +60,14 @@ With \code{climateRef} (climate in the ceiling; \code{spreadClimate = "ceiling"}
 \code{powerLawPc50} (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}), never past it. With \code{shift = sum(beta_clim * (climate - climateRef))} over
 the climate columns of \code{mat}, \code{pc = max(p50 - (p50 - pc0) * exp(-shift), lowerSpreadProb)} and \code{x} is the linear
 predictor of every other column. At the reference climate \code{pc = pc0 = logisticPars[1]}; \code{log(p50 - pc)} is linear in
-climate, so log mean fire size is too. \code{pars} is then a matrix, one row per row of \code{mat}.
+climate. \code{pars} is then a matrix, one row per row of \code{mat}.
+
+With \code{activationIntercept} as well (\code{spreadClimate = "activation"} in \code{fireSense_spreadFit}) the roles are swapped:
+fuel sets each pixel's own ceiling and climate is the linear predictor. With \code{eta} the linear predictor of the
+non-climate columns (the intercept, fuels, youngAge, non-forest, ...) and \code{f} = \code{lowerSpreadProb},
+\code{pc = f + (p50 - f) * plogis(eta)}, so \code{pc <= p50}, and \code{x = activationIntercept + shift}. \code{pc0} is not used
+(\code{logisticPars[1]}, which the objective sets to \code{p50}, \code{\link[=splitSpreadPar]{splitSpreadPar()}}). Above the floor every pixel's
+\code{p - f = (pc - f) * (1 - exp(-(x / gamma)^shape))}, so the ratio of \code{p - f} between two pixels of a year is the ratio of
+their \code{plogis(eta)}, whatever the climate. It needs \code{"powerLawSmooth"} with \code{lowerAsymptote = lowerSpreadProb}
+(\code{\link[=checkLinkParams]{checkLinkParams()}}).
 }

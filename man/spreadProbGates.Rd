@@ -43,7 +43,8 @@ test the spread probability at the reference climate, as the objective does (\co
 
 \item{doAssertions}{logical; as in the objective.}
 
-\item{powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, powerLawPc50}{As in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.}
+\item{powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, powerLawPc50}{As in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}. A \code{par} with
+\code{activationIntercept} (\link{activationInterceptTxt}) is a set of \code{spreadClimate = "activation"}, gated on \code{p}.}
 }
 \value{
 for one \code{par}, a list of logicals \code{pass} (every tested year passes), \code{burny} and \code{notSpread}

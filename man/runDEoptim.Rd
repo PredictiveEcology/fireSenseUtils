@@ -144,7 +144,9 @@ Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}.
 If named and including \code{yearSpreadSD} (which must be last), the per-year random effect (a seasonal departure) of
 \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} (\code{fitYearSpreadSD}) is fitted, in the fit and in the re-score. Likewise \code{fireSpreadSD}, the
 per-fire random effect (\code{fitFireSpreadSD}; needs \code{wholeLandscape = TRUE}), which comes just before
-\code{yearSpreadSD}, or last without it. A fit without \code{fireSpreadSD} keeps its cache keys.}
+\code{yearSpreadSD}, or last without it. A fit without \code{fireSpreadSD} keeps its cache keys. With \code{activationIntercept}
+(\link{activationInterceptTxt}), right before them and without \code{maxAsymptote}, the fit is \code{spreadClimate = "activation"}
+(\code{fitActivationIntercept} of \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}); it needs \code{climateRef} and \code{powerLawPc50}.}
 
 \item{upper}{Numeric vector. Upper bounds for the parameters being optimized.
 Passed to \link[DEoptim:DEoptim]{DEoptim::DEoptim}.}
