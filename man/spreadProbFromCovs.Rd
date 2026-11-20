@@ -16,7 +16,8 @@ spreadProbFromCovs(
   powerLawShape = spreadPowerLawShape,
   lowerAsymptote = spreadProbFloor,
   richardsNu = spreadRichardsNu,
-  powerLawPc50 = NULL
+  powerLawPc50 = NULL,
+  activationIntercept = NULL
 )
 }
 \arguments{
@@ -43,6 +44,10 @@ and a gate on \code{p} would refuse the years that carry the climate signal. Ign
 
 \item{powerLawPc50}{The landscape's runaway threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}); with \code{climateRef} and a power-law link
 it puts climate in the ceiling (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}). Needed then, ignored otherwise.}
+
+\item{activationIntercept}{\code{NULL} (default), or with \code{climateRef}, \code{powerLawPc50} and \code{link = "powerLawSmooth"} the
+fitted intercept of \code{spreadClimate = "activation"}: fuel sets each pixel's ceiling and climate is the linear
+predictor (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}).}
 }
 \value{
 A one-column numeric matrix, one value per row of \code{mat} (as \code{\link[=logisticAll]{logisticAll()}}).

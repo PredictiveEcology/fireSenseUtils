@@ -206,12 +206,22 @@ richardsLink <- function(x, pc, lower = spreadProbFloor, nu = spreadRichardsNu, 
 #' `fireSense_spreadPredict` for a ledger row. `lower` must be one number from [spreadLowerAsymptoteMin] to [spreadProbFloor] with
 #' `"powerLawSmooth"` and `"richards"`; `nu` one number, 0 or more, with `"richards"`. Other links have nothing to check.
 #'
+#' With `activation` (`spreadClimate = "activation"`, [spreadLinkInputs()]) the link must be `"powerLawSmooth"` with
+#' `lower` equal to `floor`: below the floor the other forms fall faster for a higher `pc`, and with the activation `pc`
+#' is set by fuel, so a wet year would rank rich fuel below poor.
+#'
 #' @param link The spread link.
 #' @param lower,nu The `lowerAsymptote` and `richardsNu` to check; `NULL` is not a number.
+#' @param activation Logical; `TRUE` for a fit or a ledger row with `spreadClimate = "activation"`.
+#' @param floor The `lowerSpreadProb` the activation's `lower` must equal; default [spreadProbFloor].
 #' @return `TRUE`, invisibly; an error otherwise.
 #' @export
-checkLinkParams <- function(link, lower = NULL, nu = NULL) {
+checkLinkParams <- function(link, lower = NULL, nu = NULL, activation = FALSE, floor = spreadProbFloor) {
   one <- function(v) is.numeric(v) && length(v) == 1L && is.finite(v)
+  if (isTRUE(activation) && !(identical(link, "powerLawSmooth") && one(lower) && isTRUE(all.equal(lower, floor))))
+    stop("spreadClimate = 'activation' needs the link 'powerLawSmooth' with lowerAsymptote = lowerSpreadProb (",
+         format(floor), "); got ", dQuote(format(link), FALSE), " and ", format(lower), ". Below the floor the other ",
+         "forms fall faster for a higher pc, so a wet year would rank rich fuel below poor.", call. = FALSE)
   if (any(link %in% spreadAsymptoteLinks) &&
       !(one(lower) && lower >= spreadLowerAsymptoteMin && lower <= spreadProbFloor))
     stop("lowerAsymptote must be one number from ", spreadLowerAsymptoteMin, " to ", spreadProbFloor, "; got ", format(lower),

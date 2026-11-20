@@ -91,7 +91,9 @@ deoptimPopulationSize <- function(nParams) {
 #'   If named and including `yearSpreadSD` (which must be last), the per-year random effect (a seasonal departure) of
 #'   [.objfunSpreadFit()] (`fitYearSpreadSD`) is fitted, in the fit and in the re-score. Likewise `fireSpreadSD`, the
 #'   per-fire random effect (`fitFireSpreadSD`; needs `wholeLandscape = TRUE`), which comes just before
-#'   `yearSpreadSD`, or last without it. A fit without `fireSpreadSD` keeps its cache keys.
+#'   `yearSpreadSD`, or last without it. A fit without `fireSpreadSD` keeps its cache keys. With `activationIntercept`
+#'   ([activationInterceptTxt]), right before them and without `maxAsymptote`, the fit is `spreadClimate = "activation"`
+#'   (`fitActivationIntercept` of [.objfunSpreadFit()]); it needs `climateRef` and `powerLawPc50`.
 #'
 #' @param upper Numeric vector. Upper bounds for the parameters being optimized.
 #'   Passed to [DEoptim::DEoptim].
@@ -117,6 +119,8 @@ deoptimPopulationSize <- function(nParams) {
 #' @param powerLawPc50 Passed to [.objfunSpreadFit()] with `climateRef`: `NULL` (default), or the landscape's runaway
 #'   threshold ([calibratePowerLaw()]), which with a power-law `link` puts climate in the ceiling ([spreadLinkInputs()]).
 #'   `NULL` leaves the call and its cache key as they were.
+#' @param pcAtP50 Passed to [.objfunSpreadFit()] like `powerLawPc50`: `TRUE` when `lower` has no `maxAsymptote` because
+#'   p_c is fixed at `powerLawPc50`. `NULL` (default) leaves the call and its cache key as they were.
 #' @param powerLawGamma The `"powerLaw"` and `"powerLawSmooth"` links' `gamma` ([powerLawLink()]), passed to [.objfunSpreadFit()] in the
 #'   fit and the re-score. Used only with those links; with any other link it is left out of the cache
 #'   keys ([powerLawOmitArgs()]) and the re-score's arguments, so they are what they were.
@@ -277,6 +281,7 @@ runDEoptim <- function(landscape,
                        convergence = NULL,
                        climateRef = NULL,
                        powerLawPc50 = NULL,
+                       pcAtP50 = NULL,
                        powerLawGamma = spreadPowerLawGamma,
                        powerLawShape = spreadPowerLawShape,
                        lowerAsymptote = spreadProbFloor,
@@ -346,9 +351,11 @@ runDEoptim <- function(landscape,
   ## name the parameters from `lower`. termsInDEoptim() called every non-formula parameter a "logit"
   ## term, so yearSpreadSD was reported as a third logistic parameter.
   covTerms <- spreadDesignCols(formulaToFit) # includes the intercept, if the formula has one
-  logisticTerms <- setdiff(names(lower), c(covTerms, spreadRandomEffectTxt))
-  message("Fitting ", length(lower), " parameters: logistic: ", paste(logisticTerms, collapse = ", "),
+  logisticTerms <- setdiff(names(lower), c(covTerms, spreadRandomEffectTxt, activationInterceptTxt))
+  message("Fitting ", length(lower), " parameters: logistic: ",
+          if (length(logisticTerms)) paste(logisticTerms, collapse = ", ") else "none (maxAsymptote fixed at powerLawPc50)",
           "; covariates: ", paste(covTerms, collapse = ", "),
+          if (activationInterceptTxt %in% names(lower)) paste0("; activation: ", activationInterceptTxt),
           if (fireSpreadSDTxt %in% names(lower)) paste0("; fire effect: ", fireSpreadSDTxt),
           if (yearSpreadSDTxt %in% names(lower)) paste0("; year effect: ", yearSpreadSDTxt))
   ## the random effects are fitted when the bounds include them; DEoptim passes `par` unnamed, so the objective is
@@ -356,6 +363,7 @@ runDEoptim <- function(landscape,
   reArgs <- spreadRandomEffectArgs(lower, wholeLandscape)
   fitYearSpreadSD <- reArgs$fitYearSpreadSD
   fitFireSpreadSDArg <- reArgs$fitFireSpreadSD
+  fitActivationInterceptArg <- reArgs$fitActivationIntercept # NULL without it: the call and its key are what they were
 
   ## clusterSetup() digested the objects it shipped once; the fit, its re-score, profile and simulated members
   ## all run the objective on them
@@ -378,6 +386,7 @@ runDEoptim <- function(landscape,
       covCentre = covCentre,
       climateRef = climateRef,
       powerLawPc50 = powerLawPc50,
+      pcAtP50 = pcAtP50,
       powerLawGamma = powerLawGamma,
       powerLawShape = powerLawShape,
       lowerAsymptote = lowerAsymptote,
@@ -402,6 +411,7 @@ runDEoptim <- function(landscape,
       link = link,
       fitYearSpreadSD = fitYearSpreadSD,
       fitFireSpreadSD = fitFireSpreadSDArg,
+      fitActivationIntercept = fitActivationInterceptArg,
       escapeSizeHa = escapeSizeHa,
       jumpTries = jumpTries,
       jumpMeanDist = jumpMeanDist,
@@ -424,7 +434,8 @@ runDEoptim <- function(landscape,
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
                  omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
                               convergence = convergence, climateRef = climateRef, powerLawPc50 = powerLawPc50, wholeLandscape = wholeLandscapeArg,
-                              fitFireSpreadSD = fitFireSpreadSDArg)),
+                              fitFireSpreadSD = fitFireSpreadSDArg, fitActivationIntercept = fitActivationInterceptArg,
+                              pcAtP50 = pcAtP50)),
     ## The data the objective runs on reaches the workers through clusterSetup(objsNeeded), not as an
     ## argument above, so it is not in this key by itself: two held-out folds of one ELF shared their
     ## whole fit (2026-09-29). clusterSetup() digested those objects once; use that digest.
@@ -455,6 +466,7 @@ runDEoptim <- function(landscape,
   rescoreArgs$covCentre <- covCentre
   rescoreArgs$climateRef <- climateRef
   rescoreArgs$powerLawPc50 <- powerLawPc50
+  rescoreArgs$pcAtP50 <- pcAtP50
   omitted <- powerLawOmitArgs(link, powerLawShape)
   for (nm in setdiff(c("powerLawGamma", "powerLawShape", "lowerAsymptote", "richardsNu"), omitted))
     rescoreArgs[[nm]] <- get(nm)
@@ -462,6 +474,7 @@ runDEoptim <- function(landscape,
   rescoreArgs$crpsWeights <- crpsWeights
   rescoreArgs$wholeLandscape <- wholeLandscapeArg
   rescoreArgs$fitFireSpreadSD <- fitFireSpreadSDArg
+  rescoreArgs$fitActivationIntercept <- fitActivationInterceptArg
   if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
