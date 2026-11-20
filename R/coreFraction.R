@@ -14,7 +14,7 @@
 #' @param flammableRTMs list of `SpatRaster`, one per data year, in the order of `years`.
 #' @param rasterToMatchLargeELF `SpatRaster` read by `inELFCore()`, or `NULL`.
 #' @param fact the aggregation factor, `igAggFactor`.
-#' @return a `data.table` with `pixelID` (the coarse cell), `year` (numeric) and `coreFraction` ([coreFractionTxt]), a row for every
+#' @return `coreFractionByYear()`: a `data.table` with `pixelID` (the coarse cell), `year` (numeric) and `coreFraction` ([coreFractionTxt]), a row for every
 #'   coarse pixel with flammable cells, for every fire year.
 #' @export
 #' @rdname coreFraction
@@ -35,11 +35,13 @@ coreFractionByYear <- function(years, flammableRTMs, rasterToMatchLargeELF, fact
   data.table::rbindlist(byDataYear)
 }
 
+#' @param covariates `data.table` with `pixelID` and `year`, as made by [mergePreparedCovs()].
 #' @param fractions the result of `coreFractionByYear()` for these arguments, if the caller has it already
 #'   (`fireSense_dataPrepPredict` keeps it from year to year, see [coreFractionKey()]); made if not given.
 #' @param onMissing what to do with a covariate row whose coarse pixel has no flammable cell, so no `coreFraction`:
 #'   `"stop"` (the default; the fit's data must have one for every row) or `"zero"`: the row gets 0 (no core) and one
 #'   warning gives the count.
+#' @return `addCoreFraction()`: `covariates` with the column `coreFraction` added (by reference); `ignitions` is not changed.
 #' @export
 #' @rdname coreFraction
 addCoreFraction <- function(covariates, years, flammableRTMs, rasterToMatchLargeELF, fact,
@@ -65,7 +67,6 @@ addCoreFraction <- function(covariates, years, flammableRTMs, rasterToMatchLarge
 #' makes them every year (`fireSense_dataPrepPredict`) can keep the last result and recompute only when the key
 #' changes: when the flammable cells, the core raster, the grid or `fact` change.
 #'
-#' @inheritParams coreFractionByYear
 #' @return A digest.
 #' @export
 #' @rdname coreFraction

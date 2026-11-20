@@ -29,6 +29,8 @@ coreFractionKey(flammableRTMs, rasterToMatchLargeELF, fact)
 
 \item{fact}{the aggregation factor, \code{igAggFactor}.}
 
+\item{covariates}{\code{data.table} with \code{pixelID} and \code{year}, as made by \code{\link[=mergePreparedCovs]{mergePreparedCovs()}}.}
+
 \item{onMissing}{what to do with a covariate row whose coarse pixel has no flammable cell, so no \code{coreFraction}:
 \code{"stop"} (the default; the fit's data must have one for every row) or \code{"zero"}: the row gets 0 (no core) and one
 warning gives the count.}
@@ -37,8 +39,10 @@ warning gives the count.}
 (\code{fireSense_dataPrepPredict} keeps it from year to year, see \code{\link[=coreFractionKey]{coreFractionKey()}}); made if not given.}
 }
 \value{
-a \code{data.table} with \code{pixelID} (the coarse cell), \code{year} (numeric) and \code{coreFraction} (\link{coreFractionTxt}), a row for every
+\code{coreFractionByYear()}: a \code{data.table} with \code{pixelID} (the coarse cell), \code{year} (numeric) and \code{coreFraction} (\link{coreFractionTxt}), a row for every
 coarse pixel with flammable cells, for every fire year.
+
+\code{addCoreFraction()}: \code{covariates} with the column \code{coreFraction} added (by reference); \code{ignitions} is not changed.
 
 A digest.
 }
