@@ -105,7 +105,7 @@ scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0
   nNo <- data.table::uniqueN(d[is.na(sim), list(member, yr)])
   d <- d[!is.na(sim)]
   sp <- function(x, y) stats::cor(x, y, method = "spearman")
-  fire <- d[, list(obs = size[1], sim = mean(sim)), by = c("yr", "ids")]
+  fire <- perFireSizes(d)
   top10 <- function(x) sum(utils::head(sort(x, decreasing = TRUE), 10))
   run <- d[, {
     obs <- size[!duplicated(data.table::data.table(yr, ids))] # each fire once
@@ -142,10 +142,18 @@ scoreFireSizes <- function(sims, probs = c(0.01, 0.10, 0.25, 0.50, 0.75, 0.90, 0
 scoreFireSizesByYear <- function(sims) {
   d <- data.table::as.data.table(sims)
   d <- d[!is.na(sim)]
-  fire <- d[, list(obs = size[1], sim = mean(sim)), by = c("yr", "ids")]
+  fire <- perFireSizes(d)
   yr <- yearAreas(d, fire, stats::median, c(0.025, 0.975))
   data.table::setnames(yr, c("sim", "lo", "hi"), c("simMedian", "simLo", "simHi"))
   yr[]
+}
+
+## One row per fire (`yr`, `ids`): its observed size `obs`, its simulated size `sim` as `center` of the runs, and its
+## `initialLocus` when `d` has one. `d` has no NA `sim`. The per-fire table of scoreFireSizes(),
+## scoreFireSizesByYear() and fuelClimateFires().
+perFireSizes <- function(d, center = mean) {
+  d[, c(list(obs = size[1], sim = center(sim)), lapply(.SD, `[`, 1L)), by = c("yr", "ids"),
+    .SDcols = intersect("initialLocus", names(d))]
 }
 
 ## Per year: the observed area (each fire once, from `fire`) and the simulated area of a run (member x rep):
