@@ -10,11 +10,15 @@ splitSpreadPar(
   fitYearSpreadSD = NULL,
   fitFireSpreadSD = NULL,
   fitActivationIntercept = NULL,
-  powerLawPc50 = NULL
+  powerLawPc50 = NULL,
+  pcAtP50 = NULL
 )
 }
 \arguments{
 \item{fitActivationIntercept}{\code{NULL} (default): \code{TRUE} when \code{par} is named and has \code{activationIntercept}.}
+
+\item{pcAtP50}{\code{NULL} or \code{FALSE} (default): \code{maxAsymptote} is in \code{par}, unless \code{fitActivationIntercept}. \code{TRUE}: it is
+not, and \code{powerLawPc50} takes its place.}
 }
 \value{
 A list: \code{par}, \code{yearSpreadSD}, \code{fireSpreadSD} and \code{activationIntercept} (\code{NULL} without it).
@@ -24,6 +28,7 @@ With \code{fitActivationIntercept} (\code{spreadClimate = "activation"}) the par
 \code{activationIntercept} (\link{activationInterceptTxt}), taken out too, and \code{maxAsymptote} is not fitted: \code{powerLawPc50} is
 put first unless a named \code{par} has \code{maxAsymptote} (a ledger row's, written with it). It is the ceiling of every
 pixel's \code{p} in that mode, so whatever reads \code{logisticPars[1]} as the ceiling (the gates, the saturation summary)
-reads \code{p50}.
+reads \code{p50}. With \code{pcAtP50} (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}) \code{maxAsymptote} is not fitted either, and is
+\code{powerLawPc50} in the same way.
 }
 \keyword{internal}

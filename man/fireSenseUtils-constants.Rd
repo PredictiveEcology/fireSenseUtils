@@ -44,6 +44,8 @@
 \alias{spreadClimateOptions}
 \alias{activationInterceptTxt}
 \alias{spreadActivationInterceptBounds}
+\alias{spreadFitDudYearShareTxt}
+\alias{spreadFitPcAtP50Txt}
 \alias{yearSpreadSDTxt}
 \alias{fireSpreadSDTxt}
 \alias{spreadRandomEffectTxt}
@@ -146,6 +148,12 @@ writes no such column, and a row written before it has none.
 the linear predictor at the reference climate (\code{"activationIntercept"}); in \code{lower}/\code{upper} and in a ledger
 row's \code{params} it comes right after the covariate coefficients, before the random-effect sds.
 \item \code{spreadActivationInterceptBounds}: \code{numeric(2)}. Its default bounds, \code{c(-10, 10)}.
+\item \code{spreadFitDudYearShareTxt}: \code{character(1)}. Name of the ledger column of an \code{"activation"} fit with the share of
+years whose draw of the year effect puts every pixel at the floor at the reference climate, one per parameter set
+(\code{\link[=activationDudYearShare]{activationDudYearShare()}}; \code{"dudYearShare_spread"}).
+\item \code{spreadFitPcAtP50Txt}: \code{character(1)}. Name of the ledger column that marks a fit whose \code{maxAsymptote} was fixed at
+p50, not fitted (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}; \code{"pcAtP50_spread"}), so its value is not read as a
+fitted one at its bound.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).

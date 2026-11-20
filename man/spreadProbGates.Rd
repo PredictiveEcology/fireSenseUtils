@@ -27,7 +27,8 @@ spreadProbGates(
   powerLawShape = spreadPowerLawShape,
   lowerAsymptote = spreadProbFloor,
   richardsNu = spreadRichardsNu,
-  powerLawPc50 = NULL
+  powerLawPc50 = NULL,
+  pcAtP50 = NULL
 )
 }
 \arguments{
@@ -45,6 +46,8 @@ test the spread probability at the reference climate, as the objective does (\co
 
 \item{powerLawGamma, powerLawShape, lowerAsymptote, richardsNu, powerLawPc50}{As in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}. A \code{par} with
 \code{activationIntercept} (\link{activationInterceptTxt}) is a set of \code{spreadClimate = "activation"}, gated on \code{p}.}
+
+\item{pcAtP50}{As in \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}.}
 }
 \value{
 for one \code{par}, a list of logicals \code{pass} (every tested year passes), \code{burny} and \code{notSpread}

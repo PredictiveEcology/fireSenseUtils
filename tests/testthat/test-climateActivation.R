@@ -236,3 +236,96 @@ test_that("'predictor' and 'ceiling' give the values they gave before the activa
                tolerance = 1e-12)
   expect_equal(ceil$x[1:4], c(1.152, 1.851, 0.089, 1.485), tolerance = 1e-12)
 })
+
+## pcAtP50 (fireSense_spreadFit's powerLawPcAtP50): the "predictor" link with p_c fixed at p50, by the same mechanism as the
+## activation: maxAsymptote is left out of the fitted parameters and the objective puts p50 in its place.
+
+test_that("splitSpreadPar(pcAtP50 = TRUE) puts p50 first as maxAsymptote, unless a named set has it", {
+  split <- fireSenseUtils:::splitSpreadPar
+  s <- split(c(1.5, 3, -1, 0.7), fitYearSpreadSD = TRUE, powerLawPc50 = p50, pcAtP50 = TRUE)
+  expect_identical(unname(s$par), c(p50, 1, 1, 1.5, 3, -1))
+  expect_null(s$activationIntercept)
+  expect_identical(s$yearSpreadSD, 0.7)
+  nm <- split(c(clim = 1.5, fuel = 3, youngAge = -1), powerLawPc50 = p50, pcAtP50 = TRUE)$par
+  expect_identical(names(nm)[1:3], c("maxAsymptote", "hillSlope1", "inflectionPoint1"))
+  ## a ledger row's set (p50 as maxAsymptote, written by the fit) is kept as it is
+  row <- c(maxAsymptote = p50, hillSlope1 = 1, inflectionPoint1 = 1, clim = 1.5, fuel = 3, youngAge = -1)
+  expect_identical(split(row, pcAtP50 = TRUE, powerLawPc50 = p50)$par, nm)
+  expect_error(split(c(1.5, 3, -1), pcAtP50 = TRUE), "pcAtP50.*powerLawPc50")
+  ## NULL and FALSE: as before
+  expect_identical(split(c(0.27, 1.5), pcAtP50 = FALSE)$par, split(c(0.27, 1.5))$par)
+})
+
+test_that("with pcAtP50 the gates and the validation use p50 as p_c, as a set with maxAsymptote = p50 does", {
+  par <- c(clim = 1.5, fuel = 3, youngAge = -1)
+  args <- list(annualDTx1000 = climFix$annualDTx1000, nonAnnualDTx1000 = climFix$nonAnnualDTx1000,
+               historicalFires = climFix$historicalFires, formulaToFit = formC, years = c("2004", "2005"),
+               mutuallyExclusive = NULL, link = "powerLawSmooth", powerLawShape = 0.5, lanscape1stQuantileThresh = 0.2,
+               maxFireSpread = 0.28)
+  fixed <- do.call(spreadProbGates, c(list(par = list(par, par * 2)), args, list(powerLawPc50 = p50, pcAtP50 = TRUE)))
+  given <- do.call(spreadProbGates, c(list(par = list(c(maxAsymptote = p50, par), c(maxAsymptote = p50, par * 2))), args))
+  expect_identical(fixed, given)
+  r <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+  fb <- lapply(climFix$historicalFires, function(h) dtC(pixelID = 1:nPixC, buffer = as.integer(1:nPixC <= 30), ids = 1L))
+  val <- function(par, ...) spreadFitValidationData(par, r, climFix$annualDTx1000, climFix$nonAnnualDTx1000, formC,
+                                                     climFix$historicalFires, fb, mutuallyExclusive = NULL, Nreps = 2L,
+                                                     link = "powerLawSmooth", powerLawShape = 0.5, seed = 1, ...)
+  d <- val(par, powerLawPc50 = p50, pcAtP50 = TRUE)
+  expect_identical(attr(d, "spreadFitValidation")$logisticPars[[1]], p50)
+  expect_identical(d$p, val(c(maxAsymptote = p50, par))$p)
+})
+
+test_that("runDEoptim() hands pcAtP50 to the fit and the re-score, and leaves it out of the key when NULL", {
+  seen <- new.env()
+  testthat::local_mocked_bindings(
+    clusterSetup = function(...) list(itermax = 5, trace = FALSE, strategy = 2L, NP = 40L, cluster = NULL),
+    DEoptimIterative = function(fn, lower, ...) { seen$fit <- list(...)$pcAtP50; list(list(member = list(pop = matrix(lower + 0.1, 1)))) },
+    .package = "clusters")
+  testthat::local_mocked_bindings(
+    rescorePopulation = function(pop, fn, reps, cl, seed = 1L, fnArgs = list()) {
+      seen$rescore <- fnArgs; data.table::data.table(member = 1L, rep = 1L, value = 1) })
+  seen$omit <- list()
+  testthat::local_mocked_bindings(Cache = function(FUN, ..., omitArgs = NULL, cachePath = NULL, .functionName = NULL,
+                                                   .cacheExtra = NULL, useCache = NULL) {
+    seen$omit[[length(seen$omit) + 1L]] <- omitArgs
+    if (is.function(FUN)) FUN(...) else FUN
+  }, .package = "fireSenseUtils")
+  run <- function(lower, ...) suppressMessages(runDEoptim(
+    landscape = NULL, annualDTx1000 = NULL, nonAnnualDTx1000 = NULL, fireBufferedListDT = NULL,
+    historicalFires = NULL, itermax = 5, trace = FALSE, strategy = 2L, cores = c("hostA", "hostB"),
+    paths = list(cachePath = withr::local_tempdir()), lower = lower, upper = lower + 1,
+    mutuallyExclusive = NULL, formulaToFit = "~ 0 + clim + fuel", objFunCoresInternal = 1L, covMinMax = NULL,
+    maxFireSpread = 0.3, Nreps = 1L, .verbose = FALSE, link = "powerLawSmooth", ...))
+  run(c(clim = 0, fuel = 0), powerLawPc50 = p50, pcAtP50 = TRUE)
+  expect_true(seen$fit)
+  expect_true(seen$rescore$pcAtP50)
+  expect_false("pcAtP50" %in% seen$omit[[1]])
+  seen$omit <- list()
+  run(c(maxAsymptote = 0.25, clim = 0, fuel = 0))
+  expect_null(seen$fit)
+  expect_false("pcAtP50" %in% names(seen$rescore))
+  expect_true("pcAtP50" %in% seen$omit[[1]])
+})
+
+test_that("activationDudYearShare() is pnorm(-a / yearSpreadSD), 0 or 1 without a year effect", {
+  pars <- data.frame(clim = 1, activationIntercept = c(0.5, 3, -1, 2), yearSpreadSD = c(1, 1, 0, 0))
+  expect_equal(activationDudYearShare(pars), c(pnorm(-0.5), pnorm(-3), 1, 0))
+  expect_identical(activationDudYearShare(c(clim = 1, activationIntercept = 2)), 0)
+  expect_error(activationDudYearShare(c(clim = 1)), "activationIntercept")
+})
+
+test_that("the objective stops on an unnamed par whose length does not fit the formula and the link", {
+  r <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+  fb <- lapply(climFix$historicalFires, function(h) dtC(pixelID = 1:nPixC, buffer = as.integer(1:nPixC <= 30), ids = 1L))
+  obj <- function(par, ...) .objfunSpreadFit(par, landscape = r, annualDTx1000 = climFix$annualDTx1000,
+                                             nonAnnualDTx1000 = climFix$nonAnnualDTx1000, formulaToFit = formC,
+                                             historicalFires = climFix$historicalFires, fireBufferedListDT = fb,
+                                             mutuallyExclusive = NULL, Nreps = 1L, link = "powerLawSmooth",
+                                             verbose = 0, returnSims = TRUE, ...)
+  ## p_c left out of par (as with powerLawPcAtP50) but the flag forgotten: the first coefficient would be read as p_c
+  expect_error(obj(c(1.5, 3, -1), powerLawPc50 = p50), "unnamed `par` gives 0 logistic")
+  expect_error(obj(c(0.27, 0.1, 1.5, 3, -1), powerLawPc50 = p50), "gives 2 logistic")
+  ## with the flag, or with p_c in it, it runs
+  expect_s3_class(obj(c(1.5, 3, -1), pcAtP50 = TRUE, powerLawPc50 = p50), "data.table")
+  expect_s3_class(obj(c(0.27, 1.5, 3, -1)), "data.table")
+})

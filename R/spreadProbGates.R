@@ -324,12 +324,15 @@ spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, 
 #' `activationIntercept` ([activationInterceptTxt]), taken out too, and `maxAsymptote` is not fitted: `powerLawPc50` is
 #' put first unless a named `par` has `maxAsymptote` (a ledger row's, written with it). It is the ceiling of every
 #' pixel's `p` in that mode, so whatever reads `logisticPars[1]` as the ceiling (the gates, the saturation summary)
-#' reads `p50`.
+#' reads `p50`. With `pcAtP50` (`fireSense_spreadFit`'s `powerLawPcAtP50`) `maxAsymptote` is not fitted either, and is
+#' `powerLawPc50` in the same way.
 #' @param fitActivationIntercept `NULL` (default): `TRUE` when `par` is named and has `activationIntercept`.
+#' @param pcAtP50 `NULL` or `FALSE` (default): `maxAsymptote` is in `par`, unless `fitActivationIntercept`. `TRUE`: it is
+#'   not, and `powerLawPc50` takes its place.
 #' @return A list: `par`, `yearSpreadSD`, `fireSpreadSD` and `activationIntercept` (`NULL` without it).
 #' @keywords internal
 splitSpreadPar <- function(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL, fitActivationIntercept = NULL,
-                           powerLawPc50 = NULL) {
+                           powerLawPc50 = NULL, pcAtP50 = NULL) {
   if (is.null(fitYearSpreadSD)) fitYearSpreadSD <- yearSpreadSDTxt %in% names(par)
   if (is.null(fitFireSpreadSD)) fitFireSpreadSD <- fireSpreadSDTxt %in% names(par)
   if (is.null(fitActivationIntercept)) fitActivationIntercept <- activationInterceptTxt %in% names(par)
@@ -348,10 +351,14 @@ splitSpreadPar <- function(par, fitYearSpreadSD = NULL, fitFireSpreadSD = NULL, 
       stop("`", activationInterceptTxt, "` must come right before the random-effect sds, after the covariates")
     activationIntercept <- unname(utils::tail(par, 1L))
     par <- utils::head(par, -1L)
+  }
+  ## maxAsymptote not fitted (the activation, or pc fixed at p50): p50 in its place
+  if (isTRUE(fitActivationIntercept) || isTRUE(pcAtP50)) {
     maxAsymptote <- logisticParamNames[["3p"]][[1L]]
     if (is.null(names(par)) || !maxAsymptote %in% names(par)) {
       if (!(length(powerLawPc50) == 1L && is.finite(powerLawPc50)))
-        stop("`", activationInterceptTxt, "` (spreadClimate = 'activation') needs a finite `powerLawPc50`")
+        stop("`maxAsymptote` is not fitted (", if (isTRUE(fitActivationIntercept)) "spreadClimate = 'activation'" else "pcAtP50",
+             "): it needs a finite `powerLawPc50`")
       par <- c(stats::setNames(unname(powerLawPc50), if (!is.null(names(par))) maxAsymptote), par)
     }
   }
@@ -401,6 +408,7 @@ effectiveMinFireSize <- function(minFireSize, escapeMinPx) {
 #'   test the spread probability at the reference climate, as the objective does ([spreadProbFromCovs()]).
 #' @param powerLawGamma,powerLawShape,lowerAsymptote,richardsNu,powerLawPc50 As in [.objfunSpreadFit()]. A `par` with
 #'   `activationIntercept` ([activationInterceptTxt]) is a set of `spreadClimate = "activation"`, gated on `p`.
+#' @param pcAtP50 As in [.objfunSpreadFit()].
 #' @param formulaToFit character; the spread formula, as in the objective.
 #' @param years character; the years to test. Default: the objective's first block.
 #' @param doAssertions logical; as in the objective.
@@ -415,7 +423,7 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
                             landscape = NULL, years = NULL, doAssertions = FALSE, climateRef = NULL,
                             powerLawGamma = spreadPowerLawGamma, powerLawShape = spreadPowerLawShape,
                             lowerAsymptote = spreadProbFloor, richardsNu = spreadRichardsNu,
-                            powerLawPc50 = NULL) {
+                            powerLawPc50 = NULL, pcAtP50 = NULL) {
   data.table::setDTthreads(1)
   formulaToFit <- as.formula(formulaToFit, env = .GlobalEnv)
   colsToUse <- spreadDesignCols(formulaToFit)
@@ -430,7 +438,7 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
   indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
   single <- !is.list(par)
   pars <- if (single) list(par) else par
-  pars <- lapply(pars, splitSpreadPar, powerLawPc50 = powerLawPc50)
+  pars <- lapply(pars, splitSpreadPar, powerLawPc50 = powerLawPc50, pcAtP50 = pcAtP50)
   firstLogistic <- paramsSeparate(pars[[1]]$par, parsModel)
   ## covariates do not depend on par: prepare each year once
   covs <- lapply(years, function(yr) as.matrix(
@@ -458,4 +466,25 @@ spreadProbGates <- function(par, annualDTx1000, nonAnnualDTx1000, historicalFire
   data.frame(pass = vapply(res, `[[`, logical(1), "pass"), burny = vapply(res, `[[`, logical(1), "burny"),
              notSpread = vapply(res, `[[`, logical(1), "notSpread"),
              medianOK = vapply(res, `[[`, logical(1), "medianOK"))
+}
+
+#' The share of dud years of a `spreadClimate = "activation"` fit
+#'
+#' With the activation, `x = activationIntercept + climate term + eps_Y`, and with the `"powerLawSmooth"` link at the
+#' floor every pixel is at the floor when `x < 0`. At the reference climate a year is such a "dud" when its draw
+#' `eps_Y ~ N(0, yearSpreadSD^2)` is below `-activationIntercept`: a share `pnorm(-activationIntercept / yearSpreadSD)`.
+#' A large share means the year effect acts as an on/off switch (Fable review H1); `fireSense_spreadFit` stores it in
+#' the ledger row ([spreadFitDudYearShareTxt]) and reports it, so a fit can be judged on it.
+#'
+#' @param params A `data.frame` or named numeric vector of parameter sets, with `activationIntercept`
+#'   ([activationInterceptTxt]) and, if the year effect was fitted, `yearSpreadSD`.
+#' @return A numeric vector, one per set: 0 without a year effect (or with sd 0) and a non-negative intercept, 1 with a
+#'   negative one.
+#' @export
+activationDudYearShare <- function(params) {
+  p <- as.list(params)
+  a <- p[[activationInterceptTxt]]
+  if (is.null(a)) stop("activationDudYearShare(): `params` has no '", activationInterceptTxt, "'", call. = FALSE)
+  sd <- if (is.null(p[[yearSpreadSDTxt]])) rep(0, length(a)) else p[[yearSpreadSDTxt]]
+  ifelse(sd > 0, stats::pnorm(-a / sd), as.numeric(a < 0))
 }

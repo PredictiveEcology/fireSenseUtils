@@ -32,6 +32,7 @@ spreadFitValidationData(
   seed = NULL,
   powerLawPc50 = NULL,
   fitActivationIntercept = NULL,
+  pcAtP50 = NULL,
   ...
 )
 
@@ -157,7 +158,7 @@ stream is restored afterwards.}
 
 \item{powerLawPc50}{\code{NULL} (default), or the landscape's runaway threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}). With \code{climateRef} and
 a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
-fuel linear predictor. Ignored without \code{climateRef}.}
+fuel linear predictor. Without \code{climateRef} it is used only as the fixed \code{maxAsymptote} of \code{pcAtP50}.}
 
 \item{fitActivationIntercept}{If \code{TRUE}, \code{spreadClimate = "activation"} (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}): the element of \code{par}
 right before the random-effect sds is \code{activationIntercept} (\link{activationInterceptTxt}), the linear predictor at the
@@ -166,6 +167,10 @@ pixel's ceiling and climate, with the year and fire effects, is the linear predi
 summary look at \code{p}. Needs \code{climateRef}, \code{powerLawPc50} and \code{link = "powerLawSmooth"} with
 \code{lowerAsymptote = lowerSpreadProb}. \code{NULL} (default): \code{TRUE} when \code{par} is named and has \code{activationIntercept}.
 DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly (\code{\link[=spreadRandomEffectArgs]{spreadRandomEffectArgs()}}).}
+
+\item{pcAtP50}{\code{NULL} (default) or \code{TRUE}: \code{maxAsymptote} (p_c of a power-law \code{link}) is not fitted and not in
+\code{par}; it is \code{powerLawPc50} (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}, \code{\link[=splitSpreadPar]{splitSpreadPar()}}). A named \code{par} that has
+\code{maxAsymptote} (a ledger row's) keeps it. The activation (\code{fitActivationIntercept}) implies it.}
 
 \item{...}{Further arguments to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, e.g. \code{escapeSizeHa}, \code{jumpTries},
 \code{jumpMeanDist}: give it what the fit was given. The objective's gates on implausible

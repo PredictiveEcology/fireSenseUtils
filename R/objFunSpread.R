@@ -173,7 +173,7 @@ utils::globalVariables(c(
 #'   instead: it moves `pc` toward `powerLawPc50`, never past it ([spreadLinkInputs()]).
 #' @param powerLawPc50 `NULL` (default), or the landscape's runaway threshold ([calibratePowerLaw()]). With `climateRef` and
 #'   a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
-#'   fuel linear predictor. Ignored without `climateRef`.
+#'   fuel linear predictor. Without `climateRef` it is used only as the fixed `maxAsymptote` of `pcAtP50`.
 #' @param fitActivationIntercept If `TRUE`, `spreadClimate = "activation"` ([spreadLinkInputs()]): the element of `par`
 #'   right before the random-effect sds is `activationIntercept` ([activationInterceptTxt]), the linear predictor at the
 #'   reference climate, and `maxAsymptote` is not in `par` (it is `powerLawPc50`, [splitSpreadPar()]). Fuel then sets each
@@ -181,6 +181,9 @@ utils::globalVariables(c(
 #'   summary look at `p`. Needs `climateRef`, `powerLawPc50` and `link = "powerLawSmooth"` with
 #'   `lowerAsymptote = lowerSpreadProb`. `NULL` (default): `TRUE` when `par` is named and has `activationIntercept`.
 #'   DEoptim passes `par` unnamed, so `runDEoptim()` sets it explicitly ([spreadRandomEffectArgs()]).
+#' @param pcAtP50 `NULL` (default) or `TRUE`: `maxAsymptote` (p_c of a power-law `link`) is not fitted and not in
+#'   `par`; it is `powerLawPc50` (`fireSense_spreadFit`'s `powerLawPcAtP50`, [splitSpreadPar()]). A named `par` that has
+#'   `maxAsymptote` (a ledger row's) keeps it. The activation (`fitActivationIntercept`) implies it.
 #'
 #' @param returnSims If `TRUE`, return the simulated fires instead of the objective value: a
 #'   `data.table` with one row per fire year x fire x replicate -- `yr`, `rep`, `initialLocus`, `ids`,
@@ -309,6 +312,7 @@ utils::globalVariables(c(
                              fitYearSpreadSD = NULL,
                              fitFireSpreadSD = NULL,
                              fitActivationIntercept = NULL,
+                             pcAtP50 = NULL,
                              # bufferedRealHistoricalFiresList,
                              verbose = 2,
                              crpsWeights = NULL,
@@ -327,7 +331,8 @@ utils::globalVariables(c(
   if (isTRUE(returnBurned)) returnSims <- TRUE
   ## the per-year random effect's sd, fitted as the LAST element of `par`
   ## and hillSlope1 and inflectionPoint1 are fixed at 1, not fitted -- see fixLogisticPars() for why.
-  parSplit <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD, fitActivationIntercept, powerLawPc50)
+  unnamedPar <- is.null(names(par))
+  parSplit <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD, fitActivationIntercept, powerLawPc50, pcAtP50)
   par <- parSplit$par
   yearSpreadSD <- parSplit$yearSpreadSD
   fireSpreadSD <- parSplit$fireSpreadSD
@@ -370,6 +375,15 @@ utils::globalVariables(c(
   colsToUse <- spreadDesignCols(formulaToFit)
   # How many of the parameters belong to the model?
   parsModel <- length(colsToUse)
+  ## An unnamed `par` (DEoptim's) is split by position only: in a fit that may leave p_c out (one with `powerLawPc50`:
+  ## the ceiling, the activation, pcAtP50) a missing flag would read its first coefficient as maxAsymptote, silently.
+  ## After the split it holds exactly the logistic parameters (maxAsymptote and the fixed two) and the coefficients.
+  ## Other calls are not checked: callers (and tests) give other layouts there, as they always could.
+  nLogistic <- length(fixedLogisticPars) + 1L + identical(link, "logistic3pUpper")
+  if (unnamedPar && !is.null(powerLawPc50) && length(par) != parsModel + nLogistic)
+    stop(".objfunSpreadFit(): an unnamed `par` gives ", length(par) - parsModel - length(fixedLogisticPars),
+         " logistic parameter(s) before the ", parsModel, " coefficients; the link needs ", nLogistic - length(fixedLogisticPars),
+         ". With p_c not fitted pass `pcAtP50 = TRUE`; check the fit* flags against `lower`.", call. = FALSE)
   ncells <- ncell(landscape)
 
   r <- rast(landscape)

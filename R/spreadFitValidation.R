@@ -46,7 +46,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                     fitFireSpreadSD = NULL, wholeLandscape = FALSE, climateRef = NULL, powerLawGamma = spreadPowerLawGamma,
                                     powerLawShape = spreadPowerLawShape, lowerAsymptote = spreadProbFloor,
                                     richardsNu = spreadRichardsNu, seed = NULL, powerLawPc50 = NULL,
-                                    fitActivationIntercept = NULL, ...) {
+                                    fitActivationIntercept = NULL, pcAtP50 = NULL, ...) {
   if (!is.null(seed)) withr::local_seed(seed)
   objArgs <- utils::modifyList(
     list(lanscape1stQuantileThresh = Inf, doAssertions = FALSE, verbose = 0),
@@ -58,13 +58,14 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
     covMinMax = covMinMax, mutuallyExclusive = mutuallyExclusive, covCentre = covCentre,
     Nreps = Nreps, lowerSpreadProb = lowerSpreadProb, maxFireSpread = maxFireSpread, link = link,
     fitYearSpreadSD = fitYearSpreadSD, fitFireSpreadSD = fitFireSpreadSD, fitActivationIntercept = fitActivationIntercept,
+    pcAtP50 = pcAtP50,
     wholeLandscape = wholeLandscape, climateRef = climateRef, powerLawPc50 = powerLawPc50, powerLawGamma = powerLawGamma,
     powerLawShape = powerLawShape, lowerAsymptote = lowerAsymptote, richardsNu = richardsNu,
     returnBurned = TRUE), objArgs))
   burned <- attr(sims, "burned")
 
   ## the parameters as the objective uses them
-  parSplit <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD, fitActivationIntercept, powerLawPc50)
+  parSplit <- splitSpreadPar(par, fitYearSpreadSD, fitFireSpreadSD, fitActivationIntercept, powerLawPc50, pcAtP50)
   par <- parSplit$par
   colsToUse <- spreadDesignCols(formulaToFit)
   covCols <- spreadCovCols(colsToUse)
