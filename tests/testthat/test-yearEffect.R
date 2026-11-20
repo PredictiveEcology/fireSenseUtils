@@ -60,3 +60,9 @@ test_that("less spread than Poisson is floored at 0; degenerate input gives 0; N
   expect_identical(yearEffectSD(c(1, 2), c(0, 0)), 0)           # nothing predicted
   expect_equal(yearEffectSD(c(10, NA, 40), c(20, 5, 20)), yearEffectSD(c(10, 40), c(20, 20)))
 })
+
+test_that("scaleToObservedLevel keeps the pattern and the observed total", {
+  expect_equal(scaleToObservedLevel(c(10, 30), c(5, 15)), c(10, 30))
+  expect_equal(scaleToObservedLevel(c(10, 30), c(1, 1)), c(20, 20))
+  expect_equal(sum(scaleToObservedLevel(c(7, 3, 9), c(1, 2, 3))), 19)
+})

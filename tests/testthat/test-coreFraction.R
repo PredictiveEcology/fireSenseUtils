@@ -68,3 +68,35 @@ test_that("addCoreFraction adds the column and ignitions are untouched", {
   data.table::set(noFlammable, NULL, "pixelID", 99L)
   expect_error(addCoreFraction(noFlammable, years, list(year2010 = r$flam), r$elf, 4), "coreFraction")
 })
+
+test_that("onMissing = \"zero\" gives a row with no flammable cell 0 and one warning with the count", {
+  r <- coreFractionRasters()
+  dt <- data.table::data.table(pixelID = c(1L, 99L, 98L), year = 2011, ignitions = 0L)
+  years <- list(`2010` = "year2011")
+  expect_error(addCoreFraction(data.table::copy(dt), years, list(year2010 = r$flam), r$elf, 4), "2 ignition covariate rows")
+  expect_warning(out <- addCoreFraction(data.table::copy(dt), years, list(year2010 = r$flam), r$elf, 4, onMissing = "zero"),
+                 "2 ignition covariate rows")
+  expect_equal(out$coreFraction, c(1, 0, 0))
+})
+
+test_that("addCoreFraction takes the fractions it is given", {
+  r <- coreFractionRasters()
+  dt <- data.table::data.table(pixelID = 1:2, year = 2011)
+  years <- list(`2010` = "year2011")
+  fr <- coreFractionByYear(years, list(year2010 = r$flam), r$elf, 4)
+  expect_identical(addCoreFraction(data.table::copy(dt), years, list(year2010 = r$flam), r$elf, 4)$coreFraction,
+                   addCoreFraction(data.table::copy(dt), fractions = fr)$coreFraction)
+})
+
+test_that("coreFractionKey changes with the flammable cells, the core raster, the grid and fact, not with the year labels", {
+  r <- coreFractionRasters()
+  k <- coreFractionKey(list(r$flam), r$elf, 4)
+  expect_identical(coreFractionKey(list(r$flam), r$elf, 4), k)
+  flam2 <- r$flam; flam2[1, 1] <- 0
+  expect_false(identical(coreFractionKey(list(flam2), r$elf, 4), k))
+  elf2 <- r$elf; elf2[1, 1] <- 1
+  expect_false(identical(coreFractionKey(list(r$flam), elf2, 4), k))
+  expect_false(identical(coreFractionKey(list(r$flam), r$elf, 2), k))
+  expect_false(identical(coreFractionKey(list(r$flam), NULL, 4), k))
+  expect_false(identical(coreFractionKey(list(terra::rast(nrows = 4, ncols = 4, xmin = 0, xmax = 8, ymin = 0, ymax = 8, vals = 1)), r$elf, 4), k))
+})
