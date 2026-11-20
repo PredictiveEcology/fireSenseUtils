@@ -18,6 +18,9 @@
 defaultClimateVariablesForFire <- list(ignition = c("CMD", "cumMDC", "CMD_sm", "CMD_sp"),
                                        spread = "auto")
 
+## The element of `choices` that is each `x`, ignoring underscores (`"CMD_sm"` is `"CMDsm"`); `NA` where none is.
+matchIgnoringUnderscores <- function(x, choices) choices[match(gsub("_", "", x), gsub("_", "", choices))]
+
 #' ClimateNA names of climate variables given with or without underscores
 #'
 #' The fire modules name climate layers without underscores (`"CMDsm"`), ClimateNA with them
@@ -28,7 +31,7 @@ defaultClimateVariablesForFire <- list(ignition = c("CMD", "cumMDC", "CMD_sm", "
 #' @export
 climateNAnames <- function(x) {
   allowed <- getFromNamespace(".allowedClimateVars", ns = asNamespace("climateData"))
-  out <- allowed[match(gsub("_", "", x), gsub("_", "", allowed))]
+  out <- matchIgnoringUnderscores(x, allowed)
   if (anyNA(out))
     stop("Unknown climate variable(s): ", paste(x[is.na(out)], collapse = ", "),
          ". Use ClimateNA names (e.g., CMD_sm) or climateData's derived variables (e.g., cumMDC).")
