@@ -8,7 +8,7 @@
 \usage{
 yearClimateColumn(variable, columns)
 
-yearClimateMeans(x, year, weight = 1)
+yearClimateMeans(covariates, variable)
 
 yearClimateMultiplier(yearClimate, yearMean)
 }
@@ -17,32 +17,34 @@ yearClimateMultiplier(yearClimate, yearMean)
 
 \item{columns}{Character: the column names to search.}
 
-\item{x}{Numeric: the covariate, one element per row.}
+\item{covariates}{A \code{data.frame} of covariates, one row per pixel (and year): the raw (not standardised)
+covariates of the fit, or of the pixels to predict, both with a \code{coreFraction} column (\link{coreFractionTxt},
+made by \code{\link[=addCoreFraction]{addCoreFraction()}}). A row counts if \code{variable} and \code{coreFraction} are not \code{NA} and \code{coreFraction} is above 0;
+no other column decides. Without a \code{coreFraction} column every row with \code{variable} counts. A \code{year}
+column (\link{yearTxt}) gives the years; without one all rows are one year.}
 
-\item{year}{The year of each row.}
-
-\item{weight}{Numeric: the weight of each row (the share of the pixel in the core,
-\code{fireSense_ignitionFit}'s \code{exposureOf()}); 1 for a plain mean.}
-
-\item{yearClimate}{\code{list(variable, center, scale, beta)}, or \code{NULL} (no term).}
+\item{yearClimate}{\code{list(variable, center, scale, beta, norm)}, or \code{NULL} (no term). \code{norm} may be absent (1).}
 
 \item{yearMean}{The yearly mean(s) of \code{yearClimate$variable}, on the covariate's raw scale.}
 }
 \value{
 \code{yearClimateColumn()}: the element of \code{columns} that is \code{variable}; an error if there is none.
-\code{yearClimateMeans()}: a \code{data.frame} with \code{year} and \code{mean}, one row per year, the weighted mean of \code{x}.
-\code{yearClimateMultiplier()}: \code{exp(beta * (yearMean - center) / scale)}, 1 when \code{yearClimate} is \code{NULL}.
+\code{yearClimateMeans()}: a \code{data.frame} with \code{year} and \code{mean}, one row per year that has rows left.
+\code{yearClimateMultiplier()}: \code{exp(beta * (yearMean - center) / scale) / norm}, 1 when \code{yearClimate} is \code{NULL}.
 }
 \description{
-\code{fireSense_ignitionFit} can scale each year's expected ignitions by \code{exp(beta * z_y)}, with \code{beta >= 0}
+\code{fireSense_ignitionFit} can scale each year's expected ignitions by \code{exp(beta * z_y) / norm}, with \code{beta >= 0}
 and \code{z_y} the standardised yearly mean of one climate covariate over the ELF (by default summer CMD,
-\code{"CMDsm"}). The fit stores \code{list(variable, center, scale, beta)} (\code{yearClimate}), with
-\code{center} and \code{scale} the mean and sd of the yearly means over the fit years, and
-\code{fireSense_ignitionPredict} applies it. These functions are the one place the formula lives.
+\code{"CMDsm"}). The fit stores \code{list(variable, center, scale, beta, norm)} (\code{yearClimate}): \code{center} and \code{scale} are
+the mean and sd of the yearly means over the fit years, and \code{norm} is the mean of \code{exp(beta * z_y)} over the fit
+years, so the multiplier averages 1 over them. \code{fireSense_ignitionPredict} applies it. These functions are the
+one place the definition lives: the yearly mean is the same unweighted mean over the same rows (core pixels, with
+the variable) in the fit and in the prediction, provided both covariate tables carry \code{coreFraction} from \code{\link[=addCoreFraction]{addCoreFraction()}}.
 }
 \examples{
 yearClimateColumn("CMD_sm", c("CMDsm", "youngAge"))
-yearClimateMeans(c(1, 3, 10, 20), year = c(1, 1, 2, 2), weight = c(1, 1, 1, 0))
-yearClimateMultiplier(list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5), c(3, 5, 7))
+yearClimateMeans(data.frame(year = c(1, 1, 2, 2), CMDsm = c(1, 3, 10, NA)), "CMDsm")
+yc <- list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5, norm = 1)
+yearClimateMultiplier(yc, c(3, 5, 7))
 yearClimateMultiplier(NULL, 7)
 }
