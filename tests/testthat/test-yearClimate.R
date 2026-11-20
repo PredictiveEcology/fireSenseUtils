@@ -4,13 +4,19 @@ test_that("yearClimateColumn accepts the name with or without underscores, and s
   expect_error(yearClimateColumn("CMDsm", c("youngAge", "x")), "not among the covariates")
 })
 
-test_that("yearClimateMeans is the unweighted mean per year over complete rows with core", {
+test_that("yearClimateMeans is the unweighted mean per year over the rows with the variable and with core", {
   d <- data.frame(year = c(2, 2, 2, 1, 1, 1), CMDsm = c(1, 3, 100, 10, 20, 30), other = c(1, 1, 1, NA, 1, 1),
                   coreFraction = c(1, 0.2, 0, 1, 1, 1))
   m <- yearClimateMeans(d, "CMD_sm")
   expect_equal(m$year, c(1, 2))
-  expect_equal(m$mean, c(25, 2))          # year 1 drops the NA row; year 2 drops coreFraction 0; no weighting
+  expect_equal(m$mean, c(20, 2))          # year 2 drops coreFraction 0; no weighting; NA in `other` does not drop a row
   expect_equal(yearClimateMeans(data.frame(CMDsm = c(1, 3)), "CMDsm")$mean, 2)   # no year column: one year
+})
+
+test_that("only the variable and coreFraction decide which rows count, not other columns", {
+  d <- data.frame(year = 1, CMDsm = c(1, 3, NA, 5), coreFraction = c(1, 1, 1, NA), other = c(NA, 1, 1, 1))
+  expect_equal(yearClimateMeans(d, "CMDsm")$mean, 2)
+  expect_equal(yearClimateMeans(d[, c("year", "CMDsm", "other")], "CMDsm")$mean, 3)    # no coreFraction: every row with the variable
 })
 
 test_that("a year with no rows left is dropped, not NA", {

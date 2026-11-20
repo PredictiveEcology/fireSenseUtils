@@ -18,8 +18,9 @@ yearClimateMultiplier(yearClimate, yearMean)
 \item{columns}{Character: the column names to search.}
 
 \item{covariates}{A \code{data.frame} of covariates, one row per pixel (and year): the raw (not standardised)
-covariates of the fit, or of the pixels to predict. Rows with an \code{NA} in any column are dropped, and, when
-there is a \code{coreFraction} column (\link{coreFractionTxt}), rows without core (\code{coreFraction} not above 0). A \code{year}
+covariates of the fit, or of the pixels to predict, both with a \code{coreFraction} column (\link{coreFractionTxt},
+made by \code{\link[=addCoreFraction]{addCoreFraction()}}). A row counts if \code{variable} and \code{coreFraction} are not \code{NA} and \code{coreFraction} is above 0;
+no other column decides. Without a \code{coreFraction} column every row with \code{variable} counts. A \code{year}
 column (\link{yearTxt}) gives the years; without one all rows are one year.}
 
 \item{yearClimate}{\code{list(variable, center, scale, beta, norm)}, or \code{NULL} (no term). \code{norm} may be absent (1).}
@@ -37,8 +38,8 @@ and \code{z_y} the standardised yearly mean of one climate covariate over the EL
 \code{"CMDsm"}). The fit stores \code{list(variable, center, scale, beta, norm)} (\code{yearClimate}): \code{center} and \code{scale} are
 the mean and sd of the yearly means over the fit years, and \code{norm} is the mean of \code{exp(beta * z_y)} over the fit
 years, so the multiplier averages 1 over them. \code{fireSense_ignitionPredict} applies it. These functions are the
-one place the definition lives: the yearly mean is the same unweighted mean over the same rows in the fit and in
-the prediction.
+one place the definition lives: the yearly mean is the same unweighted mean over the same rows (core pixels, with
+the variable) in the fit and in the prediction, provided both covariate tables carry \code{coreFraction} from \code{\link[=addCoreFraction]{addCoreFraction()}}.
 }
 \examples{
 yearClimateColumn("CMD_sm", c("CMDsm", "youngAge"))
