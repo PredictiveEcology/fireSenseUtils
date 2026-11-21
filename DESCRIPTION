@@ -41,7 +41,7 @@ Imports:
     sf,
     sp,
     SpaDES.core (>= 3.2.1.9057),
-    SpaDES.tools (>= 2.2.0.9004),
+    SpaDES.tools (>= 2.2.0.9005),
     stats,
     terra (>= 1.9-50),
     tidyr,

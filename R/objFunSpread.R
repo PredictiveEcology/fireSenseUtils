@@ -1022,14 +1022,17 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## cells burned are those of the full probability vector, without building one per replicate.
         ## The arithmetic is that of the R link (linearLinkProb()), so the doubles are the same.
         lpCrop <- rep(NA_real_, crop$ncell)
-        lpCrop[crop$toCrop(shortAnnDT$pixelID)] <- linkIn$x
+        inCrop <- crop$toCrop(shortAnnDT$pixelID)
+        lpCrop[inCrop] <- linkIn$x
         spreadLink <- link
         spreadLinkPars <- linkIn$pars
         if (is.matrix(spreadLinkPars)) {
           ## per-cell parameters (climate in the ceiling): one row per cell of the crop; cells off the year's
           ## pixels have no lp, so no fire reaches them, and get parameters that cannot burn
+          ## a double matrix with the link's columns in order, which spreadCpp() takes without a copy: built once
+          ## here, a column at a time, for all of the year's replicates
           cropPars <- unburnableLinkPars(link, crop$ncell)
-          cropPars[crop$toCrop(shortAnnDT$pixelID), ] <- spreadLinkPars
+          for (j in seq_len(ncol(cropPars))) cropPars[inCrop, j] <- spreadLinkPars[, j]
           spreadLinkPars <- cropPars
         }
       } else {
@@ -1070,6 +1073,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         toP <- if (linearLink) function(z) linearLinkProb(z, link, linkIn$pars) else stats::plogis
         lociCrop <- crop$toCrop(loci)
       }
+      ## spreadCpp() checks a per-cell linkPars matrix in the year's first replicate only: all of them get the same one
       spreadState <- lapply(seq_len(Nreps), function(i) {
         linkOffset <- 0
         if (whole) {
@@ -1094,7 +1098,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
             loci = crop$toCrop(loci),
             spreadProb = sp,
             stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt,
-            link = spreadLink, linkPars = spreadLinkPars, linkOffset = linkOffset
+            link = spreadLink, linkPars = spreadLinkPars, linkOffset = linkOffset,
+            checkLinkPars = i == 1L
           )
         } else { ## an escaped fire burns its first escapeMinPx cells whatever spreadProb
           SpaDES.tools::spreadCpp(
@@ -1105,7 +1110,8 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
             jumpTries = jumpTries,
             jumpMeanDist = jumpMeanDist,
             stopCells = stopArgs$stopCells, stopEvent = stopArgs$stopEvent, stopAt = stopArgs$stopAt,
-            link = spreadLink, linkPars = spreadLinkPars, linkOffset = linkOffset
+            link = spreadLink, linkPars = spreadLinkPars, linkOffset = linkOffset,
+            checkLinkPars = i == 1L
           )
         }
       })
