@@ -54,5 +54,5 @@ reads.
 without a name in \code{sppEquivCol} are dropped and a colour vector is made), and finds the climate
 variables of its parameters: the columns of \code{params} that are neither logistic parameters
 (\link{logisticParamNames}), \code{youngAge}, fuel classes nor non-forest groups, and are a climate variable of
-\code{climateData}.
+\code{climateData}, or its \verb{_yr} and \verb{_dev} terms (\code{\link[=climateSplitCols]{climateSplitCols()}}).
 }

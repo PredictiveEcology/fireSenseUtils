@@ -10,7 +10,7 @@
 #' without a name in `sppEquivCol` are dropped and a colour vector is made), and finds the climate
 #' variables of its parameters: the columns of `params` that are neither logistic parameters
 #' ([logisticParamNames]), `youngAge`, fuel classes nor non-forest groups, and are a climate variable of
-#' `climateData`.
+#' `climateData`, or its `_yr` and `_dev` terms ([climateSplitCols()]).
 #'
 #' @param ledger `data.frame` or `sf`, SpreadFit ledger rows, with columns `polygonID`
 #'   ([polygonIDTxt]), `params` and the list-columns in `colNames`.
@@ -47,7 +47,8 @@ spreadFitLedgerInputs <- function(ledger, sppEquivCol, fuelClassCol, studyArea,
     if (youngAgeTxt %in% colnames(pars))
       FuelNames <- c(youngAgeTxt, FuelNames)
     ClimateNames <- setdiff(setdiff(colnames(pars), lpn[[whLogistic]]), FuelNames)
-    whClimateVar <- which(allVarsNoUnderscore %in% ClimateNames)
+    ## a split climate variable (spreadClimateSplit) is in the parameters as its two terms, `<var>_yr` and `<var>_dev`
+    whClimateVar <- which(allVarsNoUnderscore %in% climateSplitBase(ClimateNames))
 
     c(row[intersect(c("missingLCCgroup", "nonForestedLCCGroups"), colNames)],
       sppOuts[c("sppColorVect", "sppEquiv", "sppNameVector")],
