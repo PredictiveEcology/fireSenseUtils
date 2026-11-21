@@ -102,7 +102,9 @@ fireSenseCloudParametersMap <-
 #'   without a value keep theirs.
 #' @param metricCol,metricTitle,metricRange The colours (a vector, as `col` of [terra::plot()]), the legend title
 #'   and the value range (two numbers, e.g. `c(0, 100)`, fixing the colour scale) of `metric`. `NULL` (default)
-#'   takes terra's colours, `metric` as the title and the range of the values. With `plotFires`, the colours
+#'   takes terra's colours, `metric` as the title and the range of the values. A `Date` or `POSIXct` `metric` is drawn
+#'   by its day, from red (oldest) to green (newest) unless `metricCol` says otherwise, and the colour bar is labelled
+#'   with dates. With `plotFires`, the colours
 #'   and title left `NULL` are the green-to-red ramp and the name of the rate.
 #' @param plotFires `NULL` (default), `"number"`, `"density"`, `"area"` or `"proportion"`: fill the cores with
 #'   the mean natural ignitions per year, the mean natural ignitions per 100 km^2 of core per year, the mean
@@ -110,6 +112,7 @@ fireSenseCloudParametersMap <-
 #'   [ELFfireRates()], on a
 #'   green (less) to red (more) ramp. Arctic and Prairie grassland ELFs, which are not counted, keep their
 #'   fill. Not with `metrics`.
+#' @param whichLabel The legend entry of the `which` fill.
 #' @param ... Passed to [fewFireELFs()] when `plan` is `NULL`, e.g. `pixelAreaHa` (default 5.76) or
 #'   `fireYears` (default [defaultFireYears()]).
 #' @export
@@ -120,7 +123,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
                      ELFs = NULL,
                      labels = c("code", "name", "none"), labelWhich = c("all", "highlighted"),
                      buffers = TRUE, axes = c("m", "longlat", "none"), metrics = NULL, metric = NULL,
-                     metricCol = NULL, metricTitle = NULL, metricRange = NULL, plotFires = NULL, ...) {
+                     metricCol = NULL, metricTitle = NULL, metricRange = NULL, plotFires = NULL, whichLabel = "selected", ...) {
   labels <- match.arg(labels)
   labelWhich <- match.arg(labelWhich)
   axes <- match.arg(axes)
@@ -204,6 +207,17 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
     valued <- core[core$ID %in% metrics$ELF[!is.na(metrics[[metric]])], ]
     if (NROW(valued)) {
       values <- metrics[[metric]][match(valued$ID, metrics$ELF)]
+      legendAt <- NULL
+      if (inherits(values, c("Date", "POSIXct"))) {
+        ## terra draws numbers: a date by its day, with a colour bar labelled by dates
+        values <- as.numeric(as.Date(values))
+        if (is.null(metricCol)) metricCol <- grDevices::hcl.colors(100, "RdYlGn") # red = oldest, green = newest
+        ## terra labels a colour bar only with two or more distinct values; one value is a legend of classes
+        if (length(unique(values)) > 1L) {
+          span <- if (is.null(metricRange)) range(values) else as.numeric(as.Date(metricRange, origin = "1970-01-01"))
+          legendAt <- unique(round(seq(span[1], span[2], length.out = 4)))
+        }
+      }
       valued[[metric]] <- values
       ## the bar is centred in the strip right of the map, low down, so its title fits above it;
       ## a number is a colour ramp even with few distinct values
@@ -211,7 +225,8 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
                   range = metricRange,
                   plg = list(ext = c(mapExt$xmax + 0.08 * mapW, mapExt$xmax + 0.10 * mapW,
                                      mapExt$ymin + 0.05 * mapH, mapExt$ymin + 0.40 * mapH),
-                             title = if (is.null(metricTitle)) metric else metricTitle))
+                             title = if (is.null(metricTitle)) metric else metricTitle,
+                             at = legendAt, labels = if (!is.null(legendAt)) format(as.Date(legendAt, origin = "1970-01-01"))))
     }
   }
   if (length(which)) {
@@ -220,7 +235,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       warning("ELFs not found: ", paste(missingELFs, collapse = ", "))
     ## the metric is drawn over the other fills, so `fill` only goes where `metric` has no value
     valuedIDs <- if (is.null(metrics)) character(0) else metrics$ELF[!is.na(metrics[[metric]])]
-    fillELFs(setdiff(which, valuedIDs), fill, "selected")
+    fillELFs(setdiff(which, valuedIDs), fill, whichLabel)
   }
   if (!identical(labels, "none")) {
     keep <- ELFsPoly$buffer %in% 2

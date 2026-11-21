@@ -540,3 +540,41 @@ test_that("plotELFs(metrics) puts the colour bar in a strip right of the ELFs, w
   plotELFs(which = "4.1", plan = noPlan)                         # no metric: no strip
   expect_null(plotArgs$ext)
 })
+
+test_that("plotELFs(metric = <Date>) colours the oldest red and the newest green, and the legend names dates", {
+  m <- data.frame(ELF = c("11.3", "11.1_2", "1.1"), when = as.Date(c("2026-09-01", "2026-11-01", NA)))
+  out <- drawn(plan = mergePlan(), metrics = m, metric = "when", metricTitle = "latest fit")
+  last <- out$plots[[length(out$plots)]]
+  expect_identical(last$x$ID, c("11.3", "11.1_2"))              # 1.1 has no date: it keeps its fill
+  expect_equal(last$x$when, as.numeric(as.Date(c("2026-09-01", "2026-11-01"))))
+  expect_identical(last$col[1], grDevices::hcl.colors(100, "RdYlGn")[1])     # old end: red
+  expect_identical(last$col[100], grDevices::hcl.colors(100, "RdYlGn")[100]) # new end: green
+  expect_true(grDevices::col2rgb(last$col[1])["red", ] > grDevices::col2rgb(last$col[1])["green", ])
+  expect_true(grDevices::col2rgb(last$col[100])["green", ] > grDevices::col2rgb(last$col[100])["red", ])
+  expect_equal(last$plg$at[c(1, length(last$plg$at))], as.numeric(as.Date(c("2026-09-01", "2026-11-01"))))
+  expect_identical(last$plg$labels[c(1, length(last$plg$labels))], c("2026-09-01", "2026-11-01"))
+  expect_equal(last$plg$title, "latest fit")
+  ## a POSIXct metric (a ledger's writtenAt) is drawn by its day
+  m$when <- as.POSIXct(c("2026-09-01 10:00:00", "2026-11-01 23:00:00", NA), tz = "UTC")
+  last <- drawn(plan = mergePlan(), metrics = m, metric = "when")$plots
+  last <- last[[length(last)]]
+  expect_identical(last$plg$labels[c(1, length(last$plg$labels))], c("2026-09-01", "2026-11-01"))
+})
+
+test_that("plotELFs(whichLabel) names the `which` fill in the legend", {
+  out <- drawn(plan = mergePlan(), which = "11.3", fill = "grey70", whichLabel = "no production fit")
+  expect_true("no production fit" %in% out$legend$legend)
+  expect_false("selected" %in% out$legend$legend)
+  expect_true("selected" %in% drawn(plan = mergePlan(), which = "11.3")$legend$legend)
+})
+
+test_that("a Date metric's colour bar spans metricRange, and a single date gets no date labels", {
+  m <- data.frame(ELF = c("11.3", "11.1_2"), when = as.Date(c("2026-09-01", "2026-09-10")))
+  last <- drawn(plan = mergePlan(), metrics = m, metric = "when",
+                metricRange = as.numeric(as.Date(c("2026-08-01", "2026-11-01"))))$plots
+  last <- last[[length(last)]]
+  expect_identical(last$plg$labels[c(1, length(last$plg$labels))], c("2026-08-01", "2026-11-01"))
+  m$when <- as.Date("2026-09-01")
+  last <- drawn(plan = mergePlan(), metrics = m, metric = "when")$plots
+  expect_null(last[[length(last)]]$plg$at)
+})

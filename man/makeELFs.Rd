@@ -33,6 +33,7 @@ plotELFs(
   metricTitle = NULL,
   metricRange = NULL,
   plotFires = NULL,
+  whichLabel = "selected",
   ...
 )
 }
@@ -99,7 +100,9 @@ without a value keep theirs.}
 
 \item{metricCol, metricTitle, metricRange}{The colours (a vector, as \code{col} of \code{\link[terra:plot]{terra::plot()}}), the legend title
 and the value range (two numbers, e.g. \code{c(0, 100)}, fixing the colour scale) of \code{metric}. \code{NULL} (default)
-takes terra's colours, \code{metric} as the title and the range of the values. With \code{plotFires}, the colours
+takes terra's colours, \code{metric} as the title and the range of the values. A \code{Date} or \code{POSIXct} \code{metric} is drawn
+by its day, from red (oldest) to green (newest) unless \code{metricCol} says otherwise, and the colour bar is labelled
+with dates. With \code{plotFires}, the colours
 and title left \code{NULL} are the green-to-red ramp and the name of the rate.}
 
 \item{plotFires}{\code{NULL} (default), \code{"number"}, \code{"density"}, \code{"area"} or \code{"proportion"}: fill the cores with
@@ -108,6 +111,8 @@ area burned per year (ha), or the mean proportion of the core burned per year, o
 \code{\link[=ELFfireRates]{ELFfireRates()}}, on a
 green (less) to red (more) ramp. Arctic and Prairie grassland ELFs, which are not counted, keep their
 fill. Not with \code{metrics}.}
+
+\item{whichLabel}{The legend entry of the \code{which} fill.}
 
 \item{...}{Passed to \code{\link[=fewFireELFs]{fewFireELFs()}} when \code{plan} is \code{NULL}, e.g. \code{pixelAreaHa} (default 5.76) or
 \code{fireYears} (default \code{\link[=defaultFireYears]{defaultFireYears()}}).}
