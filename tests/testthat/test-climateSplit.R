@@ -1,4 +1,4 @@
-## spreadClimateSplit: the climate covariate as a between-year term (the year's ELF median) and a
+## splitSpreadClimate(), climateSplit*(), elfCellLabels(): the climate covariate as a between-year term (the year's ELF median) and a
 ## within-year term (the departure from it)
 
 yearTable <- function() {
@@ -98,4 +98,22 @@ test_that("elfCellLabels() gives a categorical raster's labels and a plain raste
   expect_identical(elfCellLabels(r), c("2", "1", "2", NA))
   levels(r) <- data.frame(id = 1:2, ELFind = c("A", "B"))
   expect_identical(elfCellLabels(r), c("B", "A", "B", NA))
+})
+
+test_that("both split terms are climate columns of the ceiling and activation links", {
+  annual <- list(`2004` = data.table::data.table(pixelID = 1:3, CMD_yr = 1, CMD_dev = c(-1, 0, 1), youngAge = 0L))
+  expect_identical(spreadClimateCols("~ 0 + CMD_yr + CMD_dev + youngAge", annual), c("CMD_yr", "CMD_dev"))
+  expect_identical(spreadClimateCols("~ 0 + CMD_yr + CMD_dev + CMD_yr:fuel", annual), c("CMD_yr", "CMD_dev"))
+  mat <- cbind(CMD_yr = c(0.5, 0.5, 0.6), CMD_dev = c(-0.1, 0, 0.1), fuel = c(0.2, 0.4, 0.6))
+  b <- c(CMD_yr = 2, CMD_dev = 1, fuel = 3)
+  ref <- list(CMD_yr = 0.4, CMD_dev = 0)
+  shift <- unname(b[["CMD_yr"]] * (mat[, "CMD_yr"] - ref$CMD_yr) + b[["CMD_dev"]] * (mat[, "CMD_dev"] - ref$CMD_dev))
+  lp <- c(0.2, 1, 1)
+  fl <- 0.13
+  ceil <- spreadLinkInputs(mat, lp, b, fl, "powerLawSmooth", ref, 0.3, lowerAsymptote = fl)
+  expect_equal(unname(ceil$pars[, "pc"]), pmax(0.3 - (0.3 - lp[1]) * exp(-shift), fl))
+  expect_equal(ceil$x, unname(mat[, "fuel"] * b[["fuel"]]))
+  act <- spreadLinkInputs(mat, lp, b, fl, "powerLawSmooth", ref, 0.3, lowerAsymptote = fl, activationIntercept = 1.2)
+  expect_equal(act$x, 1.2 + shift)
+  expect_equal(unname(act$pars[, "pc"]), fl + (0.3 - fl) * plogis(unname(mat[, "fuel"] * b[["fuel"]])))
 })

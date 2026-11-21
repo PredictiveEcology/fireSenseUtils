@@ -21,27 +21,27 @@
 #' @param vars character; climate variables, as named in the annual tables (`"CMD"`, `"Tmaxsm"`).
 #' @return `climateSplitCols()`: the two terms of each variable, `<var>_yr` then `<var>_dev`, variable by variable.
 #' @export
-#' @rdname spreadClimateSplit
+#' @rdname climateSplit
 climateSplitCols <- function(vars) as.vector(rbind(paste0(vars, climateSplitYrSuffix),
                                                    paste0(vars, climateSplitDevSuffix)))
 
 #' @export
-#' @rdname spreadClimateSplit
+#' @rdname climateSplit
 climateSplitYrSuffix <- "_yr"
 
 #' @export
-#' @rdname spreadClimateSplit
+#' @rdname climateSplit
 climateSplitDevSuffix <- "_dev"
 
 #' @param x character; column or parameter names.
 #' @return `isClimateSplitCol()`: logical, `TRUE` for the names that end in `_yr` or `_dev`.
 #'   `climateSplitBase()`: `x` with those endings removed, i.e. the climate variable of a term.
 #' @export
-#' @rdname spreadClimateSplit
+#' @rdname climateSplit
 isClimateSplitCol <- function(x) grepl(paste0("(", climateSplitYrSuffix, "|", climateSplitDevSuffix, ")$"), x)
 
 #' @export
-#' @rdname spreadClimateSplit
+#' @rdname climateSplit
 climateSplitBase <- function(x) sub(paste0("(", climateSplitYrSuffix, "|", climateSplitDevSuffix, ")$"), "", x)
 
 #' @param dt `data.table` with the climate variables `vars` and the rows to give the two terms to.
@@ -52,7 +52,7 @@ climateSplitBase <- function(x) sub(paste0("(", climateSplitYrSuffix, "|", clima
 #'   all years); `NULL` when both are one year (a prediction).
 #' @return `splitSpreadClimate()`: `dt`, invisibly. A year with no value in `ref` gives `NA`.
 #' @export
-#' @rdname spreadClimateSplit
+#' @rdname climateSplit
 splitSpreadClimate <- function(dt, vars, ref, by = NULL) {
   yr <- paste0(vars, climateSplitYrSuffix)
   dev <- paste0(vars, climateSplitDevSuffix)
