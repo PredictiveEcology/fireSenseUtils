@@ -31,6 +31,8 @@ spreadFitValidationData(
   richardsNu = spreadRichardsNu,
   seed = NULL,
   powerLawPc50 = NULL,
+  fitActivationIntercept = NULL,
+  pcAtP50 = NULL,
   ...
 )
 
@@ -156,7 +158,19 @@ stream is restored afterwards.}
 
 \item{powerLawPc50}{\code{NULL} (default), or the landscape's runaway threshold (\code{\link[=calibratePowerLaw]{calibratePowerLaw()}}). With \code{climateRef} and
 a power-law link it puts climate in the ceiling; needed then. The year effect and the per-fire effect stay on the
-fuel linear predictor. Ignored without \code{climateRef}.}
+fuel linear predictor. Without \code{climateRef} it is used only as the fixed \code{maxAsymptote} of \code{pcAtP50}.}
+
+\item{fitActivationIntercept}{If \code{TRUE}, \code{spreadClimate = "activation"} (\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}): the element of \code{par}
+right before the random-effect sds is \code{activationIntercept} (\link{activationInterceptTxt}), the linear predictor at the
+reference climate, and \code{maxAsymptote} is not in \code{par} (it is \code{powerLawPc50}, \code{\link[=splitSpreadPar]{splitSpreadPar()}}). Fuel then sets each
+pixel's ceiling and climate, with the year and fire effects, is the linear predictor; the gates and the saturation
+summary look at \code{p}. Needs \code{climateRef}, \code{powerLawPc50} and \code{link = "powerLawSmooth"} with
+\code{lowerAsymptote = lowerSpreadProb}. \code{NULL} (default): \code{TRUE} when \code{par} is named and has \code{activationIntercept}.
+DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly (\code{\link[=spreadRandomEffectArgs]{spreadRandomEffectArgs()}}).}
+
+\item{pcAtP50}{\code{NULL} (default) or \code{TRUE}: \code{maxAsymptote} (p_c of a power-law \code{link}) is not fitted and not in
+\code{par}; it is \code{powerLawPc50} (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}, \code{\link[=splitSpreadPar]{splitSpreadPar()}}). A named \code{par} that has
+\code{maxAsymptote} (a ledger row's) keeps it. The activation (\code{fitActivationIntercept}) implies it.}
 
 \item{...}{Further arguments to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, e.g. \code{escapeSizeHa}, \code{jumpTries},
 \code{jumpMeanDist}: give it what the fit was given. The objective's gates on implausible
@@ -181,7 +195,7 @@ of the fire year), \code{pixelID}, \code{observed} (1 if the pixel is inside an 
 probability, without the per-year random effect), and one column per covariate of the formula
 with its raw value (the stored integer / 1000, before rescaling and mutual exclusivity).
 \code{attr(, "spreadFitValidation")} holds what the plots need: the parameters, \code{covMinMax},
-\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawPc50}, \code{powerLawGamma}, \code{powerLawShape}, \code{lowerAsymptote}, \code{richardsNu}, \code{Nreps}, the names of the covariates and of the
+\code{covCentre}, \code{lowerSpreadProb}, \code{link}, \code{climateRef}, \code{powerLawPc50}, \code{activationIntercept}, \code{powerLawGamma}, \code{powerLawShape}, \code{lowerAsymptote}, \code{richardsNu}, \code{Nreps}, the names of the covariates and of the
 annual (climate) ones, and \code{yearsNotSimulated} -- years the objective declined to simulate,
 which have no rows.
 

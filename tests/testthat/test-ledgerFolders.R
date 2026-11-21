@@ -1,20 +1,31 @@
-shared <- "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf"
+spreadUrl <- "https://drive.google.com/drive/folders/1X9-mRjyLMNpgkP_cfqhbr_AQEPOsVCHf"   # FireSenseData/SpreadFitParams
+ignitionUrl <- "https://drive.google.com/drive/folders/1Hhdtinm5pWt7P6A-p1MnzFHIJP_0ELq8" # FireSenseData/IgnitionFitParams
 
-test_that("the ledger folders default to the shared fireSense folder", {
+test_that("the spread and ignition ledgers default to their own folders", {
   withr::local_options(fireSenseUtils.spreadFitLedgerFolder = NULL,
                        fireSenseUtils.ignitionFitLedgerFolder = NULL)
-  expect_identical(spreadFitLedgerFolder(), shared)
-  expect_identical(ignitionFitLedgerFolder(), shared)
+  expect_identical(spreadFitLedgerFolder(), spreadUrl)
+  expect_identical(ignitionFitLedgerFolder(), ignitionUrl)
 })
 
-test_that("the spread option moves both ledgers; the ignition option moves only ignition", {
+test_that("each option moves only its own ledger", {
   withr::local_options(fireSenseUtils.spreadFitLedgerFolder = "spreadId",
                        fireSenseUtils.ignitionFitLedgerFolder = NULL)
   expect_identical(spreadFitLedgerFolder(), "spreadId")
-  expect_identical(ignitionFitLedgerFolder(), "spreadId")
+  expect_identical(ignitionFitLedgerFolder(), ignitionUrl)
   withr::local_options(fireSenseUtils.ignitionFitLedgerFolder = "ignId")
   expect_identical(spreadFitLedgerFolder(), "spreadId")
   expect_identical(ignitionFitLedgerFolder(), "ignId")
+})
+
+test_that("the ELF map cache has its own folder, set by its own option", {
+  withr::local_options(fireSenseUtils.elfCacheFolder = NULL)
+  elfs <- elfCacheFolder()
+  expect_identical(elfs, "https://drive.google.com/drive/folders/1Gl9CWW9o36Eqkm54x_fZdHPMB56Qoefd")
+  expect_false(elfs %in% c(spreadFitLedgerFolder(), ignitionFitLedgerFolder()))
+  withr::local_options(fireSenseUtils.elfCacheFolder = "elfId")
+  expect_identical(elfCacheFolder(), "elfId")
+  expect_identical(elfCacheFolder("z"), "z")
 })
 
 test_that("an explicit folder wins over the options", {
@@ -31,15 +42,19 @@ test_that("latestSpreadFits and latestIgnitionFits read the ledger folder by def
   expect_identical(formals(latestIgnitionFits)$cloudFolderID, quote(ignitionFitLedgerFolder()))
 })
 
-test_that("testing = TRUE gives the ledger folder's \"testing\" subfolder, for experiment fits", {
+test_that("testing = TRUE gives each ledger folder's own \"testing\" subfolder, for experiment fits", {
   withr::local_options(fireSenseUtils.spreadFitLedgerFolderTesting = NULL,
                        fireSenseUtils.ignitionFitLedgerFolderTesting = NULL)
-  testing <- "https://drive.google.com/drive/folders/1nqSVuGRYxIvcgZMn7TIbn5HfRiUHR2xq"
-  expect_identical(spreadFitLedgerFolder(testing = TRUE), testing)
-  expect_identical(ignitionFitLedgerFolder(testing = TRUE), testing)   # one folder holds both ledgers
+  expect_identical(spreadFitLedgerFolder(testing = TRUE),
+                   "https://drive.google.com/drive/folders/1nqSVuGRYxIvcgZMn7TIbn5HfRiUHR2xq")
+  expect_identical(ignitionFitLedgerFolder(testing = TRUE),
+                   "https://drive.google.com/drive/folders/1nwJL5nz6E_7_9Ao7asNsNlmReCOIuOXl")
   expect_false(identical(spreadFitLedgerFolder(testing = TRUE), spreadFitLedgerFolder()))
+  expect_false(identical(ignitionFitLedgerFolder(testing = TRUE), ignitionFitLedgerFolder()))
   withr::local_options(fireSenseUtils.spreadFitLedgerFolderTesting = "tId")
-  expect_identical(ignitionFitLedgerFolder(testing = TRUE), "tId")
+  expect_identical(spreadFitLedgerFolder(testing = TRUE), "tId")
+  expect_identical(ignitionFitLedgerFolder(testing = TRUE),
+                   "https://drive.google.com/drive/folders/1nwJL5nz6E_7_9Ao7asNsNlmReCOIuOXl")
 })
 
 ## googledrive::drive_ls() lists a folder's own files only unless `recursive = TRUE`; the "testing"

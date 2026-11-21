@@ -4,12 +4,22 @@
 \alias{checkLinkParams}
 \title{Check the parameters of the links with a lower asymptote}
 \usage{
-checkLinkParams(link, lower = NULL, nu = NULL)
+checkLinkParams(
+  link,
+  lower = NULL,
+  nu = NULL,
+  activation = FALSE,
+  floor = spreadProbFloor
+)
 }
 \arguments{
 \item{link}{The spread link.}
 
 \item{lower, nu}{The \code{lowerAsymptote} and \code{richardsNu} to check; \code{NULL} is not a number.}
+
+\item{activation}{Logical; \code{TRUE} for a fit or a ledger row with \code{spreadClimate = "activation"}.}
+
+\item{floor}{The \code{lowerSpreadProb} the activation's \code{lower} must equal; default \link{spreadProbFloor}.}
 }
 \value{
 \code{TRUE}, invisibly; an error otherwise.
@@ -18,4 +28,9 @@ checkLinkParams(link, lower = NULL, nu = NULL)
 The one check of \code{lowerAsymptote} and \code{richardsNu}, used by \code{fireSense_spreadFit} for its parameters and by
 \code{fireSense_spreadPredict} for a ledger row. \code{lower} must be one number from \link{spreadLowerAsymptoteMin} to \link{spreadProbFloor} with
 \code{"powerLawSmooth"} and \code{"richards"}; \code{nu} one number, 0 or more, with \code{"richards"}. Other links have nothing to check.
+}
+\details{
+With \code{activation} (\code{spreadClimate = "activation"}, \code{\link[=spreadLinkInputs]{spreadLinkInputs()}}) the link must be \code{"powerLawSmooth"} with
+\code{lower} equal to \code{floor}: below the floor the other forms fall faster for a higher \code{pc}, and with the activation \code{pc}
+is set by fuel, so a wet year would rank rich fuel below poor.
 }

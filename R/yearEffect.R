@@ -50,7 +50,20 @@ yearEffectSD <- function(observed, predicted) {
   observed <- observed[ok]
   predicted <- predicted[ok]
   if (length(observed) < 2L || sum(predicted) <= 0 || sum(observed) <= 0) return(0)
-  mu <- predicted * sum(observed) / sum(predicted)
+  mu <- scaleToObservedLevel(observed, predicted)
   extra <- sum((observed - mu)^2 - observed) / sum(mu^2)
   sqrt(log1p(max(extra, 0)))
 }
+
+#' Predicted totals scaled to the observed level
+#'
+#' `predicted * sum(observed) / sum(predicted)`: the predictions with an overall bias removed, so only the
+#' year-to-year pattern is compared with the observed. [yearEffectSD()] and the year climate fit
+#' (`fireSense_ignitionFit`) both use it.
+#'
+#' @param observed,predicted Numeric vectors, one element per year.
+#' @return Numeric, `predicted` times `sum(observed) / sum(predicted)`.
+#' @export
+#' @examples
+#' scaleToObservedLevel(c(10, 30), c(5, 5))   # 20 20: the observed total, spread as predicted
+scaleToObservedLevel <- function(observed, predicted) predicted * sum(observed) / sum(predicted)

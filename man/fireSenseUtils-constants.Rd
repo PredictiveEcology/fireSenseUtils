@@ -40,6 +40,12 @@
 \alias{spreadFitPowerLawPcMarginTxt}
 \alias{spreadFitInSampleSizesTxt}
 \alias{spreadPowerLawPGrid}
+\alias{spreadClimateTxt}
+\alias{spreadClimateOptions}
+\alias{activationInterceptTxt}
+\alias{spreadActivationInterceptBounds}
+\alias{spreadFitDudYearShareTxt}
+\alias{spreadFitPcAtP50Txt}
 \alias{yearSpreadSDTxt}
 \alias{fireSpreadSDTxt}
 \alias{spreadRandomEffectTxt}
@@ -132,6 +138,22 @@ validation (\code{"inSampleSizes_spread"}): a list of \code{sizes}, the one-row 
 \code{\link[=scoreFireSizesByYear]{scoreFireSizesByYear()}}; areas are in pixels. A fit without the diagnostics (a cross-validation fold, \code{simulateMembers = 0})
 writes no such column, and a row written before it has none.
 \item \code{spreadPowerLawPGrid}: \code{numeric}. The spread probabilities \code{\link[=calibratePowerLaw]{calibratePowerLaw()}} simulates by default.
+\item \code{spreadClimateTxt}: \code{character(1)}. Name of the ledger column that holds where a fit put climate
+(\code{"spreadClimate"}): one of \code{spreadClimateOptions}. A row without it (written before it existed) is
+\code{"ceiling"} when it has \code{"climateRef_spread"} and a power-law \code{"spreadLink"}, else \code{"predictor"}.
+\item \code{spreadClimateOptions}: \code{character}. The values of \code{fireSense_spreadFit}'s \code{spreadClimate}: \code{"predictor"}
+(climate in the linear predictor with the fuels), \code{"ceiling"} (climate moves the power-law ceiling,
+\code{\link[=spreadLinkInputs]{spreadLinkInputs()}}) and \code{"activation"} (fuel sets each pixel's ceiling, climate is the linear predictor).
+\item \code{activationInterceptTxt}: \code{character(1)}. Name of the parameter of \code{spreadClimate = "activation"} that is
+the linear predictor at the reference climate (\code{"activationIntercept"}); in \code{lower}/\code{upper} and in a ledger
+row's \code{params} it comes right after the covariate coefficients, before the random-effect sds.
+\item \code{spreadActivationInterceptBounds}: \code{numeric(2)}. Its default bounds, \code{c(-10, 10)}.
+\item \code{spreadFitDudYearShareTxt}: \code{character(1)}. Name of the ledger column of an \code{"activation"} fit with the share of
+years whose draw of the year effect puts every pixel at the floor at the reference climate, one per parameter set
+(\code{\link[=activationDudYearShare]{activationDudYearShare()}}; \code{"dudYearShare_spread"}).
+\item \code{spreadFitPcAtP50Txt}: \code{character(1)}. Name of the ledger column that marks a fit whose \code{maxAsymptote} was fixed at
+p50, not fitted (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}; \code{"pcAtP50_spread"}), so its value is not read as a
+fitted one at its bound.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).
