@@ -60,14 +60,11 @@ readELFmetrics <- function(path, files = NULL, current = TRUE) {
 .newestFits <- function(files, ELF, fileTag, only = NULL, writtenAt = NULL) {
   parts <- strsplit(ifelse(is.na(files), "", files), ", ", fixed = TRUE)
   ok <- vapply(parts, function(f) length(f) > 0L && (is.null(only) || all(f %in% only)), logical(1))
-  date <- vapply(parts, function(f) {
-    d <- .ledgerNameDate(f, fileTag)
+  w <- if (is.null(writtenAt)) rep(NA_real_, length(parts)) else as.numeric(as.POSIXct(writtenAt, tz = "UTC"))
+  date <- vapply(seq_along(parts), function(i) {
+    d <- .ledgerRowDate(rep(w[i], length(parts[[i]])), parts[[i]], fileTag)   # one date per file, all `writtenAt` when it is known
     if (length(d)) min(ifelse(is.na(d), -Inf, d)) else -Inf
   }, numeric(1))
-  if (!is.null(writtenAt)) {
-    w <- as.numeric(as.POSIXct(writtenAt, tz = "UTC"))
-    date[!is.na(w)] <- w[!is.na(w)]
-  }
   date[!ok] <- NA
   newest <- stats::ave(date, as.character(ELF), FUN = function(x) if (all(is.na(x))) NA else max(x, na.rm = TRUE))
   ok & !is.na(newest) & date == newest
