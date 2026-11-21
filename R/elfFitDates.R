@@ -29,16 +29,14 @@ elfFitDates <- function(spreadFolder = spreadFitLedgerFolder(), ignitionFolder =
 }
 
 ## The date and ledger file of each polygon of `rows` (a result of .latestLedgerFits(), whose attribute
-## `attrName` names each polygon's file): `writtenAt`, else the date in the file's name (.ledgerNameDate(), as
-## readELFmetrics() dates a fit)
+## `attrName` names each polygon's file), dated by .ledgerRowDate()
 .ledgerFitDates <- function(rows, attrName, fileTag) {
   if (is.null(rows))
     return(data.frame(ELF = character(), date = as.POSIXct(character(), tz = "UTC"), ledger = character()))
   ids <- as.character(rows[[polygonIDTxt]])
   ledger <- unname(attr(rows, attrName)[ids])
-  date <- if ("writtenAt" %in% names(rows)) as.numeric(rows$writtenAt) else rep(NA_real_, length(ids))
-  fromName <- is.na(date)
-  date[fromName] <- .ledgerNameDate(ledger[fromName], fileTag)
+  stamp <- if ("writtenAt" %in% names(rows)) rows$writtenAt else rep(NA_real_, length(ids))
+  date <- .ledgerRowDate(stamp, ledger, fileTag)
   data.frame(ELF = ids, date = as.POSIXct(date, origin = "1970-01-01", tz = "UTC"), ledger = ledger,
              stringsAsFactors = FALSE)
 }

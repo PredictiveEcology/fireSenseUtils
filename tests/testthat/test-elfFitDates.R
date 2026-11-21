@@ -51,3 +51,11 @@ test_that("elfFitDates() with no ledger files gives a table of NA", {
   expect_true(all(is.na(out$spreadFitDate)) && all(is.na(out$ignitionFitDate)))
   expect_identical(NROW(suppressMessages(elfFitDates("s", "i", destinationPath = d))), 0L)
 })
+
+test_that(".ledgerRowDate() is writtenAt, else the date in the file name, else NA", {
+  w <- as.numeric(as.POSIXct("2026-11-10 09:30:00", tz = "UTC"))
+  f <- spreadFile("_x_20260925")
+  expect_equal(.ledgerRowDate(c(w, NA, NA), c(f, f, spreadFile("")), spreadFitFileTag),
+               c(w, as.numeric(as.POSIXct("2026-09-25", tz = "UTC")), NA))
+  expect_length(.ledgerRowDate(numeric(0), character(0), spreadFitFileTag), 0L)
+})

@@ -146,7 +146,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
                             destinationPath = destinationPath)
     metric <- c(number = "naturalFiresPerYear", density = "naturalFiresPer100km2PerYear",
                 area = "haBurnedPerYear", proportion = "proportionBurnedPerYear")[[plotFires]]
-    if (is.null(metricCol)) metricCol <- grDevices::hcl.colors(100, "RdYlGn", rev = TRUE) # green = less, red = more
+    if (is.null(metricCol)) metricCol <- .redGreenRamp(greenIsHigh = FALSE) # green = less, red = more
     if (is.null(metricTitle)) metricTitle <- c(number = "natural fires / yr", density = "natural fires\n/ 100 km\u00b2 / yr",
                      area = "ha burned / yr", proportion = "proportion burned / yr")[[plotFires]]
   }
@@ -211,7 +211,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       if (inherits(values, c("Date", "POSIXct"))) {
         ## terra draws numbers: a date by its day, with a colour bar labelled by dates
         values <- as.numeric(as.Date(values))
-        if (is.null(metricCol)) metricCol <- grDevices::hcl.colors(100, "RdYlGn") # red = oldest, green = newest
+        if (is.null(metricCol)) metricCol <- .redGreenRamp() # red = oldest, green = newest
         ## terra labels a colour bar only with two or more distinct values; one value is a legend of classes
         if (length(unique(values)) > 1L) {
           span <- if (is.null(metricRange)) range(values) else as.numeric(as.Date(metricRange, origin = "1970-01-01"))
@@ -267,6 +267,9 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
                      xpd = NA)
   return(invisible(ELFs))
 }
+
+## The red-to-green colour ramp of a metric: green is the high end, or the low end with `greenIsHigh = FALSE`
+.redGreenRamp <- function(greenIsHigh = TRUE) grDevices::hcl.colors(100, "RdYlGn", rev = !greenIsHigh)
 
 ## Ecozone (Canada's national ecological framework) names. An ELF code is
 ## "<ecozone>.<ecoprovince>[.<piece>]"; the ecoprovince shapefile that makeELFs() reads
