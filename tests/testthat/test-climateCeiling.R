@@ -134,3 +134,13 @@ test_that("the response plot's dashed ceiling is p50 in ceiling mode, with clima
   hl <- Filter(function(l) inherits(l$geom, "GeomHline"), g$layers)[[1]]
   expect_equal(hl$data$yintercept[2], qlogis(p50))
 })
+
+test_that("the per-cell link parameters are a double matrix in spreadCpp()'s column order, as the byrow fill gave", {
+  for (link in spreadLinearLinks) {
+    pars <- linearLinkPars(link, pc = 0.2, gamma = 1.7, floor = 0.1, shape = 1.3, lowerAsymptote = 0.04, richardsNu = 0.5)
+    byrow <- matrix(pars, nrow = 5L, ncol = length(pars), byrow = TRUE, dimnames = list(NULL, names(pars)))
+    expect_identical(linkParsMatrix(pars, 5L), byrow)
+    expect_identical(colnames(unburnableLinkPars(link, 5L)), spreadLinkParNames[[link]])
+    expect_true(is.double(unburnableLinkPars(link, 5L)))
+  }
+})

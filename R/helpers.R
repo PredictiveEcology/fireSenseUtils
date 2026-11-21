@@ -263,7 +263,16 @@ linearLinkPars <- function(link, pc, gamma = spreadPowerLawGamma, floor = spread
 #' @export
 unburnableLinkPars <- function(link, n = 1L) {
   pars <- linearLinkPars(link, pc = 0, gamma = 1, floor = 0, shape = 1, lowerAsymptote = 0, richardsNu = 0)
-  matrix(pars, nrow = n, ncol = length(pars), byrow = TRUE, dimnames = list(NULL, names(pars)))
+  linkParsMatrix(pars, n)
+}
+
+## `n` copies of the parameter vector `pars` as the rows of a double matrix, filled a column at a time (a `byrow`
+## fill strides across the whole matrix, and a per-cell matrix has millions of rows). Its columns are `names(pars)`,
+## in order: the layout SpaDES.tools::spreadCpp() takes without copying.
+linkParsMatrix <- function(pars, n) {
+  m <- matrix(0, nrow = n, ncol = length(pars), dimnames = list(NULL, names(pars)))
+  for (j in which(!(pars %in% 0))) m[, j] <- pars[[j]]
+  m
 }
 
 #' Spread probability from the linear predictor, for a link of [spreadLinearLinks]

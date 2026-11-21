@@ -299,7 +299,8 @@ spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, 
   lpOther <- as.vector(mat[, !split$isClim, drop = FALSE] %*% covPars[!split$isClim])
   ## the climate columns left out: p at the reference climate, with pc = pc0
   if (isTRUE(climateAtRef) && !activation) return(list(x = lpOther, pars = pars))
-  pars <- matrix(pars, nrow = nrow(mat), ncol = length(pars), byrow = TRUE, dimnames = list(NULL, names(pars)))
+  noPars <- anyNA(pars[names(pars) != "pc"])   # `pc` is set below; the others are one value for every row
+  pars <- linkParsMatrix(pars, nrow(mat))
   if (activation) {
     x <- activationIntercept + if (isTRUE(climateAtRef)) numeric(nrow(mat)) else as.vector(split$shift)
     ## a pixel with no fuel term (NA) gives NA here, and is made unburnable below
@@ -309,7 +310,7 @@ spreadLinkInputs <- function(mat, logisticPars, covPars, lowerSpreadProb, link, 
     pars[, "pc"] <- pmax(powerLawPc50 - (powerLawPc50 - pc0) * exp(-as.vector(split$shift)), lowerSpreadProb)
   }
   ## a row with no climate (or no covariate) gives NA, and spreadCpp() accepts no NA parameter: it cannot burn
-  bad <- is.na(x) | rowSums(is.na(pars)) > 0
+  bad <- is.na(x) | is.na(pars[, "pc"]) | noPars
   if (any(bad)) {
     x[bad] <- NA_real_
     pars[bad, ] <- unburnableLinkPars(link, sum(bad))
