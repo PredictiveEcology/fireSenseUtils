@@ -221,12 +221,14 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
       valued[[metric]] <- values
       ## the bar is centred in the strip right of the map, low down, so its title fits above it;
       ## a number is a colour ramp even with few distinct values
+      plg <- list(ext = c(mapExt$xmax + 0.08 * mapW, mapExt$xmax + 0.10 * mapW,
+                          mapExt$ymin + 0.05 * mapH, mapExt$ymin + 0.40 * mapH),
+                  title = if (is.null(metricTitle)) metric else metricTitle)
+      if (!is.null(legendAt)) plg <- c(plg, list(at = legendAt, labels = format(as.Date(legendAt, origin = "1970-01-01"))))
+      ## terra draws one value as a legend of classes, which has no `ext`
+      if (length(unique(values)) < 2L) plg$ext <- NULL
       terra::plot(valued, metric, add = TRUE, type = if (is.numeric(values)) "continuous", col = metricCol,
-                  range = metricRange,
-                  plg = list(ext = c(mapExt$xmax + 0.08 * mapW, mapExt$xmax + 0.10 * mapW,
-                                     mapExt$ymin + 0.05 * mapH, mapExt$ymin + 0.40 * mapH),
-                             title = if (is.null(metricTitle)) metric else metricTitle,
-                             at = legendAt, labels = if (!is.null(legendAt)) format(as.Date(legendAt, origin = "1970-01-01"))))
+                  range = metricRange, plg = plg)
     }
   }
   if (length(which)) {

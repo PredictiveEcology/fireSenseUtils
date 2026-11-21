@@ -578,3 +578,10 @@ test_that("a Date metric's colour bar spans metricRange, and a single date gets 
   last <- drawn(plan = mergePlan(), metrics = m, metric = "when")$plots
   expect_null(last[[length(last)]]$plg$at)
 })
+
+test_that("a metric with one value draws its legend without `ext` (terra's legend of classes has none)", {
+  m <- data.frame(ELF = c("11.3", "11.1_2"), v = c(3, 3))
+  last <- drawn(plan = mergePlan(), metrics = m, metric = "v")$plots
+  expect_null(last[[length(last)]]$plg$ext)
+  expect_equal(last[[length(last)]]$plg$title, "v")
+})
