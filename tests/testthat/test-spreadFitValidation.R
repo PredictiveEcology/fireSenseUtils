@@ -11,6 +11,14 @@ callObjective <- function(inp, ...) {
     tests = "adTest", Nreps = 5L, doAssertions = FALSE, verbose = 0, weighted = FALSE, ...)
 }
 
+validationData <- function(inp, par = inp$par, ...) {
+  fireSenseUtils::spreadFitValidationData(
+    par = par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
+    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
+    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
+    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive, ...)
+}
+
 test_that("the objective's value is identical with recording off, and recording draws no random numbers", {
   skip_if_not_installed("SpaDES.tools")
   inp <- toyValidationInputs()
@@ -51,11 +59,7 @@ test_that("returnBurned records, per year and replicate, pixels inside the buffe
 test_that("spreadFitValidationData() gives one row per spreadable buffer pixel-year, with shares and raw values", {
   skip_if_not_installed("SpaDES.tools")
   inp <- toyValidationInputs()
-  d <- spreadFitValidationData(
-    par = inp$par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
-    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
-    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
-    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive, Nreps = 4L, seed = 1L)
+  d <- validationData(inp, Nreps = 4L, seed = 1L)
   expect_identical(names(d), c("year", "pixelID", "observed", "simulated", "p", "clim", "youngAge", "agb"))
   expect_identical(nrow(d), sum(vapply(inp$fireBufferedListDT, nrow, integer(1))))
   expect_identical(sum(d$observed), 75L)                          # three fires of 25 burned pixels
@@ -77,11 +81,7 @@ test_that("spreadFitValidationData() gives one row per spreadable buffer pixel-y
   expect_equal(info$Nreps, 4L)
   ## the seed makes it repeatable, and the session's random numbers are left as they were
   set.seed(99); before <- .Random.seed
-  d2 <- spreadFitValidationData(
-    par = inp$par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
-    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
-    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
-    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive, Nreps = 4L, seed = 1L)
+  d2 <- validationData(inp, Nreps = 4L, seed = 1L)
   expect_identical(.Random.seed, before)
   expect_equal(d2, d)
 })
@@ -142,12 +142,7 @@ test_that("the validation data omits the intercept from its covariates but keeps
   inp$formulaToFit <- "~ 1 + clim + youngAge + agb"
   inp$par <- c(maxAsymptote = 0.26, `(Intercept)` = -0.4, clim = 2, youngAge = -2, agb = 3)
   set.seed(3)
-  d <- spreadFitValidationData(
-    par = inp$par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
-    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
-    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
-    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive,
-    covCentre = list(clim = 0.5, youngAge = 0.1, agb = 0.2), Nreps = 2L)
+  d <- validationData(inp, covCentre = list(clim = 0.5, youngAge = 0.1, agb = 0.2), Nreps = 2L)
   info <- attr(d, "spreadFitValidation")
   expect_identical(info$covariates, c("clim", "youngAge", "agb"))
   expect_true(info$intercept)
@@ -167,11 +162,7 @@ test_that("the validation data omits the intercept from its covariates but keeps
 test_that("spreadFitValidationData() on the whole landscape splits a fitted fireSpreadSD off, named or not", {
   skip_if_not_installed("SpaDES.tools")
   inp <- toyValidationInputs()
-  run <- function(par, ...) spreadFitValidationData(
-    par = par, landscape = inp$landscape, annualDTx1000 = inp$annualDTx1000,
-    nonAnnualDTx1000 = inp$nonAnnualDTx1000, formulaToFit = inp$formulaToFit,
-    historicalFires = inp$historicalFires, fireBufferedListDT = inp$fireBufferedListDT,
-    covMinMax = inp$covMinMax, mutuallyExclusive = inp$mutuallyExclusive, Nreps = 4L, seed = 1L,
+  run <- function(par, ...) validationData(inp, par = par, Nreps = 4L, seed = 1L,
     link = "powerLaw", wholeLandscape = TRUE, penaliseRunaways = FALSE, ...)
   parSD <- c(inp$par, fireSpreadSD = 0.5)
   d <- run(parSD)
@@ -218,4 +209,24 @@ test_that("the validation plots of a '~ 1' fit have no covariate panel: they are
     covMinMax = NULL, mutuallyExclusive = NULL, covCentre = list(), Nreps = 2L)
   expect_null(plotSpreadFitValidation(d))
   expect_null(plotSpreadFitResponse(d))
+})
+
+## ELF 7.1 (2026-11-19): a fit with every pixel near its ceiling, which the objective's "spread out enough" gate
+## refuses, though the fit itself ran with gateRefusal = "simulate". The validation refused every year, so its
+## table had no rows and plotSpreadFitValidation() stopped with "object 'observed' not found".
+test_that("spreadFitValidationData() simulates years the gates would refuse, and an empty table plots as NULL", {
+  skip_if_not_installed("SpaDES.tools")
+  inp <- toyValidationInputs()
+  inp$par[c("clim", "youngAge", "agb")] <- 0 # one spread probability everywhere: not spread out enough
+  run <- function(...) validationData(inp, Nreps = 2L, seed = 1L, ...)
+  d <- run()
+  expect_identical(attr(d, "spreadFitValidation")$yearsNotSimulated, character(0))
+  expect_identical(nrow(d), sum(vapply(inp$fireBufferedListDT, nrow, integer(1))))
+  expect_s3_class(plotSpreadFitValidation(d), "ggplot")
+  ## with the gates asked for, every year is refused: no rows, and no figure rather than an error
+  dNone <- run(gateRefusal = "minLik")
+  expect_setequal(attr(dNone, "spreadFitValidation")$yearsNotSimulated, names(inp$fireBufferedListDT))
+  expect_identical(nrow(dNone), 0L)
+  expect_null(plotSpreadFitValidation(dNone))
+  expect_null(plotSpreadFitResponse(dNone))
 })

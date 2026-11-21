@@ -23,7 +23,8 @@
 #'   stream is restored afterwards.
 #' @param ... Further arguments to [.objfunSpreadFit()], e.g. `escapeSizeHa`, `jumpTries`,
 #'   `jumpMeanDist`: give it what the fit was given. The objective's gates on implausible
-#'   landscapes are lifted (`lanscape1stQuantileThresh = Inf`) unless given here.
+#'   landscapes are lifted (`gateRefusal = "simulate"`, `lanscape1stQuantileThresh = Inf`) unless
+#'   given here, so every fire year is simulated with the fitted parameters.
 #'
 #' @return `spreadFitValidationData()`: a `data.table`, one row per spreadable pixel-year inside
 #'   the buffers of the fires the objective fits (`minFireSize`, `escapeSizeHa`): `year` (the name
@@ -49,7 +50,7 @@ spreadFitValidationData <- function(par, landscape, annualDTx1000, nonAnnualDTx1
                                     fitActivationIntercept = NULL, pcAtP50 = NULL, ...) {
   if (!is.null(seed)) withr::local_seed(seed)
   objArgs <- utils::modifyList(
-    list(lanscape1stQuantileThresh = Inf, doAssertions = FALSE, verbose = 0),
+    list(gateRefusal = "simulate", lanscape1stQuantileThresh = Inf, doAssertions = FALSE, verbose = 0),
     list(...))
   sims <- do.call(.objfunSpreadFit, c(list(
     par = par, landscape = landscape, annualDTx1000 = annualDTx1000,
@@ -150,7 +151,8 @@ validationTheme <- function() {
 #' @param covariates The covariates to plot; all of the formula's by default.
 #' @param title Plot title; a default is used when `NULL`.
 #'
-#' @return `plotSpreadFitValidation()`: a `ggplot`, one panel per covariate (`NULL` for a model with none, `~ 1`). Pixel-years are binned
+#' @return `plotSpreadFitValidation()`: a `ggplot`, one panel per covariate (`NULL` for a model with none, `~ 1`,
+#'   or for a table with no pixel-years). Pixel-years are binned
 #'   by quantiles of the covariate: all of them for climate covariates, only those where it is
 #'   present (above its `covMinMax` minimum, else above 0) for the others, and one bin per value
 #'   for covariates with two values or fewer. Each bin shows the observed burned share and the
@@ -180,6 +182,7 @@ plotSpreadFitValidation <- function(d, nBins = 10L, covariates = NULL, title = N
     set(b, NULL, "covariate", cn)
     b
   }))
+  if (!NROW(binned)) return(NULL) # no pixel-years: every year was refused (`yearsNotSimulated`)
   set(binned, NULL, "covariate", factor(binned$covariate, levels = covs))
   series <- c("observed", "simulated by the fit")
   long <- rbind(binned[, list(covariate, value, share = observed, series = series[1])],
