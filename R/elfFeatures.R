@@ -26,6 +26,7 @@
 #' @param ELFs,plan,fireYears,pixelAreaHa,destinationPath As in [ELFfireRates()]: the ELFs before the merges, and
 #'   `plan` the merges (`NULL`: none). For `elfOutlines()`, `ELFs` is the list as it is mapped (after the merges).
 #' @param spreadFolder,ignitionFolder The ledger folders, as in [elfFitDates()].
+#' @param dates The result of [elfFitDates()] if the caller has it already, else `NULL` (default): it is read.
 #' @param tolerance Simplification tolerance of `elfOutlines()`, in metres of the ELFs' projection.
 #' @param coefficient Coefficient names, e.g. a `coefficient` column of `elfSpreadCoefs()`.
 #'
@@ -100,7 +101,8 @@ elfCoefLabel <- function(coefficient) {
 #' @export
 #' @rdname elfFeatures
 elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
-                        spreadFolder = spreadFitLedgerFolder(), ignitionFolder = ignitionFitLedgerFolder()) {
+                        spreadFolder = spreadFitLedgerFolder(), ignitionFolder = ignitionFitLedgerFolder(),
+                        dates = NULL) {
   if (is.null(plan)) plan <- .noPlan()
   onMap <- names(mergeELFs(ELFs, plan)$rasWhole)
   feature <- function(ELF, group, feature, label, units, type, value)
@@ -119,7 +121,7 @@ elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
     feature(rates$ELF, "Observed", observed$feature[i], observed$label[i], observed$units[i], "numeric",
             rates[[observed$feature[i]]]))))
 
-  dates <- elfFitDates(spreadFolder, ignitionFolder, destinationPath, ELFs = onMap)
+  if (is.null(dates)) dates <- elfFitDates(spreadFolder, ignitionFolder, destinationPath, ELFs = onMap)
   days <- function(x) as.numeric(as.Date(x))
   out <- c(out, list(
     feature(dates$ELF, "Fit", "spreadFitDate", "Spread fit date", "date", "date", days(dates$spreadFitDate)),
