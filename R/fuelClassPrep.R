@@ -560,12 +560,12 @@ collapseFuelClassesToDomSec <- function(dt, fcs, domClass = NULL, secClass = NUL
     }
   }
 
-  domCol <- paste0("dom_agb_", domClass)
+  domCol <- paste0(domAgbTxt, domClass)
   set(dt, NULL, domCol, dt[[domClass]])
   fuelCols <- domCol
 
   if (!is.na(secClass)) {
-    secCol <- paste0("sec_agb_", secClass)
+    secCol <- paste0(secAgbTxt, secClass)
     set(dt, NULL, secCol, dt[[secClass]])
     fuelCols <- c(fuelCols, secCol)
   }

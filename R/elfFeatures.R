@@ -45,8 +45,7 @@
 #' @rdname elfFeatures
 elfSpreadCoefs <- function(rows) {
   if (is.null(rows) || !NROW(rows))
-    return(data.frame(ELF = character(), coefficient = character(), value = numeric(), note = character(),
-               excluded = character()))
+    return(.coefsTable())
   rows <- as.data.frame(rows)
   ids <- as.character(rows[[polygonIDTxt]])
   means <- lapply(rows$params, function(p) vapply(as.list(p), mean, numeric(1), na.rm = TRUE))
@@ -57,8 +56,7 @@ elfSpreadCoefs <- function(rows) {
   same <- model == common
   out <- lapply(seq_along(ids), function(i) {
     if (!same[i])
-      return(data.frame(ELF = ids[i], coefficient = NA_character_, value = NA_real_, note = "",
-                        excluded = "different model"))
+      return(.coefsTable(ids[i], NA_character_, NA_real_, "", "different model"))
     m <- means[[i]]
     nf <- grep("^nfLCC_", names(m), value = TRUE)
     ## a term of several land-cover classes applies to each: one row per class (a one-class term already is one)
@@ -69,48 +67,55 @@ elfSpreadCoefs <- function(rows) {
     all <- rbind(data.frame(coefficient = names(m), value = unname(m)), perClass)
     all <- .fuelTermsBySpecies(all, rows$sppEquiv[[i]])
     all <- all[!duplicated(all$coefficient), ]
-    data.frame(ELF = ids[i], all, excluded = NA_character_)
+    .coefsTable(ids[i], all$coefficient, all$value, all$note, NA_character_)
   })
   out <- do.call(rbind, out)
-  out <- out[, c("ELF", "coefficient", "value", "note", "excluded")]
   rownames(out) <- NULL
   attr(out, "model") <- strsplit(common, "|", fixed = TRUE)[[1]]
   out
 }
+
+## The table `elfSpreadCoefs()` returns, columns in this order (no arguments: no rows)
+.coefsTable <- function(ELF = character(), coefficient = character(), value = numeric(), note = character(),
+                        excluded = character())
+  data.frame(ELF = ELF, coefficient = coefficient, value = value, note = note, excluded = excluded)
 
 ## A fuel term (`dom_agb_<class>`, `sec_agb_<class>`) of a grouped fuel class becomes one coefficient per member
 ## species, each with the term's value and a `note` naming the species that share it. The members are the species
 ## whose `fireSenseFuelClassCol` of the row's `sppEquiv` is the class; a class with no match (or no `sppEquiv`) is
 ## a species of its own. `coefs` has `coefficient` and `value`; the result adds `note`.
 .fuelTermsBySpecies <- function(coefs, sppEquiv) {
+  n <- NROW(coefs)
   coefs$note <- ""
-  fuel <- grepl("^(dom|sec)_agb_", coefs$coefficient)
+  prefixed <- paste0("^(", domAgbTxt, "|", secAgbTxt, ")")
+  fuel <- grepl(prefixed, coefs$coefficient)
   if (!any(fuel) || is.null(sppEquiv) || !fireSenseFuelClassCol %in% names(sppEquiv))
     return(coefs)
-  byClass <- split(as.character(sppEquiv[["LandR"]]), as.character(sppEquiv[[fireSenseFuelClassCol]]))
-  expanded <- lapply(seq_len(NROW(coefs)), function(j) {
-    if (!fuel[j]) return(coefs[j, ])
-    prefix <- sub("agb_.*$", "agb_", coefs$coefficient[j])
-    members <- unique(byClass[[sub(prefix, "", coefs$coefficient[j], fixed = TRUE)]])
-    if (!length(members)) return(coefs[j, ])
-    data.frame(coefficient = paste0(prefix, members), value = coefs$value[j],
-               note = vapply(members, function(sp)
-                 if (length(members) > 1L) paste("shared with", paste(setdiff(members, sp), collapse = ", ")) else "",
-                 character(1)))
-  })
-  do.call(rbind, expanded)
+  byClass <- lapply(split(as.character(sppEquiv[["LandR"]]), as.character(sppEquiv[[fireSenseFuelClassCol]])), unique)
+  members <- vector("list", n)                       # NULL: not a fuel term, or a class with no member
+  members[fuel] <- byClass[sub(prefixed, "", coefs$coefficient[fuel])]
+  hasMembers <- lengths(members) > 0L
+  times <- pmax(lengths(members), 1L)
+  out <- coefs[rep(seq_len(n), times), , drop = FALSE]
+  at <- rep(hasMembers, times)
+  prefix <- sub(paste0(prefixed, ".*"), "\\1", coefs$coefficient[hasMembers])
+  species <- unlist(members[hasMembers])
+  out$coefficient[at] <- paste0(rep(prefix, lengths(members[hasMembers])), species)
+  group <- rep(seq_along(prefix), lengths(members[hasMembers]))
+  out$note[at] <- vapply(seq_along(species), function(i) {
+    others <- setdiff(members[hasMembers][[group[i]]], species[i])
+    if (length(others)) paste("shared with", paste(others, collapse = ", ")) else ""
+  }, character(1))
+  out
 }
 
 #' @export
 #' @rdname elfFeatures
 elfCoefLabel <- function(coefficient) {
   species <- function(codes) {
-    tokens <- strsplit(codes, ".", fixed = TRUE)
-    known <- unique(unlist(tokens))
-    ## the species' English name from whichever column of the table holds the codes; NA for a code it lacks
-    name <- stats::setNames(LandR::equivalentName(known, LandR::sppEquivalencies_CA, "EN_generic_full"), known)
-    vapply(tokens, function(tk) paste(ifelse(is.na(name[tk]), tk, paste0(name[tk], " (", tk, ")")), collapse = " + "),
-           character(1))
+    ## the species' English name from whichever column of the table holds the code; the code itself if it lacks one
+    name <- LandR::equivalentName(codes, LandR::sppEquivalencies_CA, "EN_generic_full")
+    ifelse(is.na(name), codes, paste0(name, " (", codes, ")"))
   }
   plain <- c("(Intercept)" = "Intercept", maxAsymptote = "Maximum spread probability", hillSlope1 = "Hill slope",
              inflectionPoint1 = "Inflection point", yearSpreadSD = "Year SD", youngAge = "Young stands",
@@ -118,10 +123,10 @@ elfCoefLabel <- function(coefficient) {
   out <- coefficient
   isPlain <- coefficient %in% names(plain)
   out[isPlain] <- plain[coefficient[isPlain]]
-  dom <- startsWith(coefficient, "dom_agb_")
-  sec <- startsWith(coefficient, "sec_agb_")
-  out[dom] <- paste0("Dominant AGB: ", species(sub("^dom_agb_", "", coefficient[dom])))
-  out[sec] <- paste0("Secondary AGB: ", species(sub("^sec_agb_", "", coefficient[sec])))
+  dom <- startsWith(coefficient, domAgbTxt)
+  sec <- startsWith(coefficient, secAgbTxt)
+  out[dom] <- paste0("Dominant AGB: ", species(sub(paste0("^", domAgbTxt), "", coefficient[dom])))
+  out[sec] <- paste0("Secondary AGB: ", species(sub(paste0("^", secAgbTxt), "", coefficient[sec])))
   nf <- grepl("^nfLCC_", coefficient)
   out[nf] <- paste("Non-forest LCC", gsub("_", ", ", sub("^nfLCC_", "", coefficient[nf])))
   out

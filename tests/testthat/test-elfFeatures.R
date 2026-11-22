@@ -81,8 +81,8 @@ test_that("elfCoefLabel() names a coefficient in words, with LandR species names
                                   "(Intercept)", "treedWetland_agb")),
                    c("Dominant AGB: Black spruce (Pice_mar)", "Secondary AGB: Lodgepole pine (Pinu_con)",
                      "Non-forest LCC 40", "Young stands", "CMD", "Year SD", "Intercept", "Treed wetland AGB"))
-  ## a species group of codes LandR does not know keeps its codes
-  expect_identical(elfCoefLabel("dom_agb_Pc_gl.Ab_la"), "Dominant AGB: Pc_gl + Ab_la")
+  ## a class of codes LandR does not know keeps its code
+  expect_identical(elfCoefLabel("dom_agb_Pc_gl.Ab_la"), "Dominant AGB: Pc_gl.Ab_la")
 })
 
 fitDatesTable <- function(ELFs) {

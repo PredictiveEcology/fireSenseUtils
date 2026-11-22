@@ -111,9 +111,11 @@
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
 #'     `"treedWetland_agb"`).
+#'   - `domAgbTxt`, `secAgbTxt`: `character(1)`. Prefix of the dominant and secondary fuel-class biomass columns
+#'     and spread terms, followed by the fuel class (currently `"dom_agb_"` and `"sec_agb_"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt domAgbTxt secAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt
 NULL
 
 #' @export
@@ -142,6 +144,12 @@ treedWetlandTxt <- "treedWetland"
 
 #' @export
 treedWetlandAgbTxt <- "treedWetland_agb"
+
+#' @export
+domAgbTxt <- "dom_agb_"
+
+#' @export
+secAgbTxt <- "sec_agb_"
 
 #' @export
 ignitionsTxt <- "ignitions"

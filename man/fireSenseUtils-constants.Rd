@@ -11,6 +11,8 @@
 \alias{burnableHaTxt}
 \alias{treedWetlandTxt}
 \alias{treedWetlandAgbTxt}
+\alias{domAgbTxt}
+\alias{secAgbTxt}
 \alias{ignitionsTxt}
 \alias{escapesTxt}
 \alias{coreFractionTxt}
@@ -157,6 +159,8 @@ fitted one at its bound.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).
+\item \code{domAgbTxt}, \code{secAgbTxt}: \code{character(1)}. Prefix of the dominant and secondary fuel-class biomass columns
+and spread terms, followed by the fuel class (currently \code{"dom_agb_"} and \code{"sec_agb_"}).
 }
 }
 \usage{
