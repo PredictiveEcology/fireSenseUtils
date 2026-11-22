@@ -286,7 +286,7 @@ rasterFireSpreadPoints <- function(fireBufferDT, flammableRTM) {
 
   firePoints <- rbindlist(firePoints)
   ## calculate size in hectares
-  multiplier <- prod(res(flammableRTM)) / 10000
+  multiplier <- pixelAreaHa(flammableRTM)
   burnSizes <- fireBufferDT[buffer == 1, .(POLY_HA = .N * multiplier, size = .N), .(ids)]
   firePoints <- firePoints[burnSizes, on = c("ids")]
   setnames(firePoints, old = "ids", new = "FIRE_ID") ## following fireSenseUtils::makeLociList

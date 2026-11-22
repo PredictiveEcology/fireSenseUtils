@@ -77,11 +77,12 @@ elfSpreadCoefs <- function(rows) {
 #' @rdname elfFeatures
 elfCoefLabel <- function(coefficient) {
   species <- function(codes) {
-    sp <- LandR::sppEquivalencies_CA
-    vapply(strsplit(codes, ".", fixed = TRUE), function(tokens) paste(vapply(tokens, function(code) {
-      hit <- match(code, sp$LandR)
-      if (is.na(hit)) code else paste0(sp$EN_generic_full[hit], " (", code, ")")
-    }, character(1)), collapse = " + "), character(1))
+    tokens <- strsplit(codes, ".", fixed = TRUE)
+    known <- unique(unlist(tokens))
+    ## the species' English name from whichever column of the table holds the codes; NA for a code it lacks
+    name <- stats::setNames(LandR::equivalentName(known, LandR::sppEquivalencies_CA, "EN_generic_full"), known)
+    vapply(tokens, function(tk) paste(ifelse(is.na(name[tk]), tk, paste0(name[tk], " (", tk, ")")), collapse = " + "),
+           character(1))
   }
   plain <- c("(Intercept)" = "Intercept", maxAsymptote = "Maximum spread probability", hillSlope1 = "Hill slope",
              inflectionPoint1 = "Inflection point", yearSpreadSD = "Year SD", youngAge = "Young stands",
@@ -103,7 +104,7 @@ elfCoefLabel <- function(coefficient) {
 elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
                         spreadFolder = spreadFitLedgerFolder(), ignitionFolder = ignitionFitLedgerFolder(),
                         dates = NULL) {
-  if (is.null(plan)) plan <- .noPlan()
+  if (is.null(plan)) plan <- noELFPlan()
   onMap <- names(mergeELFs(ELFs, plan)$rasWhole)
   feature <- function(ELF, group, feature, label, units, type, value)
     data.frame(ELF = as.character(ELF), group = group, feature = feature, label = label, units = units, type = type,
@@ -142,8 +143,13 @@ elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
   out
 }
 
-## A plan with no merges
-.noPlan <- function() data.table::data.table(action = character(0), ELF = character(0), members = list())
+#' A merge plan with no merges
+#'
+#' The `plan` of [mergeELFs()] and [plotELFs()] when no ELF is merged or left out.
+#'
+#' @return A `data.table` with `action`, `ELF` and `members`, and no rows.
+#' @export
+noELFPlan <- function() data.table::data.table(action = character(0), ELF = character(0), members = list())
 
 #' @export
 #' @rdname elfFeatures

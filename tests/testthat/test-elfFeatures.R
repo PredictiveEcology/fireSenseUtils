@@ -138,3 +138,12 @@ test_that("elfFeatures(dates =) uses the fit dates it is given, and does not rea
   expect_equal(v("5.1", "ignitionFitDate"), as.numeric(as.Date("2026-10-05")))
   expect_false("9.9" %in% out$ELF)
 })
+
+test_that("pixelAreaHa() is the area of a cell in hectares, and noELFPlan() a plan with no rows", {
+  expect_equal(pixelAreaHa(terra::rast(resolution = 240, crs = "EPSG:3978", extent = terra::ext(0, 2400, 0, 2400))), 5.76)
+  expect_equal(pixelAreaHa(toyGrid()), 2500)                       # 5 km cells
+  p <- noELFPlan()
+  expect_identical(nrow(p), 0L)
+  expect_true(all(c("action", "ELF", "members") %in% names(p)))
+  expect_identical(names(mergeELFs(toyELFs(), p)$rasWhole), names(toyELFs()$rasWhole))   # merges nothing
+})
