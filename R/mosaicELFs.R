@@ -4,10 +4,9 @@
 #' from 0 at the outer edge of its footprint (core plus buffer) to the distance inward in metres, and each cell takes
 #' the weighted mean of the ELFs that have a value there, so values change smoothly across the borders. The
 #' footprint is the ELF's own map (`rasWhole` above 0), not the cells of its raster that have a value: holes in the
-#' raster (non-burnable cells) make no edge. A cell with a value from one ELF takes it. A cell with values
-#' only where the weights are 0 (the outermost cells of the ELF's footprint, with no neighbour) takes their mean. A cell
-#' with no value stays `NA`. Each raster is projected to the national grid with `method`, so the ELFs may be in different
-#' projections.
+#' raster (non-burnable cells) make no edge. A cell with a value from one ELF takes it, also
+#' at the very edge of its footprint (the weight there is tiny, not 0). A cell with no value stays `NA`. Each raster is
+#' projected to the national grid with `method`, so the ELFs may be in different projections.
 #'
 #' @param files A named list with one element per product (e.g. `simulated`, `observed`): a named character vector
 #'   of raster files, one per ELF, named by the ELF. Every product is blended with the same weights.
@@ -47,14 +46,13 @@ mosaicELFs <- function(files, ELFs, filename, res = 250, crs = "EPSG:3978", meth
     parts <- lapply(stats::setNames(names(files[[product]]), names(files[[product]])), function(id) {
       w <- weight[[id]]
       v <- terra::project(terra::rast(files[[product]][[id]]), w, method = method)
-      valued <- !is.na(v)
-      list(num = terra::ifel(valued, v * w, 0), den = terra::ifel(valued, w, 0),
-           sum = terra::ifel(valued, v, 0), n = terra::ifel(valued, 1, 0))
+      ## a cell with a value always has some weight, so one at the very edge, which no other ELF reaches, keeps it
+      w <- terra::ifel(is.na(v), 0, terra::clamp(w, lower = 1e-6))
+      list(num = terra::ifel(is.na(v), 0, v * w), den = w)
     })
-    total <- lapply(c("num", "den", "sum", "n"), function(k)
-      terra::mosaic(terra::sprc(lapply(parts, `[[`, k)), fun = "sum"))
-    names(total) <- c("num", "den", "sum", "n")
-    out <- terra::ifel(total$n == 0, NA, terra::ifel(total$den > 0, total$num / total$den, total$sum / total$n))
+    num <- terra::mosaic(terra::sprc(lapply(parts, `[[`, "num")), fun = "sum")
+    den <- terra::mosaic(terra::sprc(lapply(parts, `[[`, "den")), fun = "sum")
+    out <- terra::ifel(den > 0, num / den, NA)
     names(out) <- product
     terra::writeRaster(out, filename[[product]], filetype = "COG", datatype = "FLT4S", gdal = gdal, overwrite = TRUE)
   }
