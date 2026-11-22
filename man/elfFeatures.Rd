@@ -39,10 +39,11 @@ elfOutlines(ELFs, tolerance = 1000)
 \item{tolerance}{Simplification tolerance of \code{elfOutlines()}, in metres of the ELFs' projection.}
 }
 \value{
-\code{elfSpreadCoefs()}: a \code{data.frame} with \code{ELF}, \code{coefficient}, \code{value} and \code{excluded} (\code{NA}, or
+\code{elfSpreadCoefs()}: a \code{data.frame} with \code{ELF}, \code{coefficient}, \code{value}, \code{note} and \code{excluded} (\code{NA}, or
 \code{"different model"}); attribute \code{model} describes the common model. \code{elfFeatures()}: a \code{data.frame} with
-\code{ELF}, \code{group}, \code{feature} (an id), \code{label}, \code{units}, \code{type} (\code{"numeric"} or \code{"date"}) and \code{value} (a date is
-the number of days since 1970-01-01, UTC). \code{elfOutlines()}: a \code{SpatVector} (EPSG:4326) with \code{ELF} and \code{name}
+\code{ELF}, \code{group}, \code{feature} (an id), \code{label}, \code{units}, \code{type} (\code{"numeric"} or \code{"date"}), \code{value} (a date is
+the number of days since 1970-01-01, UTC) and \code{note} (\code{""}, or for a species of a grouped fuel term the species
+that share its coefficient). \code{elfOutlines()}: a \code{SpatVector} (EPSG:4326) with \code{ELF} and \code{name}
 (\code{\link[=elfLabels]{elfLabels()}}). \code{elfCoefLabel()}: a character vector.
 }
 \description{
@@ -56,7 +57,10 @@ only between fits of one model form, so only the ELFs whose row has the most com
 \code{spreadLink}, \code{spreadClimate} (predictor, ceiling or activation) and \code{fuelScale}, and the same climate split
 (a \verb{_yr} and \verb{_dev} term per climate variable, or one term; see \code{\link[=isClimateSplitCol]{isClimateSplitCol()}}). The climate variable itself
 does not matter: each variable is its own coefficient (\code{CMD}, \code{cumMDC}, ...) and appears only for the ELFs that
-fitted it, as do the fuel terms (\code{youngAge}, \code{treedWetland_agb}, \verb{dom_agb_*}, \verb{sec_agb_*}, \verb{nfLCC_*}). The others get
+fitted it, as do the fuel terms (\code{youngAge}, \code{treedWetland_agb}, \verb{dom_agb_*}, \verb{sec_agb_*}, \verb{nfLCC_*}). A fuel term of a
+grouped fuel class (e.g. \code{dom_agb_Pp_tr.Bt_pa.Pp_ba}) is one coefficient per member species (\code{dom_agb_Popu_tre},
+...), each with the term's value and a \code{note} of the species it is shared with; the members come from the row's
+\code{sppEquiv} (species to fuel class), not from the abbreviated name. The others get
 one row with \code{NA} and \code{excluded = "different model"}. A non-forest term such as
 \code{nfLCC_100_40_60} applies to each of its land-cover classes, so each class also gets a row \verb{nfLCC_<class>},
 with the term's value.
