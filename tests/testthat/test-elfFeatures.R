@@ -3,7 +3,7 @@
 
 ## A spread ledger row: `params` is a data.table with one row per parameter set (here two, so the mean is visible)
 spreadRow <- function(id, climate = "CMD", link = "powerLawSmooth", scale = "linear", nf = c(nfLCC_100_40_60 = "100,40,60"),
-                      extra = list(), spreadClimate = "ceiling", writtenAt = "2026-11-19 12:00:00") {
+                      extra = list(), spreadClimate = "ceiling", writtenAt = "2026-11-19 12:00:00", sppEquiv = NULL) {
   one <- c(list(maxAsymptote = 0.25, hillSlope1 = 1, inflectionPoint1 = 1, `(Intercept)` = 4, youngAge = -2,
                 dom_agb_Pice_mar = 3, sec_agb_Pice_gla = 50, yearSpreadSD = 1.5), stats::setNames(list(30), climate),
            stats::setNames(as.list(c(-1, 40)[seq_along(nf)]), names(nf)), extra)
@@ -12,6 +12,7 @@ spreadRow <- function(id, climate = "CMD", link = "powerLawSmooth", scale = "lin
   row <- data.frame(polygonID = id, spreadLink = link, spreadClimate = spreadClimate, fuelScale = scale,
                     writtenAt = as.POSIXct(writtenAt, tz = "UTC"))
   row$params <- list(params)
+  if (!is.null(sppEquiv)) row$sppEquiv <- list(sppEquiv)
   row$nonForestedLCCGroups <- list(lapply(strsplit(sub("^nfLCC_", "", names(nf)), "_"), as.numeric) |>
                                      stats::setNames(names(nf)))
   row
@@ -99,7 +100,7 @@ test_that("elfFeatures() is one long table: Observed rates, Fit dates and Spread
     latestSpreadFits = function(...) bindRows(spreadRow("3.1.1_2"), spreadRow("5.1"), spreadRow("9.9")))
   plan <- data.table::data.table(action = "merge", ELF = "3.1.1_2", members = list(c("3.1.1", "3.1.2")), reason = "too few fires")
   out <- elfFeatures(toyELFs(), plan, fireYears = 2001:2003, pixelAreaHa = 2500, destinationPath = tempdir())
-  expect_identical(names(out), c("ELF", "group", "feature", "label", "units", "type", "value"))
+  expect_identical(names(out), c("ELF", "group", "feature", "label", "units", "type", "value", "note"))
   expect_setequal(unique(out$group), c("Observed", "Fit", "Spread coefficients"))
   expect_false(anyNA(out$value))
   expect_false("9.9" %in% out$ELF)                                  # not on the map (after the merges)
@@ -117,6 +118,40 @@ test_that("elfFeatures() is one long table: Observed rates, Fit dates and Spread
   expect_false(any(grepl("nfLCC_100_40_60", out$feature)))
   expect_equal(v("5.1", "spread_maxAsymptote"), 0.75)
   expect_identical(unique(out$label[out$feature == "spread_youngAge"]), "Young stands")
+})
+
+test_that("a grouped fuel term gives one coefficient per member species, noted with the species it is shared with", {
+  ## the ledger row's sppEquiv maps each species to its fuel class; the term is named for the class
+  sppEquiv <- data.frame(LandR = c("Popu_tre", "Betu_pap", "Popu_bal", "Pice_mar", "Pinu_con", "Pinu_con"),
+                         FuelClass = c(rep("Pp_tr.Bt_pa.Pp_ba", 3), "Pice_mar", "Pinu_con", "Pinu_con"))
+  rows <- bindRows(spreadRow("5.1", extra = list(`dom_agb_Pp_tr.Bt_pa.Pp_ba` = 7, sec_agb_Pinu_con = 5), sppEquiv = sppEquiv))
+  out <- elfSpreadCoefs(rows)
+  expect_true("note" %in% names(out))
+  expect_false(any(grepl("\\.", out$coefficient[grepl("_agb_", out$coefficient)])))    # no group-level coefficient
+  dom <- out[grepl("^dom_agb_", out$coefficient), ]
+  expect_setequal(dom$coefficient, paste0("dom_agb_", c("Popu_tre", "Betu_pap", "Popu_bal", "Pice_mar")))
+  expect_equal(dom$value[dom$coefficient == "dom_agb_Popu_tre"], 7.5)      # the term's mean
+  expect_equal(dom$value[dom$coefficient == "dom_agb_Pice_mar"], 3.5)
+  note <- function(co) out$note[out$coefficient == co]
+  expect_identical(note("dom_agb_Popu_tre"), "shared with Betu_pap, Popu_bal")
+  expect_identical(note("dom_agb_Betu_pap"), "shared with Popu_tre, Popu_bal")
+  expect_identical(note("dom_agb_Pice_mar"), "")
+  expect_identical(note("sec_agb_Pinu_con"), "")                             # a species in two rows of sppEquiv is still pure
+  expect_identical(note("youngAge"), "")
+
+  local_mocked_bindings(
+    ELFfireRates = function(...) data.table::data.table(ELF = "5.1", naturalFiresPerYear = 1, naturalFiresPer100km2PerYear = 1,
+                                                        haBurnedPerYear = 1, proportionBurnedPerYear = 0.01),
+    latestSpreadFits = function(...) rows)
+  feat <- elfFeatures(toyELFs(), NULL, fireYears = 2001:2003, pixelAreaHa = 2500, destinationPath = tempdir(),
+                      dates = fitDatesTable(c("5.1", "9.9", "3.1.1")))
+  expect_identical(names(feat), c("ELF", "group", "feature", "label", "units", "type", "value", "note"))
+  one <- feat[feat$feature == "spread_dom_agb_Popu_tre", ]
+  expect_identical(one$label, "Dominant AGB: Trembling aspen (Popu_tre)")
+  expect_identical(one$note, "shared with Betu_pap, Popu_bal")
+  expect_false(any(grepl("spread_dom_agb_Pp_tr", feat$feature, fixed = TRUE)))
+  expect_identical(sum(grepl("^spread_dom_agb_", feat$feature)), 4L)
+  expect_identical(unique(feat$note[feat$group == "Observed"]), "")
 })
 
 test_that("elfOutlines() gives one dissolved core outline per ELF, in longitude-latitude, with its name", {

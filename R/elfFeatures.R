@@ -9,7 +9,10 @@
 #' `spreadLink`, `spreadClimate` (predictor, ceiling or activation) and `fuelScale`, and the same climate split
 #' (a `_yr` and `_dev` term per climate variable, or one term; see [isClimateSplitCol()]). The climate variable itself
 #' does not matter: each variable is its own coefficient (`CMD`, `cumMDC`, ...) and appears only for the ELFs that
-#' fitted it, as do the fuel terms (`youngAge`, `treedWetland_agb`, `dom_agb_*`, `sec_agb_*`, `nfLCC_*`). The others get
+#' fitted it, as do the fuel terms (`youngAge`, `treedWetland_agb`, `dom_agb_*`, `sec_agb_*`, `nfLCC_*`). A fuel term of a
+#' grouped fuel class (e.g. `dom_agb_Pp_tr.Bt_pa.Pp_ba`) is one coefficient per member species (`dom_agb_Popu_tre`,
+#' ...), each with the term's value and a `note` of the species it is shared with; the members come from the row's
+#' `sppEquiv` (species to fuel class), not from the abbreviated name. The others get
 #' one row with `NA` and `excluded = "different model"`. A non-forest term such as
 #' `nfLCC_100_40_60` applies to each of its land-cover classes, so each class also gets a row `nfLCC_<class>`,
 #' with the term's value.
@@ -32,16 +35,18 @@
 #' @param tolerance Simplification tolerance of `elfOutlines()`, in metres of the ELFs' projection.
 #' @param coefficient Coefficient names, e.g. a `coefficient` column of `elfSpreadCoefs()`.
 #'
-#' @return `elfSpreadCoefs()`: a `data.frame` with `ELF`, `coefficient`, `value` and `excluded` (`NA`, or
+#' @return `elfSpreadCoefs()`: a `data.frame` with `ELF`, `coefficient`, `value`, `note` and `excluded` (`NA`, or
 #'   `"different model"`); attribute `model` describes the common model. `elfFeatures()`: a `data.frame` with
-#'   `ELF`, `group`, `feature` (an id), `label`, `units`, `type` (`"numeric"` or `"date"`) and `value` (a date is
-#'   the number of days since 1970-01-01, UTC). `elfOutlines()`: a `SpatVector` (EPSG:4326) with `ELF` and `name`
+#'   `ELF`, `group`, `feature` (an id), `label`, `units`, `type` (`"numeric"` or `"date"`), `value` (a date is
+#'   the number of days since 1970-01-01, UTC) and `note` (`""`, or for a species of a grouped fuel term the species
+#'   that share its coefficient). `elfOutlines()`: a `SpatVector` (EPSG:4326) with `ELF` and `name`
 #'   ([elfLabels()]). `elfCoefLabel()`: a character vector.
 #' @export
 #' @rdname elfFeatures
 elfSpreadCoefs <- function(rows) {
   if (is.null(rows) || !NROW(rows))
-    return(data.frame(ELF = character(), coefficient = character(), value = numeric(), excluded = character()))
+    return(data.frame(ELF = character(), coefficient = character(), value = numeric(), note = character(),
+               excluded = character()))
   rows <- as.data.frame(rows)
   ids <- as.character(rows[[polygonIDTxt]])
   means <- lapply(rows$params, function(p) vapply(as.list(p), mean, numeric(1), na.rm = TRUE))
@@ -52,7 +57,8 @@ elfSpreadCoefs <- function(rows) {
   same <- model == common
   out <- lapply(seq_along(ids), function(i) {
     if (!same[i])
-      return(data.frame(ELF = ids[i], coefficient = NA_character_, value = NA_real_, excluded = "different model"))
+      return(data.frame(ELF = ids[i], coefficient = NA_character_, value = NA_real_, note = "",
+                        excluded = "different model"))
     m <- means[[i]]
     nf <- grep("^nfLCC_", names(m), value = TRUE)
     ## a term of several land-cover classes applies to each: one row per class (a one-class term already is one)
@@ -61,13 +67,38 @@ elfSpreadCoefs <- function(rows) {
       data.frame(coefficient = paste0("nfLCC_", classes), value = m[[term]])
     }))
     all <- rbind(data.frame(coefficient = names(m), value = unname(m)), perClass)
+    all <- .fuelTermsBySpecies(all, rows$sppEquiv[[i]])
     all <- all[!duplicated(all$coefficient), ]
     data.frame(ELF = ids[i], all, excluded = NA_character_)
   })
   out <- do.call(rbind, out)
+  out <- out[, c("ELF", "coefficient", "value", "note", "excluded")]
   rownames(out) <- NULL
   attr(out, "model") <- strsplit(common, "|", fixed = TRUE)[[1]]
   out
+}
+
+## A fuel term (`dom_agb_<class>`, `sec_agb_<class>`) of a grouped fuel class becomes one coefficient per member
+## species, each with the term's value and a `note` naming the species that share it. The members are the species
+## whose `fireSenseFuelClassCol` of the row's `sppEquiv` is the class; a class with no match (or no `sppEquiv`) is
+## a species of its own. `coefs` has `coefficient` and `value`; the result adds `note`.
+.fuelTermsBySpecies <- function(coefs, sppEquiv) {
+  coefs$note <- ""
+  fuel <- grepl("^(dom|sec)_agb_", coefs$coefficient)
+  if (!any(fuel) || is.null(sppEquiv) || !fireSenseFuelClassCol %in% names(sppEquiv))
+    return(coefs)
+  byClass <- split(as.character(sppEquiv[["LandR"]]), as.character(sppEquiv[[fireSenseFuelClassCol]]))
+  expanded <- lapply(seq_len(NROW(coefs)), function(j) {
+    if (!fuel[j]) return(coefs[j, ])
+    prefix <- sub("agb_.*$", "agb_", coefs$coefficient[j])
+    members <- unique(byClass[[sub(prefix, "", coefs$coefficient[j], fixed = TRUE)]])
+    if (!length(members)) return(coefs[j, ])
+    data.frame(coefficient = paste0(prefix, members), value = coefs$value[j],
+               note = vapply(members, function(sp)
+                 if (length(members) > 1L) paste("shared with", paste(setdiff(members, sp), collapse = ", ")) else "",
+                 character(1)))
+  })
+  do.call(rbind, expanded)
 }
 
 #' @export
@@ -103,9 +134,9 @@ elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
                         dates = NULL) {
   if (is.null(plan)) plan <- noELFPlan()
   onMap <- names(mergeELFs(ELFs, plan)$rasWhole)
-  feature <- function(ELF, group, feature, label, units, type, value)
+  feature <- function(ELF, group, feature, label, units, type, value, note = "")
     data.frame(ELF = as.character(ELF), group = group, feature = feature, label = label, units = units, type = type,
-               value = as.numeric(value), stringsAsFactors = FALSE)
+               value = as.numeric(value), note = note, stringsAsFactors = FALSE)
 
   rates <- as.data.frame(ELFfireRates(ELFs, plan, fireYears = fireYears, pixelAreaHa = pixelAreaHa,
                                       destinationPath = destinationPath))
@@ -132,7 +163,7 @@ elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
   if (NROW(coefs))     # (paste0() of no coefficients would still give "spread_")
     out <- c(out, list(feature(coefs$ELF, "Spread coefficients",
                                paste0("spread_", sub("^\\(Intercept\\)$", "Intercept", coefs$coefficient)),
-                               elfCoefLabel(coefs$coefficient), "", "numeric", coefs$value)))
+                               elfCoefLabel(coefs$coefficient), "", "numeric", coefs$value, coefs$note)))
 
   out <- do.call(rbind, out)
   out <- out[out$ELF %in% onMap & !is.na(out$value), ]
