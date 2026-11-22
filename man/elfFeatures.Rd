@@ -52,10 +52,12 @@ fit dates in one long table, and \code{elfOutlines()} draws the ELFs' cores for 
 \details{
 \code{elfSpreadCoefs()} takes the rows of \code{\link[=latestSpreadFits]{latestSpreadFits()}} (the newest production spread fit of each ELF). A
 coefficient is the mean over the row's parameter sets (\code{params}, one row per set). Coefficients are comparable
-only between fits of one model, so only the ELFs whose row has the most common model get values: the same
-\code{spreadLink}, \code{spreadClimate} and \code{fuelScale}, and the same set of coefficients other than the fuel ones
-(\code{youngAge}, \code{treedWetland_agb}, \verb{dom_agb_*}, \verb{sec_agb_*}, \verb{nfLCC_*}, which differ between ELFs by what grows
-there). The others get one row with \code{NA} and \code{excluded = "different model"}. A non-forest term such as
+only between fits of one model form, so only the ELFs whose row has the most common form get values: the same
+\code{spreadLink}, \code{spreadClimate} (predictor, ceiling or activation) and \code{fuelScale}, and the same climate split
+(a \verb{_yr} and \verb{_dev} term per climate variable, or one term; see \code{\link[=isClimateSplitCol]{isClimateSplitCol()}}). The climate variable itself
+does not matter: each variable is its own coefficient (\code{CMD}, \code{cumMDC}, ...) and appears only for the ELFs that
+fitted it, as do the fuel terms (\code{youngAge}, \code{treedWetland_agb}, \verb{dom_agb_*}, \verb{sec_agb_*}, \verb{nfLCC_*}). The others get
+one row with \code{NA} and \code{excluded = "different model"}. A non-forest term such as
 \code{nfLCC_100_40_60} applies to each of its land-cover classes, so each class also gets a row \verb{nfLCC_<class>},
 with the term's value.
 

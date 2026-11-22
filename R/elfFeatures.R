@@ -5,10 +5,12 @@
 #'
 #' `elfSpreadCoefs()` takes the rows of [latestSpreadFits()] (the newest production spread fit of each ELF). A
 #' coefficient is the mean over the row's parameter sets (`params`, one row per set). Coefficients are comparable
-#' only between fits of one model, so only the ELFs whose row has the most common model get values: the same
-#' `spreadLink`, `spreadClimate` and `fuelScale`, and the same set of coefficients other than the fuel ones
-#' (`youngAge`, `treedWetland_agb`, `dom_agb_*`, `sec_agb_*`, `nfLCC_*`, which differ between ELFs by what grows
-#' there). The others get one row with `NA` and `excluded = "different model"`. A non-forest term such as
+#' only between fits of one model form, so only the ELFs whose row has the most common form get values: the same
+#' `spreadLink`, `spreadClimate` (predictor, ceiling or activation) and `fuelScale`, and the same climate split
+#' (a `_yr` and `_dev` term per climate variable, or one term; see [isClimateSplitCol()]). The climate variable itself
+#' does not matter: each variable is its own coefficient (`CMD`, `cumMDC`, ...) and appears only for the ELFs that
+#' fitted it, as do the fuel terms (`youngAge`, `treedWetland_agb`, `dom_agb_*`, `sec_agb_*`, `nfLCC_*`). The others get
+#' one row with `NA` and `excluded = "different model"`. A non-forest term such as
 #' `nfLCC_100_40_60` applies to each of its land-cover classes, so each class also gets a row `nfLCC_<class>`,
 #' with the term's value.
 #'
@@ -45,8 +47,7 @@ elfSpreadCoefs <- function(rows) {
   means <- lapply(rows$params, function(p) vapply(as.list(p), mean, numeric(1), na.rm = TRUE))
   column <- function(x) if (x %in% names(rows)) as.character(rows[[x]]) else rep(NA_character_, length(ids))
   model <- paste(column(spreadLinkTxt), column(spreadClimateTxt), column(spreadFitFuelScaleTxt),
-                 vapply(means, function(m) paste(sort(setdiff(names(m), .spreadFuelCoefs(names(m)))), collapse = ","),
-                        character(1)), sep = "|")
+                 vapply(means, function(m) any(isClimateSplitCol(names(m))), logical(1)), sep = "|")
   common <- names(which.max(table(model)))
   same <- model == common
   out <- lapply(seq_along(ids), function(i) {
@@ -68,10 +69,6 @@ elfSpreadCoefs <- function(rows) {
   attr(out, "model") <- strsplit(common, "|", fixed = TRUE)[[1]]
   out
 }
-
-## The coefficients of `names` that describe fuel, which differ between ELFs by what grows there
-.spreadFuelCoefs <- function(names) grep(paste0("^(dom_agb_|sec_agb_|nfLCC_)|^(", youngAgeTxt, "|", treedWetlandAgbTxt, ")$"),
-                                         names, value = TRUE)
 
 #' @export
 #' @rdname elfFeatures

@@ -41,23 +41,31 @@ test_that("elfSpreadCoefs() adds a row per land-cover class of a non-forest grou
   expect_identical(sum(out$coefficient == "nfLCC_50"), 1L)
 })
 
-test_that("elfSpreadCoefs() gives NA, excluded as 'different model', to ELFs whose model differs from the most common one", {
+test_that("elfSpreadCoefs() gives NA, excluded as 'different model', to ELFs whose model form differs from the most common one", {
   rows <- bindRows(spreadRow("a"), spreadRow("b"), spreadRow("c"),
-                   spreadRow("d", climate = "cumMDC"),             # another climate term
                    spreadRow("e", link = "logistic"),              # another link
                    spreadRow("f", scale = "log"),                  # another fuel scale
-                   spreadRow("g", extra = list(newTerm = 1)),      # another non-fuel coefficient
-                   spreadRow("h", spreadClimate = "activation"))   # another climate mode
+                   spreadRow("h", spreadClimate = "activation"),   # another climate mode
+                   spreadRow("i", extra = list(CMD_yr = 1, CMD_dev = 2)))   # the climate split
   out <- elfSpreadCoefs(rows)
-  expect_setequal(unique(out$ELF), letters[1:8])
-  bad <- out[out$ELF %in% c("d", "e", "f", "g", "h"), ]
+  expect_setequal(unique(out$ELF), c("a", "b", "c", "e", "f", "h", "i"))
+  bad <- out[out$ELF %in% c("e", "f", "h", "i"), ]
   expect_true(all(bad$excluded == "different model"))
   expect_true(all(is.na(bad$value)))
   expect_true(all(is.na(out$excluded[out$ELF %in% c("a", "b", "c")])))
   expect_false(anyNA(out$value[out$ELF %in% c("a", "b", "c")]))
-  ## a different nonfuel set only: fuel terms may differ freely between ELFs
-  rows <- bindRows(spreadRow("a"), spreadRow("b", extra = list(dom_agb_Pinu_con = 2, treedWetland_agb = 1)))
-  expect_true(all(is.na(elfSpreadCoefs(rows)$excluded)))
+})
+
+test_that("elfSpreadCoefs() keeps an ELF that fitted another climate variable or other fuel terms; each stays its own coefficient", {
+  rows <- bindRows(spreadRow("a"), spreadRow("b"),
+                   spreadRow("d", climate = "cumMDC"),                                       # another climate variable
+                   spreadRow("g", extra = list(newTerm = 1, dom_agb_Pinu_con = 2, treedWetland_agb = 1)))
+  out <- elfSpreadCoefs(rows)
+  expect_true(all(is.na(out$excluded)))
+  has <- function(elf, co) co %in% out$coefficient[out$ELF == elf]
+  expect_true(has("d", "cumMDC") && !has("d", "CMD"))
+  expect_true(has("a", "CMD") && !has("a", "cumMDC"))
+  expect_true(has("g", "newTerm") && has("g", "dom_agb_Pinu_con"))
 })
 
 test_that("elfSpreadCoefs() copes with rows that record no spreadClimate, and with no rows", {
