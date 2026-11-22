@@ -131,8 +131,10 @@ elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
   coefs <- elfSpreadCoefs(latestSpreadFits(spreadFolder, destinationPath))
   ## a land-cover class has its own row; the term of several classes it came from has none
   coefs <- coefs[!is.na(coefs$coefficient) & !grepl("^nfLCC_[0-9]+_[0-9]", coefs$coefficient), ]
-  out <- c(out, list(feature(coefs$ELF, "Spread coefficients", paste0("spread_", sub("^\\(Intercept\\)$", "Intercept", coefs$coefficient)),
-                             elfCoefLabel(coefs$coefficient), "", "numeric", coefs$value)))
+  if (NROW(coefs))     # (paste0() of no coefficients would still give "spread_")
+    out <- c(out, list(feature(coefs$ELF, "Spread coefficients",
+                               paste0("spread_", sub("^\\(Intercept\\)$", "Intercept", coefs$coefficient)),
+                               elfCoefLabel(coefs$coefficient), "", "numeric", coefs$value)))
 
   out <- do.call(rbind, out)
   out <- out[out$ELF %in% onMap & !is.na(out$value), ]
