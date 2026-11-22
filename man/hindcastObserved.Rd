@@ -10,7 +10,7 @@ hindcastObserved(
   firePolys,
   year,
   escapeSizeHa = 50,
-  pixelAreaHa = prod(terra::res(coreRaster))/10000,
+  pixelAreaHa = fireSenseUtils::pixelAreaHa(coreRaster),
   naturalCauses = c("L", "N"),
   polyCauseCol = polyCauseColTxt,
   naturalPolyCauses = "Natural",

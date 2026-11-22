@@ -61,7 +61,7 @@
 #' @importFrom data.table data.table rbindlist
 #' @importFrom terra ifel
 hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSizeHa = 50,
-                             pixelAreaHa = prod(terra::res(coreRaster)) / 1e4,
+                             pixelAreaHa = fireSenseUtils::pixelAreaHa(coreRaster), # (not pixelAreaHa(): that is this argument)
                              naturalCauses = c("L", "N"), polyCauseCol = polyCauseColTxt,
                              naturalPolyCauses = "Natural", flammableRTM = NULL, fireCauses = NULL,
                              coreStart = FALSE, sizeCol = polySizeColTxt, coreIs = "mask") {
@@ -219,7 +219,7 @@ hindcastSimulated <- function(burnID, coreRaster, ignitions = NULL, escapeSizeHa
   counted <- if (isTRUE(coreStart)) ids[burned] %in% ids[ignitions$pixelID[here]] else inCore(burned)
   n <- table(ids[burned][counted])
   sizes <- data.table::data.table(fire_id = as.integer(names(n)),
-                                  ha = as.numeric(n) * prod(terra::res(burnID)) / 1e4)
+                                  ha = as.numeric(n) * pixelAreaHa(burnID))
   list(
     counts = data.table::data.table(
       ignitions = if (is.null(here)) NA_integer_ else sum(here),

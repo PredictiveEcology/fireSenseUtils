@@ -142,7 +142,7 @@ fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, id
   pts <- fireStartsOf(polys, xy, crsR, idCol, polyCauseCol)
   nBurnable <- burnable$n[match(polys$.poly, burnable$.poly)]
   nBurnable[is.na(nBurnable)] <- 0L
-  pts$burnableHa <- nBurnable * prod(terra::res(flammableRTM)) / 1e4
+  pts$burnableHa <- nBurnable * pixelAreaHa(flammableRTM)
   pts$pixelID <- terra::cellFromXY(flammableRTM, xy)
   pts$core <- inELFCore(pts, coreRaster, coreIs)
   pts
@@ -159,7 +159,7 @@ escapeFireSet <- function(polys, flammableRTM, coreRaster = NULL, definition = e
 
 ## the polygons of `polys` that are escapes of `definition`, with `.poly` their row in `polys` (as [fireStarts()]'s)
 escapesOf <- function(polys, definition, flammableRTM, sizeCol, polyCauseCol) {
-  escapePolys(polys, definition$escapeSizeHa, prod(terra::res(flammableRTM)) / 1e4, sizeCol,
+  escapePolys(polys, definition$escapeSizeHa, pixelAreaHa(flammableRTM), sizeCol,
               fireCauseCodes(escapeCauses(definition), "nbac"), polyCauseCol)
 }
 

@@ -47,7 +47,7 @@ calibratePowerLaw <- function(flammable, pGrid = spreadPowerLawPGrid, nFires = 4
   nBig <- length(bigPix)
   rm(patches)
   minPx <- if (length(escapeSizeHa) && !is.na(escapeSizeHa)) escapeSizePixels(escapeSizeHa, flammable) else 1L
-  pixHa <- prod(terra::res(flammable)) / 1e4
+  pixHa <- pixelAreaHa(flammable)
   nCell <- terra::ncell(flammable)
   jobs <- expand.grid(rep = seq_len(nFires), p = pGrid)
 

@@ -1539,7 +1539,7 @@ cropToCells <- function(r, cells, margin = 1L) {
 #' r <- terra::rast(nrows = 10, ncols = 10, xmin = 0, xmax = 2400, ymin = 0, ymax = 2400)
 #' escapeSizePixels(50, r) # 240 m pixels are 5.76 ha: 9 pixels
 escapeSizePixels <- function(escapeSizeHa, landscape) {
-  pixHa <- prod(terra::res(landscape)) / 1e4
+  pixHa <- pixelAreaHa(landscape)
   max(1L, as.integer(ceiling(escapeSizeHa / pixHa - 1e-9)))
 }
 

@@ -263,7 +263,7 @@ ELFflammableArea <- function(rasWhole, rstLCC, nonflammableLCC = fireSenseNonfla
   ## Land cover is normally finer than the ELF grid, so move the ELF footprint onto the
   ## land-cover grid rather than the reverse: resampling cover codes would invent classes.
   lccVals <- terra::values(rstLCC, mat = FALSE)
-  pixelAreaHa <- prod(terra::res(rstLCC)) / 1e4
+  pixelAreaHa <- pixelAreaHa(rstLCC)
 
   out <- lapply(names(rasWhole), function(elf) {
     elfOnLCC <- terra::project(rasWhole[[elf]], rstLCC, method = "near")

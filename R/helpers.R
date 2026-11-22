@@ -745,3 +745,13 @@ fuelLogToLinear <- function(x) {
 isLinearFuelRange <- function(range) {
   length(range) == 2L && isTRUE(all.equal(as.numeric(range), fuelLinearRange))
 }
+
+#' Area of one cell of a raster, in hectares
+#'
+#' @param x A `SpatRaster` in a projected CRS (metres).
+#'
+#' @return A number: `prod(terra::res(x)) / 1e4`, e.g. 5.76 for 240 m cells.
+#' @export
+#' @examples
+#' pixelAreaHa(terra::rast(resolution = 240, crs = "EPSG:3978", extent = terra::ext(0, 2400, 0, 2400)))
+pixelAreaHa <- function(x) prod(terra::res(x)) / 1e4

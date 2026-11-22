@@ -82,8 +82,12 @@ export(dropRepeatedFirePoints)
 export(dtReplaceNAwith0)
 export(elfCacheFolder)
 export(elfCellLabels)
+export(elfCoefLabel)
+export(elfFeatures)
 export(elfFitDates)
 export(elfLabels)
+export(elfOutlines)
+export(elfSpreadCoefs)
 export(emptySpreadCovariates)
 export(escapeDefinition)
 export(escapeDefinitionOf)
@@ -179,6 +183,7 @@ export(makeMutuallyExclusive)
 export(makeTSD)
 export(mergeELFs)
 export(mergePreparedCovs)
+export(mosaicELFs)
 export(multiplier)
 export(mustFit)
 export(mutuallyExclusiveRows)
@@ -186,11 +191,13 @@ export(nThreads)
 export(nfdbFirePoints)
 export(nfdbFirePointsOfCauses)
 export(nfdbPointUrl)
+export(noELFPlan)
 export(nonEscapedFireSizes)
 export(nonNFColNamesTxt)
 export(omitNullArgs)
 export(paramsSeparate)
 export(phaseEvents)
+export(pixelAreaHa)
 export(plotBurnSummary)
 export(plotCumulativeBurns)
 export(plotELFs)
@@ -503,8 +510,10 @@ importFrom(terra,
   crds,
   crop,
   crs,
+  distance,
   expanse,
   ext,
+  extend,
   extract,
   focal,
   freq,
@@ -523,6 +532,7 @@ importFrom(terra,
   same.crs,
   set.names,
   setValues,
+  simplifyGeom,
   spatSample,
   sprc,
   trim,
