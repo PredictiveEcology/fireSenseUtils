@@ -183,6 +183,7 @@ export(makeMutuallyExclusive)
 export(makeTSD)
 export(mergeELFs)
 export(mergePreparedCovs)
+export(mosaicELFs)
 export(multiplier)
 export(mustFit)
 export(mutuallyExclusiveRows)
@@ -507,8 +508,10 @@ importFrom(terra,
   crds,
   crop,
   crs,
+  distance,
   expanse,
   ext,
+  extend,
   extract,
   focal,
   freq,

@@ -18,7 +18,8 @@ elfFeatures(
   pixelAreaHa,
   destinationPath,
   spreadFolder = spreadFitLedgerFolder(),
-  ignitionFolder = ignitionFitLedgerFolder()
+  ignitionFolder = ignitionFitLedgerFolder(),
+  dates = NULL
 )
 
 elfOutlines(ELFs, tolerance = 1000)
@@ -32,6 +33,8 @@ elfOutlines(ELFs, tolerance = 1000)
 \code{plan} the merges (\code{NULL}: none). For \code{elfOutlines()}, \code{ELFs} is the list as it is mapped (after the merges).}
 
 \item{spreadFolder, ignitionFolder}{The ledger folders, as in \code{\link[=elfFitDates]{elfFitDates()}}.}
+
+\item{dates}{The result of \code{\link[=elfFitDates]{elfFitDates()}} if the caller has it already, else \code{NULL} (default): it is read.}
 
 \item{tolerance}{Simplification tolerance of \code{elfOutlines()}, in metres of the ELFs' projection.}
 }
