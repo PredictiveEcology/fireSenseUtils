@@ -66,7 +66,8 @@
     ledger <- reproducible::CacheGeoLedger(fname, remote = cloudFolderID, destinationPath = destinationPath)
     ledger <- as.data.frame(reproducible::CacheGeoRead(ledger, area = NULL))
     stamp <- if ("writtenAt" %in% names(ledger)) as.numeric(ledger$writtenAt) else rep(NA_real_, NROW(ledger))
-    key <- ifelse(is.na(stamp), if (is.na(nameDate[k])) -Inf else nameDate[k], stamp)
+    key <- .ledgerRowDate(stamp, fname, fileTag)
+    key[is.na(key)] <- -Inf
     ids <- as.character(ledger[[polygonIDTxt]])
     for (i in seq_along(ids)) {
       b <- best[[ids[i]]]
@@ -124,6 +125,17 @@
 ledgerFileOrder <- function(names, modifiedTime, fileTag) {
   date <- .ledgerNameDate(names, fileTag)
   order(ifelse(is.na(date), -Inf, date), as.character(modifiedTime), decreasing = TRUE)
+}
+
+## When a ledger row was written, as seconds: its `writtenAt` (`stamp`, seconds; NA before the stamp existed), else the
+## date in its file's name (.ledgerNameDate(), `fileTag` as there), else NA. `file` is recycled to `stamp`.
+## The one definition of a fit's date: .latestLedgerFits() picks rows by it, readELFmetrics() and elfFitDates() date fits by it.
+.ledgerRowDate <- function(stamp, file, fileTag) {
+  stamp <- as.numeric(stamp)
+  file <- rep_len(file, length(stamp))
+  noStamp <- is.na(stamp)
+  stamp[noStamp] <- .ledgerNameDate(file[noStamp], fileTag)
+  stamp
 }
 
 ## The last 8-digit `yyyymmdd` in the suffix after `fileTag`, as seconds (midnight UTC); NA if none
