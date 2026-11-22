@@ -11,6 +11,9 @@
   do.call(rbind, polys)
 }
 
+## The polygons of an ELF list: its `poly`, else outlines drawn from its `rasWhole`
+.ELFpoly <- function(ELFs) if (is.null(ELFs$poly)) .ELFoutlines(ELFs$rasWhole) else ELFs$poly
+
 #' Get current state of FireSense Fit parameters as a map
 #'
 #' Download the FireSense parameter object, strip the list columns and
@@ -158,8 +161,7 @@ plotELFs <- function(destinationPath = ".", which = NULL, fill = "green", plan =
   ## makeELFs() returns a list (rasters + `poly`); the single SpatVector is the `poly` element.
   ## cf. ELFsInStudyArea(), which already does this. `singleSpatVector` no longer switches the
   ## return type -- the code that used it is commented out in makeELFs().
-  ELFsPoly <- ELFs$poly
-  if (is.null(ELFsPoly)) ELFsPoly <- .ELFoutlines(ELFs$rasWhole)
+  ELFsPoly <- .ELFpoly(ELFs)
 
   ## the cores are what is filled and labelled; `buffers = FALSE` draws only them, otherwise their rings too
   core <- ELFsPoly[ELFsPoly$buffer %in% 2, ]

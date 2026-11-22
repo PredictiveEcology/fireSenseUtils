@@ -82,8 +82,12 @@ export(dropRepeatedFirePoints)
 export(dtReplaceNAwith0)
 export(elfCacheFolder)
 export(elfCellLabels)
+export(elfCoefLabel)
+export(elfFeatures)
 export(elfFitDates)
 export(elfLabels)
+export(elfOutlines)
+export(elfSpreadCoefs)
 export(emptySpreadCovariates)
 export(escapeDefinition)
 export(escapeDefinitionOf)
@@ -523,6 +527,7 @@ importFrom(terra,
   same.crs,
   set.names,
   setValues,
+  simplifyGeom,
   spatSample,
   sprc,
   trim,
