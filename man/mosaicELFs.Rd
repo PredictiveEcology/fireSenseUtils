@@ -39,8 +39,7 @@ Each ELF's raster covers the ELF's core and buffer, so neighbours overlap. Each 
 from 0 at the outer edge of its footprint (core plus buffer) to the distance inward in metres, and each cell takes
 the weighted mean of the ELFs that have a value there, so values change smoothly across the borders. The
 footprint is the ELF's own map (\code{rasWhole} above 0), not the cells of its raster that have a value: holes in the
-raster (non-burnable cells) make no edge. A cell with a value from one ELF takes it. A cell with values
-only where the weights are 0 (the outermost cells of the ELF's footprint, with no neighbour) takes their mean. A cell
-with no value stays \code{NA}. Each raster is projected to the national grid with \code{method}, so the ELFs may be in different
-projections.
+raster (non-burnable cells) make no edge. A cell with a value from one ELF takes it, also
+at the very edge of its footprint (the weight there is tiny, not 0). A cell with no value stays \code{NA}. Each raster is
+projected to the national grid with \code{method}, so the ELFs may be in different projections.
 }
