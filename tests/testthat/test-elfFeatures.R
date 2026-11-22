@@ -124,3 +124,17 @@ test_that("elfOutlines() gives one dissolved core outline per ELF, in longitude-
   ## a ring-shaped core is one polygon per ELF, not one per piece
   expect_equal(length(unique(out$ELF)), nrow(out))
 })
+
+test_that("elfFeatures(dates =) uses the fit dates it is given, and does not read them again", {
+  local_mocked_bindings(
+    ELFfireRates = function(...) data.table::data.table(ELF = "5.1", naturalFiresPerYear = 1, naturalFiresPer100km2PerYear = 1,
+                                                        haBurnedPerYear = 1, proportionBurnedPerYear = 0.01),
+    elfFitDates = function(...) stop("the ledgers were read again"),
+    latestSpreadFits = function(...) NULL)
+  out <- elfFeatures(toyELFs(), NULL, fireYears = 2001:2003, pixelAreaHa = 2500, destinationPath = tempdir(),
+                     dates = fitDatesTable(c("5.1", "9.9", "3.1.1")))
+  v <- function(elf, f) out$value[out$ELF == elf & out$feature == f]
+  expect_equal(v("5.1", "spreadFitDate"), as.numeric(as.Date("2026-11-19")))
+  expect_equal(v("5.1", "ignitionFitDate"), as.numeric(as.Date("2026-10-05")))
+  expect_false("9.9" %in% out$ELF)
+})
