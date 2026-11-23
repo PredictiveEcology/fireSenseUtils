@@ -83,23 +83,52 @@ spreadCovCentre <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMi
   spreadCovMeans(annualDTx1000, nonAnnualDTx1000, spreadSourceCols(colsToUse), covMinMax, mutuallyExclusive)
 }
 
+## `FUN(covs)` for every year of `annualDTx1000`, where `covs` has `covCols` on the scale the objective's design matrix has
+## them: rescaled, made mutually exclusive and, with `covCentre`, centred. The one place that scale is made, for the
+## summaries below.
+eachSpreadYearCovs <- function(annualDTx1000, nonAnnualDTx1000, covCols, covMinMax, mutuallyExclusive, covCentre, FUN) {
+  lapply(nonAnnualDTx1000, data.table::setDT)
+  indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
+  lapply(stats::setNames(nm = names(annualDTx1000)), function(yr)
+    FUN(spreadProbCovsOfYear(yr, annualDTx1000[[yr]], nonAnnualDTx1000, indexNonAnnual, covMinMax,
+                             mutuallyExclusive, covCols, FALSE, NULL, NULL, NULL, NULL, covCentre = covCentre)))
+}
+
 ## The mean of each of `covCols` over every pixel-year of `annualDTx1000`, on the scale the objective's
 ## design matrix has them: rescaled, made mutually exclusive and, with `covCentre`, centred. Used by
 ## spreadCovCentre() (no centre: the values it goes on to centre) and spreadClimateRef() (the fit's centre, so
 ## the reference is on the design scale).
 spreadCovMeans <- function(annualDTx1000, nonAnnualDTx1000, covCols, covMinMax = NULL, mutuallyExclusive = NULL,
                            covCentre = NULL) {
-  lapply(nonAnnualDTx1000, data.table::setDT)
-  indexNonAnnual <- nonAnnualIndex(nonAnnualDTx1000)
-  sums <- numeric(length(covCols))
-  n <- numeric(length(covCols))
-  for (yr in names(annualDTx1000)) {
-    covs <- spreadProbCovsOfYear(yr, annualDTx1000[[yr]], nonAnnualDTx1000, indexNonAnnual, covMinMax,
-                                 mutuallyExclusive, covCols, FALSE, NULL, NULL, NULL, NULL, covCentre = covCentre)
-    sums <- sums + vapply(covCols, function(cn) sum(covs[[cn]], na.rm = TRUE), numeric(1))
-    n <- n + vapply(covCols, function(cn) sum(!is.na(covs[[cn]])), numeric(1))
-  }
+  perYear <- eachSpreadYearCovs(annualDTx1000, nonAnnualDTx1000, covCols, covMinMax, mutuallyExclusive, covCentre,
+                                function(covs) list(sums = vapply(covCols, function(cn) sum(covs[[cn]], na.rm = TRUE), numeric(1)),
+                                                    n = vapply(covCols, function(cn) sum(!is.na(covs[[cn]])), numeric(1))))
+  sums <- Reduce(`+`, lapply(perYear, `[[`, "sums"), numeric(length(covCols)))
+  n <- Reduce(`+`, lapply(perYear, `[[`, "n"), numeric(length(covCols)))
   as.list(stats::setNames(sums / n, covCols))
+}
+
+#' The fuel covariates of a spread fit: their median non-zero value and standard deviation
+#'
+#' What [spreadFuelEffect()] needs to say how much one fuel changes the spread probability. The fuel terms of the
+#' formula ([spreadFuelTerms()]) are taken on the scale of [spreadCovCentre()] (rescaled, made mutually exclusive, before
+#' centring) over every pixel-year in `annualDTx1000`. A fuel is 0 where a pixel does not have it, so the median is of
+#' the pixel-years that do (non-zero), the typical amount where it is present; the standard deviation is over all of them.
+#' `fireSense_spreadFit` stores both in the ledger row ([spreadFitCovMedianNonZeroTxt], [spreadFitCovSDTxt]).
+#'
+#' @inheritParams spreadCovCentre
+#' @return `NULL` when the formula has no fuel term, else a list of two named lists, `medianNonZero` and `sd`, one value
+#'   per fuel term (`NA` when it is never non-zero).
+#' @export
+spreadFuelSummary <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMinMax = NULL,
+                              mutuallyExclusive = list("youngAge" = c("class", "nf"))) {
+  fuel <- spreadFuelTerms(spreadSourceCols(spreadDesignCols(formulaToFit)))
+  if (!length(fuel)) return(NULL)
+  perYear <- eachSpreadYearCovs(annualDTx1000, nonAnnualDTx1000, fuel, covMinMax, mutuallyExclusive, NULL,
+                                function(covs) lapply(stats::setNames(fuel, fuel), function(cn) covs[[cn]]))
+  all <- lapply(stats::setNames(fuel, fuel), function(cn) unlist(lapply(perYear, `[[`, cn), use.names = FALSE))
+  list(medianNonZero = lapply(all, function(v) { v <- v[!is.na(v) & v != 0]; if (length(v)) stats::median(v) else NA_real_ }),
+       sd = lapply(all, stats::sd, na.rm = TRUE))
 }
 
 #' The climate covariates of a spread formula

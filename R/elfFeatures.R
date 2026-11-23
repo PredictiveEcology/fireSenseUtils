@@ -1,6 +1,7 @@
 #' Per-ELF features and outlines for an interactive map
 #'
-#' `elfSpreadCoefs()` gives each ELF's spread-fit coefficients, `elfFeatures()` puts them with the fire rates and the
+#' `elfSpreadCoefs()` gives each ELF's spread-fit coefficients, `elfFuelEffects()` what each fuel does to the spread
+#' probability, `elfFeatures()` puts them with the fire rates and the
 #' fit dates in one long table, and `elfOutlines()` draws the ELFs' cores for a web map.
 #'
 #' `elfSpreadCoefs()` takes the rows of [latestSpreadFits()] (the newest production spread fit of each ELF). A
@@ -17,11 +18,18 @@
 #' `nfLCC_100_40_60` applies to each of its land-cover classes, so each class also gets a row `nfLCC_<class>`,
 #' with the term's value.
 #'
+#' `elfFuelEffects()` has a row for each of the same fuel coefficients (a grouped fuel class per member species, with the
+#' same `note`), and in `value` the change in spread probability that the fuel makes ([spreadFuelEffect()]): from 0 to its
+#' median non-zero biomass in the fit's data, everything else at its centre, through the fitted link. Unlike the
+#' coefficients, these are comparable between fuels and ELFs. A row written before the ledger stored the fit-data summary
+#' has `NA` and the note `"no fit-data summary"`.
+#'
 #' `elfFeatures()` is one table for the map's layers, with the groups `"Observed"` (the fire rates of
 #' [ELFfireRates()] over the core: natural ignitions per year, hectares burned per year, natural ignitions per 100
 #' km^2 per year, percent of the core burned per year), `"Fit"` (the dates of the latest production fits, from
-#' [elfFitDates()]; ignition and escape are one ledger row, so one date) and `"Spread coefficients"` (those of
-#' `elfSpreadCoefs()`, with a column per land-cover class instead of per non-forest term). ELFs are those of the map
+#' [elfFitDates()]; ignition and escape are one ledger row, so one date), `"Spread coefficients"` (those of
+#' `elfSpreadCoefs()`, with a column per land-cover class instead of per non-forest term) and `"Spread fuel effect"` (those of
+#' `elfFuelEffects()`, feature `spreadEffect_<fuel coefficient>`, units `"probability"`). ELFs are those of the map
 #' after the merges in `plan`; a value that is missing gets no row.
 #'
 #' `elfOutlines()` is the core of each ELF (not its buffer), one polygon per ELF, simplified and in longitude and
@@ -35,7 +43,7 @@
 #' @param tolerance Simplification tolerance of `elfOutlines()`, in metres of the ELFs' projection.
 #' @param coefficient Coefficient names, e.g. a `coefficient` column of `elfSpreadCoefs()`.
 #'
-#' @return `elfSpreadCoefs()`: a `data.frame` with `ELF`, `coefficient`, `value`, `note` and `excluded` (`NA`, or
+#' @return `elfSpreadCoefs()`, `elfFuelEffects()`: a `data.frame` with `ELF`, `coefficient`, `value`, `note` and `excluded` (`NA`, or
 #'   `"different model"`); attribute `model` describes the common model. `elfFeatures()`: a `data.frame` with
 #'   `ELF`, `group`, `feature` (an id), `label`, `units`, `type` (`"numeric"` or `"date"`), `value` (a date is
 #'   the number of days since 1970-01-01, UTC) and `note` (`""`, or for a species of a grouped fuel term the species
@@ -48,10 +56,8 @@ elfSpreadCoefs <- function(rows) {
     return(.coefsTable())
   rows <- as.data.frame(rows)
   ids <- as.character(rows[[polygonIDTxt]])
-  means <- lapply(rows$params, function(p) vapply(as.list(p), mean, numeric(1), na.rm = TRUE))
-  column <- function(x) if (x %in% names(rows)) as.character(rows[[x]]) else rep(NA_character_, length(ids))
-  model <- paste(column(spreadLinkTxt), column(spreadClimateTxt), column(spreadFitFuelScaleTxt),
-                 vapply(means, function(m) any(isClimateSplitCol(names(m))), logical(1)), sep = "|")
+  means <- .paramMeans(rows)
+  model <- .modelForm(rows, means)
   common <- names(which.max(table(model)))
   same <- model == common
   out <- lapply(seq_along(ids), function(i) {
@@ -73,6 +79,39 @@ elfSpreadCoefs <- function(rows) {
   rownames(out) <- NULL
   attr(out, "model") <- strsplit(common, "|", fixed = TRUE)[[1]]
   out
+}
+
+#' @export
+#' @rdname elfFeatures
+elfFuelEffects <- function(rows) {
+  if (is.null(rows) || !NROW(rows))
+    return(.coefsTable())
+  rows <- as.data.frame(rows)
+  ids <- as.character(rows[[polygonIDTxt]])
+  model <- .modelForm(rows)
+  same <- model == names(which.max(table(model)))
+  out <- lapply(seq_along(ids), function(i) {
+    if (!same[i])
+      return(.coefsTable(ids[i], NA_character_, NA_real_, "", "different model"))
+    effect <- spreadFuelEffect(rows[i, , drop = FALSE])
+    all <- .fuelTermsBySpecies(data.frame(coefficient = names(effect), value = unname(effect)), rows$sppEquiv[[i]])
+    if (length(effect) && all(is.na(effect))) all$note <- trimws(paste(all$note, "no fit-data summary"))
+    .coefsTable(ids[i], all$coefficient, all$value, all$note, NA_character_)
+  })
+  out <- do.call(rbind, out)
+  rownames(out) <- NULL
+  out
+}
+
+## The mean of each parameter over a row's parameter sets, one named vector per row
+.paramMeans <- function(rows) lapply(rows$params, function(p) vapply(as.list(p), mean, numeric(1), na.rm = TRUE))
+
+## The model form of each row: the coefficients are comparable only between rows that agree on it (link, where climate
+## enters, fuel scale, and whether the climate is split into a year and a departure). `means`: the row's mean parameters.
+.modelForm <- function(rows, means = .paramMeans(rows)) {
+  column <- function(x) if (x %in% names(rows)) as.character(rows[[x]]) else rep(NA_character_, NROW(rows))
+  paste(column(spreadLinkTxt), column(spreadClimateTxt), column(spreadFitFuelScaleTxt),
+        vapply(means, function(m) any(isClimateSplitCol(names(m))), logical(1)), sep = "|")
 }
 
 ## The table `elfSpreadCoefs()` returns, columns in this order (no arguments: no rows)
@@ -162,13 +201,21 @@ elfFeatures <- function(ELFs, plan, fireYears, pixelAreaHa, destinationPath,
     feature(dates$ELF, "Fit", "ignitionFitDate", "Ignition and escape fit date", "date", "date",
             days(dates$ignitionFitDate))))
 
-  coefs <- elfSpreadCoefs(latestSpreadFits(spreadFolder, destinationPath))
+  latestRows <- latestSpreadFits(spreadFolder, destinationPath)
+  coefs <- elfSpreadCoefs(latestRows)
   ## a land-cover class has its own row; the term of several classes it came from has none
   coefs <- coefs[!is.na(coefs$coefficient) & !grepl("^nfLCC_[0-9]+_[0-9]", coefs$coefficient), ]
   if (NROW(coefs))     # (paste0() of no coefficients would still give "spread_")
     out <- c(out, list(feature(coefs$ELF, "Spread coefficients",
                                paste0("spread_", sub("^\\(Intercept\\)$", "Intercept", coefs$coefficient)),
                                elfCoefLabel(coefs$coefficient), "", "numeric", coefs$value, coefs$note)))
+
+  effects <- elfFuelEffects(latestRows)
+  effects <- effects[!is.na(effects$coefficient), ]
+  if (NROW(effects))
+    out <- c(out, list(feature(effects$ELF, "Spread fuel effect", paste0("spreadEffect_", effects$coefficient),
+                               paste0(elfCoefLabel(effects$coefficient), " \u2014 change in spread probability"), "probability",
+                               "numeric", effects$value, effects$note)))
 
   out <- do.call(rbind, out)
   out <- out[out$ELF %in% onMap & !is.na(out$value), ]

@@ -107,6 +107,10 @@
 #'   - `spreadFitPcAtP50Txt`: `character(1)`. Name of the ledger column that marks a fit whose `maxAsymptote` was fixed at
 #'     p50, not fitted (`fireSense_spreadFit`'s `powerLawPcAtP50`; `"pcAtP50_spread"`), so its value is not read as a
 #'     fitted one at its bound.
+#'   - `spreadFitCovMedianNonZeroTxt`, `spreadFitCovSDTxt`: `character(1)` each. Names of the ledger columns that hold, for each
+#'     fuel covariate of the fit, the median of its non-zero values and its standard deviation over the fit's pixel-years
+#'     ([spreadFuelSummary()]; `"covMedianNonZero_spread"`, `"covSD_spread"`). Both are on the scale of `covCentre_spread`
+#'     (rescaled, before centring). A row written before them has neither, and [spreadFuelEffect()] gives it `NA`.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column
 #'     built by `fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")` (currently
@@ -115,7 +119,7 @@
 #'     and spread terms, followed by the fuel class (currently `"dom_agb_"` and `"sec_agb_"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt domAgbTxt secAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt domAgbTxt secAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt spreadFitCovMedianNonZeroTxt spreadFitCovSDTxt
 NULL
 
 #' @export
@@ -178,6 +182,12 @@ spreadInterceptTxt <- "(Intercept)"
 
 #' @export
 spreadFitCovCentreTxt <- "covCentre_spread"
+
+#' @export
+spreadFitCovMedianNonZeroTxt <- "covMedianNonZero_spread"
+
+#' @export
+spreadFitCovSDTxt <- "covSD_spread"
 
 #' @export
 spreadLinkTxt <- "spreadLink"

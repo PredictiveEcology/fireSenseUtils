@@ -2,12 +2,15 @@
 % Please edit documentation in R/elfFeatures.R
 \name{elfSpreadCoefs}
 \alias{elfSpreadCoefs}
+\alias{elfFuelEffects}
 \alias{elfCoefLabel}
 \alias{elfFeatures}
 \alias{elfOutlines}
 \title{Per-ELF features and outlines for an interactive map}
 \usage{
 elfSpreadCoefs(rows)
+
+elfFuelEffects(rows)
 
 elfCoefLabel(coefficient)
 
@@ -39,7 +42,7 @@ elfOutlines(ELFs, tolerance = 1000)
 \item{tolerance}{Simplification tolerance of \code{elfOutlines()}, in metres of the ELFs' projection.}
 }
 \value{
-\code{elfSpreadCoefs()}: a \code{data.frame} with \code{ELF}, \code{coefficient}, \code{value}, \code{note} and \code{excluded} (\code{NA}, or
+\code{elfSpreadCoefs()}, \code{elfFuelEffects()}: a \code{data.frame} with \code{ELF}, \code{coefficient}, \code{value}, \code{note} and \code{excluded} (\code{NA}, or
 \code{"different model"}); attribute \code{model} describes the common model. \code{elfFeatures()}: a \code{data.frame} with
 \code{ELF}, \code{group}, \code{feature} (an id), \code{label}, \code{units}, \code{type} (\code{"numeric"} or \code{"date"}), \code{value} (a date is
 the number of days since 1970-01-01, UTC) and \code{note} (\code{""}, or for a species of a grouped fuel term the species
@@ -47,7 +50,8 @@ that share its coefficient). \code{elfOutlines()}: a \code{SpatVector} (EPSG:432
 (\code{\link[=elfLabels]{elfLabels()}}). \code{elfCoefLabel()}: a character vector.
 }
 \description{
-\code{elfSpreadCoefs()} gives each ELF's spread-fit coefficients, \code{elfFeatures()} puts them with the fire rates and the
+\code{elfSpreadCoefs()} gives each ELF's spread-fit coefficients, \code{elfFuelEffects()} what each fuel does to the spread
+probability, \code{elfFeatures()} puts them with the fire rates and the
 fit dates in one long table, and \code{elfOutlines()} draws the ELFs' cores for a web map.
 }
 \details{
@@ -65,11 +69,18 @@ one row with \code{NA} and \code{excluded = "different model"}. A non-forest ter
 \code{nfLCC_100_40_60} applies to each of its land-cover classes, so each class also gets a row \verb{nfLCC_<class>},
 with the term's value.
 
+\code{elfFuelEffects()} has a row for each of the same fuel coefficients (a grouped fuel class per member species, with the
+same \code{note}), and in \code{value} the change in spread probability that the fuel makes (\code{\link[=spreadFuelEffect]{spreadFuelEffect()}}): from 0 to its
+median non-zero biomass in the fit's data, everything else at its centre, through the fitted link. Unlike the
+coefficients, these are comparable between fuels and ELFs. A row written before the ledger stored the fit-data summary
+has \code{NA} and the note \code{"no fit-data summary"}.
+
 \code{elfFeatures()} is one table for the map's layers, with the groups \code{"Observed"} (the fire rates of
 \code{\link[=ELFfireRates]{ELFfireRates()}} over the core: natural ignitions per year, hectares burned per year, natural ignitions per 100
 km^2 per year, percent of the core burned per year), \code{"Fit"} (the dates of the latest production fits, from
-\code{\link[=elfFitDates]{elfFitDates()}}; ignition and escape are one ledger row, so one date) and \code{"Spread coefficients"} (those of
-\code{elfSpreadCoefs()}, with a column per land-cover class instead of per non-forest term). ELFs are those of the map
+\code{\link[=elfFitDates]{elfFitDates()}}; ignition and escape are one ledger row, so one date), \code{"Spread coefficients"} (those of
+\code{elfSpreadCoefs()}, with a column per land-cover class instead of per non-forest term) and \code{"Spread fuel effect"} (those of
+\code{elfFuelEffects()}, feature \verb{spreadEffect_<fuel coefficient>}, units \code{"probability"}). ELFs are those of the map
 after the merges in \code{plan}; a value that is missing gets no row.
 
 \code{elfOutlines()} is the core of each ELF (not its buffer), one polygon per ELF, simplified and in longitude and
