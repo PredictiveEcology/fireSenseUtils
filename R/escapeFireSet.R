@@ -191,7 +191,7 @@ escapeIgnitionPoints <- function(points, polys, fireSet, coreRaster, definition 
                                  pointSizeCol = "SIZE_HA", polyCauseCol = polyCauseColTxt) {
   causes <- escapeCauses(definition)
   points <- asOneVect(points)
-  points <- points[points$CAUSE %in% fireCauseCodes(causes, "nfdb"), ]
+  points <- modelledFires(points, causes, "nfdb")
   m <- ignitionPolygonPairs(points, polys, definition$escapeSizeHa, pixSizeHa, maxDistM, sizeCol = sizeCol,
                             causes = fireCauseCodes(causes, "nbac"), polyCauseCol = polyCauseCol)
   points <- m$points[!pickEscapePoints(m, pointSizeCol), ]
@@ -215,7 +215,8 @@ escapeIgnitionPoints <- function(points, polys, fireSet, coreRaster, definition 
 escapeFireSetDeps <- function() {
   list(escapeDefinition, escapeCauses, escapeFireSet, fireStarts, escapeIgnitionPoints, escapePolys, polySizeHa,
        isEscapeSize, asOneVect, startOf, snappedCentroids, fireStartsOf, inELFCore, escapesOf, ignitionsAt, nfdbCauseOf,
-       ignitionPolygonPairs, pickEscapePoints, fireCauseCodes, harmonizeBufferAndPoints, cleanUpSpreadFirePoints)
+       ignitionPolygonPairs, pickEscapePoints, fireCauseCodes, harmonizeBufferAndPoints, cleanUpSpreadFirePoints,
+       polygonIgnitions, modelledFires, prescribedFires)
 }
 
 ## the whole fire's size (ha): `sizeCol` if `polys` has it, else the area given
@@ -300,7 +301,7 @@ inELFCore <- function(x, coreRaster, coreIs = c("ELF", "mask"), grid = coreRaste
 nfdbCauseOf <- function(nbac) {
   out <- rep(NA_character_, length(nbac))
   for (g in c("natural", "unknown", "human", "other")) {
-    code <- setdiff(fireCauseCodes(g, "nfdb"), c("L", "", NA, "H-PB"))[1]
+    code <- setdiff(fireCauseCodes(g, "nfdb"), c("L", "", NA, prescribedNFDBCause))[1]
     out[nbac %in% fireCauseCodes(g, "nbac") & is.na(out)] <- code
   }
   out

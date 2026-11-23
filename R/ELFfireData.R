@@ -66,7 +66,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
   fireYears <- sort(unique(as.integer(fireYears)))
 
   ## Points: one cellFromXY on the common grid, then index each layer's values.
-  natural <- firePoints[firePoints$CAUSE %in% naturalCauses, ]
+  natural <- modelledFires(firePoints, source = "nfdb", codes = naturalCauses)
   natural$.row <- seq_len(nrow(natural))
   isEscape <- natural$.row %in% escapedFires(natural, escapeSizeHa, pixelAreaHa)$.row
   natural <- terra::project(natural, terra::crs(rasWhole))
@@ -81,7 +81,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
   inAny <- rep(FALSE, length(ptCell))
 
   ## Polygons: clipped area per ELF, so a fire straddling an edge is judged on the part inside.
-  if (is.null(overlay)) overlay <- ELFfireOverlay(rasWhole, firePolys, fireYears)
+  if (is.null(overlay)) overlay <- ELFfireOverlay(rasWhole, modelledFires(firePolys, source = "nbac"), fireYears)
   overlay <- overlay[overlay$zone == "fit" & overlay$ha > pixelAreaHa, ]
 
   counts <- lapply(ELFnames, function(elf) {

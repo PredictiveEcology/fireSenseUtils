@@ -46,14 +46,16 @@ sizeRuleLandCover <- function(destinationPath) {
 
 ## A fire-record shapefile (from fireRecordShapefile(), resolved once by the caller) read with a fireregimetools
 ## loader, and cached: the key holds the release (the shapefile's name), the loader and its call with the
-## years, the size limit and the study area, not the path. `loader` is the fireregimetools function.
+## years, the size limit and the study area, not the path. `loader` is the fireregimetools function. Prescribed
+## burns are dropped after the read (modelledFires()).
 .loadFireRecords <- function(shp, loader, fireYears, studyArea) {
   e <- as.vector(terra::ext(studyArea))
   loader(shp, study_area = terra::as.polygons(terra::ext(e[["xmin"]], e[["xmax"]], e[["ymin"]], e[["ymax"]]),
                                               crs = terra::crs(studyArea)),
          fire_years = as.integer(fireYears), min_size_ha = 0) |>
     reproducible::Cache(omitArgs = "shp", .functionName = ".loadFireRecords", useCache = TRUE,
-                        .cacheExtra = basename(shp))
+                        .cacheExtra = basename(shp)) |>
+    modelledFires() # no prescribed burn is counted (the cached read is the whole file's rows)
 }
 
 ## The clipped NBAC pieces of every ELF, from the archive `nbacShp`: loads the polygons only when the table is not
@@ -82,7 +84,7 @@ utils::globalVariables(c("coreHa", "ELF", "fires", "ha", "naturalIgnitions", "zo
   overlay <- reproducible::Cache(
     .nbacOverlay(rasWhole, nbacShp, fireYears),
     omitArgs = "nbacShp", .functionName = ".nbacOverlay", useCache = TRUE,
-    .cacheExtra = list(basename(nbacShp), ELFfireOverlay))
+    .cacheExtra = list(basename(nbacShp), ELFfireOverlay, .loadFireRecords, modelledFires, prescribedFires))
   list(rasWhole = rasWhole, points = points, overlay = overlay)
 }
 
