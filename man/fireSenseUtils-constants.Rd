@@ -48,6 +48,8 @@
 \alias{spreadActivationInterceptBounds}
 \alias{spreadFitDudYearShareTxt}
 \alias{spreadFitPcAtP50Txt}
+\alias{spreadFitCovMedianNonZeroTxt}
+\alias{spreadFitCovSDTxt}
 \alias{yearSpreadSDTxt}
 \alias{fireSpreadSDTxt}
 \alias{spreadRandomEffectTxt}
@@ -156,6 +158,10 @@ years whose draw of the year effect puts every pixel at the floor at the referen
 \item \code{spreadFitPcAtP50Txt}: \code{character(1)}. Name of the ledger column that marks a fit whose \code{maxAsymptote} was fixed at
 p50, not fitted (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}; \code{"pcAtP50_spread"}), so its value is not read as a
 fitted one at its bound.
+\item \code{spreadFitCovMedianNonZeroTxt}, \code{spreadFitCovSDTxt}: \code{character(1)} each. Names of the ledger columns that hold, for each
+fuel covariate of the fit, the median of its non-zero values and its standard deviation over the fit's pixel-years
+(\code{\link[=spreadCovStats]{spreadCovStats()}}; \code{"covMedianNonZero_spread"}, \code{"covSD_spread"}). Both are on the scale of \code{covCentre_spread}
+(rescaled, before centring). A row written before them has neither, and \code{\link[=spreadFuelEffect]{spreadFuelEffect()}} gives it \code{NA}.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently
 \code{"treedWetland_agb"}).
