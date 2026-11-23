@@ -146,3 +146,37 @@ test_that("a fuel x climate interaction is built as the fit builds it, from its 
   ## CMD at its centre (0), so the interaction is 0 in both scenarios
   expect_equal(unname(spreadFuelEffect(row)), pLogis(1 + 2 * 0.2) - pLogis(1 + 2 * -0.1))
 })
+
+test_that("with climate in the ceiling (climateRef) the climate is at its reference, so it adds nothing to the fuel's effect", {
+  params <- data.frame(maxAsymptote = 0.2, hillSlope1 = 1, inflectionPoint1 = 1, `(Intercept)` = 1, CMD = 5, dom_agb_Pice_mar = 2,
+                       check.names = FALSE)
+  mk <- function(mode) {
+    row <- data.frame(polygonID = "4.1", spreadLink = "powerLawSmooth", spreadClimate = mode, lowerAsymptote_spread = 0.1,
+                      powerLawGamma_spread = 1.9, powerLawShape_spread = 1, powerLawPc50_spread = 0.25)
+    row$params <- list(params)
+    row$climateRef_spread <- list(list(CMD = 0.4))
+    row[[spreadFitCovMedianNonZeroTxt]] <- list(list(dom_agb_Pice_mar = 0.3))
+    row[[spreadFitCovCentreTxt]] <- list(list(dom_agb_Pice_mar = 0.1, CMD = 0.4))
+    row
+  }
+  ceiling <- spreadFuelEffect(mk("ceiling"))
+  expect_false(is.na(ceiling))
+  expect_gt(ceiling, 0)
+  ## the same params, climate under predictor (CMD at its centre, 0): the same x for the fuel, so the same effect
+  expect_equal(unname(ceiling), unname(spreadFuelEffect(mk("predictor"))))
+})
+
+test_that("elfFuelEffects() gives NA, excluded as 'different model', to an ELF whose model differs; spreadCovStats() has nothing to find without intercept or fuel", {
+  mk <- function(id, link) {
+    row <- fuelRow(list(`(Intercept)` = 1, dom_agb_Pice_mar = 2), spreadLink = link, spreadClimate = "predictor", fuelScale = "linear")
+    row$polygonID <- id
+    row
+  }
+  eff <- elfFuelEffects(rbind(mk("a", "ceiling"), mk("b", "ceiling"), mk("c", "powerLaw")))
+  expect_identical(eff$excluded[eff$ELF == "c"], "different model")
+  expect_true(is.na(eff$value[eff$ELF == "c"]))
+  expect_false(is.na(eff$value[eff$ELF == "a"]))
+  annual <- list(`2001` = data.table::data.table(pixelID = 1:2, CMD = c(0L, 0L)))
+  nonAnnual <- list(`2000` = data.table::data.table(pixelID = 1:2, nf = c(0L, 0L)))
+  expect_identical(spreadCovStats(annual, nonAnnual, "~ 0 + CMD"), list(centre = NULL, medianNonZero = NULL, sd = NULL))
+})

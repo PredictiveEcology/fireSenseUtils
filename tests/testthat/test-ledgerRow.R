@@ -29,3 +29,34 @@ test_that("the climate mode of a row without spreadClimate follows its climateRe
   sa$spreadClimate <- "bad"
   expect_error(ledgerSpreadClimate(sa, 1L), "unknown")
 })
+
+test_that("ledgerCovMinMax() gives the row's ranges, else the default (no column, or an empty or NULL entry)", {
+  cmm <- data.table::data.table(a = c(0, 1))
+  sa <- data.frame(polygonID = c("A", "B")); sa$covMinMax_spread <- list(cmm, NULL)
+  expect_identical(ledgerCovMinMax(sa, 1L, "default"), cmm)
+  expect_identical(ledgerCovMinMax(sa, 2L, "default"), "default")
+  sa$covMinMax_spread <- list(cmm, data.table::data.table())
+  expect_identical(ledgerCovMinMax(sa, 2L, "default"), "default")
+  expect_null(ledgerCovMinMax(data.frame(polygonID = "A"), 1L))
+})
+
+test_that("ledgerPowerLawPc50() is NULL without p50, and stops for a ceiling row (climateRef, power-law link) without a finite one", {
+  sa <- data.frame(polygonID = "A", spreadLink = "powerLawSmooth", lowerAsymptote_spread = 0.1)
+  sa$climateRef_spread <- list(list(MDC = 0.4))
+  expect_error(ledgerPowerLawPc50(sa, 1L), "spread ledger row 1 has climate in the ceiling")
+  sa$powerLawPc50_spread <- NA_real_
+  expect_error(ledgerPowerLawPc50(sa, 1L), "no finite")
+  sa$powerLawPc50_spread <- 0.25
+  expect_identical(ledgerPowerLawPc50(sa, 1L), 0.25)
+  ## a row with no climate reference does not need one: NA is NULL
+  sb <- data.frame(polygonID = "A", spreadLink = "powerLawSmooth", powerLawPc50_spread = NA_real_)
+  expect_null(ledgerPowerLawPc50(sb, 1L))
+})
+
+test_that("ledgerPowerLawShape() stops on an invalid shape, naming the row, and defaults without one", {
+  sa <- data.frame(polygonID = "A", powerLawShape_spread = -1)
+  expect_error(ledgerPowerLawShape(sa, 1L), "spread ledger row 1 has an invalid 'powerLawShape_spread'")
+  sa$powerLawShape_spread <- 0.5
+  expect_identical(ledgerPowerLawShape(sa, 1L), 0.5)
+  expect_identical(ledgerPowerLawShape(data.frame(polygonID = "A"), 1L), spreadPowerLawShape)
+})
