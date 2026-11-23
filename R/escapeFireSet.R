@@ -113,17 +113,12 @@ checkEscapeDefinition <- function(recorded, current = escapeDefinition(), what =
 fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, idCol = NULL,
                        sizeCol = polySizeColTxt, polyCauseCol = polyCauseColTxt, coreIs = "ELF") {
   crsR <- terra::crs(flammableRTM)
-  polys <- asOneVect(polys)
+  polys <- polysOnGrid(polys, flammableRTM)
   if (!NROW(polys)) return(fireStartsOf(NULL, matrix(numeric(), ncol = 2), crsR, idCol, polyCauseCol))
-  if (!terra::same.crs(polys, flammableRTM)) polys <- terra::project(polys, crsR)
-  if (!".poly" %in% names(polys)) polys$.poly <- seq_len(NROW(polys))
   if (!".ha" %in% names(polys)) polys$.ha <- polySizeHa(polys, sizeCol)
 
   ## the pixels of each polygon, and whether they can burn
-  cl <- terra::cells(flammableRTM, polys)
-  cl <- data.table::data.table(.poly = polys$.poly[cl[, "ID"]], pixelID = as.integer(cl[, "cell"]))
-  flam <- terra::extract(flammableRTM, cl$pixelID)[[1]]
-  cl[, flammable := !is.na(flam) & flam > 0]
+  cl <- polygonCells(polys, flammableRTM)
 
   if (is.null(starts)) {
     xy <- snappedCentroids(polys, cl, flammableRTM)
@@ -146,6 +141,39 @@ fireStarts <- function(polys, flammableRTM, coreRaster = NULL, starts = NULL, id
   pts$pixelID <- terra::cellFromXY(flammableRTM, xy)
   pts$core <- inELFCore(pts, coreRaster, coreIs)
   pts
+}
+
+## One SpatVector from `polys` (see asOneVect()) in the CRS of `flammableRTM`, with `.poly` (default: its row)
+polysOnGrid <- function(polys, flammableRTM) {
+  polys <- asOneVect(polys)
+  if (!NROW(polys)) return(polys)
+  if (!terra::same.crs(polys, flammableRTM)) polys <- terra::project(polys, terra::crs(flammableRTM))
+  if (!".poly" %in% names(polys)) polys$.poly <- seq_len(NROW(polys))
+  polys
+}
+
+#' The pixels of fire polygons
+#'
+#' Every pixel of `flammableRTM` that a polygon touches, a polygon smaller than a pixel included (`terra::cells()`
+#' with `small = TRUE`: it has its one pixel). The lookup [fireStarts()] counts `burnableHa` from.
+#'
+#' @param polys Fire polygons: a `SpatVector` or `sf`, or a list of them (`NULL` elements dropped). Projected to the
+#'   CRS of `flammableRTM` if it differs. A `.poly` column numbers the polygons; default their row.
+#' @param flammableRTM `SpatRaster`, burnable above 0.
+#'
+#' @return A `data.table` with `.poly` (the polygon's number), `pixelID` (the cell of `flammableRTM`) and
+#'   `flammable` (logical: the cell can burn), one row per polygon and pixel; no rows without polygons.
+#' @export
+#' @importFrom data.table data.table
+#' @importFrom terra cells extract
+polygonCells <- function(polys, flammableRTM) {
+  polys <- polysOnGrid(polys, flammableRTM)
+  if (!NROW(polys)) return(data.table::data.table(.poly = integer(), pixelID = integer(), flammable = logical()))
+  cl <- terra::cells(flammableRTM, polys)
+  cl <- data.table::data.table(.poly = polys$.poly[cl[, "ID"]], pixelID = as.integer(cl[, "cell"]))
+  flam <- terra::extract(flammableRTM, cl$pixelID)[[1]]
+  cl[, flammable := !is.na(flam) & flam > 0]
+  cl[]
 }
 
 #' @rdname fireStarts
