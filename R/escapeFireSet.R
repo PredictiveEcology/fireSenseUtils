@@ -191,7 +191,7 @@ escapeIgnitionPoints <- function(points, polys, fireSet, coreRaster, definition 
                                  pointSizeCol = "SIZE_HA", polyCauseCol = polyCauseColTxt) {
   causes <- escapeCauses(definition)
   points <- asOneVect(points)
-  points <- points[points$CAUSE %in% fireCauseCodes(causes, "nfdb"), ]
+  points <- modelledFires(points, causes, "nfdb")
   m <- ignitionPolygonPairs(points, polys, definition$escapeSizeHa, pixSizeHa, maxDistM, sizeCol = sizeCol,
                             causes = fireCauseCodes(causes, "nbac"), polyCauseCol = polyCauseCol)
   points <- m$points[!pickEscapePoints(m, pointSizeCol), ]

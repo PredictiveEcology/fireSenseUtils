@@ -21,7 +21,7 @@ can key a \code{Cache()} on it.}
 \code{SpatVector} of points with \code{YEAR}, \code{SIZE_HA} and \code{CAUSE}.
 }
 \description{
-The fires of \code{years} in \code{studyArea} (\code{\link[=nfdbFirePoints]{nfdbFirePoints()}}), of \code{causes} (\code{\link[=pointsOfCauses]{pointsOfCauses()}}), one row per
+The fires of \code{years} in \code{studyArea} (\code{\link[=nfdbFirePoints]{nfdbFirePoints()}}), of \code{causes}, not prescribed (\code{\link[=modelledFires]{modelledFires()}}), one row per
 fire (\code{\link[=dropRepeatedFirePoints]{dropRepeatedFirePoints()}}): \code{fireSense_dataPrepFit}'s \code{ignitionFirePoints}, and the fires whose
 sizes \code{fireSense_burn} draws for the ignitions that do not escape.
 }

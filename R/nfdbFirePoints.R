@@ -13,16 +13,6 @@ nfdbFirePoints <- function(shp, years, studyArea) {
   fireregimetools::load_nfdb_points(shp, study_area = studyArea, fire_years = years, min_size_ha = 0)
 }
 
-#' NFDB fire points of the given cause groups
-#'
-#' @param points NFDB fire points (`SpatVector`) with column `CAUSE`.
-#' @param groups Cause groups, see `fireCauseCodes()`.
-#' @export
-#' @return The rows of `points` whose `CAUSE` is in `groups`.
-pointsOfCauses <- function(points, groups) {
-  points[points$CAUSE %in% fireCauseCodes(groups, "nfdb"), ]
-}
-
 #' NFDB fire points with one row per fire
 #'
 #' Some NFDB rows repeat another row's date (`YEAR`, `MONTH`, `DAY`) and location exactly, nearly always under
@@ -53,7 +43,7 @@ nonEscapedFireSizes <- function(fires, escapeSizeHa, sizeCol = "SIZE_HA") {
 
 #' The study area's NFDB fire points of the given causes, one row per fire
 #'
-#' The fires of `years` in `studyArea` ([nfdbFirePoints()]), of `causes` ([pointsOfCauses()]), one row per
+#' The fires of `years` in `studyArea` ([nfdbFirePoints()]), of `causes`, not prescribed ([modelledFires()]), one row per
 #' fire ([dropRepeatedFirePoints()]): `fireSense_dataPrepFit`'s `ignitionFirePoints`, and the fires whose
 #' sizes `fireSense_burn` draws for the ignitions that do not escape.
 #'
@@ -66,5 +56,5 @@ nonEscapedFireSizes <- function(fires, escapeSizeHa, sizeCol = "SIZE_HA") {
 #' @return `SpatVector` of points with `YEAR`, `SIZE_HA` and `CAUSE`.
 #' @export
 nfdbFirePointsOfCauses <- function(shp, studyArea, years, causes) {
-  dropRepeatedFirePoints(pointsOfCauses(nfdbFirePoints(shp, years = years, studyArea = studyArea), causes))
+  dropRepeatedFirePoints(modelledFires(nfdbFirePoints(shp, years = years, studyArea = studyArea), causes, "nfdb"))
 }
