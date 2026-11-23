@@ -100,7 +100,8 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   noCause <- !is.null(firePolys) && !polyCauseCol %in% names(firePolys)
   if (noCause) warning("firePolys has no column '", polyCauseCol, "': the natural-cause area is NA")
   naturalPolys <- if (is.null(firePolys) || noCause) NULL else
-    modelledFires(firePolys[as.integer(firePolys$YEAR) == year, ], causeCol = polyCauseCol, codes = naturalPolyCauses)
+    modelledFires(firePolys[as.integer(firePolys$YEAR) == year, ], causeCol = polyCauseCol, codes = naturalPolyCauses,
+                  dropPrescribed = FALSE) # firePolys has been through modelledFires() above
   allCause <- overlay(firePolys, burnable)
   natural <- overlay(naturalPolys, burnable)
   allCausePolygon <- overlay(firePolys, core)
@@ -177,7 +178,7 @@ hindcastObservedCoreStart <- function(core, firePoints, firePolys, year, escapeS
     counts = hindcastCounts(year, as.integer(NROW(pts)), sum(pts$escaped), sizes, sizesPolygon, escapeSizeHa),
     sizes = sizes,
     sizesPolygon = sizesPolygon,
-    polys = if (NROW(yearPolys)) modelledFires(yearPolys, causeCol = polyCauseCol, codes = naturalPolyCauses),
+    polys = if (NROW(yearPolys)) modelledFires(yearPolys, causeCol = polyCauseCol, codes = naturalPolyCauses, dropPrescribed = FALSE),
     points = pts
   )
 }

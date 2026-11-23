@@ -9,7 +9,8 @@ modelledFires(
   fireCauses = NULL,
   source = c("nbac", "nfdb"),
   causeCol = NULL,
-  codes = if (!is.null(fireCauses)) fireCauseCodes(fireCauses, source)
+  codes = if (!is.null(fireCauses)) fireCauseCodes(fireCauses, source),
+  dropPrescribed = TRUE
 )
 }
 \arguments{
@@ -24,6 +25,9 @@ modelledFires(
 
 \item{codes}{The cause values to keep; default those of \code{fireCauses} in \code{source}. Give values of \code{causeCol} to
 select by them directly (e.g. \code{naturalPolyCauses} of \code{\link[=hindcastObserved]{hindcastObserved()}}); \code{NULL} keeps every cause.}
+
+\item{dropPrescribed}{\code{TRUE} (default) drops prescribed burns; \code{FALSE} only when \code{x} has already been through
+\code{modelledFires()}, e.g. to cut it again by cause.}
 }
 \value{
 \code{x} without the other rows. A missing cause column is an error when a cut on cause is asked for.
@@ -34,7 +38,8 @@ prescribed burn (see Details), whatever its cause, because no fit, hindcast, sco
 prescribed fire. With \code{fireCauses} (or \code{codes}) it also keeps only the rows whose cause is one of them.
 }
 \details{
-A row is a prescribed burn if its \code{PRESCRIBED} is \code{"true"}, \code{"yes"}, \code{"PB"} or \code{"1"} (NBAC: \code{"true"} or missing;
-NFDB points: \code{"PB"} or \code{"No"}; NFDB polygons: \code{"yes"}), its \code{FIRE_TYPE} is \code{"PB"} or \code{"Prescribed Burn"}, or its
-\code{CAUSE} is \code{"H-PB"}. A column the records lack is not looked at.
+A row is a prescribed burn if its \code{PRESCRIBED} is \code{"true"}, \code{"t"}, \code{"y"}, \code{"yes"}, \code{"1"} or \code{"PB"} (any case),
+its \code{FIRE_TYPE} is \code{"PB"} or \code{"Prescribed Burn"}, or its \code{CAUSE} is \code{"H-PB"}. Values seen: NBAC \code{PRESCRIBED} is
+\code{"true"} or missing; NFDB points \code{"PB"}, \code{"No"}, \code{"0"}, \code{"1"} or missing; NFDB polygons \code{"yes"} or missing.
+\code{"No"}, \code{"0"}, \code{"false"} and missing do not mean prescribed. A column the records lack is not looked at.
 }

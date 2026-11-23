@@ -146,7 +146,8 @@ polygonIgnitions <- function(points, polys, starts, idCol, escapeSizeHa, pixSize
     p <- NULL
   }
   if (NROW(p)) {
-    p <- modelledFires(p[!seq_len(NROW(p)) %in% m$pairs[, "poly"], ], causeCol = polyCauseCol, codes = naturalPolyCauses)
+    p <- modelledFires(p[!seq_len(NROW(p)) %in% m$pairs[, "poly"], ], causeCol = polyCauseCol, codes = naturalPolyCauses,
+                       dropPrescribed = FALSE) # p is escapePolys()'s, already without prescribed burns
   }
   if (!NROW(p)) return(none)
   starts <- terra::project(asOneVect(starts), terra::crs(m$points))

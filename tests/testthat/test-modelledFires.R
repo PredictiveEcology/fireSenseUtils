@@ -66,4 +66,5 @@ test_that("a prescribed fire is in no observed record: hindcastObserved, escapes
   expect_equal(NROW(escapePolys(polys, 50, 5.76, causes = fireCauseCodes("natural", "nbac"))), 1)
   cnt <- ELFfireCounts(stats::setNames(core, "e"), pts, polys, 2000, pixelAreaHa = 5.76)
   expect_equal(cnt$naturalIgnitions, 1)
+  expect_equal(sum(cnt$firePolygons), 1)                         # the polygon count has no prescribed fire either
 })

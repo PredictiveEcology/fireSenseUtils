@@ -81,7 +81,7 @@ ELFfireCounts <- function(rasWhole, firePoints, firePolys, fireYears,
   inAny <- rep(FALSE, length(ptCell))
 
   ## Polygons: clipped area per ELF, so a fire straddling an edge is judged on the part inside.
-  if (is.null(overlay)) overlay <- ELFfireOverlay(rasWhole, firePolys, fireYears)
+  if (is.null(overlay)) overlay <- ELFfireOverlay(rasWhole, modelledFires(firePolys, source = "nbac"), fireYears)
   overlay <- overlay[overlay$zone == "fit" & overlay$ha > pixelAreaHa, ]
 
   counts <- lapply(ELFnames, function(elf) {

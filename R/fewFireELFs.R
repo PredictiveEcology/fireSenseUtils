@@ -84,7 +84,7 @@ utils::globalVariables(c("coreHa", "ELF", "fires", "ha", "naturalIgnitions", "zo
   overlay <- reproducible::Cache(
     .nbacOverlay(rasWhole, nbacShp, fireYears),
     omitArgs = "nbacShp", .functionName = ".nbacOverlay", useCache = TRUE,
-    .cacheExtra = list(basename(nbacShp), ELFfireOverlay, .loadFireRecords, modelledFires))
+    .cacheExtra = list(basename(nbacShp), ELFfireOverlay, .loadFireRecords, modelledFires, prescribedFires))
   list(rasWhole = rasWhole, points = points, overlay = overlay)
 }
 
