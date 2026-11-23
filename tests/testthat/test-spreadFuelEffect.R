@@ -63,17 +63,23 @@ test_that("a fit without an intercept has no centres: the covariate is at 0 and 
   expect_equal(unname(spreadFuelEffect(row)), pLogis(2 * 0.3) - pLogis(0))
 })
 
-test_that("spreadFuelSummary() gives each fuel's median non-zero value and sd on the scale of the centre", {
+test_that("spreadCovStats() gives each fuel's median non-zero value and sd on the scale of the centre", {
   ## biomass 0, 2000, 4000, 6000 over 1e4 (covMinMax c(0, 1e4)): 0 and 0.2, 0.4, 0.6; and a second year
   annual <- list(`2001` = data.table::data.table(pixelID = 1:4, CMD = c(0L, 0L, 0L, 0L)),
                  `2002` = data.table::data.table(pixelID = 1:4, CMD = c(0L, 0L, 0L, 0L)))
   nonAnnual <- list(`2000` = data.table::data.table(pixelID = 1:4, dom_agb_Pice_mar = c(0L, 2000L, 4000L, 6000L) * 1000L))  # x1000 integers, as the fit has them
-  s <- spreadFuelSummary(annual, nonAnnual, "~ 1 + dom_agb_Pice_mar + CMD", covMinMax = list(dom_agb_Pice_mar = fuelLinearRange) |> data.table::as.data.table(),
+  s <- spreadCovStats(annual, nonAnnual, "~ 1 + dom_agb_Pice_mar + CMD", covMinMax = list(dom_agb_Pice_mar = fuelLinearRange) |> data.table::as.data.table(),
                          mutuallyExclusive = NULL)
   expect_equal(s$medianNonZero$dom_agb_Pice_mar, 0.4)
   expect_equal(s$sd$dom_agb_Pice_mar, sd(rep(c(0, 0.2, 0.4, 0.6), 2)))
   expect_named(s$medianNonZero, "dom_agb_Pice_mar")                          # CMD is not a fuel
-  expect_null(spreadFuelSummary(annual, nonAnnual, "~ 1 + CMD"))
+  expect_null(spreadCovStats(annual, nonAnnual, "~ 1 + CMD")$medianNonZero)
+  ## the centre comes from the same pass, and is spreadCovCentre()'s
+  cmm <- data.table::as.data.table(list(dom_agb_Pice_mar = fuelLinearRange))
+  expect_equal(spreadCovStats(annual, nonAnnual, "~ 1 + dom_agb_Pice_mar", cmm, NULL)$centre,
+               spreadCovCentre(annual, nonAnnual, "~ 1 + dom_agb_Pice_mar", cmm, NULL))
+  expect_equal(spreadCovStats(annual, nonAnnual, "~ 1 + dom_agb_Pice_mar", cmm, NULL)$centre$dom_agb_Pice_mar, mean(c(0, 0.2, 0.4, 0.6)))
+  expect_null(spreadCovStats(annual, nonAnnual, "~ 0 + dom_agb_Pice_mar", cmm, NULL)$centre)   # no intercept: no centre, still a summary
 })
 
 test_that("elfFuelEffects() and elfFeatures() give each member species of a grouped fuel its effect, in the 'Spread fuel effect' group", {
@@ -116,4 +122,27 @@ test_that("elfFeatures() emits spreadEffect_<fuel> in the group 'Spread fuel eff
   expect_identical(eff$label, "Dominant AGB: Black spruce (Pice_mar) \u2014 change in spread probability")
   expect_identical(eff$units, "probability")
   expect_equal(eff$value, pLogis(1 + 2 * 0.2) - pLogis(1 + 2 * -0.1))
+})
+
+test_that("youngAge is 0 in both scenarios (a fuelled pixel is not young), the other covariates at their centres", {
+  ## x = intercept + beta_fuel * (value - centre) + beta_young * (0 - centreYoung): the young term is the same in both scenarios
+  params <- data.frame(maxAsymptote = 0.25, hillSlope1 = 1, inflectionPoint1 = 1, `(Intercept)` = 1, dom_agb_Pice_mar = 2,
+                       youngAge = -3, check.names = FALSE)
+  row <- data.frame(polygonID = "4.1"); row$params <- list(params)
+  row[[spreadFitCovMedianNonZeroTxt]] <- list(list(dom_agb_Pice_mar = 0.3))
+  row[[spreadFitCovCentreTxt]] <- list(list(dom_agb_Pice_mar = 0.1, youngAge = 0.2))
+  young <- -3 * (0 - 0.2)
+  expect_equal(unname(spreadFuelEffect(row)), pLogis(1 + young + 2 * 0.2) - pLogis(1 + young + 2 * -0.1))
+  ## not the young term at its centre (0): that would be another value
+  expect_false(isTRUE(all.equal(unname(spreadFuelEffect(row)), pLogis(1 + 2 * 0.2) - pLogis(1 + 2 * -0.1))))
+})
+
+test_that("a fuel x climate interaction is built as the fit builds it, from its centred covariates", {
+  params <- data.frame(maxAsymptote = 0.25, hillSlope1 = 1, inflectionPoint1 = 1, `(Intercept)` = 1, CMD = 1,
+                       dom_agb_Pice_mar = 2, `CMD:dom_agb_Pice_mar` = 5, check.names = FALSE)
+  row <- data.frame(polygonID = "4.1"); row$params <- list(params)
+  row[[spreadFitCovMedianNonZeroTxt]] <- list(list(dom_agb_Pice_mar = 0.3))
+  row[[spreadFitCovCentreTxt]] <- list(list(dom_agb_Pice_mar = 0.1, CMD = 0.5))
+  ## CMD at its centre (0), so the interaction is 0 in both scenarios
+  expect_equal(unname(spreadFuelEffect(row)), pLogis(1 + 2 * 0.2) - pLogis(1 + 2 * -0.1))
 })

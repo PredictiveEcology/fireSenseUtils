@@ -160,7 +160,7 @@ p50, not fitted (\code{fireSense_spreadFit}'s \code{powerLawPcAtP50}; \code{"pcA
 fitted one at its bound.
 \item \code{spreadFitCovMedianNonZeroTxt}, \code{spreadFitCovSDTxt}: \code{character(1)} each. Names of the ledger columns that hold, for each
 fuel covariate of the fit, the median of its non-zero values and its standard deviation over the fit's pixel-years
-(\code{\link[=spreadFuelSummary]{spreadFuelSummary()}}; \code{"covMedianNonZero_spread"}, \code{"covSD_spread"}). Both are on the scale of \code{covCentre_spread}
+(\code{\link[=spreadCovStats]{spreadCovStats()}}; \code{"covMedianNonZero_spread"}, \code{"covSD_spread"}). Both are on the scale of \code{covCentre_spread}
 (rescaled, before centring). A row written before them has neither, and \code{\link[=spreadFuelEffect]{spreadFuelEffect()}} gives it \code{NA}.
 \item \code{treedWetlandAgbTxt}: \code{character(1)}. Name of the pooled treed-wetland biomass column
 built by \code{fireSenseCovariatesCreate(fuelCovariates = "domSecWetland")} (currently

@@ -109,7 +109,7 @@
 #'     fitted one at its bound.
 #'   - `spreadFitCovMedianNonZeroTxt`, `spreadFitCovSDTxt`: `character(1)` each. Names of the ledger columns that hold, for each
 #'     fuel covariate of the fit, the median of its non-zero values and its standard deviation over the fit's pixel-years
-#'     ([spreadFuelSummary()]; `"covMedianNonZero_spread"`, `"covSD_spread"`). Both are on the scale of `covCentre_spread`
+#'     ([spreadCovStats()]; `"covMedianNonZero_spread"`, `"covSD_spread"`). Both are on the scale of `covCentre_spread`
 #'     (rescaled, before centring). A row written before them has neither, and [spreadFuelEffect()] gives it `NA`.
 #'
 #'   - `treedWetlandAgbTxt`: `character(1)`. Name of the pooled treed-wetland biomass column

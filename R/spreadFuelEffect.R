@@ -13,7 +13,7 @@ spreadFuelTerms <- function(covNames)
 #' `1e4` (0 where the class is absent), classes differ hugely in how much biomass they have, the link saturates and
 #' correlated classes trade off. This puts every fuel on one scale. For each fuel term of a ledger row it is the change in
 #' spread probability from 0 to the term's median non-zero value in the fit's data (`covMedianNonZero_spread`,
-#' [spreadFuelSummary()]), with every other covariate at its centre (`covCentre_spread`), through the fitted link, averaged over the
+#' [spreadCovStats()]), with every other covariate at its centre (`covCentre_spread`) and `youngAge` 0 in both (a fuelled pixel is not young: the fit and prediction make fuel and young stands mutually exclusive), through the fitted link, averaged over the
 #' row's parameter sets. The link is evaluated by [spreadProbFromCovs()], the function the fit and `fireSense_spreadPredict` use,
 #' with the link's parameters read from the row as `fireSense_spreadPredict` reads them, so a fit near its ceiling shows
 #' an effect near 0 whatever its coefficient. With climate outside the ceiling or in it (`climateRef_spread`), climate is at its
@@ -45,18 +45,19 @@ spreadFuelEffect <- function(row, lowerSpreadProb = spreadProbFloor) {
   centreOf <- function(cn) if (is.null(centre[[cn]])) 0 else centre[[cn]]
   design <- setdiff(names(params), c(unlist(logisticParamNames), spreadRandomEffectTxt, actTxt))
   sources <- spreadSourceCols(design)
+  ## one row per scenario, of the SOURCE columns as the fit has them after rescaling and centring: every covariate at its centre
+  ## (0), climate at its reference; the fuel absent (0) or at its median non-zero value. A fuelled pixel is not young (fuel and
+  ## youngAge are mutually exclusive in the fit and in prediction), so youngAge is 0 in both scenarios and only the fuel differs.
   atCentre <- stats::setNames(numeric(length(sources)), sources)
   if (length(climateRef)) atCentre[names(climateRef)] <- unlist(climateRef)
-  ## two rows per fuel: it absent (0) and at its median non-zero, as the objective's design matrix has them
-  at <- function(fuel, value) {
-    v <- atCentre
-    v[fuel] <- value - centreOf(fuel)
-    vapply(design, function(cn) if (cn == spreadInterceptTxt) 1 else prod(v[strsplit(cn, ":", fixed = TRUE)[[1L]]]), numeric(1))
-  }
+  if (youngAgeTxt %in% sources) atCentre[youngAgeTxt] <- -centreOf(youngAgeTxt)
+  scenario <- function(fuel, value) { v <- atCentre; v[fuel] <- value - centreOf(fuel); v }
   fuels <- intersect(fuelNames, names(medians)[!vapply(medians, is.na, logical(1))])
   if (!length(fuels)) return(na)
-  mat <- do.call(rbind, lapply(fuels, function(f) rbind(at(f, 0), at(f, medians[[f]]))))
-  colnames(mat) <- design
+  scenarios <- do.call(rbind, lapply(fuels, function(f) rbind(scenario(f, 0), scenario(f, medians[[f]]))))
+  DT <- spreadAddInteractions(data.table::as.data.table(scenarios), design)       # the interactions, as the fit makes them
+  if (spreadInterceptTxt %in% design) data.table::set(DT, NULL, spreadInterceptTxt, 1)
+  mat <- as.matrix(DT[, design, with = FALSE])
   isHigh <- rep(c(FALSE, TRUE), length(fuels))
   powerLawArgs <- c(list(climateRef = climateRef, powerLawPc50 = if (!is.null(climateRef)) ledgerPowerLawPc50(row, 1L)),
                     linkArgs[intersect(names(linkArgs), c("link", "powerLawGamma", "powerLawShape", "lowerAsymptote", "richardsNu"))])

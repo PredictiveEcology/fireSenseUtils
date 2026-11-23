@@ -119,6 +119,9 @@ elfFuelEffects <- function(rows) {
                         excluded = character())
   data.frame(ELF = ELF, coefficient = coefficient, value = value, note = note, excluded = excluded)
 
+## The start of a dominant or secondary fuel term (`dom_agb_`, `sec_agb_`), as a regex with the prefix captured
+.fuelPrefixed <- paste0("^(", domAgbTxt, "|", secAgbTxt, ")")
+
 ## A fuel term (`dom_agb_<class>`, `sec_agb_<class>`) of a grouped fuel class becomes one coefficient per member
 ## species, each with the term's value and a `note` naming the species that share it. The members are the species
 ## whose `fireSenseFuelClassCol` of the row's `sppEquiv` is the class; a class with no match (or no `sppEquiv`) is
@@ -126,7 +129,7 @@ elfFuelEffects <- function(rows) {
 .fuelTermsBySpecies <- function(coefs, sppEquiv) {
   n <- NROW(coefs)
   coefs$note <- ""
-  prefixed <- paste0("^(", domAgbTxt, "|", secAgbTxt, ")")
+  prefixed <- .fuelPrefixed
   fuel <- grepl(prefixed, coefs$coefficient)
   if (!any(fuel) || is.null(sppEquiv) || !fireSenseFuelClassCol %in% names(sppEquiv))
     return(coefs)
@@ -162,10 +165,10 @@ elfCoefLabel <- function(coefficient) {
   out <- coefficient
   isPlain <- coefficient %in% names(plain)
   out[isPlain] <- plain[coefficient[isPlain]]
-  dom <- startsWith(coefficient, domAgbTxt)
-  sec <- startsWith(coefficient, secAgbTxt)
-  out[dom] <- paste0("Dominant AGB: ", species(sub(paste0("^", domAgbTxt), "", coefficient[dom])))
-  out[sec] <- paste0("Secondary AGB: ", species(sub(paste0("^", secAgbTxt), "", coefficient[sec])))
+  fuel <- grepl(.fuelPrefixed, coefficient)           # the dominant and secondary terms of spreadFuelTerms()
+  prefix <- sub(paste0(.fuelPrefixed, ".*"), "\\1", coefficient[fuel])
+  out[fuel] <- paste0(stats::setNames(c("Dominant AGB: ", "Secondary AGB: "), c(domAgbTxt, secAgbTxt))[prefix],
+                      species(sub(.fuelPrefixed, "", coefficient[fuel])))
   nf <- grepl("^nfLCC_", coefficient)
   out[nf] <- paste("Non-forest LCC", gsub("_", ", ", sub("^nfLCC_", "", coefficient[nf])))
   out

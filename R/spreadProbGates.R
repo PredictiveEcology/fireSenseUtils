@@ -78,9 +78,7 @@ nonAnnualIndex <- function(nonAnnualDTx1000) {
 #' @export
 spreadCovCentre <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMinMax = NULL,
                             mutuallyExclusive = list("youngAge" = c("class", "nf"))) {
-  colsToUse <- spreadDesignCols(formulaToFit)
-  if (!spreadInterceptTxt %in% colsToUse) return(NULL)
-  spreadCovMeans(annualDTx1000, nonAnnualDTx1000, spreadSourceCols(colsToUse), covMinMax, mutuallyExclusive)
+  spreadCovStats(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMinMax, mutuallyExclusive, fuel = FALSE)$centre
 }
 
 ## `FUN(covs)` for every year of `annualDTx1000`, where `covs` has `covCols` on the scale the objective's design matrix has
@@ -108,26 +106,39 @@ spreadCovMeans <- function(annualDTx1000, nonAnnualDTx1000, covCols, covMinMax =
   as.list(stats::setNames(sums / n, covCols))
 }
 
-#' The fuel covariates of a spread fit: their median non-zero value and standard deviation
+#' The centres and the fuel summary of a spread fit, in one pass over the years
 #'
-#' What [spreadFuelEffect()] needs to say how much one fuel changes the spread probability. The fuel terms of the
-#' formula ([spreadFuelTerms()]) are taken on the scale of [spreadCovCentre()] (rescaled, made mutually exclusive, before
-#' centring) over every pixel-year in `annualDTx1000`. A fuel is 0 where a pixel does not have it, so the median is of
-#' the pixel-years that do (non-zero), the typical amount where it is present; the standard deviation is over all of them.
-#' `fireSense_spreadFit` stores both in the ledger row ([spreadFitCovMedianNonZeroTxt], [spreadFitCovSDTxt]).
+#' What `fireSense_spreadFit` stores in the ledger row besides the parameters, found together because each needs the same
+#' covariates: [spreadCovCentre()] (the mean of each covariate, with an intercept) and, for the fuel terms of the formula
+#' ([spreadFuelTerms()]), the median of the non-zero values and the standard deviation, which [spreadFuelEffect()] reads
+#' (`fireSenseUtils::spreadFitCovMedianNonZeroTxt`, [spreadFitCovSDTxt]). All are on the scale of the objective's design matrix
+#' before centring (rescaled, made mutually exclusive) over every pixel-year in `annualDTx1000`. A fuel is 0 where a pixel does not
+#' have it, so the median is of the pixel-years that do; the standard deviation is over all of them.
 #'
 #' @inheritParams spreadCovCentre
-#' @return `NULL` when the formula has no fuel term, else a list of two named lists, `medianNonZero` and `sd`, one value
-#'   per fuel term (`NA` when it is never non-zero).
+#' @param fuel Logical; `FALSE` leaves out the fuel summary (what [spreadCovCentre()] asks for).
+#' @return A list: `centre` (as [spreadCovCentre()]: `NULL` without an intercept), `medianNonZero` and `sd` (named lists, one value
+#'   per fuel term, `NA` when it is never non-zero; `NULL` without a fuel term or with `fuel = FALSE`).
 #' @export
-spreadFuelSummary <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMinMax = NULL,
-                              mutuallyExclusive = list("youngAge" = c("class", "nf"))) {
-  fuel <- spreadFuelTerms(spreadSourceCols(spreadDesignCols(formulaToFit)))
-  if (!length(fuel)) return(NULL)
-  perYear <- eachSpreadYearCovs(annualDTx1000, nonAnnualDTx1000, fuel, covMinMax, mutuallyExclusive, NULL,
-                                function(covs) lapply(stats::setNames(fuel, fuel), function(cn) covs[[cn]]))
-  all <- lapply(stats::setNames(fuel, fuel), function(cn) unlist(lapply(perYear, `[[`, cn), use.names = FALSE))
-  list(medianNonZero = lapply(all, function(v) { v <- v[!is.na(v) & v != 0]; if (length(v)) stats::median(v) else NA_real_ }),
+spreadCovStats <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMinMax = NULL,
+                           mutuallyExclusive = list("youngAge" = c("class", "nf")), fuel = TRUE) {
+  design <- spreadDesignCols(formulaToFit)
+  sources <- spreadSourceCols(design)
+  centreCols <- if (spreadInterceptTxt %in% design) sources
+  fuelCols <- if (fuel) spreadFuelTerms(sources)
+  cols <- union(centreCols, fuelCols)
+  none <- list(centre = NULL, medianNonZero = NULL, sd = NULL)
+  if (!length(cols)) return(none)
+  perYear <- eachSpreadYearCovs(annualDTx1000, nonAnnualDTx1000, cols, covMinMax, mutuallyExclusive, NULL, function(covs)
+    list(sums = vapply(centreCols, function(cn) sum(covs[[cn]], na.rm = TRUE), numeric(1)),
+         n = vapply(centreCols, function(cn) sum(!is.na(covs[[cn]])), numeric(1)),
+         fuel = lapply(stats::setNames(fuelCols, fuelCols), function(cn) covs[[cn]])))
+  total <- function(what) Reduce(`+`, lapply(perYear, `[[`, what), numeric(length(centreCols)))
+  centre <- if (length(centreCols)) as.list(stats::setNames(total("sums") / total("n"), centreCols))
+  if (!length(fuelCols)) return(list(centre = centre, medianNonZero = NULL, sd = NULL))
+  all <- lapply(stats::setNames(fuelCols, fuelCols), function(cn) unlist(lapply(perYear, function(y) y$fuel[[cn]]), use.names = FALSE))
+  list(centre = centre,
+       medianNonZero = lapply(all, function(v) { v <- v[!is.na(v) & v != 0]; if (length(v)) stats::median(v) else NA_real_ }),
        sd = lapply(all, stats::sd, na.rm = TRUE))
 }
 

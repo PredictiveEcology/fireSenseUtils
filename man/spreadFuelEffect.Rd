@@ -21,7 +21,7 @@ The coefficients of the fuel terms are not comparable between fuels: a fuel cova
 \code{1e4} (0 where the class is absent), classes differ hugely in how much biomass they have, the link saturates and
 correlated classes trade off. This puts every fuel on one scale. For each fuel term of a ledger row it is the change in
 spread probability from 0 to the term's median non-zero value in the fit's data (\code{covMedianNonZero_spread},
-\code{\link[=spreadFuelSummary]{spreadFuelSummary()}}), with every other covariate at its centre (\code{covCentre_spread}), through the fitted link, averaged over the
+\code{\link[=spreadCovStats]{spreadCovStats()}}), with every other covariate at its centre (\code{covCentre_spread}) and \code{youngAge} 0 in both (a fuelled pixel is not young: the fit and prediction make fuel and young stands mutually exclusive), through the fitted link, averaged over the
 row's parameter sets. The link is evaluated by \code{\link[=spreadProbFromCovs]{spreadProbFromCovs()}}, the function the fit and \code{fireSense_spreadPredict} use,
 with the link's parameters read from the row as \code{fireSense_spreadPredict} reads them, so a fit near its ceiling shows
 an effect near 0 whatever its coefficient. With climate outside the ceiling or in it (\code{climateRef_spread}), climate is at its
