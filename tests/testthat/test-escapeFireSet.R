@@ -260,3 +260,21 @@ test_that("snappedCentroids() moves a centroid that is off its fire and keeps th
   expect_identical(out$.poly, 1L)
   expect_true(terra::cellFromXY(ras, as.matrix(out[, c("x", "y")])) %in% uCells)
 })
+
+test_that("polygonCells gives each polygon's pixels, a polygon smaller than a pixel its one, and what burns", {
+  ## 4 x 3 pixels (A; column 3 cannot burn, so 9 burnable of 12), and a 0.2 x 0.2 pixel polygon in column 5
+  v <- terra::vect(c(escSq(20, 20, 40, 30), escSq(82, 122, 2, 2)), crs = "EPSG:3978")
+  v$YEAR <- 2000L
+  cl <- polygonCells(list(NULL, v), escFlammable())
+  expect_identical(sort(unique(cl$.poly)), 1:2)
+  expect_identical(nrow(cl[cl$.poly == 1L, ]), 12L)
+  expect_identical(sum(cl$flammable[cl$.poly == 1L]), 9L)
+  expect_identical(cl$pixelID[cl$.poly == 2L], terra::cellFromXY(escFlammable(), cbind(8500, 12500)) |> as.integer())
+  expect_true(cl$flammable[cl$.poly == 2L])
+  ## the same lookup fireStarts() counts burnableHa from
+  s <- fireStarts(v, escFlammable())
+  expect_equal(s$burnableHa, c(9, 1) * pixelAreaHa(escFlammable()))
+  ## a CRS other than the raster's is projected; no polygons, no rows
+  expect_identical(nrow(polygonCells(terra::project(v, "EPSG:4326"), escFlammable())), nrow(cl))
+  expect_identical(nrow(polygonCells(list(NULL), escFlammable())), 0L)
+})
