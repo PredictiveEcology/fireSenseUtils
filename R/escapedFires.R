@@ -29,7 +29,7 @@ asOneVect <- function(x) {
 
 ## The polygons that are escapes, with their area in `.ha`: at least `escapeSizeHa` and larger than one pixel, judged
 ## on `sizeCol` (the whole fire) or, with `sizeCol = NULL` or a `polys` without it, on `terra::expanse()` (the part
-## given); with `causes`, only polygons whose `polyCauseCol` is one of them. `.poly` is each one's row in `polys`.
+## given); with `causes`, only polygons whose `polyCauseCol` is one of them; never a prescribed burn (modelledFires()). `.poly` is each one's row in `polys`.
 escapePolys <- function(polys, escapeSizeHa, pixSizeHa, sizeCol = NULL, causes = NULL,
                         polyCauseCol = polyCauseColTxt) {
   polys <- asOneVect(polys)
@@ -37,11 +37,8 @@ escapePolys <- function(polys, escapeSizeHa, pixSizeHa, sizeCol = NULL, causes =
   polys$.poly <- seq_len(NROW(polys))
   polys$.ha <- polySizeHa(polys, sizeCol)
   keep <- isEscapeSize(polys$.ha, escapeSizeHa, pixSizeHa)
-  if (!is.null(causes)) {
-    if (!polyCauseCol %in% names(polys)) stop("polys has no column '", polyCauseCol, "' to select causes from")
-    keep <- keep & polys[[polyCauseCol]][, 1] %in% causes
-  }
-  polys[which(keep), ]
+  polys <- polys[which(keep), ]
+  modelledFires(polys, causeCol = polyCauseCol, codes = causes)
 }
 
 #' Ignition points and the fire polygons they match
@@ -148,7 +145,10 @@ polygonIgnitions <- function(points, polys, starts, idCol, escapeSizeHa, pixSize
     warning("polys has no column '", polyCauseCol, "': no polygon ignitions added")
     p <- NULL
   }
-  if (NROW(p)) p <- p[p[[polyCauseCol]][, 1] %in% naturalPolyCauses & !seq_len(NROW(p)) %in% m$pairs[, "poly"], ]
+  if (NROW(p)) {
+    p <- modelledFires(p[!seq_len(NROW(p)) %in% m$pairs[, "poly"], ], causeCol = polyCauseCol, codes = naturalPolyCauses,
+                       dropPrescribed = FALSE) # p is escapePolys()'s, already without prescribed burns
+  }
   if (!NROW(p)) return(none)
   starts <- terra::project(asOneVect(starts), terra::crs(m$points))
   at <- startOf(p, starts, idCol)

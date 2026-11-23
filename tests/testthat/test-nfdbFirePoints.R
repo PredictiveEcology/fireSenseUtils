@@ -47,12 +47,12 @@ test_that("dropRepeatedFirePoints keeps one row, the largest, per date and locat
   expect_identical(out$FIRE_ID, c("VQ030", "VQ031", "VQ032", "VQ001"))
 })
 
-test_that("pointsOfCauses: natural keeps L and N; adding unknown keeps U, blank and missing", {
+test_that("modelledFires(source = \"nfdb\"): natural keeps L and N; adding unknown keeps U, blank and missing", {
   pts <- terra::vect(cbind(1:7, 1), crs = "EPSG:3978")
   pts$CAUSE <- c("L", "N", "H", "U", "", NA, "H-PB")
-  expect_identical(pointsOfCauses(pts, "natural")$CAUSE, c("L", "N"))
-  expect_equal(NROW(pointsOfCauses(pts, c("natural", "unknown"))), 5)
-  expect_identical(pointsOfCauses(pts, c("natural", "unknown"))$CAUSE[1:4], c("L", "N", "U", ""))
+  expect_identical(modelledFires(pts, "natural", "nfdb")$CAUSE, c("L", "N"))
+  expect_equal(NROW(modelledFires(pts, c("natural", "unknown"), "nfdb")), 5)
+  expect_identical(modelledFires(pts, c("natural", "unknown"), "nfdb")$CAUSE[1:4], c("L", "N", "U", ""))
 })
 
 fires <- data.frame(SIZE_HA = c(0.1, 3, 6, 12, 49.9, 50, 51, 800), id = 1:8)

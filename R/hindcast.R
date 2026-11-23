@@ -71,7 +71,9 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   }
   stopifnot(inherits(coreRaster, "SpatRaster"), inherits(firePoints, "SpatVector"),
             length(year) == 1L)
-  firePolys <- asOneVect(firePolys)
+  ## no prescribed burn is observed fire, of any cause
+  firePoints <- modelledFires(firePoints, source = "nfdb")
+  firePolys <- modelledFires(asOneVect(firePolys), source = "nbac")
   ## a zone is "core" (value 2) of a one-layer ELF raster, as ELFfireOverlay() reads it
   coreZone <- function(inZone) {
     z <- terra::ifel(inZone, 2, 0)
@@ -98,7 +100,8 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   noCause <- !is.null(firePolys) && !polyCauseCol %in% names(firePolys)
   if (noCause) warning("firePolys has no column '", polyCauseCol, "': the natural-cause area is NA")
   naturalPolys <- if (is.null(firePolys) || noCause) NULL else
-    firePolys[firePolys[[polyCauseCol]][, 1] %in% naturalPolyCauses & as.integer(firePolys$YEAR) == year, ]
+    modelledFires(firePolys[as.integer(firePolys$YEAR) == year, ], causeCol = polyCauseCol, codes = naturalPolyCauses,
+                  dropPrescribed = FALSE) # firePolys has been through modelledFires() above
   allCause <- overlay(firePolys, burnable)
   natural <- overlay(naturalPolys, burnable)
   allCausePolygon <- overlay(firePolys, core)
@@ -106,7 +109,7 @@ hindcastObserved <- function(coreRaster, firePoints, firePolys, year, escapeSize
   inCore <- function(o) o$ha[o$zone == "core"]
 
   ## escapes as the escape fit defines them: natural ignitions that became a polygon of the year
-  naturalPts <- firePoints[firePoints$CAUSE %in% naturalCauses, ]
+  naturalPts <- modelledFires(firePoints, source = "nfdb", codes = naturalCauses)
   yearPolys <- if (!is.null(firePolys)) firePolys[as.integer(firePolys$YEAR) == year, ]
   naturalPts$.escaped <- escapedIgnitions(naturalPts, yearPolys, escapeSizeHa, pixelAreaHa)
   ## the polygons are not counted here, so the all-cause overlay only satisfies the signature
@@ -175,7 +178,7 @@ hindcastObservedCoreStart <- function(core, firePoints, firePolys, year, escapeS
     counts = hindcastCounts(year, as.integer(NROW(pts)), sum(pts$escaped), sizes, sizesPolygon, escapeSizeHa),
     sizes = sizes,
     sizesPolygon = sizesPolygon,
-    polys = if (NROW(yearPolys)) yearPolys[yearPolys[[polyCauseCol]][, 1] %in% naturalPolyCauses, ],
+    polys = if (NROW(yearPolys)) modelledFires(yearPolys, causeCol = polyCauseCol, codes = naturalPolyCauses, dropPrescribed = FALSE),
     points = pts
   )
 }
