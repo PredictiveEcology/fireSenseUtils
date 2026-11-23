@@ -27,7 +27,6 @@ spreadFuelTerms <- function(covNames)
 #' @export
 spreadFuelEffect <- function(row, lowerSpreadProb = spreadProbFloor) {
   one <- function(col) if (col %in% names(row) && length(row[[col]])) row[[col]][[1L]]
-  num <- function(col, default) { v <- one(col); if (is.null(v) || is.na(v)) default else v }
   actTxt <- activationInterceptTxt
   params <- as.data.frame(one("params"))
   fuelNames <- spreadFuelTerms(names(params))
@@ -35,13 +34,14 @@ spreadFuelEffect <- function(row, lowerSpreadProb = spreadProbFloor) {
   medians <- one(spreadFitCovMedianNonZeroTxt)
   if (!length(fuelNames) || !is.list(medians)) return(na)
 
-  link <- one(spreadLinkTxt)
-  link <- if (!is.null(link) && !is.na(link) && link %in% spreadLinearLinks) link
-  climateRef <- one(spreadFitClimateRefTxt)
-  mode <- num(spreadClimateTxt, if (!is.null(climateRef) && any(link %in% spreadPowerLawLinks)) "ceiling" else "predictor")
+  ## the row's link, climate and centres, read as fireSense_spreadPredict reads them (ledger*(), R/ledgerRow.R)
+  linkArgs <- ledgerLinkArgs(row, 1L, floor = lowerSpreadProb)
+  link <- linkArgs$link
+  mode <- ledgerSpreadClimate(row, 1L)
+  climateRef <- ledgerClimateRef(row, 1L)
   if (!is.null(link) && identical(mode, "predictor")) climateRef <- NULL
   ## the covariate values of "everything at its centre": 0 centred, and with climate in or outside the ceiling, the reference
-  centre <- one(spreadFitCovCentreTxt)
+  centre <- ledgerCovCentre(row, 1L)
   centreOf <- function(cn) if (is.null(centre[[cn]])) 0 else centre[[cn]]
   design <- setdiff(names(params), c(unlist(logisticParamNames), spreadRandomEffectTxt, actTxt))
   sources <- spreadSourceCols(design)
@@ -58,12 +58,8 @@ spreadFuelEffect <- function(row, lowerSpreadProb = spreadProbFloor) {
   mat <- do.call(rbind, lapply(fuels, function(f) rbind(at(f, 0), at(f, medians[[f]]))))
   colnames(mat) <- design
   isHigh <- rep(c(FALSE, TRUE), length(fuels))
-  powerLawArgs <- list(link = link, climateRef = climateRef,
-                       powerLawGamma = num(spreadFitPowerLawGammaTxt, spreadPowerLawGamma),
-                       powerLawShape = num(spreadFitPowerLawShapeTxt, spreadPowerLawShape),
-                       lowerAsymptote = num(spreadFitLowerAsymptoteTxt, spreadProbFloor),
-                       richardsNu = num(spreadFitRichardsNuTxt, spreadRichardsNu),
-                       powerLawPc50 = if (!is.null(climateRef)) one(spreadFitPowerLawPc50Txt))
+  powerLawArgs <- c(list(climateRef = climateRef, powerLawPc50 = if (!is.null(climateRef)) ledgerPowerLawPc50(row, 1L)),
+                    linkArgs[intersect(names(linkArgs), c("link", "powerLawGamma", "powerLawShape", "lowerAsymptote", "richardsNu"))])
   change <- vapply(seq_len(NROW(params)), function(k) {
     par <- unlist(params[k, , drop = FALSE])
     p <- as.vector(do.call(spreadProbFromCovs, c(list(mat, logisticPars = par[names(par) %in% unlist(logisticParamNames)],
