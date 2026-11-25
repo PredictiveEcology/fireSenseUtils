@@ -4,7 +4,7 @@
 \alias{yearClimateColumn}
 \alias{yearClimateMeans}
 \alias{yearClimateMultiplier}
-\title{The year-level climate term of the expected ignitions}
+\title{The year-level climate term of the expected ignitions and escapes}
 \usage{
 yearClimateColumn(variable, columns)
 
@@ -23,17 +23,20 @@ made by \code{\link[=addCoreFraction]{addCoreFraction()}}). A row counts if \cod
 no other column decides. Without a \code{coreFraction} column every row with \code{variable} counts. A \code{year}
 column (\link{yearTxt}) gives the years; without one all rows are one year.}
 
-\item{yearClimate}{\code{list(variable, center, scale, beta, norm)}, or \code{NULL} (no term). \code{norm} may be absent (1).}
+\item{yearClimate}{\code{list(variable, center, scale, beta, norm)}, or \code{NULL} (no term). \code{norm} may be absent (1).
+An optional \code{beta2} (absent: 0, the fits made before it) adds a hinge: the multiplier is
+\code{exp(beta * z + beta2 * max(0, z)) / norm}, so the dry half (\code{z > 0}) can respond more steeply.}
 
 \item{yearMean}{The yearly mean(s) of \code{yearClimate$variable}, on the covariate's raw scale.}
 }
 \value{
 \code{yearClimateColumn()}: the element of \code{columns} that is \code{variable}; an error if there is none.
 \code{yearClimateMeans()}: a \code{data.frame} with \code{year} and \code{mean}, one row per year that has rows left.
-\code{yearClimateMultiplier()}: \code{exp(beta * (yearMean - center) / scale) / norm}, 1 when \code{yearClimate} is \code{NULL}.
+\code{yearClimateMultiplier()}: \code{exp(beta * z + beta2 * max(0, z)) / norm} with \code{z = (yearMean - center) / scale}
+(\code{beta2} is 0 when absent), 1 when \code{yearClimate} is \code{NULL}.
 }
 \description{
-\code{fireSense_ignitionFit} can scale each year's expected ignitions by \code{exp(beta * z_y) / norm}, with \code{beta >= 0}
+\code{fireSense_ignitionFit} can scale each year's expected ignitions, and separately its expected escapes, by \code{exp(beta * z_y) / norm}, with \code{beta >= 0}
 and \code{z_y} the standardised yearly mean of one climate covariate over the ELF (by default summer CMD,
 \code{"CMDsm"}). The fit stores \code{list(variable, center, scale, beta, norm)} (\code{yearClimate}): \code{center} and \code{scale} are
 the mean and sd of the yearly means over the fit years, and \code{norm} is the mean of \code{exp(beta * z_y)} over the fit
@@ -47,4 +50,5 @@ yearClimateMeans(data.frame(year = c(1, 1, 2, 2), CMDsm = c(1, 3, 10, NA)), "CMD
 yc <- list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5, norm = 1)
 yearClimateMultiplier(yc, c(3, 5, 7))
 yearClimateMultiplier(NULL, 7)
+yearClimateMultiplier(modifyList(yc, list(beta2 = 0.5)), c(3, 5, 7))  # the dry half is steeper
 }

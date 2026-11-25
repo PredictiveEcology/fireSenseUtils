@@ -1,6 +1,6 @@
-#' The year-level climate term of the expected ignitions
+#' The year-level climate term of the expected ignitions and escapes
 #'
-#' `fireSense_ignitionFit` can scale each year's expected ignitions by `exp(beta * z_y) / norm`, with `beta >= 0`
+#' `fireSense_ignitionFit` can scale each year's expected ignitions, and separately its expected escapes, by `exp(beta * z_y) / norm`, with `beta >= 0`
 #' and `z_y` the standardised yearly mean of one climate covariate over the ELF (by default summer CMD,
 #' `"CMDsm"`). The fit stores `list(variable, center, scale, beta, norm)` (`yearClimate`): `center` and `scale` are
 #' the mean and sd of the yearly means over the fit years, and `norm` is the mean of `exp(beta * z_y)` over the fit
@@ -16,11 +16,14 @@
 #'   no other column decides. Without a `coreFraction` column every row with `variable` counts. A `year`
 #'   column ([yearTxt]) gives the years; without one all rows are one year.
 #' @param yearClimate `list(variable, center, scale, beta, norm)`, or `NULL` (no term). `norm` may be absent (1).
+#'   An optional `beta2` (absent: 0, the fits made before it) adds a hinge: the multiplier is
+#'   `exp(beta * z + beta2 * max(0, z)) / norm`, so the dry half (`z > 0`) can respond more steeply.
 #' @param yearMean The yearly mean(s) of `yearClimate$variable`, on the covariate's raw scale.
 #'
 #' @return `yearClimateColumn()`: the element of `columns` that is `variable`; an error if there is none.
 #'   `yearClimateMeans()`: a `data.frame` with `year` and `mean`, one row per year that has rows left.
-#'   `yearClimateMultiplier()`: `exp(beta * (yearMean - center) / scale) / norm`, 1 when `yearClimate` is `NULL`.
+#'   `yearClimateMultiplier()`: `exp(beta * z + beta2 * max(0, z)) / norm` with `z = (yearMean - center) / scale`
+#'   (`beta2` is 0 when absent), 1 when `yearClimate` is `NULL`.
 #' @export
 #' @rdname yearClimate
 #' @examples
@@ -29,6 +32,7 @@
 #' yc <- list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5, norm = 1)
 #' yearClimateMultiplier(yc, c(3, 5, 7))
 #' yearClimateMultiplier(NULL, 7)
+#' yearClimateMultiplier(modifyList(yc, list(beta2 = 0.5)), c(3, 5, 7))  # the dry half is steeper
 yearClimateColumn <- function(variable, columns) {
   out <- matchIgnoringUnderscores(variable, columns)
   if (is.na(out))
@@ -56,5 +60,7 @@ yearClimateMeans <- function(covariates, variable) {
 yearClimateMultiplier <- function(yearClimate, yearMean) {
   if (is.null(yearClimate)) return(rep(1, length(yearMean)))
   norm <- if (is.null(yearClimate$norm)) 1 else yearClimate$norm
-  exp(yearClimate$beta * (yearMean - yearClimate$center) / yearClimate$scale) / norm
+  x <- yearMean - yearClimate$center
+  beta2 <- yearClimate$beta2   # the arithmetic of a term without it is unchanged to the last bit
+  exp(yearClimate$beta * x / yearClimate$scale + if (is.null(beta2)) 0 else beta2 * pmax(0, x) / yearClimate$scale) / norm
 }
