@@ -41,22 +41,23 @@ ledgerClimateRef <- function(sa, i) {
   if (is.list(ref) && length(ref)) ref else NULL
 }
 
-#' The climate hinge knots of one ledger row
+#' The climate curve parameters of one ledger row
 #'
-#' A fit made with `fireSense_dataPrepFit`'s `spreadClimateHinge` has a hinge term (`climateHinge`) for each climate
-#' variable, at the ELF's median of the variable over the fit's burnable pixels. The fit stores those knots in the ledger
-#' row (`spreadFitClimateHingeKnotsTxt`). Prediction builds the terms from them (`addClimateHinge()`).
+#' A fit made with `fireSense_dataPrepFit`'s `spreadClimateCurve` has a curve term (`climateCurve`) for each climate
+#' variable, `softplus(C - k, s)` with `k` the ELF's median and `s` its sd of the variable over the fit's burnable pixels. The
+#' fit stores `c(k = , s = )` of each variable in the ledger row (`spreadFitClimateCurveParsTxt`). Prediction builds the
+#' terms from them (`addClimateCurve()`).
 #'
 #' @param sa `sim$studyAreaWithSpreadParams`, one row per ELF.
 #' @param i integer; the row.
-#' @return A named list (variable to knot), or `NULL` for a row without knots: a fit without hinge terms, or a row
-#'   written before they existed. Such a row predicts exactly as it always did.
+#' @return A named list (variable to `c(k = , s = )`), or `NULL` for a row without them: a fit without curve terms, or a
+#'   row written before they existed. Such a row predicts exactly as it always did.
 #' @export
-ledgerClimateHingeKnots <- function(sa, i) {
-  col <- spreadFitClimateHingeKnotsTxt
+ledgerClimateCurvePars <- function(sa, i) {
+  col <- spreadFitClimateCurveParsTxt
   if (!col %in% names(sa)) return(NULL)
-  knots <- sa[[col]][[i]]
-  if (is.list(knots) && length(knots)) knots else NULL
+  pars <- sa[[col]][[i]]
+  if (is.list(pars) && length(pars)) pars else NULL
 }
 
 #' The runaway threshold of one ledger row
