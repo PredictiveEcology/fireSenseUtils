@@ -41,6 +41,24 @@ ledgerClimateRef <- function(sa, i) {
   if (is.list(ref) && length(ref)) ref else NULL
 }
 
+#' The climate hinge knots of one ledger row
+#'
+#' A fit made with `fireSense_dataPrepFit`'s `spreadClimateHinge` has a hinge term (`climateHinge`) for each climate
+#' variable, at the ELF's median of the variable over the fit's burnable pixels. The fit stores those knots in the ledger
+#' row (`spreadFitClimateHingeKnotsTxt`). Prediction builds the terms from them (`addClimateHinge()`).
+#'
+#' @param sa `sim$studyAreaWithSpreadParams`, one row per ELF.
+#' @param i integer; the row.
+#' @return A named list (variable to knot), or `NULL` for a row without knots: a fit without hinge terms, or a row
+#'   written before they existed. Such a row predicts exactly as it always did.
+#' @export
+ledgerClimateHingeKnots <- function(sa, i) {
+  col <- spreadFitClimateHingeKnotsTxt
+  if (!col %in% names(sa)) return(NULL)
+  knots <- sa[[col]][[i]]
+  if (is.list(knots) && length(knots)) knots else NULL
+}
+
 #' The runaway threshold of one ledger row
 #'
 #' A fit made with `fireSense_spreadFit`'s `spreadClimate = "ceiling"` moves `maxAsymptote` toward the landscape's

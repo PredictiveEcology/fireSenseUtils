@@ -49,6 +49,9 @@
 #'   - `spreadFitCovCentreTxt`: `character(1)`. Name of the ledger column that holds the covariate
 #'     centres of a fit made with an intercept (currently `"covCentre_spread"`). It is not in
 #'     `spreadFitAdditionalColNamesTxt`: a fit without an intercept writes no such column.
+#'   - `spreadFitClimateHingeKnotsTxt`: `character(1)`. Name of the ledger column that holds the knot of each climate
+#'     hinge term of a fit made with `spreadClimateHinge` (currently `"climateHingeKnots_spread"`; [climateHingeKnots()]).
+#'     A fit without hinge terms writes no such column.
 #'   - `spreadLinkTxt`, `spreadFitClimateRefTxt`, `spreadFitPowerLawGammaTxt`, `spreadFitPowerLawShapeTxt`: `character(1)` each. Names of the
 #'     ledger columns a fit made with a non-default `spreadLink` writes: `"spreadLink"` (holding
 #'     `"climateOutside"` or `"powerLaw"`), `"climateRef_spread"` (the fit's climate reference from
@@ -119,7 +122,7 @@
 #'     and spread terms, followed by the fuel class (currently `"dom_agb_"` and `"sec_agb_"`).
 #'
 #' @name fireSenseUtils-constants
-#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt domAgbTxt secAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt spreadFitCovMedianNonZeroTxt spreadFitCovSDTxt
+#' @aliases polygonIDTxt nonNFColNamesTxt yearTxt polyCauseColTxt polySizeColTxt youngAgeTxt burnableHaTxt treedWetlandTxt treedWetlandAgbTxt domAgbTxt secAgbTxt ignitionsTxt escapesTxt coreFractionTxt ignitionObjectiveTxt spreadFitAdditionalColNamesTxt ignitionFitAdditionalColNamesTxt spreadInterceptTxt spreadFitCovCentreTxt spreadFitClimateHingeKnotsTxt spreadLinkTxt spreadFitClimateRefTxt spreadFitPowerLawGammaTxt spreadFitPowerLawShapeTxt spreadLinkOptions spreadFitLowerAsymptoteTxt spreadFitRichardsNuTxt spreadRichardsNu spreadRichardsB spreadLowerAsymptoteMin spreadLinearLinks spreadPowerLawLinks spreadAsymptoteLinks spreadLinkParNames spreadPowerLawGamma spreadPowerLawShape spreadFitPowerLawPc50Txt spreadFitPowerLawR2Txt spreadFitPowerLawPcMarginTxt spreadFitInSampleSizesTxt spreadPowerLawPGrid spreadClimateTxt spreadClimateOptions activationInterceptTxt spreadActivationInterceptBounds spreadFitDudYearShareTxt spreadFitPcAtP50Txt spreadFitCovMedianNonZeroTxt spreadFitCovSDTxt
 NULL
 
 #' @export
@@ -182,6 +185,9 @@ spreadInterceptTxt <- "(Intercept)"
 
 #' @export
 spreadFitCovCentreTxt <- "covCentre_spread"
+
+#' @export
+spreadFitClimateHingeKnotsTxt <- "climateHingeKnots_spread"
 
 #' @export
 spreadFitCovMedianNonZeroTxt <- "covMedianNonZero_spread"
