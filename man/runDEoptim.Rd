@@ -55,6 +55,7 @@ runDEoptim(
   yearAreaWeight = 0,
   areaDistWeight = 0,
   crpsWeights = NULL,
+  annualAreaYearWeights = "equal",
   gateRefusal = "minLik",
   penaliseRunaways = TRUE,
   runawayEdgeFrac = fireSenseRunawayEdgeFrac,
@@ -228,6 +229,11 @@ and the final-population re-score. Off by default (\code{0}).}
 the weights of its \code{tests = "crps"} objective (\code{NULL}, the default, is \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}}; its \code{annualArea} weight, 0 by default, adds each year's area burned), and whether
 a year that fails the spread probability gates is scored as refused (\code{"minLik"}, default) or simulated
 (\code{"simulate"}). With the defaults they add nothing to the fit's cache key.}
+
+\item{annualAreaYearWeights}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the re-score: \code{"equal"} (default) or
+\code{"climate"}, which weights each year of the \code{crpsWeights$annualArea} term by \code{abs(z)} of the year's standardised climate,
+rescaled to average 1 (extreme-climate years count more; the term's scale is unchanged on average).
+\code{"equal"} adds nothing to the fit's cache key.}
 
 \item{penaliseRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
 stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge

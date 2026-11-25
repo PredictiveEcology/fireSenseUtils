@@ -54,6 +54,7 @@
   pcAtP50 = NULL,
   verbose = 2,
   crpsWeights = NULL,
+  annualAreaYearWeights = c("equal", "climate"),
   gateRefusal = c("minLik", "simulate"),
   wholeLandscape = FALSE,
   ...
@@ -284,9 +285,15 @@ DEoptim passes \code{par} unnamed, so \code{runDEoptim()} sets it explicitly (\c
 \item{verbose}{If >= 2, then this will show more information about \code{spreadProb} fitting.}
 
 \item{crpsWeights}{Named list of the multipliers of the \code{"crps"} test's terms, \code{fire}, \code{adTest}, \code{areaDist},
-\code{totalArea}, \code{top10}, \code{annualArea} and \code{topShare} (the last two 0: left out); names left out take the values of \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}} (set by the 2026-10-28
+\code{totalArea}, \code{top10}, \code{annualArea} and \code{topShare} and \code{climateSlope} (the last three 0: left out; \code{climateSlope} is \code{\link[=crpsClimateSlope]{crpsClimateSlope()}}, the CRPS of the slope of log annual area on the year's climate, \code{\link[=spreadYearClimate]{spreadYearClimate()}}); names left out take the values of \code{\link[=crpsWeightsDefault]{crpsWeightsDefault()}} (set by the 2026-10-28
 profile on ELFs 6.6.2, 14.3 and 11.3, "W3": 1, 0.34, 2.6, 164 and 16.5). \code{NULL} is all defaults. Not used
 without \code{"crps"} in \code{tests}.}
+
+\item{annualAreaYearWeights}{How the years of the \code{"crps"} annual-area term (\code{crpsWeights$annualArea}) are
+weighted: \code{"equal"} (default) or \code{"climate"}, each year's score times \code{abs(z)} of its standardised climate
+(floor 0.25, rescaled to average 1; \code{\link[=annualYearWeights]{annualYearWeights()}}), so years with extreme climate count more and the
+term's scale is unchanged on average. \code{z} is \code{\link[=spreadYearClimate]{spreadYearClimate()}} of \code{annualDTx1000} and \code{formulaToFit}: the
+yearly mean of the formula's first climate covariate over the fit years.}
 
 \item{gateRefusal}{What a year that fails \code{\link[=spreadProbGateTest]{spreadProbGateTest()}} gets. \code{"minLik"} (default): it is not
 simulated and scores as if every fire stayed one pixel (\code{"crps"}), or the \code{minLik} floor (the
