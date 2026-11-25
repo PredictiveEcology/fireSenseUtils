@@ -119,7 +119,7 @@ crpsAnnualArea <- function(repSizes, obsYear, Nreps, yearWeights = c("equal", "c
   tot <- log(pmax(annualTotals(repSizes, yrs, Nreps), 1))
   score <- vapply(seq_along(yrs), function(i) crpsEnsemble(tot[, i], log(max(obsYear[[i]], 1))), numeric(1))
   if (identical(yearWeights, "climate")) {
-    if (is.null(z)) stop("yearWeights = \"climate\" needs the years' climate `z`: the formula has no annual climate covariate", call. = FALSE)
+    if (is.null(z)) stop("yearWeights = \"climate\" needs the years' climate `z`: the year climate covariate is not in the spread data and no `yearClimateZ` was given", call. = FALSE)
     score <- score * annualYearWeights(z[yrs], yearWeights)
   }
   mean(score)
@@ -137,7 +137,7 @@ crpsAnnualArea <- function(repSizes, obsYear, Nreps, yearWeights = c("equal", "c
 #' @return A single non-negative number; 0 with fewer than 2 years or no spread in `z`. An error without `z`.
 #' @keywords internal
 crpsClimateSlope <- function(repSizes, obsYear, Nreps, z) {
-  if (is.null(z)) stop("the climate slope needs the years' climate `z`: the formula has no annual climate covariate", call. = FALSE)
+  if (is.null(z)) stop("the climate slope needs the years' climate `z`: the year climate covariate is not in the spread data and no `yearClimateZ` was given", call. = FALSE)
   yrs <- names(obsYear)
   z <- z[yrs]
   zc <- z - mean(z)

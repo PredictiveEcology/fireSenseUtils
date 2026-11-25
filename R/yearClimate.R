@@ -61,25 +61,38 @@ yearClimateMultiplier <- function(yearClimate, yearMean) {
 
 #' The standardised climate of each fit year of a spread fit
 #'
-#' The yearly mean of the formula's first annual climate covariate ([spreadClimateCols()]) over the pixels of
-#' `annualDTx1000` ([yearClimateMeans()]), standardised over the fit years: `(mean - mean(means)) / sd(means)`.
-#' The same year-level climate as the ignition year-climate term, for the spread fit's own climate covariate.
+#' The yearly mean of one climate covariate over the fit years ([yearClimateMeans()]), standardised over the fit
+#' years: `(mean - mean(means)) / sd(means)`. The covariate is the one the ignition year-climate term and the
+#' hindcast validation use (`"CMDsm"`), not whichever climate covariate the spread formula has. It is taken from
+#' the spread data (`annualDTx1000`) when it is a column there, else from `covariates`, the table the ignition fit
+#' reads (`year`, the climate columns and, if present, `coreFraction`; [yearClimateMeans()] averages its core rows).
 #'
 #' @param annualDTx1000 Named list of the annual covariate tables, one per year ([.objfunSpreadFit()]).
-#' @param formulaToFit The spread formula ([.objfunSpreadFit()]).
-#' @param years The fit years (character); default all of `annualDTx1000`.
-#' @return A named numeric (by year), with mean 0 and sd 1 (all 0 if the years do not differ); `NULL` if the
-#'   formula has no annual climate covariate.
+#' @param variable The climate covariate, matched ignoring underscores ([yearClimateColumn()]); default `"CMDsm"`.
+#' @param years The fit years (character, names of `annualDTx1000`; a leading non-digit prefix such as `"year"`
+#'   is dropped to match `covariates$year`); default all of `annualDTx1000`.
+#' @param covariates `NULL`, or the ignition covariates table, used when `variable` is not in `annualDTx1000`.
+#' @return A named numeric (by year), with mean 0 and sd 1 (all 0 if the years do not differ); `NULL` if `variable`
+#'   is in neither source.
 #' @export
-spreadYearClimate <- function(annualDTx1000, formulaToFit, years = names(annualDTx1000)) {
-  climCols <- spreadClimateCols(formulaToFit, annualDTx1000)
-  if (!length(climCols)) return(NULL)
-  ## years are labelled by position, so any year names work (yearClimateMeans() reads the year as a number)
-  yrDT <- data.table::rbindlist(stats::setNames(annualDTx1000[years], seq_along(years)), idcol = yearTxt,
-                                use.names = TRUE, fill = TRUE)
-  yrDT <- yrDT[, c(yearTxt, climCols[[1]]), with = FALSE]
-  m <- yearClimateMeans(yrDT, climCols[[1]])
-  mean <- stats::setNames(m$mean, years[m$year])[years]
-  sdm <- stats::sd(mean)
-  stats::setNames(if (is.finite(sdm) && sdm > 0) (mean - base::mean(mean)) / sdm else rep(0, length(mean)), years)
+spreadYearClimate <- function(annualDTx1000, variable = "CMDsm", years = names(annualDTx1000), covariates = NULL) {
+  col <- matchIgnoringUnderscores(variable, names(annualDTx1000[[1]]))
+  if (!is.na(col)) {
+    ## years are labelled by position, so any year names work (yearClimateMeans() reads the year as a number)
+    yrDT <- data.table::rbindlist(stats::setNames(annualDTx1000[years], seq_along(years)), idcol = yearTxt,
+                                  use.names = TRUE, fill = TRUE)
+    m <- yearClimateMeans(yrDT[, c(yearTxt, col), with = FALSE], col)
+    mean <- stats::setNames(m$mean, years[m$year])[years]
+  } else if (!is.null(covariates) && !is.na(matchIgnoringUnderscores(variable, names(covariates)))) {
+    m <- yearClimateMeans(covariates, variable)
+    mean <- stats::setNames(m$mean[match(as.numeric(sub("^\\D+", "", years)), m$year)], years)
+  } else return(NULL)
+  standardiseYearClimate(mean)
+}
+
+## (x - mean(x)) / sd(x), names kept; all 0 if the years do not differ
+standardiseYearClimate <- function(x) {
+  sdx <- stats::sd(x)
+  x[] <- if (is.finite(sdx) && sdx > 0) (x - mean(x)) / sdx else 0
+  x
 }

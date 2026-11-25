@@ -250,15 +250,27 @@ test_that("crpsClimateSlope() scores the slope of log annual area on climate: a 
   expect_error(crpsClimateSlope(flat, obs, 2L, NULL), "climate")
 })
 
-test_that("spreadYearClimate() is the yearly mean of the first climate covariate, standardised; NULL without one", {
+test_that("spreadYearClimate() is the yearly mean of the named covariate (default CMDsm), standardised; ignition covariates fill in when it is not in the spread data", {
   yrs <- c("year2001", "year2002", "year2003")
-  an <- stats::setNames(lapply(c(1000L, 2000L, 6000L), function(m) data.table::data.table(pixelID = 1:4, cov = m + c(-1L, 1L, -2L, 2L))), yrs)
-  z <- spreadYearClimate(an, "~ 0 + cov")
+  an <- stats::setNames(lapply(c(1000L, 2000L, 6000L), function(m)
+    data.table::data.table(pixelID = 1:4, CMDsm = m + c(-1L, 1L, -2L, 2L), other = 5L)), yrs)
+  z <- spreadYearClimate(an)                                          # default "CMDsm"
   expect_named(z, yrs)
   expect_equal(mean(z), 0); expect_equal(stats::sd(z), 1)
   expect_equal(unname(z), as.numeric(scale(c(1000, 2000, 6000))))
-  expect_equal(unname(spreadYearClimate(an, "~ 0 + cov", yrs[2:3])), c(-1, 1) / sqrt(2))
-  expect_null(spreadYearClimate(an, "~ 0"))
+  expect_equal(spreadYearClimate(an, "CMD_sm"), z)                    # underscores ignored, as the ignition term
+  expect_equal(unname(spreadYearClimate(an, years = yrs[2:3])), c(-1, 1) / sqrt(2))
+  expect_null(spreadYearClimate(an, "CMDsp"))                         # in neither source
+  ## not in the spread data: the ignition fit's covariates, by year number, core rows only (yearClimateMeans())
+  ign <- data.frame(year = rep(2001:2003, each = 3), CMDsp = c(1, 2, 3, 10, 20, 30, 5, 5, 5),
+                    coreFraction = rep(c(1, 1, 0), 3))
+  zi <- spreadYearClimate(an, "CMDsp", covariates = ign)
+  expect_named(zi, yrs)
+  expect_equal(unname(zi), as.numeric(scale(c(1.5, 15, 5))))
+  ## the same function the ignition term uses
+  m <- yearClimateMeans(ign, "CMDsp")
+  expect_equal(unname(zi), as.numeric(scale(m$mean)))
+  expect_null(spreadYearClimate(an, "CMDsp", covariates = ign[, c("year", "coreFraction")]))
 })
 
 test_that(".objfunSpreadFit(): climateSlope 0 and \"equal\" are the objective as before; both terms reach it when asked", {
@@ -270,8 +282,8 @@ test_that(".objfunSpreadFit(): climateSlope 0 and \"equal\" are the objective as
     land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
     fireSenseUtils::.objfunSpreadFit(
       par = c(0.27, 1, 1, 1), landscape = land, tests = "crps", crpsWeights = cw,
-      annualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400, cov = 1000L),
-                           `2005` = data.table::data.table(pixelID = 1:400, cov = 3000L)),
+      annualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400, cov = 1000L, CMDsm = 1000L),
+                           `2005` = data.table::data.table(pixelID = 1:400, cov = 3000L, CMDsm = 3000L)),
       nonAnnualDTx1000 = list(`2004_2005` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
       historicalFires = list(`2004` = data.frame(size = 5, cells = 1L, ids = 1L), `2005` = data.frame(size = 95, cells = 2L, ids = 1L)),
       fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400),
@@ -296,4 +308,41 @@ test_that("annualTotals() is a replicates x years matrix, also for one replicate
   expect_equal(dim(annualTotals(rs, "2002", 3L)), c(3L, 1L))
   expect_equal(dim(annualTotals(rs[rs$rep == 1], c("2001", "2002"), 1L)), c(1L, 2L))
   expect_equal(unname(annualTotals(rs, c("2001", "2002"), 3L)[, "2001"]), c(30, 25, 0))
+})
+
+test_that(".objfunSpreadFit(): the year climate is annualClimateCovariate, or yearClimateZ when it is not in the spread data", {
+  sizes <- data.table::data.table(year = c("2004", "2004", "2005", "2005"), rep = c(1, 2, 1, 2), N = c(20, 30, 40, 60))
+  ob <- function(cov, crpsWeights = list(annualArea = 3), ...) {
+    local_mocked_bindings(
+      objFunInner = function(yr, ...) list(allFireSizes = sizes$N, crpsFire = 1.5, crpsSizes = sizes),
+      .package = "fireSenseUtils")
+    land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+    fireSenseUtils::.objfunSpreadFit(
+      par = c(0.27, 1, 1, 1), landscape = land, tests = "crps", crpsWeights = crpsWeights,
+      annualDTx1000 = list(`2004` = cbind(data.table::data.table(pixelID = 1:400, cov = 0L), cov[[1]]),
+                           `2005` = cbind(data.table::data.table(pixelID = 1:400, cov = 0L), cov[[2]])),
+      nonAnnualDTx1000 = list(`2004_2005` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
+      historicalFires = list(`2004` = data.frame(size = 5, cells = 1L, ids = 1L), `2005` = data.frame(size = 95, cells = 2L, ids = 1L)),
+      fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400),
+                                `2005` = data.table::data.table(ids = 1L, pixelID = 1:400)),
+      Nreps = 2L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
+  }
+  none <- list(NULL, NULL)
+  ## covariate absent: no slope at weight 0 (NA), an error when weighted, and "climate" weights need a z
+  expect_true(is.na(ob(none)[["crpsClimateSlope"]]))
+  expect_error(ob(none, list(annualArea = 3, climateSlope = 1)), "yearClimateZ")
+  expect_error(ob(none, annualAreaYearWeights = "climate"), "yearClimateZ")
+  ## given as z, it is used
+  z <- c(`2004` = -1, `2005` = 1)
+  a <- ob(none, yearClimateZ = z)
+  expect_true(is.finite(a[["crpsClimateSlope"]]))
+  ## and a column named as the covariate gives the same as that z
+  mc <- list(data.table::data.table(MyClim = 10L), data.table::data.table(MyClim = 30L))
+  expect_equal(ob(mc, annualClimateCovariate = "MyClim")[["crpsClimateSlope"]],
+               ob(none, yearClimateZ = c(`2004` = -1, `2005` = 1) / sqrt(2))[["crpsClimateSlope"]])
+})
+
+test_that("a given yearClimateZ is standardised again over the fit years", {
+  expect_equal(standardiseYearClimate(c(a = 1, b = 3)), c(a = -1, b = 1) / sqrt(2))
+  expect_equal(standardiseYearClimate(c(a = 2, b = 2)), c(a = 0, b = 0))
 })

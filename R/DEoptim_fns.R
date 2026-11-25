@@ -183,6 +183,9 @@ deoptimPopulationSize <- function(nParams) {
 #'   `"climate"`, which weights each year of the `crpsWeights$annualArea` term by `abs(z)` of the year's standardised climate,
 #'   rescaled to average 1 (extreme-climate years count more; the term's scale is unchanged on average).
 #'   `"equal"` adds nothing to the fit's cache key.
+#' @param annualClimateCovariate,yearClimateZ Passed to [.objfunSpreadFit()], in the fit and the re-score: the climate covariate
+#'   (default `"CMDsm"`, the ignition year-climate covariate) whose yearly mean gives the year climate `z` of the `"climate"` weights
+#'   and of `crpsWeights$climateSlope`, and `z` itself when the covariate is not in `annualDTx1000` (`NULL`: not given, not in the cache key).
 #' @param crpsWeights,gateRefusal Passed to [.objfunSpreadFit()], in the fit and the final-population re-score:
 #'   the weights of its `tests = "crps"` objective (`NULL`, the default, is [crpsWeightsDefault()]; its `annualArea` weight, 0 by default, adds each year's area burned), and whether
 #'   a year that fails the spread probability gates is scored as refused (`"minLik"`, default) or simulated
@@ -274,6 +277,8 @@ runDEoptim <- function(landscape,
                        areaDistWeight = 0,
                        crpsWeights = NULL,
                        annualAreaYearWeights = "equal",
+                       annualClimateCovariate = "CMDsm",
+                       yearClimateZ = NULL,
                        gateRefusal = "minLik",
                        penaliseRunaways = TRUE,
                        runawayEdgeFrac = fireSenseRunawayEdgeFrac,
@@ -424,6 +429,8 @@ runDEoptim <- function(landscape,
       areaDistWeight = areaDistWeight,
       crpsWeights = crpsWeights,
       annualAreaYearWeights = annualAreaYearWeights,
+      annualClimateCovariate = annualClimateCovariate,
+      yearClimateZ = yearClimateZ,
       gateRefusal = gateRefusal,
       penaliseRunaways = penaliseRunaways,
       runawayEdgeFrac = runawayEdgeFrac,
@@ -438,8 +445,8 @@ runDEoptim <- function(landscape,
     ## how often progress figures are drawn, and where the progress file goes, do not change the fit
     omitArgs = c(".verbose", "plotEvery", "progressFile", powerLawOmitArgs(link, powerLawShape),
                  if (identical(gateRefusal, "minLik")) "gateRefusal",
-                 if (identical(annualAreaYearWeights, "equal")) "annualAreaYearWeights",
-                 omitNullArgs(crpsWeights = crpsWeights, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
+                 if (identical(annualAreaYearWeights, "equal")) c("annualAreaYearWeights", "annualClimateCovariate"),
+                 omitNullArgs(crpsWeights = crpsWeights, yearClimateZ = yearClimateZ, covCentre = covCentre, runawayBufferMultiple = runawayBufferMultiple,
                               convergence = convergence, climateRef = climateRef, powerLawPc50 = powerLawPc50, wholeLandscape = wholeLandscapeArg,
                               fitFireSpreadSD = fitFireSpreadSDArg, fitActivationIntercept = fitActivationInterceptArg,
                               pcAtP50 = pcAtP50)),
@@ -484,6 +491,8 @@ runDEoptim <- function(landscape,
   rescoreArgs$fitActivationIntercept <- fitActivationInterceptArg
   if (!identical(gateRefusal, "minLik")) rescoreArgs$gateRefusal <- gateRefusal
   if (!identical(annualAreaYearWeights, "equal")) rescoreArgs$annualAreaYearWeights <- annualAreaYearWeights
+  rescoreArgs$annualClimateCovariate <- annualClimateCovariate
+  rescoreArgs$yearClimateZ <- yearClimateZ
   if (isTRUE(rescoreReps > 0) && !is.null(finalPop)) {
     colnames(finalPop) <- names(lower)
     attr(DE, "finalRescore") <- Cache(

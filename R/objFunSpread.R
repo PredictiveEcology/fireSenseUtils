@@ -109,8 +109,14 @@ utils::globalVariables(c(
 #' @param annualAreaYearWeights How the years of the `"crps"` annual-area term (`crpsWeights$annualArea`) are
 #'   weighted: `"equal"` (default) or `"climate"`, each year's score times `abs(z)` of its standardised climate
 #'   (floor 0.25, rescaled to average 1; [annualYearWeights()]), so years with extreme climate count more and the
-#'   term's scale is unchanged on average. `z` is [spreadYearClimate()] of `annualDTx1000` and `formulaToFit`: the
-#'   yearly mean of the formula's first climate covariate over the fit years.
+#'   term's scale is unchanged on average. `z` is `yearClimateZ`, else [spreadYearClimate()] of `annualDTx1000` and
+#'   `annualClimateCovariate`.
+#'
+#' @param annualClimateCovariate The climate covariate whose yearly mean gives `z`, the one the ignition year-climate term
+#'   and the hindcast validation use (default `"CMDsm"`); a column of `annualDTx1000`. If it is not there, give `yearClimateZ`.
+#' @param yearClimateZ `NULL` (default), or a named numeric (by fit year) of the standardised year climate, from another source
+#'   than `annualDTx1000` (the ignition fit's covariates: [spreadYearClimate()] `covariates =`); used instead of `annualClimateCovariate`,
+#'   standardised again over the fit years.
 #'
 #' @param gateRefusal What a year that fails [spreadProbGateTest()] gets. `"minLik"` (default): it is not
 #'   simulated and scores as if every fire stayed one pixel (`"crps"`), or the `minLik` floor (the
@@ -323,6 +329,8 @@ utils::globalVariables(c(
                              verbose = 2,
                              crpsWeights = NULL,
                              annualAreaYearWeights = c("equal", "climate"),
+                             annualClimateCovariate = "CMDsm",
+                             yearClimateZ = NULL,
                              gateRefusal = c("minLik", "simulate"),
                              wholeLandscape = FALSE,
                              ...) { # fireSense_SpreadFitRaster
@@ -559,7 +567,7 @@ utils::globalVariables(c(
     crpsAnn <- crpsSlope <- NA_real_
     if (isTRUE(returnTerms) || any(needYear)) {
       obsYear <- vapply(historicalFiresAboveMin[fitYrs], function(x) sum(x$size), numeric(1))
-      yearZ <- spreadYearClimate(annualDTx1000, formulaToFit, fitYrs)
+      yearZ <- if (!is.null(yearClimateZ)) standardiseYearClimate(yearClimateZ[fitYrs]) else spreadYearClimate(annualDTx1000, annualClimateCovariate, fitYrs)
       crpsAnn <- crpsAnnualArea(crpsSizes, obsYear, Nreps, annualAreaYearWeights, yearZ)
       if (needYear[["annualArea"]]) objFunRes <- objFunRes + crpsWeights$annualArea * crpsAnn
       if (!is.null(yearZ) || needYear[["climateSlope"]]) crpsSlope <- crpsClimateSlope(crpsSizes, obsYear, Nreps, yearZ)

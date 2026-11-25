@@ -56,6 +56,8 @@ runDEoptim(
   areaDistWeight = 0,
   crpsWeights = NULL,
   annualAreaYearWeights = "equal",
+  annualClimateCovariate = "CMDsm",
+  yearClimateZ = NULL,
   gateRefusal = "minLik",
   penaliseRunaways = TRUE,
   runawayEdgeFrac = fireSenseRunawayEdgeFrac,
@@ -234,6 +236,10 @@ a year that fails the spread probability gates is scored as refused (\code{"minL
 \code{"climate"}, which weights each year of the \code{crpsWeights$annualArea} term by \code{abs(z)} of the year's standardised climate,
 rescaled to average 1 (extreme-climate years count more; the term's scale is unchanged on average).
 \code{"equal"} adds nothing to the fit's cache key.}
+
+\item{annualClimateCovariate, yearClimateZ}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}, in the fit and the re-score: the climate covariate
+(default \code{"CMDsm"}, the ignition year-climate covariate) whose yearly mean gives the year climate \code{z} of the \code{"climate"} weights
+and of \code{crpsWeights$climateSlope}, and \code{z} itself when the covariate is not in \code{annualDTx1000} (\code{NULL}: not given, not in the cache key).}
 
 \item{penaliseRunaways}{Passed to \code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}} in the fit and the re-score: \code{TRUE} (default)
 stops a simulated fire at the first open edge pixel of its buffer; it is cut either way. The edge

@@ -55,6 +55,8 @@
   verbose = 2,
   crpsWeights = NULL,
   annualAreaYearWeights = c("equal", "climate"),
+  annualClimateCovariate = "CMDsm",
+  yearClimateZ = NULL,
   gateRefusal = c("minLik", "simulate"),
   wholeLandscape = FALSE,
   ...
@@ -292,8 +294,15 @@ without \code{"crps"} in \code{tests}.}
 \item{annualAreaYearWeights}{How the years of the \code{"crps"} annual-area term (\code{crpsWeights$annualArea}) are
 weighted: \code{"equal"} (default) or \code{"climate"}, each year's score times \code{abs(z)} of its standardised climate
 (floor 0.25, rescaled to average 1; \code{\link[=annualYearWeights]{annualYearWeights()}}), so years with extreme climate count more and the
-term's scale is unchanged on average. \code{z} is \code{\link[=spreadYearClimate]{spreadYearClimate()}} of \code{annualDTx1000} and \code{formulaToFit}: the
-yearly mean of the formula's first climate covariate over the fit years.}
+term's scale is unchanged on average. \code{z} is \code{yearClimateZ}, else \code{\link[=spreadYearClimate]{spreadYearClimate()}} of \code{annualDTx1000} and
+\code{annualClimateCovariate}.}
+
+\item{annualClimateCovariate}{The climate covariate whose yearly mean gives \code{z}, the one the ignition year-climate term
+and the hindcast validation use (default \code{"CMDsm"}); a column of \code{annualDTx1000}. If it is not there, give \code{yearClimateZ}.}
+
+\item{yearClimateZ}{\code{NULL} (default), or a named numeric (by fit year) of the standardised year climate, from another source
+than \code{annualDTx1000} (the ignition fit's covariates: \code{\link[=spreadYearClimate]{spreadYearClimate()}} \verb{covariates =}); used instead of \code{annualClimateCovariate},
+standardised again over the fit years.}
 
 \item{gateRefusal}{What a year that fails \code{\link[=spreadProbGateTest]{spreadProbGateTest()}} gets. \code{"minLik"} (default): it is not
 simulated and scores as if every fire stayed one pixel (\code{"crps"}), or the \code{minLik} floor (the

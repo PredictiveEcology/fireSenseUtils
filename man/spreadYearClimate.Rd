@@ -4,21 +4,31 @@
 \alias{spreadYearClimate}
 \title{The standardised climate of each fit year of a spread fit}
 \usage{
-spreadYearClimate(annualDTx1000, formulaToFit, years = names(annualDTx1000))
+spreadYearClimate(
+  annualDTx1000,
+  variable = "CMDsm",
+  years = names(annualDTx1000),
+  covariates = NULL
+)
 }
 \arguments{
 \item{annualDTx1000}{Named list of the annual covariate tables, one per year (\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}).}
 
-\item{formulaToFit}{The spread formula (\code{\link[=.objfunSpreadFit]{.objfunSpreadFit()}}).}
+\item{variable}{The climate covariate, matched ignoring underscores (\code{\link[=yearClimateColumn]{yearClimateColumn()}}); default \code{"CMDsm"}.}
 
-\item{years}{The fit years (character); default all of \code{annualDTx1000}.}
+\item{years}{The fit years (character, names of \code{annualDTx1000}; a leading non-digit prefix such as \code{"year"}
+is dropped to match \code{covariates$year}); default all of \code{annualDTx1000}.}
+
+\item{covariates}{\code{NULL}, or the ignition covariates table, used when \code{variable} is not in \code{annualDTx1000}.}
 }
 \value{
-A named numeric (by year), with mean 0 and sd 1 (all 0 if the years do not differ); \code{NULL} if the
-formula has no annual climate covariate.
+A named numeric (by year), with mean 0 and sd 1 (all 0 if the years do not differ); \code{NULL} if \code{variable}
+is in neither source.
 }
 \description{
-The yearly mean of the formula's first annual climate covariate (\code{\link[=spreadClimateCols]{spreadClimateCols()}}) over the pixels of
-\code{annualDTx1000} (\code{\link[=yearClimateMeans]{yearClimateMeans()}}), standardised over the fit years: \code{(mean - mean(means)) / sd(means)}.
-The same year-level climate as the ignition year-climate term, for the spread fit's own climate covariate.
+The yearly mean of one climate covariate over the fit years (\code{\link[=yearClimateMeans]{yearClimateMeans()}}), standardised over the fit
+years: \code{(mean - mean(means)) / sd(means)}. The covariate is the one the ignition year-climate term and the
+hindcast validation use (\code{"CMDsm"}), not whichever climate covariate the spread formula has. It is taken from
+the spread data (\code{annualDTx1000}) when it is a column there, else from \code{covariates}, the table the ignition fit
+reads (\code{year}, the climate columns and, if present, \code{coreFraction}; \code{\link[=yearClimateMeans]{yearClimateMeans()}} averages its core rows).
 }
