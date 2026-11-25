@@ -265,3 +265,21 @@ test_that(".attributes reads SpatVector, sf, Spatial and lists of them", {
   expect_identical(.attributes(list(pts, terra::vect(pts)))$YEAR, c(2001:2002, 2001:2002))
   expect_identical(.attributes(data.frame(YEAR = 1L)), data.frame(YEAR = 1L))
 })
+
+test_that("plotHistoricFires counts an escape above escapeSizeHa on both sides, not above one pixel", {
+  withr::local_options(mc.cores = 1L)
+  dir <- withr::local_tempdir()
+  simFiles <- makeRepOutputs(dir, nReps = 2, years = 2001:2004)
+  pts <- sf::st_as_sf(data.frame(x = 1:4, y = 1:4, YEAR = 2001:2004), coords = c("x", "y"), crs = 3978)
+  polys <- terra::vect(sf::st_buffer(pts, 1))
+  polys$SIZE_HA <- c(30, 30, 60, 60) ## all above one 250 m pixel (6.25 ha); only two above 50 ha
+  plots <- list()
+  local_mocked_bindings(ggsave = function(plot, filename, ...) plots[[basename(filename)]] <<- plot,
+                        .package = "ggplot2")
+  suppressMessages(plotHistoricFires("CanESM5_ssp370", "SA", dir, pixelSize = 250, firePolys = polys,
+                                     ignitionPoints = pts, simFiles = simFiles, escapeSizeHa = 50))
+  d <- plots[["simulated_Escapes_SA_CanESM5_ssp370.png"]]$data
+  expect_equal(sum(d[d$stat == "observed", ]$nFires), 2) ## the 30 ha fires are not escapes
+  sim <- data.table::rbindlist(lapply(simFiles[grepl("csv$", simFiles)], data.table::fread))
+  expect_equal(sum(d[d$stat == "projected", ]$nFires), sum(sim$areaBurnedHa > 50))
+})

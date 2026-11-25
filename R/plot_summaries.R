@@ -97,7 +97,10 @@ utils::globalVariables(c(
 #'
 #' @template summary_plots
 #'
-#' @param pixelSize raster pixel (cell) side length (m); a fire larger than one pixel (`pixelSize^2 / 1e4` ha) is an escape
+#' @param pixelSize raster pixel (cell) side length (m)
+#'
+#' @param escapeSizeHa fire size (ha) above which a fire is an escape, on the observed and the simulated side;
+#'    default one pixel (`pixelSize^2 / 1e4` ha)
 #'
 #' @param firePolys A `sf` spatial polygons of historic fire burn areas, from the Canadian
 #'    National Fire Database.
@@ -113,7 +116,8 @@ utils::globalVariables(c(
 #' @export
 #' @importFrom data.table as.data.table setnames
 plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
-                              pixelSize, firePolys, ignitionPoints, simFiles, sizeCol = "SIZE_HA") {
+                              pixelSize, firePolys, ignitionPoints, simFiles, sizeCol = "SIZE_HA",
+                              escapeSizeHa = .pixelAreaHa(pixelSize)) {
   if (requireNamespace("ggplot2", quietly = TRUE) &&
     requireNamespace("SpaDES.core", quietly = TRUE)) {
     ## A historical run has no scenario, and carries NA for it -- usually R's
@@ -127,13 +131,12 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
     scenSubtitle <- paste(scenParts, collapse = " ")
 
     historicalBurns <- as.data.table(.attributes(firePolys))
-    pixelSizeHa <- .pixelAreaHa(pixelSize)
 
     ## area burned sums every fire, as the simulated series does (the burn summary has one row per
-    ## fire); escapes are the fires larger than one pixel, on both sides
+    ## fire); escapes are the fires larger than `escapeSizeHa`, on both sides
     historicalBurns[, .size := as.numeric(get(sizeCol))]
     historicalBurns <- historicalBurns[
-      , .(sumBurn = sum(.size), nFires = sum(.size > pixelSizeHa)), .(YEAR)
+      , .(sumBurn = sum(.size), nFires = sum(.size > escapeSizeHa)), .(YEAR)
     ]
     setnames(historicalBurns, "YEAR", "year")
     historicalBurns[, stat := "observed"]
@@ -151,7 +154,7 @@ plotHistoricFires <- function(climateScenario, studyAreaName, outputDir,
     ## per replicate and year; a year in which a replicate had no fire counts as 0, not as missing,
     ## so the median across replicates is not taken over the replicates that happened to burn
     perRep <- burnSummary[, .(sumBurn = sum(areaBurnedHa), N = .N,
-                              nFires = sum(areaBurnedHa > pixelSizeHa)), .(year, rep)]
+                              nFires = sum(areaBurnedHa > escapeSizeHa)), .(year, rep)]
     perRep <- perRep[data.table::CJ(year = unique(year), rep = unique(rep)), on = c("year", "rep")]
     for (col in c("sumBurn", "N", "nFires")) data.table::set(perRep, which(is.na(perRep[[col]])), col, 0)
     projected <- rbind(perRep[, stat := "projected"],
