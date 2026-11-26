@@ -43,7 +43,7 @@ spreadFuelEffect <- function(row, lowerSpreadProb = spreadProbFloor) {
   ## the covariate values of "everything at its centre": 0 centred, and with climate in or outside the ceiling, the reference
   centre <- ledgerCovCentre(row, 1L)
   centreOf <- function(cn) if (is.null(centre[[cn]])) 0 else centre[[cn]]
-  design <- setdiff(names(params), c(unlist(logisticParamNames), spreadRandomEffectTxt, actTxt))
+  design <- ledgerDesignCols(names(params))
   sources <- spreadSourceCols(design)
   ## one row per scenario, of the SOURCE columns as the fit has them after rescaling and centring: every covariate at its centre
   ## (0), climate at its reference; the fuel absent (0) or at its median non-zero value. A fuelled pixel is not young (fuel and
@@ -72,3 +72,8 @@ spreadFuelEffect <- function(row, lowerSpreadProb = spreadProbFloor) {
   na[fuels] <- rowMeans(matrix(change, nrow = length(fuels)))
   na
 }
+
+## The design columns of a ledger row's parameters, in their order: every parameter that is not of the link
+## (logisticParamNames), a random-effect sd or the activation intercept
+ledgerDesignCols <- function(parNames)
+  setdiff(parNames, c(unlist(logisticParamNames), spreadRandomEffectTxt, activationInterceptTxt))

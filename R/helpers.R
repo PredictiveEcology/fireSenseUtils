@@ -755,3 +755,6 @@ isLinearFuelRange <- function(range) {
 #' @examples
 #' pixelAreaHa(terra::rast(resolution = 240, crs = "EPSG:3978", extent = terra::ext(0, 2400, 0, 2400)))
 pixelAreaHa <- function(x) prod(terra::res(x)) / 1e4
+
+## The year of a name such as "year2004" or "2004", as an integer: the names of the annual covariate tables
+yearOfName <- function(x) as.integer(gsub("[[:alpha:]]+", "", x))

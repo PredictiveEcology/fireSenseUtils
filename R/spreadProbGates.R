@@ -153,9 +153,12 @@ spreadCovStats <- function(annualDTx1000, nonAnnualDTx1000, formulaToFit, covMin
 #'   the first are used.
 #' @return A character vector; empty when the formula has no climate covariate.
 #' @export
-spreadClimateCols <- function(formulaToFit, annualDTx1000) {
-  covCols <- spreadCovCols(spreadDesignCols(formulaToFit))
-  annual <- intersect(covCols, names(annualDTx1000[[1]]))
+spreadClimateCols <- function(formulaToFit, annualDTx1000)
+  annualCovariateCols(spreadCovCols(spreadDesignCols(formulaToFit)), names(annualDTx1000[[1]]))
+
+## The climate covariates among `covCols`: those that are columns of the annual tables (`annualNames`) and not indicators
+annualCovariateCols <- function(covCols, annualNames) {
+  annual <- intersect(covCols, annualNames)
   setdiff(annual, spreadIndicatorCols(annual))
 }
 
