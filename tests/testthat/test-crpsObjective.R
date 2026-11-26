@@ -66,7 +66,7 @@ test_that("crpsTopFires() sums the per-rank CRPS of the sorted largest fires, an
 })
 
 test_that("the default weights are the 2026-10-28 profile's, and crpsWeights overrides by name", {
-  expect_identical(crpsWeightsDefault(), list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0, topShare = 0))
+  expect_identical(crpsWeightsDefault(), list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0, topShare = 0, climateSlope = 0))
   expect_identical(crpsWeightsDefault()$annualArea, 0)
 })
 
@@ -209,4 +209,148 @@ test_that("returnTerms gives every term before its weight and the weight, so the
   expect_equal(d[["crpsAnnualArea"]], crpsAnnualArea(sizes, c(`2004` = 85), 2L))
   expect_equal(d[["w_crpsTopShare"]], 0)
   expect_identical(unname(d[["objective"]]), crpsFit(tests = "crps", sizes = sizes, returnTerms = FALSE))
+})
+
+## year weights from the year's climate, and the climate-slope term
+yearSizes <- function() data.table::data.table(year = c("2001", "2001", "2001", "2002", "2002", "2002", "2002"),
+                                               rep = c(1, 1, 2, 1, 2, 2, 3), N = c(10, 20, 25, 10, 15, 25, 8))
+
+test_that("annualYearWeights(): equal is 1; climate is max(|z|, floor) rescaled to mean 1, extreme years count more", {
+  z <- c(a = -2, b = 0.1, c = 0.5, d = 1.4)
+  expect_equal(annualYearWeights(z, "equal"), rep(1, 4))
+  w <- annualYearWeights(z, "climate")
+  expect_equal(mean(w), 1)
+  expect_equal(w / w[["c"]], c(a = 4, b = 0.5, c = 1, d = 2.8) / 1, ignore_attr = TRUE)   # 2, 0.25 (floor), 0.5, 1.4
+  expect_gt(w[["a"]], w[["d"]]); expect_gt(w[["d"]], w[["b"]])
+  expect_equal(w[["b"]], 0.25 * 4 / sum(c(2, 0.25, 0.5, 1.4)))
+})
+
+test_that("crpsAnnualArea(): \"equal\" is the default and the unweighted mean; \"climate\" weights the years by climate", {
+  rs <- yearSizes(); obs <- c(`2001` = 20, `2002` = 350); z <- c(`2001` = -1, `2002` = 1)
+  by1 <- crpsEnsemble(log(c(30, 25, 1)), log(20)); by2 <- crpsEnsemble(log(c(10, 40, 8)), log(350))
+  expect_identical(crpsAnnualArea(rs, obs, 3L, "equal"), crpsAnnualArea(rs, obs, 3L))
+  expect_equal(crpsAnnualArea(rs, obs, 3L, "equal"), (by1 + by2) / 2)
+  expect_equal(crpsAnnualArea(rs, obs, 3L, "equal", z), (by1 + by2) / 2)
+  expect_equal(crpsAnnualArea(rs, obs, 3L, "climate", z), (by1 + by2) / 2)          # |z| equal: weights all 1
+  z2 <- c(`2001` = 0.1, `2002` = 2)
+  w <- annualYearWeights(z2, "climate")
+  expect_equal(crpsAnnualArea(rs, obs, 3L, "climate", z2), mean(c(by1, by2) * w), ignore_attr = TRUE)
+  expect_error(crpsAnnualArea(rs, obs, 3L, "climate"), "climate")
+})
+
+test_that("crpsClimateSlope() scores the slope of log annual area on climate: a flat simulated response is penalised", {
+  z <- c(`2001` = -1, `2002` = 0, `2003` = 1)
+  obs <- c(`2001` = 10, `2002` = 100, `2003` = 1000)                              # log area rises with z
+  rising <- data.table::data.table(year = rep(names(obs), each = 2), rep = rep(1:2, 3), N = rep(obs, each = 2))
+  flat <- data.table::data.table(year = rep(names(obs), each = 2), rep = rep(1:2, 3), N = 100)
+  expect_equal(crpsClimateSlope(rising, obs, 2L, z), 0)
+  expect_equal(crpsClimateSlope(flat, obs, 2L, z), abs(log(1000 / 10) / 2))        # observed slope: log(100)/2 per unit z
+  expect_equal(crpsClimateSlope(flat, obs, 2L, z * 5), abs(log(1000 / 10) / 10))   # not scale-free in z, by design
+  expect_equal(crpsClimateSlope(rising, obs, 2L, z * 0), 0)            # no spread in z: 0
+  expect_error(crpsClimateSlope(flat, obs, 2L, NULL), "climate")
+})
+
+test_that("spreadYearClimate() is the yearly mean of the named covariate (default CMDsm), standardised; ignition covariates fill in when it is not in the spread data", {
+  yrs <- c("year2001", "year2002", "year2003")
+  an <- stats::setNames(lapply(c(1000L, 2000L, 6000L), function(m)
+    data.table::data.table(pixelID = 1:4, CMDsm = m + c(-1L, 1L, -2L, 2L), other = 5L)), yrs)
+  z <- spreadYearClimate(an)                                          # default "CMDsm"
+  expect_named(z, yrs)
+  expect_equal(mean(z), 0); expect_equal(stats::sd(z), 1)
+  expect_equal(unname(z), as.numeric(scale(c(1000, 2000, 6000))))
+  expect_equal(spreadYearClimate(an, "CMD_sm"), z)                    # underscores ignored, as the ignition term
+  expect_equal(unname(spreadYearClimate(an, years = yrs[2:3])), c(-1, 1) / sqrt(2))
+  expect_null(spreadYearClimate(an, "CMDsp"))                         # in neither source
+  ## not in the spread data: the ignition fit's covariates, by year number, core rows only (yearClimateMeans())
+  ign <- data.frame(year = rep(2001:2003, each = 3), CMDsp = c(1, 2, 3, 10, 20, 30, 5, 5, 5),
+                    coreFraction = rep(c(1, 1, 0), 3))
+  zi <- spreadYearClimate(an, "CMDsp", covariates = ign)
+  expect_named(zi, yrs)
+  expect_equal(unname(zi), as.numeric(scale(c(1.5, 15, 5))))
+  ## the same function the ignition term uses
+  m <- yearClimateMeans(ign, "CMDsp")
+  expect_equal(unname(zi), as.numeric(scale(m$mean)))
+  expect_null(spreadYearClimate(an, "CMDsp", covariates = ign[, c("year", "coreFraction")]))
+})
+
+test_that(".objfunSpreadFit(): climateSlope 0 and \"equal\" are the objective as before; both terms reach it when asked", {
+  sizes <- data.table::data.table(year = c("2004", "2004", "2005", "2005"), rep = c(1, 2, 1, 2), N = c(20, 30, 40, 60))
+  ob <- function(cw = list(annualArea = 3), rule = "equal") {
+    local_mocked_bindings(
+      objFunInner = function(yr, ...) list(allFireSizes = sizes$N, crpsFire = 1.5, crpsSizes = sizes),
+      .package = "fireSenseUtils")
+    land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+    fireSenseUtils::.objfunSpreadFit(
+      par = c(0.27, 1, 1, 1), landscape = land, tests = "crps", crpsWeights = cw,
+      annualDTx1000 = list(`2004` = data.table::data.table(pixelID = 1:400, cov = 1000L, CMDsm = 1000L),
+                           `2005` = data.table::data.table(pixelID = 1:400, cov = 3000L, CMDsm = 3000L)),
+      nonAnnualDTx1000 = list(`2004_2005` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
+      historicalFires = list(`2004` = data.frame(size = 5, cells = 1L, ids = 1L), `2005` = data.frame(size = 95, cells = 2L, ids = 1L)),
+      fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400),
+                                `2005` = data.table::data.table(ids = 1L, pixelID = 1:400)),
+      Nreps = 2L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, annualAreaYearWeights = rule)
+  }
+  base <- ob()
+  expect_equal(ob(list(annualArea = 3, climateSlope = 0))[["objective"]], base[["objective"]])
+  expect_equal(ob(rule = "equal")[["objective"]], base[["objective"]])
+  ## two years: z = -/+ 0.707, weights 1 each, so "climate" equals "equal" here
+  expect_equal(ob(rule = "climate")[["objective"]], base[["objective"]])
+  expect_true(is.finite(base[["crpsClimateSlope"]]))                                # returned even at weight 0
+  s <- ob(list(annualArea = 3, climateSlope = 10))
+  expect_equal(s[["objective"]], base[["objective"]] + 10 * base[["crpsClimateSlope"]])
+  expect_gt(base[["crpsClimateSlope"]], 0)
+  expect_equal(s[["w_crpsClimateSlope"]], 10)
+})
+
+test_that("annualTotals() is a replicates x years matrix, also for one replicate or one year", {
+  rs <- yearSizes()
+  expect_equal(dim(annualTotals(rs, c("2001", "2002"), 3L)), c(3L, 2L))
+  expect_equal(dim(annualTotals(rs, "2002", 3L)), c(3L, 1L))
+  expect_equal(dim(annualTotals(rs[rs$rep == 1], c("2001", "2002"), 1L)), c(1L, 2L))
+  expect_equal(unname(annualTotals(rs, c("2001", "2002"), 3L)[, "2001"]), c(30, 25, 0))
+})
+
+test_that(".objfunSpreadFit(): the year climate is annualClimateCovariate, or yearClimateZ when it is not in the spread data", {
+  sizes <- data.table::data.table(year = c("2004", "2004", "2005", "2005"), rep = c(1, 2, 1, 2), N = c(20, 30, 40, 60))
+  ob <- function(cov, crpsWeights = list(annualArea = 3), ...) {
+    local_mocked_bindings(
+      objFunInner = function(yr, ...) list(allFireSizes = sizes$N, crpsFire = 1.5, crpsSizes = sizes),
+      .package = "fireSenseUtils")
+    land <- terra::rast(nrows = 20, ncols = 20, xmin = 0, xmax = 20, ymin = 0, ymax = 20, vals = 1)
+    fireSenseUtils::.objfunSpreadFit(
+      par = c(0.27, 1, 1, 1), landscape = land, tests = "crps", crpsWeights = crpsWeights,
+      annualDTx1000 = list(`2004` = cbind(data.table::data.table(pixelID = 1:400, cov = 0L), cov[[1]]),
+                           `2005` = cbind(data.table::data.table(pixelID = 1:400, cov = 0L), cov[[2]])),
+      nonAnnualDTx1000 = list(`2004_2005` = data.table::data.table(pixelID = 1:400)), formulaToFit = "~ 0 + cov",
+      historicalFires = list(`2004` = data.frame(size = 5, cells = 1L, ids = 1L), `2005` = data.frame(size = 95, cells = 2L, ids = 1L)),
+      fireBufferedListDT = list(`2004` = data.table::data.table(ids = 1L, pixelID = 1:400),
+                                `2005` = data.table::data.table(ids = 1L, pixelID = 1:400)),
+      Nreps = 2L, doAssertions = FALSE, verbose = 0, returnTerms = TRUE, ...)
+  }
+  none <- list(NULL, NULL)
+  ## covariate absent: no slope at weight 0 (NA), an error when weighted, and "climate" weights need a z
+  expect_true(is.na(ob(none)[["crpsClimateSlope"]]))
+  expect_error(ob(none, list(annualArea = 3, climateSlope = 1)), "yearClimateZ")
+  expect_error(ob(none, annualAreaYearWeights = "climate"), "yearClimateZ")
+  ## given as z, it is used
+  z <- c(`2004` = -1, `2005` = 1)
+  a <- ob(none, yearClimateZ = z)
+  expect_true(is.finite(a[["crpsClimateSlope"]]))
+  ## and a column named as the covariate gives the same as that z
+  mc <- list(data.table::data.table(MyClim = 10L), data.table::data.table(MyClim = 30L))
+  expect_equal(ob(mc, annualClimateCovariate = "MyClim")[["crpsClimateSlope"]],
+               ob(none, yearClimateZ = c(`2004` = -1, `2005` = 1) / sqrt(2))[["crpsClimateSlope"]])
+})
+
+test_that("a given yearClimateZ is standardised again over the fit years", {
+  expect_equal(standardiseYearClimate(c(a = 1, b = 3)), c(a = -1, b = 1) / sqrt(2))
+  expect_equal(standardiseYearClimate(c(a = 2, b = 2)), c(a = 0, b = 0))
+})
+
+test_that("annualYearWeights(type =) and standardiseYearClimate(center, scale) are exported, the one rule for every year term", {
+  expect_true(all(c("annualYearWeights", "standardiseYearClimate") %in% getNamespaceExports("fireSenseUtils")))
+  expect_equal(fireSenseUtils::annualYearWeights(c(a = 1, b = -3), type = "equal"), c(1, 1))
+  expect_equal(mean(fireSenseUtils::annualYearWeights(c(a = 0.1, b = -3, c = 1), "climate")), 1)
+  expect_equal(fireSenseUtils::standardiseYearClimate(c(a = 1, b = 5), center = 1, scale = 2), c(a = 0, b = 2))
+  expect_equal(fireSenseUtils::standardiseYearClimate(c(a = 1, b = 3)), c(a = -1, b = 1) / sqrt(2))
 })

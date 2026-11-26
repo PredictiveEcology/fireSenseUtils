@@ -8,11 +8,11 @@
 #'
 #' @return A named list: `fire` (per-fire CRPS on log size, [crpsFireSizes()]), `adTest` ([adStatistic()]),
 #'   `areaDist` ([areaWeightedCvM()]), `totalArea` ([crpsTotalArea()]), `top10` ([crpsTopFires()]) and
-#'   `annualArea` ([crpsAnnualArea()]) and `topShare` ([crpsTopShare()]); the last two are 0, so their terms
-#'   are left out unless a weight is given.
+#'   `annualArea` ([crpsAnnualArea()]), `topShare` ([crpsTopShare()]) and `climateSlope` ([crpsClimateSlope()]);
+#'   the last three are 0, so their terms are left out unless a weight is given.
 #' @export
 crpsWeightsDefault <- function() {
-  list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0, topShare = 0)
+  list(fire = 1, adTest = 0.34, areaDist = 2.6, totalArea = 164, top10 = 16.5, annualArea = 0, topShare = 0, climateSlope = 0)
 }
 
 #' Ensemble CRPS of a sample against one observation
@@ -62,28 +62,90 @@ crpsTotalArea <- function(repSizes, obsSizes, Nreps) {
   crpsEnsemble(log(pmax(tot, 1)), log(sum(obsSizes)))
 }
 
+#' Each replicate's area burned in each fit year
+#'
+#' @param repSizes A `data.table` with columns `year`, `rep` and `N`: every simulated fire of every fit
+#'   year (pixels), one row each.
+#' @param years The fit years (character).
+#' @param Nreps Number of replicates; a replicate with no fire in a year burned nothing.
+#' @return A matrix, `Nreps` rows (replicates) by one column per year (named by year).
+#' @keywords internal
+annualTotals <- function(repSizes, years, Nreps) {
+  out <- vapply(years, function(y) {
+    tot <- numeric(Nreps)
+    a <- repSizes[repSizes$year == y, list(A = sum(N)), by = "rep"]
+    tot[a$rep] <- a$A
+    tot
+  }, numeric(Nreps))
+  matrix(out, nrow = Nreps, dimnames = list(NULL, years)) # one replicate or one year: vapply gives a vector
+}
+
+#' Year weights of the annual-area term from the year's climate
+#'
+#' `"equal"`: 1 for every year. `"climate"`: `max(abs(z), floor)` for each year's standardised climate `z`, rescaled
+#' to average 1, so years with extreme climate (either way) count more, an average year still counts (`floor`),
+#' and the term's scale is unchanged on average. Climate, not area burned, because a forecast knows the climate
+#' of a year and not its area.
+#'
+#' @param z Named numeric: the standardised climate of each fit year ([spreadYearClimate()]); can be `NULL` for `"equal"`.
+#' @param type `"equal"` or `"climate"`.
+#' @param floor Smallest `abs(z)` before rescaling, default 0.25.
+#' @return A numeric vector, one weight per year (names of `z` kept), averaging 1. The one rule for the spread
+#'   objective's annual-area term and the ignition and escape year terms.
+#' @export
+annualYearWeights <- function(z, type = c("equal", "climate"), floor = 0.25) {
+  type <- match.arg(type)
+  if (identical(type, "equal")) return(rep(1, length(z)))
+  w <- pmax(abs(z), floor)
+  w / mean(w)
+}
+
 #' CRPS of the area burned in each year
 #'
 #' For each fit year, the CRPS of the log of that year's total area (one per replicate; a replicate with no
 #' fire that year burned nothing, scored as 1 pixel) against the log of the year's observed area. Unlike
 #' [crpsTotalArea()], which pools the years, a fit that burns the mean every year does not score well.
 #'
-#' @param repSizes A `data.table` with columns `year`, `rep` and `N`: every simulated fire of every fit
-#'   year (pixels), one row each.
 #' @param obsYear Named numeric: observed area burned (sum of the fitted fire sizes, pixels) per fit year,
 #'   named by year.
-#' @inheritParams crpsTotalArea
+#' @inheritParams annualTotals
+#' @param yearWeights `"equal"` (default) or `"climate"` ([annualYearWeights()]); `"climate"` needs `z`.
+#' @param z Named numeric: the standardised climate of each fit year, as `obsYear`; for `"climate"`.
 #' @return A single non-negative number: the mean over years (not the sum, so its weight is on the scale of
-#'   `totalArea`) of [crpsEnsemble()] of the log annual area (at least 1 pixel).
+#'   `totalArea`) of [crpsEnsemble()] of the log annual area (at least 1 pixel), times the year's weight.
 #' @keywords internal
-crpsAnnualArea <- function(repSizes, obsYear, Nreps) {
+crpsAnnualArea <- function(repSizes, obsYear, Nreps, yearWeights = c("equal", "climate"), z = NULL) {
+  yearWeights <- match.arg(yearWeights)
   yrs <- names(obsYear)
-  mean(vapply(yrs, function(y) {
-    tot <- numeric(Nreps)
-    a <- repSizes[repSizes$year == y, list(A = sum(N)), by = "rep"]
-    tot[a$rep] <- a$A
-    crpsEnsemble(log(pmax(tot, 1)), log(max(obsYear[[y]], 1)))
-  }, numeric(1)))
+  tot <- log(pmax(annualTotals(repSizes, yrs, Nreps), 1))
+  score <- vapply(seq_along(yrs), function(i) crpsEnsemble(tot[, i], log(max(obsYear[[i]], 1))), numeric(1))
+  if (identical(yearWeights, "climate")) {
+    if (is.null(z)) stop("yearWeights = \"climate\" needs the years' climate `z`: the year climate covariate is not in the spread data and no `yearClimateZ` was given", call. = FALSE)
+    score <- score * annualYearWeights(z[yrs], yearWeights)
+  }
+  mean(score)
+}
+
+#' CRPS of the slope of log annual area on the year's climate
+#'
+#' For each replicate, the least-squares slope of the log of its annual area (at least 1 pixel) on the fit
+#' years' standardised climate `z`; scored with [crpsEnsemble()] against the same slope of the observed
+#' annual areas. A simulated response that is flat in climate, when the observed one rises with it, is
+#' penalised; [crpsAnnualArea()] scores each year alone and does not see this.
+#'
+#' @inheritParams crpsAnnualArea
+#' @param z Named numeric: the standardised climate of each fit year, as `obsYear`.
+#' @return A single non-negative number; 0 with fewer than 2 years or no spread in `z`. An error without `z`.
+#' @keywords internal
+crpsClimateSlope <- function(repSizes, obsYear, Nreps, z) {
+  if (is.null(z)) stop("the climate slope needs the years' climate `z`: the year climate covariate is not in the spread data and no `yearClimateZ` was given", call. = FALSE)
+  yrs <- names(obsYear)
+  z <- z[yrs]
+  zc <- z - mean(z)
+  if (length(yrs) < 2L || sum(zc^2) == 0) return(0)
+  slope <- function(y) as.numeric(crossprod(zc, y - mean(y))) / sum(zc^2)
+  sim <- apply(log(pmax(annualTotals(repSizes, yrs, Nreps), 1)), 1, slope)
+  crpsEnsemble(sim, slope(log(pmax(as.numeric(obsYear), 1))))
 }
 
 #' CRPS of the largest fires

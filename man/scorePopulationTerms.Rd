@@ -32,7 +32,7 @@ a \code{data.table}, one row per member x rep: \code{member} (row of \code{pop})
 as the objective added them (WEIGHTED); \code{crpsFire}, \code{crpsTotalArea}, \code{crpsTop10}, \code{crpsAnnualArea} and
 \code{crpsTopShare} unweighted; \code{nFires}; then, to re-weight, \code{raw_adTest}, \code{raw_pitAD}, \code{raw_yearArea} and
 \code{raw_areaDist} (before their weights) and the weight of every term, \verb{w_<term>}. \code{objective} is the sum over
-terms of weight x unweighted value. A term the objective did not use is \code{NA} (\code{adTest}, \code{pitAD}, \code{yearArea} and \code{areaDist} when their tests are off); with \code{returnTerms}, \code{crpsAnnualArea} and \code{crpsTopShare} are computed even at weight 0, so they can be weighted up afterwards.
+terms of weight x unweighted value. A term the objective did not use is \code{NA} (\code{adTest}, \code{pitAD}, \code{yearArea} and \code{areaDist} when their tests are off); with \code{returnTerms}, \code{crpsAnnualArea}, \code{crpsTopShare} and \code{crpsClimateSlope} are computed even at weight 0, so they can be weighted up afterwards.
 }
 \description{
 Evaluates every row of \code{pop} \code{reps} times with \code{fn(returnTerms = TRUE)}: replicate \code{r} of EVERY member uses

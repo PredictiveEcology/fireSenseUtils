@@ -4,7 +4,13 @@
 \alias{crpsAnnualArea}
 \title{CRPS of the area burned in each year}
 \usage{
-crpsAnnualArea(repSizes, obsYear, Nreps)
+crpsAnnualArea(
+  repSizes,
+  obsYear,
+  Nreps,
+  yearWeights = c("equal", "climate"),
+  z = NULL
+)
 }
 \arguments{
 \item{repSizes}{A \code{data.table} with columns \code{year}, \code{rep} and \code{N}: every simulated fire of every fit
@@ -13,11 +19,15 @@ year (pixels), one row each.}
 \item{obsYear}{Named numeric: observed area burned (sum of the fitted fire sizes, pixels) per fit year,
 named by year.}
 
-\item{Nreps}{Number of replicates; a replicate with no fire burned nothing.}
+\item{Nreps}{Number of replicates; a replicate with no fire in a year burned nothing.}
+
+\item{yearWeights}{\code{"equal"} (default) or \code{"climate"} (\code{\link[=annualYearWeights]{annualYearWeights()}}); \code{"climate"} needs \code{z}.}
+
+\item{z}{Named numeric: the standardised climate of each fit year, as \code{obsYear}; for \code{"climate"}.}
 }
 \value{
 A single non-negative number: the mean over years (not the sum, so its weight is on the scale of
-\code{totalArea}) of \code{\link[=crpsEnsemble]{crpsEnsemble()}} of the log annual area (at least 1 pixel).
+\code{totalArea}) of \code{\link[=crpsEnsemble]{crpsEnsemble()}} of the log annual area (at least 1 pixel), times the year's weight.
 }
 \description{
 For each fit year, the CRPS of the log of that year's total area (one per replicate; a replicate with no
