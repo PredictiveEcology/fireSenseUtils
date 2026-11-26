@@ -21,6 +21,7 @@
 \alias{ignitionFitAdditionalColNamesTxt}
 \alias{spreadInterceptTxt}
 \alias{spreadFitCovCentreTxt}
+\alias{spreadFitClimateCurveParsTxt}
 \alias{spreadLinkTxt}
 \alias{spreadFitClimateRefTxt}
 \alias{spreadFitPowerLawGammaTxt}
@@ -100,6 +101,9 @@ design (\code{spreadDesignCols()}), in \code{lower}/\code{upper} and in a ledger
 \item \code{spreadFitCovCentreTxt}: \code{character(1)}. Name of the ledger column that holds the covariate
 centres of a fit made with an intercept (currently \code{"covCentre_spread"}). It is not in
 \code{spreadFitAdditionalColNamesTxt}: a fit without an intercept writes no such column.
+\item \code{spreadFitClimateCurveParsTxt}: \code{character(1)}. Name of the ledger column that holds the centre \code{k} and scale \code{s} of each climate
+curve term of a fit made with \code{spreadClimateCurve} (currently \code{"climateCurvePars_spread"}; \code{\link[=climateCurvePars]{climateCurvePars()}}).
+A fit without curve terms writes no such column.
 \item \code{spreadLinkTxt}, \code{spreadFitClimateRefTxt}, \code{spreadFitPowerLawGammaTxt}, \code{spreadFitPowerLawShapeTxt}: \code{character(1)} each. Names of the
 ledger columns a fit made with a non-default \code{spreadLink} writes: \code{"spreadLink"} (holding
 \code{"climateOutside"} or \code{"powerLaw"}), \code{"climateRef_spread"} (the fit's climate reference from
