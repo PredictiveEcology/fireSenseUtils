@@ -34,12 +34,28 @@ ledgerCovMinMax <- function(sa, i, default = NULL) {
 #' @return A named list, or `NULL` for a row without a reference: a fit with climate under the ceiling, or a row
 #'   written before the link existed. Such a row predicts exactly as it always did.
 #' @export
-ledgerClimateRef <- function(sa, i) {
-  col <- spreadFitClimateRefTxt
+ledgerClimateRef <- function(sa, i) ledgerListCol(sa, i, spreadFitClimateRefTxt)
+
+## A list-valued ledger column of one row: the list, or `NULL` for a row without the column or with an empty entry
+ledgerListCol <- function(sa, i, col) {
   if (!col %in% names(sa)) return(NULL)
-  ref <- sa[[col]][[i]]
-  if (is.list(ref) && length(ref)) ref else NULL
+  x <- sa[[col]][[i]]
+  if (is.list(x) && length(x)) x else NULL
 }
+
+#' The climate curve parameters of one ledger row
+#'
+#' A fit made with `fireSense_dataPrepFit`'s `spreadClimateCurve` has a curve term (`climateCurve`) for each climate
+#' variable, `softplus(C - k, s)` with `k` the ELF's median and `s` its sd of the variable over the fit's burnable pixels. The
+#' fit stores `c(k = , s = )` of each variable in the ledger row (`spreadFitClimateCurveParsTxt`). Prediction builds the
+#' terms from them (`addClimateCurve()`).
+#'
+#' @param sa `sim$studyAreaWithSpreadParams`, one row per ELF.
+#' @param i integer; the row.
+#' @return A named list (variable to `c(k = , s = )`), or `NULL` for a row without them: a fit without curve terms, or a
+#'   row written before they existed. Such a row predicts exactly as it always did.
+#' @export
+ledgerClimateCurvePars <- function(sa, i) ledgerListCol(sa, i, spreadFitClimateCurveParsTxt)
 
 #' The runaway threshold of one ledger row
 #'
@@ -211,9 +227,4 @@ ledgerPowerLawShape <- function(sa, i) {
 #' @return A named list, or `NULL` for a row without centres: a fit without an intercept, or a row written
 #'   before they were stored. Such a row predicts exactly as it always did.
 #' @export
-ledgerCovCentre <- function(sa, i) {
-  col <- spreadFitCovCentreTxt
-  if (!col %in% names(sa)) return(NULL)
-  centre <- sa[[col]][[i]]
-  if (is.list(centre) && length(centre)) centre else NULL
-}
+ledgerCovCentre <- function(sa, i) ledgerListCol(sa, i, spreadFitCovCentreTxt)

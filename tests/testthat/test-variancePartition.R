@@ -35,6 +35,24 @@ test_that("spreadTermGroups() puts each design column in its group; an interacti
   expect_false("(Intercept)" %in% names(g))           # a constant: no variance to share
 })
 
+test_that("a climate curve term is climate, and spreadDesignByYear() makes it from the row's centre and scale", {
+  g <- spreadTermGroups(c("CMD_curve", "CMD_yr", "CMD_dev", "dom_agb_Pice_mar", "CMD_curve:dom_agb_Pice_mar"),
+                        climateCols = character(0))
+  expect_identical(unname(g), c("climate", "climate", "climate", "fuel", "climate"))
+  tb <- vpTables(climPixel = TRUE)
+  row <- vpRow(list(CMD = 1, CMD_curve = 2, dom_agb_Pice_mar = 2, youngAge = -1))
+  pars <- list(CMD = c(k = 25, s = 5))
+  row[[spreadFitClimateCurveParsTxt]] <- list(pars)
+  row$covMinMax_spread <- list(cbind(vpCovMinMax, CMD_curve = c(0, 50)))
+  d <- spreadDesignByYear(row, tb$annual, tb$nonAnnual)
+  expect_true("CMD_curve" %in% attr(d, "climateCols"))
+  expect_equal(d$CMD_curve[d$year == 2001L], softplus(tb$annual[["2001"]]$CMD - 25, 5) / 50, tolerance = 1e-3)
+  expect_false("CMD_curve" %in% names(tb$annual[["2001"]]))      # the input tables are not changed
+  vp <- spreadVariancePartition(row, d)
+  expect_false("other" %in% vp$part)
+  expect_equal(shareOf(vp, "between", "climate"), 1, tolerance = 1e-6)
+})
+
 test_that("spreadDesignByYear() builds the fit's design: linear fuel, youngAge clears fuel, centred as the row says", {
   tb <- vpTables(climPixel = TRUE)
   row <- vpRow(list(`(Intercept)` = 0, CMD = 1, dom_agb_Pice_mar = 2, youngAge = -1))

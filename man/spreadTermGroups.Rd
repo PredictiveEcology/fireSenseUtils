@@ -17,7 +17,8 @@ A named character vector: one group per design column (the intercept left out), 
 }
 \description{
 Each design column of a spread fit (\code{\link[=spreadDesignCols]{spreadDesignCols()}}, or the coefficient names of a ledger row) in one group:
-\code{"climate"} (the climate covariates, and every interaction with one of them), \code{"fuel"} (fuel biomass, \code{\link[=spreadFuelCols]{spreadFuelCols()}}:
+\code{"climate"} (the climate covariates, the terms made from them, \verb{<var>_yr}, \verb{<var>_dev}, \verb{<var>_curve}
+(\code{\link[=isClimateTermCol]{isClimateTermCol()}}), and every interaction with one of them), \code{"fuel"} (fuel biomass, \code{\link[=spreadFuelCols]{spreadFuelCols()}}:
 \verb{dom_agb_*}, \verb{sec_agb_*}, \code{treedWetland_agb}, or the fuel classes of a species-mode fit), \code{"youngAge"}, \code{"nonForest"}
 (\verb{nfLCC_*}) and \code{"other"} (the \code{treedWetland} indicator, and an interaction of two groups that are not climate). An
 interaction of two terms of one group is in that group. The intercept is a constant and is in no group.

@@ -23,7 +23,8 @@ row's \code{covMinMax_spread} says so (\code{\link[=isLinearFuelRange]{isLinearF
 (\code{\link[=ledgerCovMinMax]{ledgerCovMinMax()}}), \code{youngAge} made mutually exclusive with fuel and the indicators (\code{\link[=youngAgeExclusiveCols]{youngAgeExclusiveCols()}}),
 centred with the row's centres (\code{\link[=ledgerCovCentre]{ledgerCovCentre()}}), the interactions and the intercept added. Each year goes through the
 function the objective uses (\code{\link[=spreadProbFromIntegerCovs]{spreadProbFromIntegerCovs()}}, via \code{eachSpreadYearCovs()}), with the vegetation table of the
-latest data year before it.
+latest data year before it. A fit with climate curve terms (\verb{<var>_curve}, \code{\link[=ledgerClimateCurvePars]{ledgerClimateCurvePars()}}) has them added
+with \code{\link[=addClimateCurve]{addClimateCurve()}} where the tables lack them.
 }
 \details{
 The rows are those of \code{annualCovariates}: the pixels in the fire buffers of each year, or every burnable pixel when

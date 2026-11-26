@@ -31,7 +31,8 @@ linearFuelCovs <- function(dt, ranges) {
 #' The groups of the spread model's terms
 #'
 #' Each design column of a spread fit ([spreadDesignCols()], or the coefficient names of a ledger row) in one group:
-#' `"climate"` (the climate covariates, and every interaction with one of them), `"fuel"` (fuel biomass, [spreadFuelCols()]:
+#' `"climate"` (the climate covariates, the terms made from them, `<var>_yr`, `<var>_dev`, `<var>_curve`
+#' ([isClimateTermCol()]), and every interaction with one of them), `"fuel"` (fuel biomass, [spreadFuelCols()]:
 #' `dom_agb_*`, `sec_agb_*`, `treedWetland_agb`, or the fuel classes of a species-mode fit), `"youngAge"`, `"nonForest"`
 #' (`nfLCC_*`) and `"other"` (the `treedWetland` indicator, and an interaction of two groups that are not climate). An
 #' interaction of two terms of one group is in that group. The intercept is a constant and is in no group.
@@ -43,7 +44,7 @@ linearFuelCovs <- function(dt, ranges) {
 #' @export
 spreadTermGroups <- function(designCols, climateCols) {
   groupOf <- function(cn) {
-    if (cn %in% climateCols) return("climate")
+    if (cn %in% climateCols || isClimateTermCol(cn, climateTermSuffixes)) return("climate")   # incl. <var>_yr, _dev, _curve
     if (!length(spreadIndicatorCols(cn))) return("fuel")             # not an indicator: fuel biomass (spreadFuelCols())
     if (cn == youngAgeTxt) "youngAge" else if (cn == treedWetlandTxt) "other" else "nonForest"
   }
@@ -62,7 +63,8 @@ spreadTermGroups <- function(designCols, climateCols) {
 #' ([ledgerCovMinMax()]), `youngAge` made mutually exclusive with fuel and the indicators ([youngAgeExclusiveCols()]),
 #' centred with the row's centres ([ledgerCovCentre()]), the interactions and the intercept added. Each year goes through the
 #' function the objective uses ([spreadProbFromIntegerCovs()], via `eachSpreadYearCovs()`), with the vegetation table of the
-#' latest data year before it.
+#' latest data year before it. A fit with climate curve terms (`<var>_curve`, [ledgerClimateCurvePars()]) has them added
+#' with [addClimateCurve()] where the tables lack them.
 #'
 #' The rows are those of `annualCovariates`: the pixels in the fire buffers of each year, or every burnable pixel when
 #' `fireSense_dataPrepFit` ran with `wholeLandscapeSpreadCovariates`. With buffers the pixels differ between years, so the
@@ -82,8 +84,16 @@ spreadDesignByYear <- function(row, annualCovariates, nonAnnualCovariates) {
   if (is.null(covMinMax)) stop("spreadDesignByYear(): the ledger row has no covMinMax_spread", call. = FALSE)
   covMinMax <- covMinMax[, intersect(names(covMinMax), sources), with = FALSE]
   ## a copy of each table, of its columns the design uses, fuel on the scale of the fit, x1000 as the objective has them
-  prepare <- function(tables) toX1000(lapply(tables, function(dt)
-    linearFuelCovs(data.table::as.data.table(dt)[, intersect(c("pixelID", sources), names(dt)), with = FALSE], covMinMax)))
+  ## a fit with climate curve terms: made from the row's centre and scale, as the prediction makes them, where the tables lack them
+  curve <- ledgerClimateCurvePars(row, 1L)
+  prepare <- function(tables) toX1000(lapply(tables, function(dt) {
+    dt <- data.table::copy(data.table::as.data.table(dt))
+    if (length(curve)) {
+      noCurve <- names(curve)[names(curve) %in% names(dt) & !climateTermCols(names(curve), climateCurveSuffix) %in% names(dt)]
+      if (length(noCurve)) addClimateCurve(dt, curve[noCurve])
+    }
+    linearFuelCovs(dt[, intersect(c("pixelID", sources), names(dt)), with = FALSE], covMinMax)
+  }))
   annualX <- prepare(annualCovariates)
   nonAnnualX <- prepare(nonAnnualCovariates)
   climateCols <- annualCovariateCols(sources, names(annualX[[1L]]))
