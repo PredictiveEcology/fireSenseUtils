@@ -1,6 +1,6 @@
 # fireSenseUtils (development version)
 
-* `yearClimateMultiplier()` reads an optional `beta2` of the year climate term: the multiplier is `exp(beta * z + beta2 * max(0, z)) / norm`, a hinge so the dry half can respond more steeply. A term without `beta2` (every fit made before) gives the same multiplier as before. The term now serves escapes as well as ignitions (fireSense_ignitionFit `escapeYearClimate`).
+* `yearClimateMultiplier()` also reads a logistic year climate term (`shape = "logistic"`, with `k`, `ratio`, `norm`): `(1 + (ratio - 1) * plogis(k * z)) / norm`, an S-curve through its midpoint at `z = 0` that saturates beyond the fit range. A term without `shape` (every fit made before) gives the same multiplier as before, to the last bit. The term now serves escapes as well as ignitions (fireSense_ignitionFit `escapeYearClimate`, `yearClimateShape`).
 * `plotHistoricFires()` takes `escapeSizeHa` (default one pixel, `pixelSize^2 / 1e4` ha, as before): the fire size above which a fire is an escape, on the observed and the simulated side, so a caller can use the escape size of its fit (50 ha) rather than a pixel.
 
 * New `polygonCells()`: the pixels each fire polygon touches in a raster (`.poly`, `pixelID`, `flammable`), a polygon smaller than a pixel included (`terra::cells()`), from a `SpatVector`, `sf` or a list of them, projected to the raster. `fireStarts()` calls it for the pixels of its polygons (same results), so `fireSense_burn`'s `ignitionSource = "observedPolygons"` burns the same pixels as `burnableHa` counts.

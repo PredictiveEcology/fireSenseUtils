@@ -16,14 +16,16 @@
 #'   no other column decides. Without a `coreFraction` column every row with `variable` counts. A `year`
 #'   column ([yearTxt]) gives the years; without one all rows are one year.
 #' @param yearClimate `list(variable, center, scale, beta, norm)`, or `NULL` (no term). `norm` may be absent (1).
-#'   An optional `beta2` (absent: 0, the fits made before it) adds a hinge: the multiplier is
-#'   `exp(beta * z + beta2 * max(0, z)) / norm`, so the dry half (`z > 0`) can respond more steeply.
+#'   With `shape = "logistic"` (absent: the log-linear term above, every fit made before) it is
+#'   `list(variable, center, scale, shape, k, ratio, norm)`: the multiplier is
+#'   `(1 + (ratio - 1) * plogis(k * z)) / norm`, an S-curve through its midpoint at `z = 0` (the ELF's average
+#'   year) from a floor of 1 to an upper level of `ratio` (`ratio >= 1`, `k >= 0`), which saturates beyond the fit range.
 #' @param yearMean The yearly mean(s) of `yearClimate$variable`, on the covariate's raw scale.
 #'
 #' @return `yearClimateColumn()`: the element of `columns` that is `variable`; an error if there is none.
 #'   `yearClimateMeans()`: a `data.frame` with `year` and `mean`, one row per year that has rows left.
-#'   `yearClimateMultiplier()`: `exp(beta * z + beta2 * max(0, z)) / norm` with `z = (yearMean - center) / scale`
-#'   (`beta2` is 0 when absent), 1 when `yearClimate` is `NULL`.
+#'   `yearClimateMultiplier()`: `exp(beta * z) / norm` (log-linear) or `(1 + (ratio - 1) * plogis(k * z)) / norm`
+#'   (logistic) with `z = (yearMean - center) / scale`, 1 when `yearClimate` is `NULL`.
 #' @export
 #' @rdname yearClimate
 #' @examples
@@ -32,7 +34,8 @@
 #' yc <- list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5, norm = 1)
 #' yearClimateMultiplier(yc, c(3, 5, 7))
 #' yearClimateMultiplier(NULL, 7)
-#' yearClimateMultiplier(modifyList(yc, list(beta2 = 0.5)), c(3, 5, 7))  # the dry half is steeper
+#' yearClimateMultiplier(list(variable = "CMDsm", center = 5, scale = 2, shape = "logistic", k = 2, ratio = 4,
+#'                             norm = 1), c(3, 5, 7, 50))  # saturates
 yearClimateColumn <- function(variable, columns) {
   out <- matchIgnoringUnderscores(variable, columns)
   if (is.na(out))
@@ -61,6 +64,7 @@ yearClimateMultiplier <- function(yearClimate, yearMean) {
   if (is.null(yearClimate)) return(rep(1, length(yearMean)))
   norm <- if (is.null(yearClimate$norm)) 1 else yearClimate$norm
   x <- yearMean - yearClimate$center
-  beta2 <- yearClimate$beta2   # the arithmetic of a term without it is unchanged to the last bit
-  exp(yearClimate$beta * x / yearClimate$scale + if (is.null(beta2)) 0 else beta2 * pmax(0, x) / yearClimate$scale) / norm
+  if (identical(yearClimate$shape, "logistic"))
+    return((1 + (yearClimate$ratio - 1) * stats::plogis(yearClimate$k * x / yearClimate$scale)) / norm)
+  exp(yearClimate$beta * x / yearClimate$scale) / norm   # a term without `shape`: the arithmetic of old, to the last bit
 }

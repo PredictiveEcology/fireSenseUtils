@@ -24,16 +24,18 @@ no other column decides. Without a \code{coreFraction} column every row with \co
 column (\link{yearTxt}) gives the years; without one all rows are one year.}
 
 \item{yearClimate}{\code{list(variable, center, scale, beta, norm)}, or \code{NULL} (no term). \code{norm} may be absent (1).
-An optional \code{beta2} (absent: 0, the fits made before it) adds a hinge: the multiplier is
-\code{exp(beta * z + beta2 * max(0, z)) / norm}, so the dry half (\code{z > 0}) can respond more steeply.}
+With \code{shape = "logistic"} (absent: the log-linear term above, every fit made before) it is
+\code{list(variable, center, scale, shape, k, ratio, norm)}: the multiplier is
+\code{(1 + (ratio - 1) * plogis(k * z)) / norm}, an S-curve through its midpoint at \code{z = 0} (the ELF's average
+year) from a floor of 1 to an upper level of \code{ratio} (\code{ratio >= 1}, \code{k >= 0}), which saturates beyond the fit range.}
 
 \item{yearMean}{The yearly mean(s) of \code{yearClimate$variable}, on the covariate's raw scale.}
 }
 \value{
 \code{yearClimateColumn()}: the element of \code{columns} that is \code{variable}; an error if there is none.
 \code{yearClimateMeans()}: a \code{data.frame} with \code{year} and \code{mean}, one row per year that has rows left.
-\code{yearClimateMultiplier()}: \code{exp(beta * z + beta2 * max(0, z)) / norm} with \code{z = (yearMean - center) / scale}
-(\code{beta2} is 0 when absent), 1 when \code{yearClimate} is \code{NULL}.
+\code{yearClimateMultiplier()}: \code{exp(beta * z) / norm} (log-linear) or \code{(1 + (ratio - 1) * plogis(k * z)) / norm}
+(logistic) with \code{z = (yearMean - center) / scale}, 1 when \code{yearClimate} is \code{NULL}.
 }
 \description{
 \code{fireSense_ignitionFit} can scale each year's expected ignitions, and separately its expected escapes, by \code{exp(beta * z_y) / norm}, with \code{beta >= 0}
@@ -50,5 +52,6 @@ yearClimateMeans(data.frame(year = c(1, 1, 2, 2), CMDsm = c(1, 3, 10, NA)), "CMD
 yc <- list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5, norm = 1)
 yearClimateMultiplier(yc, c(3, 5, 7))
 yearClimateMultiplier(NULL, 7)
-yearClimateMultiplier(modifyList(yc, list(beta2 = 0.5)), c(3, 5, 7))  # the dry half is steeper
+yearClimateMultiplier(list(variable = "CMDsm", center = 5, scale = 2, shape = "logistic", k = 2, ratio = 4,
+                            norm = 1), c(3, 5, 7, 50))  # saturates
 }

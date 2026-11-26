@@ -33,10 +33,15 @@ test_that("yearClimateMultiplier is exp(beta z) / norm, and 1 without a term", {
   expect_equal(yearClimateMultiplier(modifyList(yc, list(beta = 0, norm = 1)), 9), 1)
 })
 
-test_that("beta2 adds a hinge on the dry half; a term without beta2 is unchanged", {
+test_that("the logistic shape is an S-curve through z = 0 that saturates; a term without shape is unchanged", {
   yc <- list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5, norm = 2)
   z <- c(-1, 0, 1, 2)
   expect_identical(yearClimateMultiplier(yc, 5 + 2 * z), exp(0.5 * (5 + 2 * z - 5) / 2) / 2)  # the arithmetic of old
-  expect_identical(yearClimateMultiplier(modifyList(yc, list(beta2 = 0)), 5 + 2 * z), yearClimateMultiplier(yc, 5 + 2 * z))
-  expect_equal(yearClimateMultiplier(modifyList(yc, list(beta2 = 0.3)), 5 + 2 * z), exp(0.5 * z + 0.3 * pmax(0, z)) / 2)
+  lg <- list(variable = "CMDsm", center = 5, scale = 2, shape = "logistic", k = 3, ratio = 4, norm = 1)
+  expect_equal(yearClimateMultiplier(lg, 5 + 2 * z), 1 + 3 * plogis(3 * z))
+  expect_equal(yearClimateMultiplier(lg, 5), 2.5)                       # midpoint: (floor + upper) / 2
+  expect_equal(yearClimateMultiplier(lg, c(-1e3, 1e3)), c(1, 4))        # floor 1, upper `ratio`
+  expect_true(all(diff(yearClimateMultiplier(lg, seq(-5, 15, 0.5))) >= 0))
+  expect_equal(yearClimateMultiplier(modifyList(lg, list(k = 0)), c(1, 9)), c(2.5, 2.5))   # k = 0: flat
+  expect_equal(yearClimateMultiplier(modifyList(lg, list(norm = 2)), 5), 1.25)
 })
