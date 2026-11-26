@@ -1427,7 +1427,7 @@ spreadProbFromIntegerCovs <- function(shortAnnDTx1000 = NULL, annDTx1000, nonAnn
     setDT(annDTx1000)
   }
   if (is.character(yr)) {
-    yr <- gsub("[[:alpha:]]+", "", yr) |> as.integer()
+    yr <- yearOfName(yr)
   }
   if (is.null(shortAnnDTx1000)) {
     ## the table of the latest data year strictly before `yr`, as fireSense_dataPrepFit built it

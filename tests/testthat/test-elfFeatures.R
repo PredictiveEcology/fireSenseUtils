@@ -47,10 +47,11 @@ test_that("elfSpreadCoefs() gives NA, excluded as 'different model', to ELFs who
                    spreadRow("e", link = "logistic"),              # another link
                    spreadRow("f", scale = "log"),                  # another fuel scale
                    spreadRow("h", spreadClimate = "activation"),   # another climate mode
-                   spreadRow("i", extra = list(CMD_yr = 1, CMD_dev = 2)))   # the climate split
+                   spreadRow("i", extra = list(CMD_yr = 1, CMD_dev = 2)),   # the climate split
+                   spreadRow("j", extra = list(CMD_curve = 1)))             # the climate curve term
   out <- elfSpreadCoefs(rows)
-  expect_setequal(unique(out$ELF), c("a", "b", "c", "e", "f", "h", "i"))
-  bad <- out[out$ELF %in% c("e", "f", "h", "i"), ]
+  expect_setequal(unique(out$ELF), c("a", "b", "c", "e", "f", "h", "i", "j"))
+  bad <- out[out$ELF %in% c("e", "f", "h", "i", "j"), ]
   expect_true(all(bad$excluded == "different model"))
   expect_true(all(is.na(bad$value)))
   expect_true(all(is.na(out$excluded[out$ELF %in% c("a", "b", "c")])))

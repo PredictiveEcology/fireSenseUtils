@@ -47,8 +47,8 @@ spreadFitLedgerInputs <- function(ledger, sppEquivCol, fuelClassCol, studyArea,
     if (youngAgeTxt %in% colnames(pars))
       FuelNames <- c(youngAgeTxt, FuelNames)
     ClimateNames <- setdiff(setdiff(colnames(pars), lpn[[whLogistic]]), FuelNames)
-    ## a split climate variable (spreadClimateSplit) is in the parameters as its two terms, `<var>_yr` and `<var>_dev`
-    whClimateVar <- which(allVarsNoUnderscore %in% climateSplitBase(ClimateNames))
+    ## a split climate variable (spreadClimateSplit) is in the parameters as its two terms, `<var>_yr` and `<var>_dev`, and one with spreadClimateCurve also as `<var>_curve`
+    whClimateVar <- which(allVarsNoUnderscore %in% climateTermBase(ClimateNames, climateTermSuffixes))
 
     c(row[intersect(c("missingLCCgroup", "nonForestedLCCGroups"), colNames)],
       sppOuts[c("sppColorVect", "sppEquiv", "sppNameVector")],

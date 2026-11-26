@@ -59,7 +59,7 @@ fit dates in one long table, and \code{elfOutlines()} draws the ELFs' cores for 
 coefficient is the mean over the row's parameter sets (\code{params}, one row per set). Coefficients are comparable
 only between fits of one model form, so only the ELFs whose row has the most common form get values: the same
 \code{spreadLink}, \code{spreadClimate} (predictor, ceiling or activation) and \code{fuelScale}, and the same climate split
-(a \verb{_yr} and \verb{_dev} term per climate variable, or one term; see \code{\link[=isClimateSplitCol]{isClimateSplitCol()}}). The climate variable itself
+(a \verb{_yr} and \verb{_dev} term per climate variable, or one term; see \code{\link[=isClimateSplitCol]{isClimateSplitCol()}}) and the same curve term (\verb{_curve}; see \link{climateCurveSuffix}). The climate variable itself
 does not matter: each variable is its own coefficient (\code{CMD}, \code{cumMDC}, ...) and appears only for the ELFs that
 fitted it, as do the fuel terms (\code{youngAge}, \code{treedWetland_agb}, \verb{dom_agb_*}, \verb{sec_agb_*}, \verb{nfLCC_*}). A fuel term of a
 grouped fuel class (e.g. \code{dom_agb_Pp_tr.Bt_pa.Pp_ba}) is one coefficient per member species (\code{dom_agb_Popu_tre},
