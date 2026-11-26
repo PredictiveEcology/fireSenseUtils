@@ -4,17 +4,18 @@
 \alias{annualYearWeights}
 \title{Year weights of the annual-area term from the year's climate}
 \usage{
-annualYearWeights(z, yearWeights = c("equal", "climate"), floor = 0.25)
+annualYearWeights(z, type = c("equal", "climate"), floor = 0.25)
 }
 \arguments{
 \item{z}{Named numeric: the standardised climate of each fit year (\code{\link[=spreadYearClimate]{spreadYearClimate()}}); can be \code{NULL} for \code{"equal"}.}
 
-\item{yearWeights}{\code{"equal"} or \code{"climate"}.}
+\item{type}{\code{"equal"} or \code{"climate"}.}
 
 \item{floor}{Smallest \code{abs(z)} before rescaling, default 0.25.}
 }
 \value{
-A numeric vector, one weight per year, averaging 1.
+A numeric vector, one weight per year (names of \code{z} kept), averaging 1. The one rule for the spread
+objective's annual-area term and the ignition and escape year terms.
 }
 \description{
 \code{"equal"}: 1 for every year. \code{"climate"}: \code{max(abs(z), floor)} for each year's standardised climate \code{z}, rescaled
@@ -22,4 +23,3 @@ to average 1, so years with extreme climate (either way) count more, an average 
 and the term's scale is unchanged on average. Climate, not area burned, because a forecast knows the climate
 of a year and not its area.
 }
-\keyword{internal}

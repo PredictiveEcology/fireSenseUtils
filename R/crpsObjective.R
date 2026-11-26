@@ -88,13 +88,14 @@ annualTotals <- function(repSizes, years, Nreps) {
 #' of a year and not its area.
 #'
 #' @param z Named numeric: the standardised climate of each fit year ([spreadYearClimate()]); can be `NULL` for `"equal"`.
-#' @param yearWeights `"equal"` or `"climate"`.
+#' @param type `"equal"` or `"climate"`.
 #' @param floor Smallest `abs(z)` before rescaling, default 0.25.
-#' @return A numeric vector, one weight per year, averaging 1.
-#' @keywords internal
-annualYearWeights <- function(z, yearWeights = c("equal", "climate"), floor = 0.25) {
-  yearWeights <- match.arg(yearWeights)
-  if (identical(yearWeights, "equal")) return(rep(1, length(z)))
+#' @return A numeric vector, one weight per year (names of `z` kept), averaging 1. The one rule for the spread
+#'   objective's annual-area term and the ignition and escape year terms.
+#' @export
+annualYearWeights <- function(z, type = c("equal", "climate"), floor = 0.25) {
+  type <- match.arg(type)
+  if (identical(type, "equal")) return(rep(1, length(z)))
   w <- pmax(abs(z), floor)
   w / mean(w)
 }

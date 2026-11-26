@@ -90,9 +90,17 @@ spreadYearClimate <- function(annualDTx1000, variable = "CMDsm", years = names(a
   standardiseYearClimate(mean)
 }
 
-## (x - mean(x)) / sd(x), names kept; all 0 if the years do not differ
-standardiseYearClimate <- function(x) {
-  sdx <- stats::sd(x)
-  x[] <- if (is.finite(sdx) && sdx > 0) (x - mean(x)) / sdx else 0
+#' Standardise the yearly climate of a fit
+#'
+#' `(x - center) / scale`, names kept; all 0 if `scale` is 0 or not finite (the years do not differ). The one
+#' standardisation of the year climate for the spread objective ([spreadYearClimate()]) and the ignition and
+#' escape year terms.
+#'
+#' @param x Numeric: the yearly means of a climate covariate over the fit years.
+#' @param center,scale Default the mean and standard deviation of `x`.
+#' @return A numeric vector like `x`.
+#' @export
+standardiseYearClimate <- function(x, center = mean(x), scale = stats::sd(x)) {
+  x[] <- if (is.finite(scale) && scale > 0) (x - center) / scale else 0
   x
 }

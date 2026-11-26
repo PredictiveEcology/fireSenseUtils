@@ -346,3 +346,11 @@ test_that("a given yearClimateZ is standardised again over the fit years", {
   expect_equal(standardiseYearClimate(c(a = 1, b = 3)), c(a = -1, b = 1) / sqrt(2))
   expect_equal(standardiseYearClimate(c(a = 2, b = 2)), c(a = 0, b = 0))
 })
+
+test_that("annualYearWeights(type =) and standardiseYearClimate(center, scale) are exported, the one rule for every year term", {
+  expect_true(all(c("annualYearWeights", "standardiseYearClimate") %in% getNamespaceExports("fireSenseUtils")))
+  expect_equal(fireSenseUtils::annualYearWeights(c(a = 1, b = -3), type = "equal"), c(1, 1))
+  expect_equal(mean(fireSenseUtils::annualYearWeights(c(a = 0.1, b = -3, c = 1), "climate")), 1)
+  expect_equal(fireSenseUtils::standardiseYearClimate(c(a = 1, b = 5), center = 1, scale = 2), c(a = 0, b = 2))
+  expect_equal(fireSenseUtils::standardiseYearClimate(c(a = 1, b = 3)), c(a = -1, b = 1) / sqrt(2))
+})
