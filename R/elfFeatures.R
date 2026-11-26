@@ -8,7 +8,7 @@
 #' coefficient is the mean over the row's parameter sets (`params`, one row per set). Coefficients are comparable
 #' only between fits of one model form, so only the ELFs whose row has the most common form get values: the same
 #' `spreadLink`, `spreadClimate` (predictor, ceiling or activation) and `fuelScale`, and the same climate split
-#' (a `_yr` and `_dev` term per climate variable, or one term; see [isClimateSplitCol()]). The climate variable itself
+#' (a `_yr` and `_dev` term per climate variable, or one term; see [isClimateSplitCol()]) and the same curve term (`_curve`; see [climateCurveSuffix]). The climate variable itself
 #' does not matter: each variable is its own coefficient (`CMD`, `cumMDC`, ...) and appears only for the ELFs that
 #' fitted it, as do the fuel terms (`youngAge`, `treedWetland_agb`, `dom_agb_*`, `sec_agb_*`, `nfLCC_*`). A fuel term of a
 #' grouped fuel class (e.g. `dom_agb_Pp_tr.Bt_pa.Pp_ba`) is one coefficient per member species (`dom_agb_Popu_tre`,
@@ -107,11 +107,12 @@ elfFuelEffects <- function(rows) {
 .paramMeans <- function(rows) lapply(rows$params, function(p) vapply(as.list(p), mean, numeric(1), na.rm = TRUE))
 
 ## The model form of each row: the coefficients are comparable only between rows that agree on it (link, where climate
-## enters, fuel scale, and whether the climate is split into a year and a departure). `means`: the row's mean parameters.
+## enters, fuel scale, whether the climate is split into a year and a departure, and whether it has a curve term). `means`: the row's mean parameters.
 .modelForm <- function(rows, means = .paramMeans(rows)) {
   column <- function(x) if (x %in% names(rows)) as.character(rows[[x]]) else rep(NA_character_, NROW(rows))
   paste(column(spreadLinkTxt), column(spreadClimateTxt), column(spreadFitFuelScaleTxt),
-        vapply(means, function(m) any(isClimateSplitCol(names(m))), logical(1)), sep = "|")
+        vapply(means, function(m) any(isClimateSplitCol(names(m))), logical(1)),
+        vapply(means, function(m) any(isClimateTermCol(names(m), climateCurveSuffix)), logical(1)), sep = "|")
 }
 
 ## The table `elfSpreadCoefs()` returns, columns in this order (no arguments: no rows)

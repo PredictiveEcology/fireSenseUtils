@@ -19,9 +19,13 @@ test_that("softplus is s * log(1 + exp(x / s)), smooth, near 0 below and near x 
 })
 
 test_that("the term is named <var>_curve, per variable", {
-  expect_identical(climateCurveCols(c("CMD", "Tmaxsm")), c("CMD_curve", "Tmaxsm_curve"))
-  expect_identical(climateCurveBase(c("CMD_curve", "CMD_yr", "CMD")), c("CMD", "CMD_yr", "CMD"))
-  expect_identical(isClimateCurveCol(c("CMD_curve", "CMD_yr", "CMD", "class1")), c(TRUE, FALSE, FALSE, FALSE))
+  expect_identical(climateTermCols(c("CMD", "Tmaxsm"), climateCurveSuffix), c("CMD_curve", "Tmaxsm_curve"))
+  expect_identical(climateTermBase(c("CMD_curve", "CMD_yr", "CMD"), climateCurveSuffix), c("CMD", "CMD_yr", "CMD"))
+  expect_identical(isClimateTermCol(c("CMD_curve", "CMD_yr", "CMD", "class1"), climateCurveSuffix), c(TRUE, FALSE, FALSE, FALSE))
+  ## one set of helpers: the split terms are the same call with their suffixes, and every term is found with all of them
+  expect_identical(climateSplitCols(c("CMD", "Tmaxsm")), climateTermCols(c("CMD", "Tmaxsm"), c("_yr", "_dev")))
+  expect_identical(climateTermBase(c("CMD_yr", "CMD_dev", "CMD_curve", "CMD"), climateTermSuffixes), rep("CMD", 4))
+  expect_identical(isClimateSplitCol("CMD_curve"), FALSE)
 })
 
 test_that("the centre is the median and the scale the sd over the reference rows of all years, NA left out", {
@@ -70,7 +74,36 @@ test_that("the fixed range is 0 to half the variable's width; given ranges win",
   expect_identical(r$CMD_curve, c(0, 50))
   expect_identical(r$Tmaxsm_curve, c(0, 5))
   expect_setequal(names(climateCurveRanges(climateCovRanges)),
-                  c(names(climateCovRanges), climateCurveCols(names(climateCovRanges))))
+                  c(names(climateCovRanges), climateTermCols(names(climateCovRanges), climateCurveSuffix)))
   expect_identical(climateCurveRanges(list()), list())
   expect_identical(climateCurveRanges(list(CMD = c(0, 100), CMD_curve = c(0, 1)))$CMD_curve, c(0, 1))
+})
+
+test_that("a curve fit keeps its climate variable in the ledger inputs, with or without the split (spreadFitLedgerInputs)", {
+  skip_if_not_installed("climateData")
+  inputs <- function(...) {
+    pars <- data.frame(maxAsymptote = 0.3, hillSlope1 = 1, inflectionPoint1 = 1, ..., youngAge = 0.1, class1 = 0.1)
+    row <- data.frame(numIterations = 10L)
+    row[[polygonIDTxt]] <- "6.6.2"
+    row$params <- list(pars)
+    row$sppEquiv <- list(data.table::data.table(LandR = "Pice_mar", FuelClass = "class1"))
+    row$nonForestedLCCGroups <- list(list(nf_A = 40))
+    row$missingLCCgroup <- "nf_A"
+    suppressWarnings(suppressMessages(
+      spreadFitLedgerInputs(row, sppEquivCol = "LandR", fuelClassCol = "FuelClass", studyArea = NULL)))[["6.6.2"]]
+  }
+  expect_identical(inputs(CMD = 0.1, CMD_curve = 0.1)$theseClimVars, "CMD")
+  expect_identical(inputs(CMD_yr = 0.1, CMD_dev = 0.1, CMD_curve = 0.1)$theseClimVars, "CMD")
+  expect_identical(inputs(CMD_curve = 0.1)$theseClimVars, "CMD")     # the curve term alone still names its variable
+})
+
+test_that("ledgerListCol() is the one reader of a list column: the three ledger readers give what they gave", {
+  sa <- data.frame(polygonID = c("A", "B"))
+  sa[[spreadFitClimateRefTxt]] <- I(list(list(CMD = 1), NULL))
+  sa[[spreadFitCovCentreTxt]] <- I(list(list(CMD = 2), list()))
+  expect_identical(ledgerListCol(sa, 1L, spreadFitClimateRefTxt), list(CMD = 1))
+  expect_identical(ledgerClimateRef(sa, 1L), list(CMD = 1))
+  expect_identical(ledgerCovCentre(sa, 1L), list(CMD = 2))
+  expect_null(ledgerClimateRef(sa, 2L)); expect_null(ledgerCovCentre(sa, 2L))
+  expect_null(ledgerClimateCurvePars(sa, 1L))                        # no such column
 })

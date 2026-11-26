@@ -33,25 +33,11 @@ softplus <- function(x, s = 1) pmax(x, 0) + s * log1p(exp(-abs(x) / s))
 #' fixed range ([climateCurveRanges()]).
 #'
 #' @param vars character; climate variables, as named in the annual tables (`"CMD"`, `"Tmaxsm"`).
-#' @return `climateCurveCols()`: the curve term of each variable, `<var>_curve`.
-#' @export
-#' @rdname climateCurve
-climateCurveCols <- function(vars) paste0(vars, climateCurveSuffix)
-
+#' @return `climateCurveSuffix`: `"_curve"`, the ending of a curve term (`<var>_curve`). Its names, `isClimateTermCol()` and
+#'   `climateTermBase()` work as for the split terms (internal, in `R/climateSplit.R`).
 #' @export
 #' @rdname climateCurve
 climateCurveSuffix <- "_curve"
-
-#' @param x character; column or parameter names.
-#' @return `isClimateCurveCol()`: logical, `TRUE` for the names that end in `_curve`. `climateCurveBase()`: `x`
-#'   with that ending removed, i.e. the climate variable of a term.
-#' @export
-#' @rdname climateCurve
-isClimateCurveCol <- function(x) grepl(paste0(climateCurveSuffix, "$"), x)
-
-#' @export
-#' @rdname climateCurve
-climateCurveBase <- function(x) sub(paste0(climateCurveSuffix, "$"), "", x)
 
 #' @param ref `data.table` with the climate variables `vars`: the rows (the ELF's burnable pixels in all the fit's
 #'   years) the centre and scale are taken over.
@@ -76,7 +62,7 @@ climateCurvePars <- function(ref, vars) {
 addClimateCurve <- function(dt, pars) {
   checkClimateCurvePars(pars)
   for (v in names(pars))
-    data.table::set(dt, NULL, climateCurveCols(v), softplus(dt[[v]] - pars[[v]][["k"]], pars[[v]][["s"]]))
+    data.table::set(dt, NULL, climateTermCols(v, climateCurveSuffix), softplus(dt[[v]] - pars[[v]][["k"]], pars[[v]][["s"]]))
   invisible(dt)
 }
 
@@ -98,8 +84,5 @@ checkClimateCurvePars <- function(pars) {
 #' @param ranges named list of `c(min, max)`, as `climateCovRanges`.
 #' @return `ranges` with the curve term of each of its variables added.
 #' @export
-climateCurveRanges <- function(ranges) {
-  if (!length(ranges)) return(ranges)
-  derived <- stats::setNames(lapply(ranges, function(r) c(0, diff(r) / 2)), climateCurveCols(names(ranges)))
-  c(ranges, derived[setdiff(names(derived), names(ranges))])
-}
+climateCurveRanges <- function(ranges)
+  climateTermRanges(ranges, stats::setNames(list(function(r) c(0, diff(r) / 2)), climateCurveSuffix))

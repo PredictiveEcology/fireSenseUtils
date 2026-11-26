@@ -22,8 +22,7 @@
 #' @return `climateSplitCols()`: the two terms of each variable, `<var>_yr` then `<var>_dev`, variable by variable.
 #' @export
 #' @rdname climateSplit
-climateSplitCols <- function(vars) as.vector(rbind(paste0(vars, climateSplitYrSuffix),
-                                                   paste0(vars, climateSplitDevSuffix)))
+climateSplitCols <- function(vars) climateTermCols(vars, c(climateSplitYrSuffix, climateSplitDevSuffix))
 
 #' @export
 #' @rdname climateSplit
@@ -38,11 +37,48 @@ climateSplitDevSuffix <- "_dev"
 #'   `climateSplitBase()`: `x` with those endings removed, i.e. the climate variable of a term.
 #' @export
 #' @rdname climateSplit
-isClimateSplitCol <- function(x) grepl(paste0("(", climateSplitYrSuffix, "|", climateSplitDevSuffix, ")$"), x)
+isClimateSplitCol <- function(x) isClimateTermCol(x, c(climateSplitYrSuffix, climateSplitDevSuffix))
 
 #' @export
 #' @rdname climateSplit
-climateSplitBase <- function(x) sub(paste0("(", climateSplitYrSuffix, "|", climateSplitDevSuffix, ")$"), "", x)
+climateSplitBase <- function(x) climateTermBase(x, c(climateSplitYrSuffix, climateSplitDevSuffix))
+
+#' The climate terms made from a climate variable by a suffix
+#'
+#' The one set of helpers for the terms of a climate variable `C` that are `C` and a suffix: `C_yr` and `C_dev`
+#' ([climateSplitCols()]), `C_curve` ([climateCurveSuffix]). The split and curve helpers call them.
+#'
+#' @param vars character; climate variables.
+#' @param suffixes character; the suffixes of the terms, e.g. `climateTermSuffixes` (every term there is).
+#' @return `climateTermCols()`: the terms of each variable, suffix by suffix within a variable, variable by variable.
+#' @export
+#' @rdname climateTerm
+climateTermCols <- function(vars, suffixes) as.vector(do.call(rbind, lapply(suffixes, function(sfx) paste0(vars, sfx))))
+
+#' @param x character; column or parameter names.
+#' @return `isClimateTermCol()`: logical, `TRUE` for the names that end in one of `suffixes`. `climateTermBase()`: `x`
+#'   with that ending removed, i.e. the climate variable of a term.
+#' @export
+#' @rdname climateTerm
+isClimateTermCol <- function(x, suffixes) grepl(paste0("(", paste(suffixes, collapse = "|"), ")$"), x)
+
+#' @export
+#' @rdname climateTerm
+climateTermBase <- function(x, suffixes) sub(paste0("(", paste(suffixes, collapse = "|"), ")$"), "", x)
+
+#' @format `climateTermSuffixes`: every suffix of a climate term, `_yr`, `_dev` and `_curve`.
+#' @export
+#' @rdname climateTerm
+climateTermSuffixes <- c(climateSplitYrSuffix, climateSplitDevSuffix, climateCurveSuffix)
+
+## `ranges` with the derived ranges of each term added: `terms` is a named list, the suffix of a term to the function that
+## makes its range from the variable's `c(min, max)`. A range already in `ranges` for a term's name is kept.
+climateTermRanges <- function(ranges, terms) {
+  if (!length(ranges)) return(ranges)
+  derived <- unlist(lapply(names(terms), function(sfx)
+    stats::setNames(lapply(ranges, terms[[sfx]]), paste0(names(ranges), sfx))), recursive = FALSE)
+  c(ranges, derived[setdiff(names(derived), names(ranges))])
+}
 
 #' @param dt `data.table` with the climate variables `vars` and the rows to give the two terms to.
 #'   Changed by reference: each variable is replaced by its `_yr` and `_dev` columns.
@@ -79,13 +115,9 @@ splitSpreadClimate <- function(dt, vars, ref, by = NULL) {
 #' @param ranges named list of `c(min, max)`, as `climateCovRanges`.
 #' @return `ranges` with the two split terms of each of its variables added.
 #' @export
-climateSplitRanges <- function(ranges) {
-  if (!length(ranges)) return(ranges)
-  derived <- c(stats::setNames(ranges, paste0(names(ranges), climateSplitYrSuffix)),
-               stats::setNames(lapply(ranges, function(r) c(-1, 1) * diff(r) / 2),
-                               paste0(names(ranges), climateSplitDevSuffix)))
-  c(ranges, derived[setdiff(names(derived), names(ranges))])
-}
+climateSplitRanges <- function(ranges)
+  climateTermRanges(ranges, stats::setNames(list(identity, function(r) c(-1, 1) * diff(r) / 2),
+                                            c(climateSplitYrSuffix, climateSplitDevSuffix)))
 
 #' The pixels a year's climate median is taken over
 #'
