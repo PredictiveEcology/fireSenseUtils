@@ -63,10 +63,10 @@ yearClimateMeans <- function(covariates, variable) {
 yearClimateMultiplier <- function(yearClimate, yearMean) {
   if (is.null(yearClimate)) return(rep(1, length(yearMean)))
   norm <- if (is.null(yearClimate$norm)) 1 else yearClimate$norm
-  x <- yearMean - yearClimate$center
+  z <- standardiseYearClimate(yearMean, yearClimate$center, yearClimate$scale)
   if (identical(yearClimate$shape, "logistic"))
-    return((1 + (yearClimate$ratio - 1) * stats::plogis(yearClimate$k * x / yearClimate$scale)) / norm)
-  exp(yearClimate$beta * x / yearClimate$scale) / norm   # a term without `shape`: the arithmetic of old, to the last bit
+    return(logisticYearCurve(z, yearClimate$k, yearClimate$ratio) / norm)
+  exp(yearClimate$beta * z) / norm
 }
 
 #' The standardised climate of each fit year of a spread fit
@@ -114,3 +114,20 @@ standardiseYearClimate <- function(x, center = mean(x), scale = stats::sd(x)) {
   x[] <- if (is.finite(scale) && scale > 0) (x - center) / scale else 0
   x
 }
+
+#' The logistic year climate curve
+#'
+#' `1 + (ratio - 1) * plogis(k * z)`: an S-curve in the standardised climate `z`, through its midpoint at `z = 0` (the
+#' ELF's average year), from a floor of 1 (wet) to an upper level of `ratio` (dry); `k >= 0` is its steepness, per
+#' standard deviation, and `ratio >= 1`. It is always positive and saturates beyond the fit range.
+#' [yearClimateMultiplier()] divides it by `norm`; `fireSense_ignitionFit` fits `k` and `ratio`. The one place the
+#' formula lives.
+#'
+#' @param z Numeric: the standardised yearly climate.
+#' @param k Steepness, `>= 0`.
+#' @param ratio Upper level over the floor, `>= 1`.
+#' @return Numeric, one value per `z`.
+#' @export
+#' @examples
+#' logisticYearCurve(c(-50, -1, 0, 1, 50), k = 2, ratio = 4)
+logisticYearCurve <- function(z, k, ratio) 1 + (ratio - 1) * stats::plogis(k * z)
