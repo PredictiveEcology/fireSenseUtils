@@ -6,6 +6,12 @@ utils::globalVariables(c(
 
 #' Locate per-replicate simulation output files
 #'
+#' The replicates are the replicate folders that occur in `simFiles` (`rep3`, `rep03` or a
+#' bare `3`), as `SpaDES.core::dirnamesFromSet()` finds them. Each replicate's file is the one
+#' named `filename` directly in its folder (`SpaDES.core::repFiles()`), so a file of the same
+#' name in a subfolder of a replicate, or in a folder that is not a replicate, is not taken for
+#' a replicate's. A replicate with no such file stops.
+#'
 #' @param simFiles character vector of simulation output file paths (e.g. the `file`
 #'    column of `SpaDES.core::outputs(sim)`).
 #'
@@ -24,23 +30,18 @@ utils::globalVariables(c(
          "column of SpaDES.core::outputs(sim).", call. = FALSE)
   }
 
-  f <- simFiles[basename(simFiles) == filename]
-  ## the replicate folder of each file (`rep3`, `rep03` or a bare `3`), as SpaDES.core finds it
-  repDir <- vapply(f, function(x) {
-    d <- SpaDES.core::dirnamesFromSet(x, set = .maxReps, leafOnly = FALSE)
-    if (length(d)) d else NA_character_
-  }, character(1), USE.NAMES = FALSE)
-  repNum <- as.integer(sub("^.*?([0-9]+)$", "\\1", basename(repDir), perl = TRUE))
-  f <- f[!is.na(repNum)]
-  repNum <- repNum[!is.na(repNum)]
-
-  if (length(f) == 0L) {
+  ## a path listed twice (e.g. in the row-bound outputs of several runs) is one file
+  simFiles <- unique(as.character(simFiles))
+  if (!any(basename(simFiles) == filename)) {
     stop("no file named '", filename, "' found among `simFiles`.", call. = FALSE)
   }
 
-  f <- f[order(repNum)]
-  names(f) <- as.character(sort(repNum))
-  f
+  ## the replicate folders, named by replicate number and in that order
+  repDirs <- SpaDES.core::dirnamesFromSet(simFiles, set = .maxReps, leafOnly = FALSE)
+  if (length(repDirs) == 0L) {
+    stop("no replicate folder (e.g. `rep1`, `rep01` or `1`) found among `simFiles`.", call. = FALSE)
+  }
+  SpaDES.core::repFiles(repDirs, filename, simFiles)
 }
 
 #' Stop with the errors raised inside `mclapply()`
