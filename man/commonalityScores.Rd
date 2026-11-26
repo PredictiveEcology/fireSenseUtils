@@ -4,20 +4,26 @@
 \alias{commonalityScores}
 \title{What each of four fits explains of the between-year and the fire-size signal, from their ledger rows}
 \usage{
-commonalityScores(rows)
+commonalityScores(rows, annualAreas = NULL)
 }
 \arguments{
 \item{rows}{A named list of four one-row ledger rows, \code{none}, \code{climate}, \code{fuel} and \code{climateFuel}: one ELF's fits with no
 covariate, climate only, fuel only, and both.}
+
+\item{annualAreas}{\code{NULL}, or a list named as \code{rows} (a fit may be missing): each fit's annual areas from its hindcasts,
+\code{\link[=hindcastAnnualAreas]{hindcastAnnualAreas()}} (\code{obs}, \code{simMedian}).}
 }
 \value{
-A \code{data.frame} for \code{\link[=commonalityPartition]{commonalityPartition()}}: \code{signal}, \code{fit}, \code{climate}, \code{fuel} and \code{explained}.
+A \code{data.frame} for \code{\link[=commonalityPartition]{commonalityPartition()}}: \code{signal}, \code{fit}, \code{climate}, \code{fuel}, \code{explained} and \code{annualSource}.
 }
 \description{
-From each row's in-sample fire-size validation (\code{spreadFitInSampleSizesTxt}, written by \code{fireSense_spreadFit}):
 \itemize{
-\item signal \code{"between"}: \code{\link[=annualAreaExplained]{annualAreaExplained()}} of the observed annual areas by the fit's simulated median ones (\code{byYear});
-\item signal \code{"within"}: the reduction of the per-fire squared error of log10 size (\code{sizes$fireRMSE^2}) from the fit with no
-covariate, \code{1 - fireRMSE^2 / fireRMSE_none^2}. It is 0 for that fit by definition; a fit worse than it is negative.
+\item signal \code{"between"}: \code{\link[=annualAreaExplained]{annualAreaExplained()}} of the observed annual areas by the fit's simulated median ones. From the
+hindcasts (\code{annualAreas}, \code{\link[=hindcastAnnualAreas]{hindcastAnnualAreas()}}) when all four fits have one, else from each row's in-sample fire-size
+validation (\code{spreadFitInSampleSizesTxt}, \code{byYear}, written by \code{fireSense_spreadFit}) for all four, so the four are
+always compared on the same years; column \code{annualSource} says which (\code{"hindcast"}, \code{"inSample"});
+\item signal \code{"within"}: the reduction of the in-sample per-fire squared error of log10 size (\code{sizes$fireRMSE^2}) from the fit
+with no covariate, \code{1 - fireRMSE^2 / fireRMSE_none^2}. It is 0 for that fit by definition; a fit worse than it is
+negative. \code{annualSource} is \code{NA}.
 }
 }

@@ -144,6 +144,44 @@ test_that("commonalityScores() reads each fit's in-sample annual areas and fire 
   expect_error(commonalityScores(rows[1:3]), "climateFuel")
 })
 
+test_that("commonalityScores() takes the between-year score from hindcast annual areas when every fit has them", {
+  yrs <- 2001:2008
+  obs <- c(10, 200, 50, 3000, 20, 800, 5, 100)
+  fit <- function(sim, fireRMSE) {
+    row <- data.frame(polygonID = "4.1")
+    row[[spreadFitInSampleSizesTxt]] <- list(list(sizes = data.table::data.table(fireRMSE = fireRMSE),
+                                                  byYear = data.table::data.table(yr = yrs, obs = obs, simMedian = sim)))
+    row
+  }
+  ## in sample, every fit explains it all; the hindcast says only climate does
+  rows <- list(none = fit(obs, 1), climate = fit(obs, 0.8), fuel = fit(obs, 0.5), climateFuel = fit(obs, 0.4))
+  hc <- function(sim) hindcastAnnualAreas(
+    reps = data.frame(year = rep(yrs, each = 3), rep = 1:3, areaBurnedHa = rep(sim, each = 3) * c(0.5, 1, 4)),
+    observed = data.frame(year = yrs, areaBurnedHa = obs))
+  areas <- list(none = hc(rep(100, 8)), climate = hc(obs), fuel = hc(rep(100, 8)), climateFuel = hc(obs))
+  expect_equal(areas$climate$simMedian, obs)                       # the median over the runs of each year
+  sc <- commonalityScores(rows, annualAreas = areas)
+  b <- sc[sc$signal == "between", ]
+  expect_identical(unique(b$annualSource), "hindcast")
+  expect_equal(b$explained, c(0, 1, 0, 1))
+  ## a fit without a hindcast: the in-sample table for every fit, so the four are comparable
+  sc2 <- commonalityScores(rows, annualAreas = areas[-3])
+  expect_identical(unique(sc2$annualSource[sc2$signal == "between"]), "inSample")
+  expect_equal(sc2$explained[sc2$signal == "between"], c(1, 1, 1, 1))
+  cp <- commonalityPartition(sc)
+  expect_identical(unique(cp$annualSource[cp$signal == "between"]), "hindcast")
+})
+
+test_that("linearFuelCovs() makes the fuels the ranges call linear, and leaves the others", {
+  dt <- data.table::data.table(pixelID = 1:3, dom_agb_Pice_mar = logMinB(c(0, 100, 5000)), CMD = c(1, 2, 3),
+                               sec_agb_old = logMinB(c(0, 100, 5000)))
+  ranges <- data.table::data.table(dom_agb_Pice_mar = fuelLinearRange, CMD = c(0, 100), sec_agb_old = c(3, 9))
+  out <- linearFuelCovs(data.table::copy(dt), ranges)
+  expect_equal(out$dom_agb_Pice_mar, c(0, 100, 5000))
+  expect_identical(out$CMD, dt$CMD)
+  expect_identical(out$sec_agb_old, dt$sec_agb_old)           # a log-scale range: left on the log scale
+})
+
 test_that("plotSignalPartition() draws both partitions", {
   tb <- vpTables(climPixel = TRUE)
   row <- vpRow(list(CMD = 1, dom_agb_Pice_mar = 2, youngAge = -1))

@@ -11,7 +11,8 @@ commonalityPartition(scores)
 \code{explained} (the share of the signal the fit explains) and, optionally, \code{signal}. \code{\link[=commonalityScores]{commonalityScores()}} makes it.}
 }
 \value{
-A \code{data.frame}: \code{signal}, \code{part} (\code{"baseline"}, \code{"climate"}, \code{"fuel"}, \code{"shared"}, \code{"unexplained"}) and \code{share}.
+A \code{data.frame}: \code{signal}, \code{part} (\code{"baseline"}, \code{"climate"}, \code{"fuel"}, \code{"shared"}, \code{"unexplained"}) and \code{share};
+and \code{annualSource} when \code{scores} has it.
 }
 \description{
 Commonality analysis of two groups of terms. With \code{R0}, \code{Rc}, \code{Rf} and \code{Rcf} the share of a signal explained by the fit

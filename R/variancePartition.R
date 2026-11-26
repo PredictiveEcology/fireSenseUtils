@@ -10,6 +10,24 @@ utils::globalVariables(c("part", "share", "signal"))
 ## The groups of spreadTermGroups(), in the order they are reported
 .spreadTermGroupOrder <- c("climate", "fuel", "youngAge", "nonForest", "other")
 
+#' Fuel covariates on the scale of the fit
+#'
+#' A fit made on linear fuel biomass records it in its ranges: such a fuel's entry of `covMinMax_spread` is
+#' [fuelLinearRange] ([isLinearFuelRange()]). Each such column of `dt` is put on the linear scale ([fuelLogToLinear()]); the
+#' other columns, and a fuel of a fit made on the log scale, are left as they are.
+#'
+#' @param dt A `data.table` of covariates as `fireSenseCovariatesCreate()` makes them (fuel as [logMinB()]). Changed by
+#'   reference.
+#' @param ranges The fit's ranges, `covMinMax_spread` ([ledgerCovMinMax()]): a `data.table` or list, one `c(min, max)` per
+#'   covariate.
+#' @return `dt`.
+#' @export
+linearFuelCovs <- function(dt, ranges) {
+  linear <- names(ranges)[vapply(ranges, isLinearFuelRange, logical(1))]
+  for (cn in intersect(linear, names(dt))) data.table::set(dt, NULL, cn, fuelLogToLinear(dt[[cn]]))
+  dt
+}
+
 #' The groups of the spread model's terms
 #'
 #' Each design column of a spread fit ([spreadDesignCols()], or the coefficient names of a ledger row) in one group:
@@ -26,10 +44,8 @@ utils::globalVariables(c("part", "share", "signal"))
 spreadTermGroups <- function(designCols, climateCols) {
   groupOf <- function(cn) {
     if (cn %in% climateCols) return("climate")
-    if (cn == youngAgeTxt) return("youngAge")
-    if (startsWith(cn, "nfLCC_")) return("nonForest")
-    if (length(spreadFuelCols(cn))) return("fuel")
-    "other"
+    if (!length(spreadIndicatorCols(cn))) return("fuel")             # not an indicator: fuel biomass (spreadFuelCols())
+    if (cn == youngAgeTxt) "youngAge" else if (cn == treedWetlandTxt) "other" else "nonForest"
   }
   cols <- spreadCovCols(designCols)
   stats::setNames(vapply(cols, function(cn) {
@@ -65,13 +81,9 @@ spreadDesignByYear <- function(row, annualCovariates, nonAnnualCovariates) {
   covMinMax <- ledgerCovMinMax(row, 1L)
   if (is.null(covMinMax)) stop("spreadDesignByYear(): the ledger row has no covMinMax_spread", call. = FALSE)
   covMinMax <- covMinMax[, intersect(names(covMinMax), sources), with = FALSE]
-  linearFuel <- names(covMinMax)[vapply(covMinMax, isLinearFuelRange, logical(1))]
   ## a copy of each table, of its columns the design uses, fuel on the scale of the fit, x1000 as the objective has them
-  prepare <- function(tables) toX1000(lapply(tables, function(dt) {
-    dt <- data.table::as.data.table(dt)[, intersect(c("pixelID", sources), names(dt)), with = FALSE]
-    for (cn in intersect(linearFuel, names(dt))) data.table::set(dt, NULL, cn, fuelLogToLinear(dt[[cn]]))
-    dt
-  }))
+  prepare <- function(tables) toX1000(lapply(tables, function(dt)
+    linearFuelCovs(data.table::as.data.table(dt)[, intersect(c("pixelID", sources), names(dt)), with = FALSE], covMinMax)))
   annualX <- prepare(annualCovariates)
   nonAnnualX <- prepare(nonAnnualCovariates)
   climateCols <- annualCovariateCols(sources, names(annualX[[1L]]))
@@ -211,7 +223,8 @@ lmgShares <- function(Sigma) {
 #'
 #' @param scores A `data.frame`, one row per fit and signal: `climate` and `fuel` (logical: does the fit have them),
 #'   `explained` (the share of the signal the fit explains) and, optionally, `signal`. [commonalityScores()] makes it.
-#' @return A `data.frame`: `signal`, `part` (`"baseline"`, `"climate"`, `"fuel"`, `"shared"`, `"unexplained"`) and `share`.
+#' @return A `data.frame`: `signal`, `part` (`"baseline"`, `"climate"`, `"fuel"`, `"shared"`, `"unexplained"`) and `share`;
+#'   and `annualSource` when `scores` has it.
 #' @export
 commonalityPartition <- function(scores) {
   scores <- as.data.frame(scores)
@@ -225,23 +238,30 @@ commonalityPartition <- function(scores) {
       v
     }
     R0 <- R(FALSE, FALSE); Rc <- R(TRUE, FALSE); Rf <- R(FALSE, TRUE); Rcf <- R(TRUE, TRUE)
-    data.frame(signal = s$signal[1], part = c("baseline", "climate", "fuel", "shared", "unexplained"),
-               share = c(R0, Rcf - Rf, Rcf - Rc, Rc + Rf - Rcf - R0, 1 - Rcf))
+    out <- data.frame(signal = s$signal[1], part = c("baseline", "climate", "fuel", "shared", "unexplained"),
+                      share = c(R0, Rcf - Rf, Rcf - Rc, Rc + Rf - Rcf - R0, 1 - Rcf))
+    if (!is.null(s$annualSource)) out$annualSource <- s$annualSource[1]
+    out
   }))
 }
 
 #' What each of four fits explains of the between-year and the fire-size signal, from their ledger rows
 #'
-#' From each row's in-sample fire-size validation (`spreadFitInSampleSizesTxt`, written by `fireSense_spreadFit`):
-#' * signal `"between"`: [annualAreaExplained()] of the observed annual areas by the fit's simulated median ones (`byYear`);
-#' * signal `"within"`: the reduction of the per-fire squared error of log10 size (`sizes$fireRMSE^2`) from the fit with no
-#'   covariate, `1 - fireRMSE^2 / fireRMSE_none^2`. It is 0 for that fit by definition; a fit worse than it is negative.
+#' * signal `"between"`: [annualAreaExplained()] of the observed annual areas by the fit's simulated median ones. From the
+#'   hindcasts (`annualAreas`, [hindcastAnnualAreas()]) when all four fits have one, else from each row's in-sample fire-size
+#'   validation (`spreadFitInSampleSizesTxt`, `byYear`, written by `fireSense_spreadFit`) for all four, so the four are
+#'   always compared on the same years; column `annualSource` says which (`"hindcast"`, `"inSample"`);
+#' * signal `"within"`: the reduction of the in-sample per-fire squared error of log10 size (`sizes$fireRMSE^2`) from the fit
+#'   with no covariate, `1 - fireRMSE^2 / fireRMSE_none^2`. It is 0 for that fit by definition; a fit worse than it is
+#'   negative. `annualSource` is `NA`.
 #'
 #' @param rows A named list of four one-row ledger rows, `none`, `climate`, `fuel` and `climateFuel`: one ELF's fits with no
 #'   covariate, climate only, fuel only, and both.
-#' @return A `data.frame` for [commonalityPartition()]: `signal`, `fit`, `climate`, `fuel` and `explained`.
+#' @param annualAreas `NULL`, or a list named as `rows` (a fit may be missing): each fit's annual areas from its hindcasts,
+#'   [hindcastAnnualAreas()] (`obs`, `simMedian`).
+#' @return A `data.frame` for [commonalityPartition()]: `signal`, `fit`, `climate`, `fuel`, `explained` and `annualSource`.
 #' @export
-commonalityScores <- function(rows) {
+commonalityScores <- function(rows, annualAreas = NULL) {
   fits <- c("none", "climate", "fuel", "climateFuel")
   if (!all(fits %in% names(rows)))
     stop("commonalityScores(): `rows` must be named ", paste(fits, collapse = ", "), call. = FALSE)
@@ -252,9 +272,29 @@ commonalityScores <- function(rows) {
     v
   })
   fireMSE <- vapply(inSample, function(v) v$sizes$fireRMSE[[1L]]^2, numeric(1))
-  between <- vapply(inSample, function(v) annualAreaExplained(v$byYear$obs, v$byYear$simMedian), numeric(1))
+  hindcast <- all(fits %in% names(Filter(NROW, annualAreas)))
+  years <- if (hindcast) annualAreas[fits] else lapply(inSample, `[[`, "byYear")
+  between <- vapply(years, function(y) annualAreaExplained(y$obs, y$simMedian), numeric(1))
   data.frame(signal = rep(c("between", "within"), each = 4L), fit = fits, climate = fits %in% c("climate", "climateFuel"),
-             fuel = fits %in% c("fuel", "climateFuel"), explained = c(between, 1 - fireMSE / fireMSE[["none"]]))
+             fuel = fits %in% c("fuel", "climateFuel"), explained = c(between, 1 - fireMSE / fireMSE[["none"]]),
+             annualSource = rep(c(if (hindcast) "hindcast" else "inSample", NA_character_), each = 4L))
+}
+
+#' Observed and simulated area burned of each hindcast year
+#'
+#' From the tables the hindcast writes for each year (`fireSense_summary`: `hindcast_reps.csv`, `hindcast_observed.csv`),
+#' row-bound over years and parameter sets.
+#'
+#' @param reps The simulated runs: `year` and `areaBurnedHa`, one row per run (rep of a parameter set) and year.
+#' @param observed The observed year: `year` and `areaBurnedHa` (a year read more than once counts once).
+#' @return A `data.frame`, one row per year with both: `yr`, `obs` and `simMedian` (the median over the runs), as the in-sample
+#'   `byYear` of [commonalityScores()].
+#' @export
+hindcastAnnualAreas <- function(reps, observed) {
+  observed <- as.data.frame(observed)[!duplicated(observed$year), ]
+  sim <- stats::aggregate(list(simMedian = reps$areaBurnedHa), list(yr = reps$year), stats::median)
+  out <- merge(data.frame(yr = observed$year, obs = observed$areaBurnedHa), sim, by = "yr")
+  out[order(out$yr), ]
 }
 
 #' The share of the variation of observed annual area burned that simulated annual area explains
