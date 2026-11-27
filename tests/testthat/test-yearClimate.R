@@ -54,3 +54,14 @@ test_that("logisticYearCurve is an S-curve from 1 to ratio through its midpoint 
   expect_equal(logisticYearCurve(1, k = 2, ratio = 1), 1)
   expect_true(all(diff(logisticYearCurve(seq(-4, 4, 0.5), 1.5, 3)) > 0))
 })
+
+test_that("the capped shape is log-linear up to zCap and flat above; with zCap above the data it is the log-linear term", {
+  cp <- list(variable = "CMDsm", center = 5, scale = 2, shape = "capped", beta = 0.5, zCap = 1, norm = 2)
+  z <- c(-2, 0, 1, 2, 50)
+  expect_identical(yearClimateMultiplier(cp, 5 + 2 * z), cappedYearCurve(z, 0.5, 1) / 2)   # the one formula
+  expect_equal(yearClimateMultiplier(cp, 5 + 2 * z), exp(0.5 * c(-2, 0, 1, 1, 1)) / 2)
+  ll <- list(variable = "CMDsm", center = 5, scale = 2, beta = 0.5, norm = 2)
+  zz <- c(-2, 0, 0.9)
+  expect_equal(yearClimateMultiplier(cp, 5 + 2 * zz), yearClimateMultiplier(ll, 5 + 2 * zz))
+  expect_equal(cappedYearCurve(c(-1, 3), beta = 0, zCap = 0), c(1, 1))
+})

@@ -27,7 +27,9 @@ column (\link{yearTxt}) gives the years; without one all rows are one year.}
 With \code{shape = "logistic"} (absent: the log-linear term above, every fit made before) it is
 \code{list(variable, center, scale, shape, k, ratio, norm)}: the multiplier is
 \code{(1 + (ratio - 1) * plogis(k * z)) / norm}, an S-curve through its midpoint at \code{z = 0} (the ELF's average
-year) from a floor of 1 to an upper level of \code{ratio} (\code{ratio >= 1}, \code{k >= 0}), which saturates beyond the fit range.}
+year) from a floor of 1 to an upper level of \code{ratio} (\code{ratio >= 1}, \code{k >= 0}), which saturates beyond the fit range.
+With \code{shape = "capped"} it is \code{list(variable, center, scale, shape, beta, zCap, norm)}: the multiplier is
+\code{cappedYearCurve(z, beta, zCap) / norm = exp(beta * min(z, zCap)) / norm}, log-linear up to \code{zCap} and flat above it.}
 
 \item{yearMean}{The yearly mean(s) of \code{yearClimate$variable}, on the covariate's raw scale.}
 }
@@ -35,7 +37,7 @@ year) from a floor of 1 to an upper level of \code{ratio} (\code{ratio >= 1}, \c
 \code{yearClimateColumn()}: the element of \code{columns} that is \code{variable}; an error if there is none.
 \code{yearClimateMeans()}: a \code{data.frame} with \code{year} and \code{mean}, one row per year that has rows left.
 \code{yearClimateMultiplier()}: \code{exp(beta * z) / norm} (log-linear) or \code{(1 + (ratio - 1) * plogis(k * z)) / norm}
-(logistic) with \code{z = (yearMean - center) / scale}, 1 when \code{yearClimate} is \code{NULL}.
+(logistic) or \code{exp(beta * min(z, zCap)) / norm} (capped) with \code{z = (yearMean - center) / scale}, 1 when \code{yearClimate} is \code{NULL}.
 }
 \description{
 \code{fireSense_ignitionFit} can scale each year's expected ignitions, and separately its expected escapes, by \code{exp(beta * z_y) / norm}, with \code{beta >= 0}
