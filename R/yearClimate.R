@@ -20,12 +20,14 @@
 #'   `list(variable, center, scale, shape, k, ratio, norm)`: the multiplier is
 #'   `(1 + (ratio - 1) * plogis(k * z)) / norm`, an S-curve through its midpoint at `z = 0` (the ELF's average
 #'   year) from a floor of 1 to an upper level of `ratio` (`ratio >= 1`, `k >= 0`), which saturates beyond the fit range.
+#'   With `shape = "capped"` it is `list(variable, center, scale, shape, beta, zCap, norm)`: the multiplier is
+#'   `cappedYearCurve(z, beta, zCap) / norm = exp(beta * min(z, zCap)) / norm`, log-linear up to `zCap` and flat above it.
 #' @param yearMean The yearly mean(s) of `yearClimate$variable`, on the covariate's raw scale.
 #'
 #' @return `yearClimateColumn()`: the element of `columns` that is `variable`; an error if there is none.
 #'   `yearClimateMeans()`: a `data.frame` with `year` and `mean`, one row per year that has rows left.
 #'   `yearClimateMultiplier()`: `exp(beta * z) / norm` (log-linear) or `(1 + (ratio - 1) * plogis(k * z)) / norm`
-#'   (logistic) with `z = (yearMean - center) / scale`, 1 when `yearClimate` is `NULL`.
+#'   (logistic) or `exp(beta * min(z, zCap)) / norm` (capped) with `z = (yearMean - center) / scale`, 1 when `yearClimate` is `NULL`.
 #' @export
 #' @rdname yearClimate
 #' @examples
@@ -66,6 +68,8 @@ yearClimateMultiplier <- function(yearClimate, yearMean) {
   z <- standardiseYearClimate(yearMean, yearClimate$center, yearClimate$scale)
   if (identical(yearClimate$shape, "logistic"))
     return(logisticYearCurve(z, yearClimate$k, yearClimate$ratio) / norm)
+  if (identical(yearClimate$shape, "capped"))
+    return(cappedYearCurve(z, yearClimate$beta, yearClimate$zCap) / norm)
   exp(yearClimate$beta * z) / norm
 }
 
@@ -131,3 +135,19 @@ standardiseYearClimate <- function(x, center = mean(x), scale = stats::sd(x)) {
 #' @examples
 #' logisticYearCurve(c(-50, -1, 0, 1, 50), k = 2, ratio = 4)
 logisticYearCurve <- function(z, k, ratio) 1 + (ratio - 1) * stats::plogis(k * z)
+
+#' The capped log-linear year climate curve
+#'
+#' `exp(beta * pmin(z, zCap))`: log-linear in the standardised climate `z` up to `zCap`, flat above it. With `zCap` at or
+#' above the largest `z` of the fit years it is the log-linear term `exp(beta * z)` over those years, so the log-linear
+#' term is the nested case. [yearClimateMultiplier()] divides it by `norm`; `fireSense_ignitionFit` fits `beta` and
+#' `zCap`. The one place the formula lives.
+#'
+#' @param z Numeric: the standardised yearly climate.
+#' @param beta Slope per standard deviation below the cap, `>= 0`.
+#' @param zCap The `z` above which the curve is flat.
+#' @return Numeric, one value per `z`.
+#' @export
+#' @examples
+#' cappedYearCurve(c(-2, 0, 1, 3), beta = 0.5, zCap = 1)
+cappedYearCurve <- function(z, beta, zCap) exp(beta * pmin(z, zCap))

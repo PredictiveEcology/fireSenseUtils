@@ -1193,7 +1193,7 @@ objFunInner <- function(yr, annDTx1000, par, parsModel, # normal
         ## per fitted fire, its replicates' sizes against its observed size; a replicate with no row is left out
         pe <- simSizes[annualFires, on = c("initialLocus" = "cells")]
         ret <- append(ret, list(
-          crpsFire = pe[, list(s = crpsFireSizes(size[1], N[!is.na(N)], cut[!is.na(N)])), by = "ids"][, sum(s)],
+          crpsFire = sum(pe[, list(crps = crpsFireSizes(size[1], N[!is.na(N)], cut[!is.na(N)])), by = "ids"]$crps),
           crpsSizes = simSizes[, list(year = as.character(yr), rep, N)]))
       }
       if (isTRUE(doYearArea)) {
